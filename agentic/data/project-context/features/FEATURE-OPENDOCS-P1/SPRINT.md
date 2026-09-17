@@ -21,10 +21,10 @@ Parallelizable: 3, 4, 5, 6 have no dependency on each other once 2 exists — a 
 
 ## Not Included In This Sprint (Backlog)
 - TASK-007 (Share/File-Info/Open-With/permission-loss robustness) — blocked on an architecture decision (storage-access ADR).
-- TASK-008 (automated test coverage) — should not have been deferred past this sprint; flagged as the sprint's biggest process gap.
+- TASK-008 was subsequently implemented on 2026-09-17 as TASK_ONLY / NO_REPLAN: 33 automated tests pass. See [validation](validation/TASK-008-validation.md).
 
 ## UAT Target
-None set. No human has reviewed or approved this phase; `context_status: PARTIAL` in `project.yaml` reflects that.
+None set. The user approved TASK-008 implementation, but no phase-level UAT/release approval exists; `context_status: PARTIAL` in `project.yaml` reflects that.
 
 ## Explicitly Not Claimed
 - No capacity, velocity, or date data exists for this project, so none is invented here.

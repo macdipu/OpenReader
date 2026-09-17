@@ -19,7 +19,7 @@ Classification: `STORY_TASK` (see `SPRINT.md` for rationale). Scope: BRD §30 Ph
 | ODF-005, ODF-009, ODF-010 | Open With, Share, File Info | NOT DONE | [TASK-007](../project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-007.md) (backlog) |
 | ODF-008, ODF-021, ODF-023 | Reading position, missing-file, lost-permission handling | PARTIAL | [SRS](../project-context/features/FEATURE-OPENDOCS-P1/SRS.md) |
 | ODF-030 | Responsive with large files | UNVERIFIED | No test corpus run |
-| n/a | Automated test coverage | NOT DONE | [TASK-008](../project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-008.md) (backlog) |
+| n/a | Bounded automated test coverage | IMPLEMENTED | [TASK-008](../project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-008.md) (33 tests pass) |
 
 ## Design boundaries
 
@@ -29,8 +29,8 @@ Reuse the project's existing clean-architecture layering, `BaseController`/`Fail
 
 `flutter analyze`: 0 errors, 0 warnings introduced (168 pre-existing infos in untouched files remain). App was built, installed, and launched on a physical Android device (CPH2269, Android 11); reached `/splash` with no crash or exception in logs. Onboarding→Home visual confirmation was not completed because the test device's own lock screen (user's PIN/pattern) blocked further screen capture — not a code defect.
 
-No automated test suite exists for any of this phase's code (TASK-008, backlog). No human approval or UAT has been recorded (`SPRINT.md`). `context_status` in `agentic/data/project-context/project.yaml` remains `PARTIAL` — this phase should not be read as release-ready.
+TASK-008 adds 33 passing scanner, SQLite repository, and Home/All Files widget tests. The user approved that implementation scope on 2026-09-17. Current analysis exits 0 with 158 existing infos and no errors/warnings. No UAT or release approval has been recorded (`SPRINT.md`). `context_status` in `agentic/data/project-context/project.yaml` remains `PARTIAL` — this phase should not be read as release-ready.
 
 ## Process note
 
-Root cause of the backfill: this project runs in `instruction-only` mode (no `installation.json`, no `.claude/settings.json` hooks) — nothing enforces routing through the orchestrator/skills automatically. This is a candidate reason to enable `local-harness` mode's hook wiring going forward (see `agentic/kit/config/hooks.json`), so the next work item routes through the pipeline instead of relying on the agent's judgment call each time.
+The original implementation predated enforced routing. The repository now records `local-harness` mode with Claude hooks in installation.json. TASK-008 uses the explicit runtime CLI task protocol in Codex; timing, technical approval, command permissions and scoped results are recorded. See TASK-008 for run identifiers and evidence.

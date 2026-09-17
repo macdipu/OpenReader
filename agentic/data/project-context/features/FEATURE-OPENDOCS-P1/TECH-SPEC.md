@@ -19,7 +19,7 @@ Backfilled from commit `c9faa36`.
 ## LLD / Component Changes
 - **`AppDatabase`** (`lib/core/data/local/app_database.dart`): lazy singleton, `openDatabase` v1, `PRAGMA foreign_keys = ON` in `onConfigure`. Three tables: `documents` (PK `id`=path, indexed on `category` and `display_name`), `recent_documents` (PK `document_id`, FK cascade), `favorite_documents` (PK `document_id`, FK cascade).
 - **`DocumentScannerService`**: `scan()` walks `_rootCandidates` (Download, Documents, DCIM, WhatsApp Media/WhatsApp Documents, and the storage root as a catch-all) to `_maxDepth = 8`, dedupes by path, classifies by extension via `DocumentCategory.fromExtension`, skips zero-byte files and unreadable directories (logged, not thrown).
-- **`DocumentRepositoryImpl.rescan()`**: single `db.transaction` — batch `insert(..., ConflictAlgorithm.replace)` for every scanned file, then `DELETE FROM documents WHERE path NOT IN (...)` (or delete-all if the scan found nothing) so removed files drop out of the index without touching disk.
+- **`DocumentRepositoryImpl.rescan()`**: single `db.transaction` — batch insert-ignore followed by metadata update for every scanned file (TASK-008 correction preserves child rows), then `DELETE FROM documents WHERE path NOT IN (...)` (or delete-all if the scan found nothing) so removed files drop out of the index without touching disk.
 - **`DocumentInteractionController`**: holds `RxSet<String> favoriteIds` as the shared favorite-state source; `toggleFavorite` is optimistic (mutates the set immediately, reverts + snackbars on repository failure). `FavoritesController` subscribes via `ever(favoriteIds, ...)` to reload its own list when any screen toggles a favorite.
 - **`SplashController`**: opens `AppDatabase.instance.database` (creates schema on first run) then checks `AppSettingsRepository.hasCompletedOnboarding()`; any exception during this is caught and treated as "not onboarded" rather than propagated.
 - **`OnboardingController`**: `allowAccess()` requests `manageExternalStorage` then falls back to `storage`; on grant, marks onboarding complete and fires `rescan()` unawaited (BRD 9.2 shouldn't block the transition to Home on the first scan finishing).
@@ -49,13 +49,16 @@ None beyond the manifest permission addition above.
 Purely additive; revert `c9faa36` to roll back completely (see `ARCHITECTURE.md`).
 
 ## Test Strategy
-**Not executed as part of this phase.** `flutter analyze` is clean (0 errors/warnings introduced). No unit tests were written for the new repositories/controllers, and no widget tests exist for the new screens. This is the single largest gap in this backfill — see Open Decisions.
+The initial phase shipped without tests. TASK-008 adds 33 scanner, SQLite repository, and Home/All Files widget tests, all passing on 2026-09-17. Static analysis exits 0 with 158 existing infos and no errors/warnings. See [validation](validation/TASK-008-validation.md).
 
 ## Open Decisions
-1. No automated test coverage exists for `DocumentRepositoryImpl`, `DocumentScannerService`, or any controller. `automated-qa-agent`/`test-baseline-agent` should run before this phase is called release-ready.
+1. TASK-008 closes the bounded scanner/repository/Home/Files test gap; device corpus/performance checks, broader Onboarding/Settings coverage and UAT remain outstanding.
 2. Storage-access strategy ADR (carried over from `ARCHITECTURE.md`).
 3. Whether `DocumentInteractionController`'s scope (registered only in `AppShellBinding`) is correct long-term, or whether it should move to a global/root binding once a reader route (outside the shell) needs favorite state too.
 
 ## References
 - `SRS.md`, `ARCHITECTURE.md` (this feature)
 - Commit `c9faa36`
+
+## TASK-008 implementation delta
+DocumentScannerService supports injected roots; its singleton retains Android defaults. AppDatabase supports an injected DatabaseFactory/path while retaining the production schema and default singleton. Home propagates query/history failures and sets empty only for an empty index and history. Both Home and Files retain rescan failure and expose persistent inline retry; retry repeats the failed operation. A development-only SQLite FFI dependency enables real host database tests.

@@ -30,7 +30,14 @@ class DocumentRepositoryImpl implements DocumentRepository {
           batch.insert(
             'documents',
             document.toMap(),
-            conflictAlgorithm: ConflictAlgorithm.replace,
+            // REPLACE deletes the parent row and cascades into user metadata.
+            conflictAlgorithm: ConflictAlgorithm.ignore,
+          );
+          batch.update(
+            'documents',
+            document.toMap(),
+            where: 'id = ?',
+            whereArgs: [document.id],
           );
         }
         await batch.commit(noResult: true);
@@ -87,7 +94,8 @@ class DocumentRepositoryImpl implements DocumentRepository {
   ResultFuture<DocumentModel?> getById(String id) {
     return runTask(() async {
       final db = await _appDatabase.database;
-      final rows = await db.query('documents', where: 'id = ?', whereArgs: [id], limit: 1);
+      final rows = await db.query('documents',
+          where: 'id = ?', whereArgs: [id], limit: 1);
       if (rows.isEmpty) return null;
       return DocumentModel.fromMap(rows.first);
     });

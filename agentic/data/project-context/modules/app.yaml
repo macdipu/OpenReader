@@ -20,15 +20,18 @@ shared_components:
   - lib/core/presentation/widgets
   - lib/core/presentation/controllers
   - lib/core/data/repositories
-tests: []
+tests:
+  - test/services/document_scanner_service_test.dart
+  - test/repositories/document_repositories_test.dart
+  - test/widgets/document_views_test.dart
 known_risks:
-  - No test/ directory found at repo root — no automated test baseline yet
+  - TASK-008 provides 33 passing scanner/repository/Home/Files tests; Onboarding/Settings and device corpus coverage remain outside that scope
   - No CI config found (.github absent) — checks are local/manual only
   - README flags .env is bundled as a Flutter asset (readable if the APK is decompiled); must switch to compile-time injection before production
-  - lib/features is currently empty — repo is a fresh clean-architecture-getx scaffold (single commit), no feature modules built yet
+  - Phase 1 shell is implemented; readers, Share/File Info/Open With, storage-access ADR and UAT remain outstanding
 last_indexed_revision: 43255673aa311be661fee370d9bc08baf1d110c2
 evidence:
   - pubspec.yaml (dependencies, SDK constraint >=3.2.3 <4.0.0)
-  - lib/ directory listing (app/core/features/res/services layout)
+  - agentic/data/project-context/features/FEATURE-OPENDOCS-P1/validation/TASK-008-validation.md (2026-09-17 scoped refresh)
   - README.md (env setup and production warning)
-  - git log -1 (single commit repo, greenfield)
+  - Initial scaffold evidence above is historical; TASK-008 review covers scanner/database and Home/Files only

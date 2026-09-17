@@ -1,0 +1,25 @@
+{
+  "status": "READY",
+  "evidence": [
+    "agentic/data/project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-008.md",
+    "agentic/data/project-context/features/FEATURE-OPENDOCS-P1/validation/TASK-008-baseline.md"
+  ],
+  "blocking_issues": [],
+  "open_questions": [
+    "Explicit technical approval of the prepared TASK-008 scope is required before implementation."
+  ],
+  "recommended_next_step": "Record the user's technical decision against this scope, then configure Flutter check commands using the supported runtime lifecycle and implement TASK-008. Resume RUN-0C91C20F214E470D802F0373C10CFFAF; do not start a duplicate run.",
+  "outputs": {
+    "verdict": "CONTEXT_READY",
+    "classification": "TASK_ONLY",
+    "planning": "NO_REPLAN",
+    "baseline": "Source baseline mapped; no host tests exist. Executable baseline belongs to test setup in implementation and is not claimed complete.",
+    "approval_state": "No technical or release approval recorded.",
+    "checks": {
+      "harness_doctor": "PASS",
+      "git_diff_check": "PASS",
+      "flutter_tests": "NOT RUN"
+    },
+    "tool_attempt_note": "A run_command call used an unsupported argv argument and failed before command execution; no external effects. git diff --check subsequently passed via the native read/check tool."
+  }
+}

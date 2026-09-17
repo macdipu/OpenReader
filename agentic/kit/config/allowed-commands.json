@@ -1,7 +1,81 @@
 {
   "commands": [
-    {"argv": ["git", "status", "--short"], "permission": "read"},
-    {"argv": ["git", "diff", "--check"], "permission": "read"},
-    {"argv": ["python3", "-m", "unittest", "discover", "-s", "agentic/kit/runtime/tests"], "permission": "run_check"}
+    {
+      "argv": [
+        "git",
+        "status",
+        "--short"
+      ],
+      "permission": "read"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "permission": "read"
+    },
+    {
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "agentic/kit/runtime/tests"
+      ],
+      "permission": "run_check"
+    },
+    {
+      "argv": [
+        "flutter",
+        "pub",
+        "get"
+      ],
+      "permission": "run_check"
+    },
+    {
+      "argv": [
+        "flutter",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "permission": "run_check"
+    },
+    {
+      "argv": [
+        "flutter",
+        "test",
+        "--coverage",
+        "--reporter",
+        "expanded"
+      ],
+      "permission": "run_check"
+    },
+    {
+      "argv": [
+        "flutter",
+        "analyze",
+        "--no-fatal-infos"
+      ],
+      "permission": "run_check"
+    },
+    {
+      "argv": [
+        "dart",
+        "format",
+        "lib/core/data/local/app_database.dart",
+        "lib/services/utilities/document_scanner_service.dart",
+        "lib/core/data/repositories/document_repository_impl.dart",
+        "lib/features/home/presentation/home_controller.dart",
+        "lib/features/home/presentation/home_view.dart",
+        "lib/features/files/presentation/files_controller.dart",
+        "lib/features/files/presentation/files_view.dart",
+        "test"
+      ],
+      "permission": "run_check"
+    }
   ]
 }

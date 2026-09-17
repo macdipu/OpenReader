@@ -5,8 +5,13 @@ import 'package:sqflite/sqflite.dart';
 /// favorites (BRD 16 - Local Data Model). Opened lazily and cached; there is
 /// no server, so the schema lives entirely on-device.
 class AppDatabase {
-  AppDatabase._();
-  static final AppDatabase instance = AppDatabase._();
+  AppDatabase({DatabaseFactory? factory, String? path})
+      : _factory = factory,
+        _path = path;
+
+  static final AppDatabase instance = AppDatabase();
+  final DatabaseFactory? _factory;
+  final String? _path;
 
   static const _fileName = 'opendocs.db';
   static const _version = 1;
@@ -18,16 +23,17 @@ class AppDatabase {
   }
 
   Future<Database> _open() async {
-    final directory = await getDatabasesPath();
-    final path = p.join(directory, _fileName);
-    return openDatabase(
+    final factory = _factory ?? databaseFactory;
+    final path = _path ?? p.join(await factory.getDatabasesPath(), _fileName);
+    return factory.openDatabase(
       path,
-      version: _version,
-      onConfigure: (db) async {
-        await db.execute('PRAGMA foreign_keys = ON');
-      },
-      onCreate: (db, version) async {
-        await db.execute('''
+      options: OpenDatabaseOptions(
+        version: _version,
+        onConfigure: (db) async {
+          await db.execute('PRAGMA foreign_keys = ON');
+        },
+        onCreate: (db, version) async {
+          await db.execute('''
           CREATE TABLE documents (
             id TEXT PRIMARY KEY,
             path TEXT NOT NULL UNIQUE,
@@ -39,10 +45,12 @@ class AppDatabase {
             last_seen_at INTEGER NOT NULL
           )
         ''');
-        await db.execute('CREATE INDEX idx_documents_category ON documents(category)');
-        await db.execute('CREATE INDEX idx_documents_display_name ON documents(display_name)');
+          await db.execute(
+              'CREATE INDEX idx_documents_category ON documents(category)');
+          await db.execute(
+              'CREATE INDEX idx_documents_display_name ON documents(display_name)');
 
-        await db.execute('''
+          await db.execute('''
           CREATE TABLE recent_documents (
             document_id TEXT PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
             last_opened_at INTEGER NOT NULL,
@@ -50,13 +58,14 @@ class AppDatabase {
           )
         ''');
 
-        await db.execute('''
+          await db.execute('''
           CREATE TABLE favorite_documents (
             document_id TEXT PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
             favorited_at INTEGER NOT NULL
           )
         ''');
-      },
+        },
+      ),
     );
   }
 

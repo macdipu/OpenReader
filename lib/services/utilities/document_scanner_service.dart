@@ -10,8 +10,11 @@ import '../../core/presentation/utils/logger.dart';
 /// than a full-device walk: that keeps a rescan fast and avoids wandering
 /// into Android/data sandboxed app directories the OS hides anyway.
 class DocumentScannerService {
-  DocumentScannerService._();
-  static final DocumentScannerService instance = DocumentScannerService._();
+  DocumentScannerService({Iterable<String> roots = _rootCandidates})
+      : _roots = List.unmodifiable(roots);
+
+  static final DocumentScannerService instance = DocumentScannerService();
+  final List<String> _roots;
 
   static const _rootCandidates = [
     '/storage/emulated/0/Download',
@@ -27,7 +30,7 @@ class DocumentScannerService {
     final found = <String, DocumentModel>{};
     final now = DateTime.now();
 
-    for (final rootPath in _rootCandidates) {
+    for (final rootPath in _roots) {
       final root = Directory(rootPath);
       if (!await root.exists()) continue;
       await _walk(root, depth: 0, now: now, into: found);

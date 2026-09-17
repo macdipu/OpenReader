@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../../core/data/repositories/document_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
+import '../../../core/domain/error/failure.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/domain/models/recent_document_model.dart';
 import '../../../core/domain/repositories/document_repository.dart';
@@ -28,6 +29,10 @@ class HomeController extends BaseController {
 
   static const _maxRecentPreview = 5;
 
+  bool _retryScan = false;
+
+  Future<void> retry() => _retryScan ? refresh() : load();
+
   final hasAccess = true.obs;
   final categoryCounts = <DocumentCategory, int>{}.obs;
   final recentDocuments = <RecentDocumentModel>[].obs;
@@ -39,6 +44,8 @@ class HomeController extends BaseController {
   }
 
   Future<void> load() async {
+    _retryScan = false;
+    errorMessage.value = null;
     status.value = StateStatus.loading;
     hasAccess.value = await _storageAccess.hasAccess();
     if (!hasAccess.value) {
@@ -46,31 +53,55 @@ class HomeController extends BaseController {
       return;
     }
 
-    await Future.wait([_loadCounts(), _loadRecents()]);
-    status.value = StateStatus.success;
+    final failures = await Future.wait([_loadCounts(), _loadRecents()]);
+    for (final failure in failures) {
+      if (failure != null) {
+        handleFailure(failure);
+        return;
+      }
+    }
+    status.value = categoryCounts.values.every((count) => count == 0) &&
+            recentDocuments.isEmpty
+        ? StateStatus.empty
+        : StateStatus.success;
   }
 
   Future<void> refresh() async {
+    _retryScan = true;
     status.value = StateStatus.refreshing;
     final result = await _documentRepository.rescan();
-    result.fold((failure) => handleFailure(failure), (_) {});
-    await load();
+    await result.fold<Future<void>>(
+      (failure) async => handleFailure(failure),
+      (_) => load(),
+    );
   }
 
-  Future<void> _loadCounts() async {
+  Future<Failure?> _loadCounts() async {
     final counts = <DocumentCategory, int>{};
-    for (final category in DocumentCategory.values.where((c) => c != DocumentCategory.unknown)) {
+    for (final category in DocumentCategory.values
+        .where((c) => c != DocumentCategory.unknown)) {
       final result = await _documentRepository.countByCategory(category);
-      result.fold((_) {}, (count) => counts[category] = count);
+      final failure = result.fold<Failure?>(
+        (failure) => failure,
+        (count) {
+          counts[category] = count;
+          return null;
+        },
+      );
+      if (failure != null) return failure;
     }
     categoryCounts.assignAll(counts);
+    return null;
   }
 
-  Future<void> _loadRecents() async {
+  Future<Failure?> _loadRecents() async {
     final result = await _recentRepository.getRecents();
-    result.fold(
-      (_) {},
-      (list) => recentDocuments.assignAll(list.take(_maxRecentPreview).toList()),
+    return result.fold<Failure?>(
+      (failure) => failure,
+      (list) {
+        recentDocuments.assignAll(list.take(_maxRecentPreview).toList());
+        return null;
+      },
     );
   }
 

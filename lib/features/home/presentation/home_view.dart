@@ -6,6 +6,7 @@ import '../../../core/presentation/controllers/document_interaction_controller.d
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
+import '../../../core/presentation/widgets/document/document_load_error_view.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../res/routes/app_routes.dart';
@@ -37,6 +38,13 @@ class HomeView extends GetView<HomeController> {
           });
         }
         if (controller.status.value.isBusy) return const LoadingView();
+        if (controller.status.value.isError) {
+          return DocumentLoadErrorView(
+            message:
+                controller.errorMessage.value ?? 'Unable to load documents.',
+            onRetry: controller.retry,
+          );
+        }
 
         return RefreshIndicator(
           onRefresh: controller.refresh,
@@ -53,7 +61,8 @@ class HomeView extends GetView<HomeController> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    for (final category in DocumentCategory.values.where((c) => c != DocumentCategory.unknown))
+                    for (final category in DocumentCategory.values
+                        .where((c) => c != DocumentCategory.unknown))
                       Padding(
                         padding: const EdgeInsets.only(right: 12),
                         child: _CategoryCard(
@@ -84,8 +93,11 @@ class HomeView extends GetView<HomeController> {
                     document: recent.document,
                     isFavorite: interactions.isFavorite(recent.document.id),
                     onTap: () => interactions.openDocument(recent.document),
-                    onToggleFavorite: (_) => interactions.toggleFavorite(recent.document.id),
-                    trailingLabel: 'Opened ${recent.lastOpenedAt.toLocal()}'.split('.').first,
+                    onToggleFavorite: (_) =>
+                        interactions.toggleFavorite(recent.document.id),
+                    trailingLabel: 'Opened ${recent.lastOpenedAt.toLocal()}'
+                        .split('.')
+                        .first,
                   ),
               ] else if (controller.status.value.isEmpty)
                 const Padding(
@@ -105,7 +117,8 @@ class _CategoryCard extends StatelessWidget {
   final int count;
   final VoidCallback onTap;
 
-  const _CategoryCard({required this.category, required this.count, required this.onTap});
+  const _CategoryCard(
+      {required this.category, required this.count, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -124,8 +137,13 @@ class _CategoryCard extends StatelessWidget {
           children: [
             Icon(category.icon, color: context.primary),
             const SizedBox(height: 6),
-            Text(category.label, style: context.labelSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-            Text('$count', style: context.labelSmall?.copyWith(color: context.onSurfaceVariant)),
+            Text(category.label,
+                style: context.labelSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+            Text('$count',
+                style: context.labelSmall
+                    ?.copyWith(color: context.onSurfaceVariant)),
           ],
         ),
       ),
@@ -146,7 +164,8 @@ class _PermissionBanner extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.folder_off_outlined, size: 56, color: context.onSurfaceVariant),
+            Icon(Icons.folder_off_outlined,
+                size: 56, color: context.onSurfaceVariant),
             const SizedBox(height: 16),
             Text(
               'OpenDocs needs storage access to show your documents.',
@@ -154,7 +173,8 @@ class _PermissionBanner extends StatelessWidget {
               style: context.bodyMedium,
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: onRequestAccess, child: const Text('Grant Access')),
+            FilledButton(
+                onPressed: onRequestAccess, child: const Text('Grant Access')),
           ],
         ),
       ),

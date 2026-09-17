@@ -6,6 +6,7 @@ import '../../../core/domain/models/document_model.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
+import '../../../core/presentation/widgets/document/document_load_error_view.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'files_controller.dart';
@@ -25,7 +26,8 @@ class FilesView extends GetView<FilesController> {
             icon: const Icon(Icons.sort),
             onSelected: controller.setSort,
             itemBuilder: (context) => DocumentSortMode.values
-                .map((mode) => PopupMenuItem(value: mode, child: Text(mode.label)))
+                .map((mode) =>
+                    PopupMenuItem(value: mode, child: Text(mode.label)))
                 .toList(),
           ),
         ],
@@ -40,7 +42,9 @@ class FilesView extends GetView<FilesController> {
                 hintText: 'Search this list',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
               ),
             ),
           ),
@@ -54,9 +58,17 @@ class FilesView extends GetView<FilesController> {
           Expanded(
             child: Obx(() {
               if (!controller.hasAccess.value) {
-                return const CommonEmptyView(message: 'Storage access is required to list files.');
+                return const CommonEmptyView(
+                    message: 'Storage access is required to list files.');
               }
               if (controller.status.value.isBusy) return const LoadingView();
+              if (controller.status.value.isError) {
+                return DocumentLoadErrorView(
+                  message: controller.errorMessage.value ??
+                      'Unable to load documents.',
+                  onRetry: controller.retry,
+                );
+              }
               if (controller.status.value.isEmpty) {
                 return const CommonEmptyView(message: 'No documents found');
               }
@@ -70,7 +82,8 @@ class FilesView extends GetView<FilesController> {
                           document: document,
                           isFavorite: interactions.isFavorite(document.id),
                           onTap: () => interactions.openDocument(document),
-                          onToggleFavorite: (_) => interactions.toggleFavorite(document.id),
+                          onToggleFavorite: (_) =>
+                              interactions.toggleFavorite(document.id),
                         ));
                   },
                 ),
@@ -91,7 +104,9 @@ class _CategoryFilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categories = DocumentCategory.values.where((c) => c != DocumentCategory.unknown).toList();
+    final categories = DocumentCategory.values
+        .where((c) => c != DocumentCategory.unknown)
+        .toList();
     return SizedBox(
       height: 40,
       child: ListView(

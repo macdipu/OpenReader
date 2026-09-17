@@ -24,6 +24,10 @@ class FilesController extends BaseController {
   final selectedCategory = Rxn<DocumentCategory>();
   final sortMode = DocumentSortMode.nameAsc.obs;
   final searchQuery = ''.obs;
+  bool _retryScan = false;
+
+  Future<void> retry() => _retryScan ? refresh() : load();
+
   final hasAccess = true.obs;
 
   @override
@@ -33,6 +37,8 @@ class FilesController extends BaseController {
   }
 
   Future<void> load() async {
+    _retryScan = false;
+    errorMessage.value = null;
     status.value = StateStatus.loading;
     hasAccess.value = await _storageAccess.hasAccess();
     if (!hasAccess.value) {
@@ -55,10 +61,13 @@ class FilesController extends BaseController {
   }
 
   Future<void> refresh() async {
+    _retryScan = true;
     status.value = StateStatus.refreshing;
     final rescanResult = await _documentRepository.rescan();
-    rescanResult.fold((failure) => handleFailure(failure), (_) {});
-    await load();
+    await rescanResult.fold<Future<void>>(
+      (failure) async => handleFailure(failure),
+      (_) => load(),
+    );
   }
 
   /// Invoked from Home when a category card is tapped (BRD 9.3).
