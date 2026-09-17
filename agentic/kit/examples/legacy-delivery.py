@@ -26,7 +26,7 @@ def demonstrate():
             shutil.copy2(KIT / 'examples/legacy-project' / name, root / name)
         rules = [{'argv': [sys.executable, '-B', '-m', 'unittest', 'discover'], 'permission': 'run_check'}]
         tools = build_default_tools(root, rules)
-        store = RuntimeStore(str(root / 'state.sqlite3'))
+        store = RuntimeStore(str(root / 'state'))
         try:
             orch = Orchestrator(store, KIT, tools)
             run = orch.start('legacy-fixture', 'existing_task', 'Charge shipping once per order', repo=root)
@@ -74,7 +74,7 @@ def demonstrate():
                     'approvals': 'synthetic test records', 'deployment': False,
                     'timing': orch.task_timings(run_id)}
         finally:
-            store.conn.close()
+            store.close()
 
 
 if __name__ == '__main__':

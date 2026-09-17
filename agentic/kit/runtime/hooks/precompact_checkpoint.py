@@ -51,8 +51,8 @@ def _checkpoint_active_task():
     if not ACTIVE_TASK_POINTER.exists():
         return None
     pointer = json.loads(ACTIVE_TASK_POINTER.read_text())
-    if not Path(pointer['db']).is_file():
-        raise ValueError('Active-task database is missing')
+    if not Path(pointer['db']).is_dir():
+        raise ValueError('Active-task store is missing')
     sys.path.insert(0, str(KIT / 'runtime/python'))
     from agentic_runtime.store import RuntimeStore
     store = RuntimeStore(pointer['db'])
@@ -66,7 +66,7 @@ def _checkpoint_active_task():
             store.audit(run.run_id, 'precompact_checkpoint', {'stage': run.stage, 'status': run.status}, ts)
         return f"Checkpointed active run {run.run_id} (stage={run.stage}, status={run.status})."
     finally:
-        store.conn.close()
+        store.close()
 
 
 def main():

@@ -9,7 +9,7 @@ See the [production readiness checklist](production-readiness.md) for what organ
 | Capability | Implemented local behavior | Boundary |
 |---|---|---|
 | Workflow | Work-type routes, ordered transitions, terminal states, ready stage results | Coarse stages; no automatic business or sprint classification |
-| Persistence | SQLite transactions commit run, checkpoint, audit together | Local database; writable by the operator, not immutable audit storage |
+| Persistence | One plain JSON file per run (`agentic/data/runtime/state/runs/<run_id>.json`); `transaction()` commits run, checkpoint, audit together, in memory, until the block succeeds | Local files; writable by the operator, not immutable audit storage. Diffable/mergeable, so a completed run's file can be committed to git for cross-machine reference; active-run state is still expected to stay local per .gitignore |
 | Approvals | Explicit decisions bound to scope revision, evidence prerequisites, rejection/revocation | `--by` is an operator assertion, not authenticated identity or RBAC |
 | Context | Explicit scoped file hashes detect dirty changes and deletions | Caller selects sufficient files; no automatic dependency discovery or semantic freshness |
 | Skills | Stage eligibility and SHA-256 pins for instructions, references, shared contract | Trusted local files and adapters; no automatic model execution |
@@ -63,7 +63,7 @@ python3 agentic/kit/runtime/python/agentic_runtime/cli.py impact auth billing --
 
 `edges.json` maps a module name to the list of modules that depend on it (e.g. `{"auth": ["billing"], "billing": ["invoicing"]}`); `impact` walks that graph from the given modules and returns the full affected set. The runtime does not discover these edges itself — supply them from `module-context.yaml`'s `dependencies` field or another source of truth.
 
-Default state lives under `agentic/data/runtime/state/`. Put `--db /path/to/state.sqlite3` before the subcommand to select another database. Invalid input and denied transitions return a nonzero exit code and leave the previous stage intact. `BLOCKED` results can be retried within budget; unknown stage strings are rejected.
+Default state lives under `agentic/data/runtime/state/`. Put `--db /path/to/store` before the subcommand to select another store directory (each run gets `<store>/runs/<run_id>.json`). Invalid input and denied transitions return a nonzero exit code and leave the previous stage intact. `BLOCKED` results can be retried within budget; unknown stage strings are rejected.
 
 ## Routes and gates
 

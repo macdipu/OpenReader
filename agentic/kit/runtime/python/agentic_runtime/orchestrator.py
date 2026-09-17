@@ -365,7 +365,7 @@ class Orchestrator:
                 task['tool_calls'] += 1
                 self._save(run, 'TOOL_DRY_RUN', {'name': name})
                 return {'dry_run': True, 'tool': name, 'invoked': False}
-            previous = self.store.conn.execute('SELECT * FROM tool_calls WHERE run_id=? AND call_key=?', (run_id, call_key)).fetchone()
+            previous = self.store.get_tool_call(run_id, call_key)
             if previous:
                 if previous['request_hash'] != digest:
                     raise ValueError('Idempotency key reused for a different request')
@@ -373,19 +373,19 @@ class Orchestrator:
                     raise ValueError('Previous tool outcome unknown or failed; reconcile before a new attempt')
                 return json.loads(previous['result_json'])
             task['tool_calls'] += 1
-            self.store.conn.execute('INSERT INTO tool_calls(run_id,call_key,request_hash,status) VALUES(?,?,?,?)', (run_id,call_key,digest,'STARTED'))
+            self.store.start_tool_call(run_id, call_key, digest)
             self._save(run, 'TOOL_STARTED', {'name': name, 'call_key': call_key})
         try:
             output = redact_value(tool['handler'](**arguments))
             encoded = json.dumps(output, allow_nan=False)
             with self.store.transaction():
-                self.store.conn.execute('UPDATE tool_calls SET status=?,result_json=? WHERE run_id=? AND call_key=?', ('COMPLETED',encoded,run_id,call_key))
+                self.store.complete_tool_call(run_id, call_key, encoded)
                 self.store.audit(run_id, 'TOOL_COMPLETED', {'name': name}, now())
             # Cancellation/timeouts cannot undo a completed external effect.
             self._active(run_id, task_id)
             return output
         except BaseException as exc:
             with self.store.transaction():
-                self.store.conn.execute("UPDATE tool_calls SET status='FAILED' WHERE run_id=? AND call_key=? AND status='STARTED'", (run_id,call_key))
+                self.store.fail_tool_call(run_id, call_key)
                 self.store.audit(run_id, 'TOOL_FAILED', {'name': name, 'error': str(exc)}, now())
             raise

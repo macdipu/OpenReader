@@ -35,15 +35,15 @@ def _check_active_task():
     if not ACTIVE_TASK_POINTER.exists():
         return None
     pointer = json.loads(ACTIVE_TASK_POINTER.read_text())
-    if not Path(pointer['db']).is_file():
-        raise ValueError('Active-task database is missing')
+    if not Path(pointer['db']).is_dir():
+        raise ValueError('Active-task store is missing')
     sys.path.insert(0, str(KIT / 'runtime/python'))
     from agentic_runtime.store import RuntimeStore
     store = RuntimeStore(pointer['db'])
     try:
         run = store.get_run(pointer['run_id'])
     finally:
-        store.conn.close()
+        store.close()
     detail = f"run_id={pointer['run_id']} task_id={pointer['task_id']}"
     if run:
         detail += f" stage={run.stage} status={run.status} title={run.title!r}"
@@ -64,7 +64,7 @@ def _check_unfinished_run():
     try:
         runs = store.list_runs()
     finally:
-        store.conn.close()
+        store.close()
     unfinished = [r for r in runs if r['status'] in UNFINISHED_STATUSES]
     if not unfinished:
         return None

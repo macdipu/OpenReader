@@ -16,7 +16,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='agentic-demo-') as directory:
         root = Path(directory)
         (root / 'scope.md').write_text('Synthetic task: demonstrate local workflow transitions.\n')
-        store = RuntimeStore(str(root / 'state.sqlite3'))
+        store = RuntimeStore(str(root / 'state'))
         try:
             tools = ToolRegistry()
             effects = []
@@ -39,7 +39,7 @@ def main():
             completed = orch.transition(run.run_id, 'COMPLETED')
             print(json.dumps({'status':completed.status, 'synthetic':True, 'dry_run':completed.dry_run, 'external_effects':len(effects), 'state':'Temporary state removed on exit'}, indent=2))
         finally:
-            store.conn.close()
+            store.close()
 
 
 if __name__ == '__main__':

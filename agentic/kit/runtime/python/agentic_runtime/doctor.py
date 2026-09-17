@@ -3,7 +3,6 @@ import json
 import os
 from pathlib import Path
 import shutil
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -79,10 +78,10 @@ def probe_hooks(kit):
             if run.run_id not in session['hookSpecificOutput']['additionalContext']:
                 raise ValueError('Session hook did not identify the active run')
             hook('precompact_checkpoint.py')
-            if not store.conn.execute("SELECT 1 FROM audit_events WHERE event='precompact_checkpoint'").fetchone():
+            if not store.audit_events(run.run_id, event='precompact_checkpoint'):
                 raise ValueError('Compaction hook did not persist its checkpoint')
         finally:
-            store.conn.close()
+            store.close()
 
 
 def diagnose(root):
@@ -117,16 +116,18 @@ def diagnose(root):
                 Orchestrator(store, kit)
                 with store.transaction():
                     store.audit('doctor', 'PROBE', {}, 'fixture')
-                require(bool(store.conn.execute('SELECT 1 FROM audit_events').fetchone()), 'Storage commit failed')
+                require(bool(store.audit_events('doctor')), 'Storage commit failed')
             finally:
-                store.conn.close()
+                store.close()
     check('configuration and storage execution', config)
     if mode == 'local-harness':
         db = root / 'agentic/data/runtime/state/agentic.db'
         def database():
-            require(db.is_file(), 'Runtime DB not initialized')
-            with sqlite3.connect(db.as_uri() + '?mode=ro', uri=True) as conn:
-                require(conn.execute('PRAGMA quick_check').fetchone()[0] == 'ok', 'Database integrity check failed')
+            require(db.is_dir(), 'Runtime store not initialized')
+            from .store import RuntimeStore
+            # A plain-file store has no integrity pragma; listing runs is the
+            # equivalent smoke test -- it fails if any run file is corrupt JSON.
+            RuntimeStore(str(db)).list_runs()
         check('installed database', database)
         check('isolated hook execution', lambda: probe_hooks(kit))
         if agent == 'claude':
@@ -144,12 +145,12 @@ def diagnose(root):
         marker = db.parent / 'active-task.json'
         if marker.exists():
             def active_state():
+                from .store import RuntimeStore
                 pointer = json.loads(marker.read_text())
-                pointer_db = Path(pointer['db']).resolve()
-                with sqlite3.connect(pointer_db.as_uri() + '?mode=ro', uri=True) as conn:
-                    row = conn.execute('SELECT metadata_json FROM workflow_runs WHERE run_id=?', (pointer['run_id'],)).fetchone()
-                    active = json.loads(row[0]).get('active_task') if row else None
-                    require(active and active['id'] == pointer['task_id'], 'Marker and database task disagree; recover explicitly')
+                store = RuntimeStore(pointer['db'])
+                run = store.get_run(pointer['run_id'])
+                active = run.metadata.get('active_task') if run else None
+                require(active and active['id'] == pointer['task_id'], 'Marker and store task disagree; recover explicitly')
             check('active task consistency', active_state)
     try:
         rules = json.loads((kit / 'config/allowed-commands.json').read_text())['commands']

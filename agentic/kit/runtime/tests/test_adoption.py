@@ -122,7 +122,7 @@ class AdoptionTests(unittest.TestCase):
                 self.install(upgrade=True)
             self.assertEqual(path.read_bytes(), original)
         finally:
-            store.conn.close()
+            store.close()
 
     def test_literal_source_path_is_validated_before_install_commit(self):
         self.install()

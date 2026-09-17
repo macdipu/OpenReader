@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import json
-import sqlite3
 import sys
 import uuid
 from pathlib import Path
@@ -187,12 +186,12 @@ def main(argv=None):
             markers.clear(ACTIVE_TASK_POINTER, args.db, args.run_id)
         print(json.dumps(output.to_dict() if hasattr(output, 'to_dict') else output, indent=2))
         return 0
-    except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+    except (ValueError, OSError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
     finally:
         if store:
-            store.conn.close()
+            store.close()
 
 
 if __name__ == '__main__':

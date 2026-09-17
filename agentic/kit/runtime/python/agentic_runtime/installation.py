@@ -2,7 +2,6 @@
 import copy
 import json
 from pathlib import Path
-import sqlite3
 
 BEGIN = '<!-- agentic-kit:start -->'
 END = '<!-- agentic-kit:end -->'
@@ -38,5 +37,5 @@ def unfinished_runs(root):
     db = Path(root) / 'agentic/data/runtime/state/agentic.db'
     if not db.exists():
         return []
-    with sqlite3.connect(db.as_uri() + '?mode=ro', uri=True) as conn:
-        return conn.execute("SELECT run_id FROM workflow_runs WHERE status IN ('RUNNING','BLOCKED')").fetchall()
+    from .store import RuntimeStore
+    return [r for r in RuntimeStore(str(db)).list_runs() if r['status'] in ('RUNNING', 'BLOCKED')]
