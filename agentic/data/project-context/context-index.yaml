@@ -14,4 +14,8 @@ modules:
 #     status: READY            # DRAFT | READY | TECHNICAL_READY | IN_PROGRESS | DONE
 #     path: agentic/data/project-context/features/FEATURE-042
 #     last_indexed_revision: null
-features: {}
+features:
+  FEATURE-OPENDOCS-P1:
+    status: IN_PROGRESS        # backfilled after implementation; TASK-007/TASK-008 still open, no UAT recorded
+    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P1
+    last_indexed_revision: c9faa36726c89d6585b10393535c6412c276b26e

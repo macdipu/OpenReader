@@ -1,0 +1,8 @@
+{
+  "mode": "local-harness",
+  "agent": "claude",
+  "frameworks": ["flutter"],
+  "unknowns": [
+    "Preview needs an exact reviewed device/variant command with permission preview"
+  ]
+}
