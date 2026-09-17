@@ -1,9 +1,7 @@
 class AppRoutes {
-  static const String login = '/login';
+  static const String splash = '/splash';
+  static const String onboarding = '/onboarding';
   static const String appShell = '/app_shell';
-  static const String forgotPin = '/forgot_pin';
-  static const String forgotPinOtpVerify = '/forgot_pin_otp_verify';
-  static const String resetPin = '/reset_pin';
-  static const String resetPinSuccess = '/reset_pin_success';
-
+  static const String search = '/search';
+  static const String recents = '/recents';
 }

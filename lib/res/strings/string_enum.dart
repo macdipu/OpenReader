@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
 enum TextEnum {
-  appName(en: "App Name", bn: "অ্যাপ নাম"),
+  appName(en: "OpenDocs", bn: "ওপেনডক্স"),
   verify(en: "Verify", bn: "যাচাই করুন"),
   send(en: "Send", bn: "পাঠান"),
   submit(en: "Submit", bn: "জমা দিন"),

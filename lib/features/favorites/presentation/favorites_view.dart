@@ -1,0 +1,58 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../../core/presentation/controllers/document_interaction_controller.dart';
+import '../../../core/presentation/utils/state_status.dart';
+import '../../../core/presentation/widgets/document/document_list_tile.dart';
+import '../../../core/presentation/widgets/empty/common_empty_view.dart';
+import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import 'favorites_controller.dart';
+
+class FavoritesView extends GetView<FavoritesController> {
+  const FavoritesView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final interactions = Get.find<DocumentInteractionController>();
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Favorites')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: TextField(
+              onChanged: controller.setSearchQuery,
+              decoration: InputDecoration(
+                hintText: 'Search favorites',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Obx(() {
+              if (controller.status.value.isBusy) return const LoadingView();
+              final items = controller.filtered;
+              if (items.isEmpty) return const CommonEmptyView(message: 'No favorite documents yet.');
+
+              return ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final document = items[index];
+                  return Obx(() => DocumentListTile(
+                        document: document,
+                        isFavorite: interactions.isFavorite(document.id),
+                        onTap: () => interactions.openDocument(document),
+                        onToggleFavorite: (_) => interactions.toggleFavorite(document.id),
+                      ));
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}

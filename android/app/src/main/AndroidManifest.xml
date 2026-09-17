@@ -1,6 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Broad local document discovery (BRD 7.1). MANAGE_EXTERNAL_STORAGE requires
+         a Play Store "special app access" declaration for non-file-manager apps;
+         re-evaluate against MediaStore-scoped access before release. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage"/>
     <application
-        android:label="Onkur Customer"
+        android:label="OpenDocs"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

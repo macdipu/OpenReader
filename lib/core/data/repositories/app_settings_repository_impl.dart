@@ -5,6 +5,7 @@ import '../cache/preference/shared_preference.dart';
 class AppSettingsRepositoryImpl implements AppSettingsRepository {
   static const String _themeKey = 'app_settings:theme_mode';
   static const String _localeKey = 'app_settings:locale';
+  static const String _onboardingCompleteKey = 'app_settings:onboarding_complete';
 
   @override
   Future<AppThemeMode> getThemeMode() async {
@@ -35,9 +36,20 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   }
 
   @override
+  Future<bool> hasCompletedOnboarding() async {
+    return SharedPreference.getBool(_onboardingCompleteKey);
+  }
+
+  @override
+  Future<void> setOnboardingComplete(bool value) async {
+    await SharedPreference.setBool(_onboardingCompleteKey, value);
+  }
+
+  @override
   Future<void> clearSettings() async {
     await SharedPreference.remove(_themeKey);
     await SharedPreference.remove(_localeKey);
+    await SharedPreference.remove(_onboardingCompleteKey);
   }
 }
 

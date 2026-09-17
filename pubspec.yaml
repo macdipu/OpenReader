@@ -29,6 +29,8 @@ dependencies:
   # Storage
   shared_preferences: ^2.5.4
   flutter_secure_storage: ^10.0.0
+  sqflite: ^2.4.1
+  path: ^1.9.0
 
   # Logging / Utilities
   logger: ^2.7.0

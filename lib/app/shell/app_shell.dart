@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../../features/favorites/presentation/favorites_view.dart';
+import '../../features/files/presentation/files_view.dart';
+import '../../features/home/presentation/home_view.dart';
+import '../../features/settings/presentation/settings_view.dart';
 import 'app_shell_controller.dart';
 
+/// Bottom-nav shell: Home / Files / Favorites / Settings (BRD 9.3).
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
 
@@ -10,7 +16,15 @@ class AppShell extends StatelessWidget {
     final controller = Get.find<AppShellController>();
 
     return Scaffold(
-      body: Obx(() => _buildBody(controller.currentIndex.value)),
+      body: Obx(() => IndexedStack(
+            index: controller.currentIndex.value,
+            children: const [
+              HomeView(),
+              FilesView(),
+              FavoritesView(),
+              SettingsView(),
+            ],
+          )),
       bottomNavigationBar: Obx(
         () => BottomNavigationBar(
           currentIndex: controller.currentIndex.value,
@@ -28,46 +42,22 @@ class AppShell extends StatelessWidget {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.explore_outlined),
-              activeIcon: Icon(Icons.explore),
-              label: 'Explore',
+              icon: Icon(Icons.folder_outlined),
+              activeIcon: Icon(Icons.folder),
+              label: 'Files',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.account_circle_outlined),
-              activeIcon: Icon(Icons.account_circle),
-              label: 'Account',
+              icon: Icon(Icons.favorite_border),
+              activeIcon: Icon(Icons.favorite),
+              label: 'Favorites',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
+              label: 'Settings',
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBody(int index) {
-    switch (index) {
-      case 0:
-        return const _PlaceholderScreen(label: 'Home');
-      case 1:
-        return const _PlaceholderScreen(label: 'Explore');
-      case 2:
-        return const _PlaceholderScreen(label: 'Account');
-      default:
-        return const _PlaceholderScreen(label: 'Home');
-    }
-  }
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.headlineMedium,
       ),
     );
   }
