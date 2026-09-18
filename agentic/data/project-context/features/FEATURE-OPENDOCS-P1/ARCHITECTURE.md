@@ -64,7 +64,7 @@ Additive only — no existing table, route, or repository was removed. Rollback 
 3. `DocumentInteractionController` is a `fenix: true` lazy singleton scoped to the app-shell route — if a future screen outside the shell needs favorite state, it must go through `Get.find`, not re-fetch independently, or the "single source of truth" property breaks.
 
 ## ADR Recommendation
-**Drafted**: [ADR-OPENDOCS-storage-access](adr/ADR-OPENDOCS-storage-access.md) (Status: Proposed, not yet approved) compares `MANAGE_EXTERNAL_STORAGE` vs. MediaStore vs. SAF. It recommends keeping `MANAGE_EXTERNAL_STORAGE` conditional on an in-app disclosure screen, and leaves the distribution-channel question (Play Store vs. sideload) open for the product owner — that question, not this ADR, determines whether Risk 1 is fully closed.
+**Accepted**: [ADR-OPENDOCS-storage-access](adr/ADR-OPENDOCS-storage-access.md) compares `MANAGE_EXTERNAL_STORAGE` vs. MediaStore vs. SAF and was approved by the user on 2026-09-18. It keeps `MANAGE_EXTERNAL_STORAGE` conditional on an in-app disclosure screen (now part of TASK-007's scope) and leaves the distribution-channel question (Play Store vs. sideload) open for the product owner — that question, not this ADR, determines whether Risk 1 is fully closed.
 
 ## References
 - `SRS.md` (this feature)

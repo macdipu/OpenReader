@@ -1,7 +1,7 @@
 # ADR-OPENDOCS-storage-access: Android storage-access strategy for local document discovery
 
 ## Status
-Proposed — not yet approved. This ADR was requested by `ARCHITECTURE.md`'s "ADR Recommendation" (Risk 1) before TASK-007 proceeds. It documents a recommendation and an explicit open question for the product owner; it does not itself authorize a Play Store submission or claim human approval.
+**Accepted.** The user approved this ADR's Decision (2026-09-18), explicitly requesting TASK-007 be unblocked. This approval covers the Decision section as scoped — `MANAGE_EXTERNAL_STORAGE` retained for TASK-007 conditional on mitigation 1 (disclosure screen) — and does not itself resolve the **Open question** below (distribution channel), which the user did not address and which this ADR's own Decision explicitly does not depend on. It also does not constitute a Play Store submission decision; that remains gated on the open question, per Risk 3.
 
 ## Context
 Phase 1 (`ARCHITECTURE.md`, commit `c9faa36`) shipped `DocumentScannerService` walking local storage with `dart:io` `Directory`/`File` APIs, gated by `StorageAccessService` requesting `MANAGE_EXTERNAL_STORAGE` (with `READ_EXTERNAL_STORAGE` as the pre-Android-13 fallback):
@@ -52,7 +52,7 @@ This ADR's Decision section applies either way for TASK-007's immediate scope, s
 ## References
 - `ARCHITECTURE.md` (Risk 1, "ADR Recommendation", "Alternatives Considered")
 - `SRS.md` (ODF-021/ODF-023 partial status; "Data Rules" — `documents.id = documents.path`)
-- `TASK-007.md` (blocked on this ADR)
+- `TASK-007.md` (unblocked by this ADR's acceptance)
 - `agentic/data/project-context/features/OpenDocs_BRD_v1.0.md` §7.1 (Local Document Discovery), §9.16 (File Information corner cases)
 - `lib/services/utilities/document_scanner_service.dart`, `lib/services/utilities/storage_access_service.dart`
 - `android/app/src/main/AndroidManifest.xml`

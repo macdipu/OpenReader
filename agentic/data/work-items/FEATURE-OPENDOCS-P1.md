@@ -16,7 +16,7 @@ Classification: `STORY_TASK` (see `SPRINT.md` for rationale). Scope: BRD §30 Ph
 | ODF-007 | Favorites | DONE | [TASK-004](../project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-004.md) |
 | ODF-025/026 | Offline, non-destructive | DONE | [ARCHITECTURE](../project-context/features/FEATURE-OPENDOCS-P1/ARCHITECTURE.md) |
 | ODF-027/028/029 | Theme, clear recents, clear cache | DONE | [TASK-006](../project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-006.md) |
-| ODF-005, ODF-009, ODF-010 | Open With, Share, File Info | NOT DONE | [TASK-007](../project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-007.md) (backlog; blocked on [ADR-OPENDOCS-storage-access](../project-context/features/FEATURE-OPENDOCS-P1/adr/ADR-OPENDOCS-storage-access.md), drafted 2026-09-18, Proposed — not yet approved) |
+| ODF-005, ODF-009, ODF-010 | Open With, Share, File Info | NOT DONE | [TASK-007](../project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-007.md) (unblocked 2026-09-18 — [ADR-OPENDOCS-storage-access](../project-context/features/FEATURE-OPENDOCS-P1/adr/ADR-OPENDOCS-storage-access.md) Accepted; still needs its own technical-architecture-planner pass before implementation starts) |
 | ODF-008, ODF-021, ODF-023 | Reading position, missing-file, lost-permission handling | PARTIAL | [SRS](../project-context/features/FEATURE-OPENDOCS-P1/SRS.md) |
 | ODF-030 | Responsive with large files | UNVERIFIED | No test corpus run |
 | n/a | Bounded automated test coverage | IMPLEMENTED | [TASK-008](../project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-008.md) (33 tests pass) |
