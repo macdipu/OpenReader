@@ -57,10 +57,10 @@ BRD §13's PDF-relevant rows apply directly: corrupted file ("This document may 
 See the Functional Requirements table above.
 
 ## Unresolved Specification Questions
-1. **PDF rendering library is not yet chosen** — this blocks everything else in this SRS. See `ARCHITECTURE.md` Alternatives Considered and ADR Recommendation; the leading open-source option (`pdfx`) provides rendering only and would need custom engineering for search/thumbnails/password UI, while the leading full-featured option (`syncfusion_flutter_pdfviewer`) covers nearly the whole BRD §9.10 list out of the box but requires either qualifying for Syncfusion's revenue/team-size-gated Community License or a paid commercial license — a business decision, not invented here.
+1. ~~PDF rendering library is not yet chosen~~ — **resolved 2026-09-18**: the product owner ruled out any paid dependency, which rules out `syncfusion_flutter_pdfviewer`. `pdfrx` (pinned to `2.4.8`, not latest, to stay on this project's current Flutter SDK) covers search and password natively and for free; verified by adding it to `pubspec.yaml` and running `flutter pub get`/`flutter analyze` for real. See `ARCHITECTURE.md` Alternatives Considered. `ADR-OPENDOCS-pdf-library.md` records this; still needs explicit approval before implementation starts.
 2. **TOC/bookmarks and hyperlink navigation** (BRD §9.10) are proposed as deferred/out-of-scope for this phase's first slice (see Scope) — needs explicit confirmation this is acceptable, or a decision to pull them in now, before Sprint Planning finalizes the task breakdown.
-3. **Full-text search's underlying capability depends entirely on library choice** (Unresolved Question 1) — some PDFium-based options expose page-level text extraction, others don't without extra work; this cannot be resolved independently of the library decision.
-4. BRD §14 performance targets are unverified-in-principle until a library exists to profile against (same posture Phase 1 took for ODF-030) — not a gap unique to this phase, but worth restating so it isn't assumed solved by picking any particular library.
+3. ~~Full-text search's underlying capability depends entirely on library choice~~ — **resolved by Question 1**: `pdfrx` provides real text search/selection, confirmed via its own CHANGELOG.
+4. BRD §14 performance targets are unverified-in-principle until a working build exists to profile against (same posture Phase 1 took for ODF-030) — not a gap unique to this phase, but worth restating so it isn't assumed solved by picking `pdfrx`.
 
 ## References
 - `agentic/data/project-context/features/OpenDocs_BRD_v1.0.md` §5, §6.5, §9.10, §10, §11 (Scenario 1), §12.2–12.6, §13, §14, §15, §16, §28 (ODF-008/011/012), §30 (Phase 2)
