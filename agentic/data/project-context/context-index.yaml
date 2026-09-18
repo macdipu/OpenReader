@@ -16,6 +16,10 @@ modules:
 #     last_indexed_revision: null
 features:
   FEATURE-OPENDOCS-P1:
-    status: IN_PROGRESS        # TASK-008 implemented with 33 passing tests; TASK-007 and UAT remain open
+    status: IN_PROGRESS        # TASK-007 and TASK-008 implemented (50 passing tests); UAT/release approval remain open; TASK-009 (ODF-005) blocked on a reader existing
     path: agentic/data/project-context/features/FEATURE-OPENDOCS-P1
     last_indexed_revision: c9faa36726c89d6585b10393535c6412c276b26e
+  FEATURE-OPENDOCS-P2:
+    status: DRAFT               # Scoping only (SRS + ARCHITECTURE drafted 2026-09-18); blocked on the PDF-library ADR decision before implementation starts
+    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P2
+    last_indexed_revision: null
