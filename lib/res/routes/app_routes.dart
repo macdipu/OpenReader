@@ -8,4 +8,6 @@ class AppRoutes {
   static const String pdfReader = '/pdf_reader';
   static const String wordReader = '/word_reader';
   static const String excelReader = '/excel_reader';
+  static const String textReader = '/text_reader';
+  static const String csvReader = '/csv_reader';
 }

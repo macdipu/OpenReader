@@ -126,10 +126,10 @@ void main() {
 
   group('openDocument accessibility guard (ODF-021/023)', () {
     testWidgets('records the open and proceeds when the file is accessible (non-reader stub path)', (tester) async {
-      // PowerPoint/Text/CSV have no reader yet, so openDocument() still
-      // records the open itself and shows the stub message. PDF/Word/Excel's
-      // own dispatch (tested separately below) does not call markOpened
-      // here - each reader owns that, so this test deliberately uses a
+      // PowerPoint has no reader yet, so openDocument() still records the
+      // open itself and shows the stub message. Every other reader's own
+      // dispatch (tested separately below) does not call markOpened here -
+      // each reader owns that, so this test deliberately uses the one
       // still-stubbed category to exercise the stub path.
       final pptDocument = documentFor(existingFile.path, category: DocumentCategory.powerpoint);
       await pumpWithSnackbarHost(tester);
@@ -139,7 +139,7 @@ void main() {
       await drainSnackbar(tester);
     });
 
-    testWidgets('dispatches an accessible PDF/Word/Excel document to its own reader route', (tester) async {
+    testWidgets('dispatches an accessible document of each implemented category to its own reader route', (tester) async {
       await tester.pumpWidget(GetMaterialApp(
         initialRoute: '/',
         getPages: [
@@ -147,6 +147,8 @@ void main() {
           GetPage(name: AppRoutes.pdfReader, page: () => const Scaffold(body: Text('pdf reader stand-in'))),
           GetPage(name: AppRoutes.wordReader, page: () => const Scaffold(body: Text('word reader stand-in'))),
           GetPage(name: AppRoutes.excelReader, page: () => const Scaffold(body: Text('excel reader stand-in'))),
+          GetPage(name: AppRoutes.textReader, page: () => const Scaffold(body: Text('text reader stand-in'))),
+          GetPage(name: AppRoutes.csvReader, page: () => const Scaffold(body: Text('csv reader stand-in'))),
         ],
       ));
 
@@ -166,6 +168,18 @@ void main() {
       await tester.pumpAndSettle();
       expect(Get.currentRoute, AppRoutes.excelReader);
       expect(find.text('excel reader stand-in'), findsOneWidget);
+
+      final textDocument = documentFor(existingFile.path, category: DocumentCategory.text);
+      await controller.openDocument(textDocument);
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, AppRoutes.textReader);
+      expect(find.text('text reader stand-in'), findsOneWidget);
+
+      final csvDocument = documentFor(existingFile.path, category: DocumentCategory.csv);
+      await controller.openDocument(csvDocument);
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, AppRoutes.csvReader);
+      expect(find.text('csv reader stand-in'), findsOneWidget);
 
       // Each reader owns markOpened() itself (initial restore + debounced
       // persistence); a bare call here would reset an existing position.

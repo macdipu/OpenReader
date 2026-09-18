@@ -76,12 +76,12 @@ class DocumentInteractionController extends GetxController {
   }
 
   /// Hands off to the matching reader, recording the open in Recent History.
-  /// PowerPoint/Text/CSV readers don't exist yet, so those categories still
-  /// show the stub message and record the open themselves; PDF/Word/Excel
-  /// readers each own their own `markOpened` calls (initial restore +
-  /// debounced persistence), so this does not call it for them - a bare
-  /// `markOpened(id)` here would reset an existing reading position back to
-  /// `{}`, since it defaults to an empty map and replaces the whole row.
+  /// PowerPoint has no reader yet, so that category still shows the stub
+  /// message and records the open itself; every other reader owns its own
+  /// `markOpened` calls (initial restore + debounced persistence), so this
+  /// does not call it for them - a bare `markOpened(id)` here would reset an
+  /// existing reading position back to `{}`, since it defaults to an empty
+  /// map and replaces the whole row.
   Future<void> openDocument(DocumentModel document) async {
     if (!await _verifyStillAccessible(document)) return;
     switch (document.category) {
@@ -93,6 +93,12 @@ class DocumentInteractionController extends GetxController {
         return;
       case DocumentCategory.excel:
         unawaited(Get.toNamed(AppRoutes.excelReader, arguments: document));
+        return;
+      case DocumentCategory.text:
+        unawaited(Get.toNamed(AppRoutes.textReader, arguments: document));
+        return;
+      case DocumentCategory.csv:
+        unawaited(Get.toNamed(AppRoutes.csvReader, arguments: document));
         return;
       default:
         break;

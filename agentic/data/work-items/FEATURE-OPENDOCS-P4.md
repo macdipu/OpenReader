@@ -10,11 +10,11 @@ Classification: proposed `STORY_TASK` grouping (two independently testable reade
 
 | ID | Acceptance criterion | Status | Evidence |
 |---|---|---|---|
-| ODF-019 | Read TXT offline | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P4/SRS.md), [ARCHITECTURE](../project-context/features/FEATURE-OPENDOCS-P4/ARCHITECTURE.md) — no new dependency needed |
-| ODF-020 | Read CSV as grid | NOT DONE (scoped) | Same — reuses `excel_plus`'s CSV parser and the Excel reader's grid widget (to be extracted/shared) |
-| ODF-008 | Restore reading position (TXT/CSV) | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P4/SRS.md) — no schema migration needed, reuses `RecentRepository.getPosition`/`markOpened` |
-| ODF-P4-01…05 | Text size/wrap/full-screen, TXT search, encoding handling, CSV grid/header-detection/search | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P4/SRS.md), [ARCHITECTURE](../project-context/features/FEATURE-OPENDOCS-P4/ARCHITECTURE.md) |
-| n/a | Favorite/Share/Open With/File Info inside each reader | NOT DONE (scoped, low risk) | Reuses `DocumentInteractionController` unchanged, same pattern as every prior reader |
+| ODF-019 | Read TXT offline | DONE, test-verified (real file, incl. non-UTF-8 and binary-detection cases) | [TASK-012](../project-context/features/FEATURE-OPENDOCS-P4/tasks/TASK-012.md) |
+| ODF-020 | Read CSV as grid | DONE, test-verified (real file, incl. quoted-comma and multi-line-quoted-value corner cases) | Same — reuses `excel_plus`'s CSV parser and the extracted shared grid widget |
+| ODF-008 | Restore reading position (TXT/CSV) | DONE for both formats, save **and** restore | [TASK-012](../project-context/features/FEATURE-OPENDOCS-P4/tasks/TASK-012.md) — unlike Word (`FEATURE-OPENDOCS-P3`), the Text reader owns its own scrolling directly, so no restore gap |
+| ODF-P4-01…05 | Text size/wrap/full-screen, TXT search, encoding handling, CSV grid/header-detection/search | DONE | Same |
+| n/a | Favorite/Share/Open With/File Info inside each reader | DONE | Reuses `DocumentInteractionController` unchanged, same pattern as every prior reader |
 
 ## Design boundaries
 
@@ -24,15 +24,15 @@ Reuses the established clean-architecture layering, `BaseController`/GetX conven
 
 Three items are explicitly flagged as open decisions, not silently assumed, in `SRS.md`'s Unresolved Specification Questions: CSV header-row detection (no general algorithm exists; proposes a simple "assume first row is header" default), CSV delimiter detection (proposes comma-first with a narrow semicolon/tab fallback heuristic, not general auto-detection), and TXT encoding detection's scope (UTF-8-first/Latin-1-fallback only, not full charset sniffing) — all matching BRD's own "where feasible" hedging rather than over-building past what was asked for.
 
-One real, verified risk carried into `ARCHITECTURE.md`: `excel_plus`'s CSV parsing path has no isolate-friendly async entry point (confirmed by reading its source), unlike its `.xlsx` path's `decodeBytesAsync` — a very large CSV (BRD's own "1M+ rows" corner case) would need the implementation to wrap the parse call in its own `Isolate.run`/`compute`, not assume the library handles it.
+One real, verified risk carried into `ARCHITECTURE.md`: `excel_plus`'s CSV parsing path has no isolate-friendly async entry point (confirmed by reading its source), unlike its `.xlsx` path's `decodeBytesAsync`. **Fixed during implementation**, not just documented: `CsvReaderController` wraps the parse in its own `Isolate.run`, verified safe against `Excel.decodeBytesAsync`'s own `Isolate.exit`-based implementation and test-confirmed working.
 
 ## Validation and handoff
 
-No implementation code has been written; this pass is research and documentation only, matching how P2's and P3's own first scoping passes worked. Next steps, in order:
-1. Confirm (or amend) the two CSV heuristics and TXT encoding scope proposed in `SRS.md`'s Unresolved Questions 1–3 — small decisions, but worth explicit sign-off before building against them.
-2. Decide the large-file strategy for both formats (`SRS.md` Unresolved Question 4) before implementation, since it affects the reader's core architecture (windowed rendering vs. a size ceiling), not just a detail to patch in later.
-3. Task-breakdown pass once 1–2 are resolved — likely TXT and CSV as their own tasks (the Excel-grid extraction is a shared prerequisite for CSV specifically, not for TXT).
-4. Once TXT/CSV ship, TASK-009 (Open From Other Apps) has no remaining "no reader exists" blocker for any category this app plans to ship a reader for other than PowerPoint — worth revisiting TASK-009's own implementation at that point.
+**Implemented 2026-09-18** ("Start implementation" — see [TASK-012](../project-context/features/FEATURE-OPENDOCS-P4/tasks/TASK-012.md) for the as-built design and its delta). `flutter analyze`: 0 errors/warnings (158 pre-existing infos, unchanged baseline). `flutter test`: 118/118 passing (91 pre-existing + 27 new). Both readers' tests build and parse real files exercising BRD's own named hard corner cases directly (quoted commas, multi-line quoted CSV values, non-UTF-8 text, a binary payload renamed `.txt`) — no native binary dependency for either format, so this is stronger verification than fixture-only tests, matching `FEATURE-OPENDOCS-P3`'s own pattern.
+
+The two CSV heuristics and TXT encoding scope proposed in `SRS.md`'s Unresolved Questions 1–3 were implemented exactly as proposed (defaults only, no smarter detection attempted) since no request for more came back. The large-file strategy (`SRS.md` Unresolved Question 4) landed on the simpler of the two proposed approaches: a hard size ceiling with BRD's existing "too large" message, not disk-backed windowed reading — see TASK-012's delta for what that does and doesn't cover.
+
+Remaining open item: TASK-009 (Open From Other Apps) now has no remaining "no reader exists" blocker for any category this app plans to ship a reader for except PowerPoint — worth revisiting TASK-009's own implementation now.
 
 ## Process note
 

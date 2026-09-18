@@ -11,33 +11,27 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
+import '../../../core/presentation/widgets/cell_grid/cell_grid_controller.dart';
+import '../../../core/presentation/widgets/cell_grid/cell_match.dart';
 
-/// A single cell match from [ExcelReaderController.search].
-class CellMatch {
-  final int row;
-  final int column;
-
-  const CellMatch({required this.row, required this.column});
-}
+export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellMatch;
 
 /// Drives the Excel reader (BRD §9.12, ODF-015/016, ODF-008 for Excel).
 ///
 /// `excel_plus` is a parser only - no grid widget ships with it (confirmed
 /// during `ARCHITECTURE.md`'s research: no adequate ready-made XLSX viewer
 /// widget exists on pub.dev). This controller owns the parsed workbook and
-/// exposes a plain row/column model; `ExcelReaderView` builds the actual grid
-/// on top of it, the same "library gives primitives, OpenDocs builds the
-/// widget" pattern `PdfReaderView` used for PDF thumbnails.
+/// exposes a plain row/column model; [CellGrid] (shared with the CSV reader
+/// since `FEATURE-OPENDOCS-P4`) builds the actual grid on top of it, the same
+/// "library gives primitives, OpenDocs builds the widget" pattern
+/// `PdfReaderView` used for PDF thumbnails.
 ///
-/// Fixed cell sizing ([cellWidth]/[cellHeight]) is used for v1 rather than
-/// honoring each column's/row's actual stored width/height (BRD §9.12 lists
-/// "Row height"/"Column width" as Core Features) - a documented simplification
-/// (see the Phase 3 task doc), not a silent gap.
-class ExcelReaderController extends BaseController {
-  static const double cellWidth = 110;
-  static const double cellHeight = 36;
-  static const double rowHeaderWidth = 48;
-
+/// Fixed cell sizing ([CellGridController.cellWidth]/[CellGridController.cellHeight])
+/// is used for v1 rather than honoring each column's/row's actual stored
+/// width/height (BRD §9.12 lists "Row height"/"Column width" as Core
+/// Features) - a documented simplification (see the Phase 3 task doc), not a
+/// silent gap.
+class ExcelReaderController extends BaseController implements CellGridController {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;
@@ -77,7 +71,10 @@ class ExcelReaderController extends BaseController {
     return workbook.sheets[sheetNames[activeSheetIndex.value]];
   }
 
+  @override
   List<List<xls.Data?>> get currentRows => currentSheet?.rows ?? const [];
+  @override
+  int get columnCount => currentSheet?.maxColumns ?? 0;
   int get frozenRows => currentSheet?.frozenRows ?? 0;
   int get frozenColumns => currentSheet?.frozenColumns ?? 0;
 
@@ -134,8 +131,8 @@ class ExcelReaderController extends BaseController {
       document.id,
       readingPosition: {
         'sheet_index': activeSheetIndex.value,
-        'row': verticalController.hasClients ? (verticalController.offset / cellHeight).floor() : 0,
-        'column': horizontalController.hasClients ? (horizontalController.offset / cellWidth).floor() : 0,
+        'row': verticalController.hasClients ? (verticalController.offset / CellGridController.cellHeight).floor() : 0,
+        'column': horizontalController.hasClients ? (horizontalController.offset / CellGridController.cellWidth).floor() : 0,
         'vertical_offset': verticalController.hasClients ? verticalController.offset : 0.0,
         'horizontal_offset': horizontalController.hasClients ? horizontalController.offset : 0.0,
       },
@@ -192,11 +189,11 @@ class ExcelReaderController extends BaseController {
 
   void jumpToCell(CellMatch cell) {
     if (verticalController.hasClients) {
-      final target = (cell.row * cellHeight).clamp(0.0, verticalController.position.maxScrollExtent);
+      final target = (cell.row * CellGridController.cellHeight).clamp(0.0, verticalController.position.maxScrollExtent);
       verticalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
     }
     if (horizontalController.hasClients) {
-      final target = (cell.column * cellWidth).clamp(0.0, horizontalController.position.maxScrollExtent);
+      final target = (cell.column * CellGridController.cellWidth).clamp(0.0, horizontalController.position.maxScrollExtent);
       horizontalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
     }
   }

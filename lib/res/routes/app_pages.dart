@@ -2,6 +2,8 @@ import 'package:get/get_navigation/src/routes/get_route.dart';
 
 import '../../app/shell/app_shell.dart';
 import '../../app/shell/app_shell_binding.dart';
+import '../../features/csv_reader/presentation/csv_reader_binding.dart';
+import '../../features/csv_reader/presentation/csv_reader_view.dart';
 import '../../features/file_information/presentation/file_information_binding.dart';
 import '../../features/file_information/presentation/file_information_view.dart';
 import '../../features/excel_reader/presentation/excel_reader_binding.dart';
@@ -16,6 +18,8 @@ import '../../features/search/presentation/search_binding.dart';
 import '../../features/search/presentation/search_view.dart';
 import '../../features/splash/presentation/splash_binding.dart';
 import '../../features/splash/presentation/splash_view.dart';
+import '../../features/text_reader/presentation/text_reader_binding.dart';
+import '../../features/text_reader/presentation/text_reader_view.dart';
 import '../../features/word_reader/presentation/word_reader_binding.dart';
 import '../../features/word_reader/presentation/word_reader_view.dart';
 import 'app_routes.dart';
@@ -68,6 +72,16 @@ class AppPages {
       name: AppRoutes.excelReader,
       page: () => const ExcelReaderView(),
       bindings: [ExcelReaderBinding()],
+    ),
+    GetPage(
+      name: AppRoutes.textReader,
+      page: () => const TextReaderView(),
+      bindings: [TextReaderBinding()],
+    ),
+    GetPage(
+      name: AppRoutes.csvReader,
+      page: () => const CsvReaderView(),
+      bindings: [CsvReaderBinding()],
     ),
   ];
 }
