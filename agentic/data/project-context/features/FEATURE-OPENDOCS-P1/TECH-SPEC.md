@@ -62,3 +62,54 @@ The initial phase shipped without tests. TASK-008 adds 33 scanner, SQLite reposi
 
 ## TASK-008 implementation delta
 DocumentScannerService supports injected roots; its singleton retains Android defaults. AppDatabase supports an injected DatabaseFactory/path while retaining the production schema and default singleton. Home propagates query/history failures and sets empty only for an empty index and history. Both Home and Files retain rescan failure and expose persistent inline retry; retry repeats the failed operation. A development-only SQLite FFI dependency enables real host database tests.
+
+## TASK-007 planned LLD (technical-architecture-planner pass, 2026-09-18)
+
+### Scope finding: ODF-005 does not fit in TASK-007
+BRD §7.7's own "Required Behavior" for ODF-005 (Open From Other Apps) ends at step 4, "Open correct reader," and BRD §30 Phase 4's exit criteria bundles "External-app open scenarios pass" together with delivering the TXT/CSV readers in the same phase — the BRD's own sequencing assumes a reader exists before this ships. Inspecting the current code confirms there is no reader at all: `DocumentInteractionController.openDocument()` (`lib/core/presentation/controllers/document_interaction_controller.dart:69-75`) only calls `markOpened()` and shows "reader is not part of this build yet." An Android intent-filter can be added regardless, but there is nothing for it to correctly hand off to — the acceptance criterion in BRD §28 ("Android intent opens correct reader") cannot be met. This is a material interface gap independent of the storage-access ADR, so per the technical-architecture-planner's readiness boundary it blocks ODF-005 specifically, not the rest of TASK-007.
+
+**Resolution:** ODF-005 is moved out of TASK-007 into [TASK-009](tasks/TASK-009.md), explicitly gated on at least one reader existing. TASK-007 keeps ODF-009 (Share), ODF-010 (File Information), ODF-021/023 (missing-file / lost-permission robustness), and the ADR's disclosure-screen mitigation — none of which need a reader.
+
+### Reuse map
+Follows the same patterns `ARCHITECTURE.md` already establishes for this feature: `BaseController`/`Failure`/`Either`/`runTask` for repository-backed work, `DocumentInteractionController` as the single cross-screen source of truth for document actions (extended, not duplicated), GetX routing/binding conventions, and `DocumentListTile`'s existing `onShare`/`onShowInfo` callback slots (declared but never wired by any caller today — confirmed by inspecting `lib/core/presentation/widgets/document/document_list_tile.dart`, which has no `onOpenWith` slot yet either).
+
+### Share (ODF-009)
+- Add `DocumentInteractionController.shareDocument(DocumentModel document)`, following the existing `toggleFavorite`/`openDocument` pattern (one controller method, called from every screen's `DocumentListTile.onShare`).
+- Uses the already-present `share_plus: ^13.1.0` dependency: `Share.shareXFiles([XFile(document.path)], text: document.displayName)`. No new dependency needed for Share itself.
+- Before sharing, run the shared accessibility check below; a missing file or lost permission must not open the share sheet.
+
+### File Information (ODF-010)
+- New route (`AppPages`/`GetPage`, `Get.lazyPut(fenix: true)` binding, matching existing route conventions) taking a `DocumentModel` argument, plus a `FileInformationController extends BaseController`.
+- Metadata source: a new `FileMetadataService` (pure `dart:io` `FileStat` read, no persistence — same shape as `DocumentScannerService`, not a repository) providing path, extension, category, size, and modified date, all of which `DocumentModel` already carries.
+- Two BRD-listed fields are explicitly **not available** rather than guessed: "Created date" (Android's `FileStat.changed` is inode-change time, not creation time — labeling it "created" would be wrong, not merely incomplete) and page/sheet/slide counts (would need format-specific parsing that only a reader has; same root cause as the ODF-005 gap). BRD §9.16 already lists "Metadata unavailable" as an accepted corner case, so surfacing "Not available" for these two fields is within spec, not a scope reduction.
+- Actions: Share (reuses `shareDocument`), Favorite toggle (reuses `toggleFavorite`), Open With (below) — matching BRD's File Information "Actions" list exactly.
+- Corner case "File deleted after info screen opened": re-run the shared accessibility check when an action button is pressed, rather than adding a file-system watcher (nothing in this codebase does live filesystem watching; checking at point-of-action matches how `rescan()` and onboarding already treat storage state as checked-when-used, not watched).
+
+### Open With (new tile action; BRD Overflow Actions, File Information Actions, and Cross-Format Reader Requirements)
+- Distinct from Share: Android's `ACTION_VIEW` chooser hands the file to another app to render it, since OpenDocs has no renderer of its own. This needs a `content://` URI (`file://` is blocked cross-app by `StrictMode` on API 24+), which needs a `FileProvider` declared in `AndroidManifest.xml` plus a `res/xml/file_paths.xml` granting the scanned roots.
+- No current dependency does this (`share_plus` only issues `ACTION_SEND`). Recommend adding `open_filex` (wraps exactly this FileProvider + `ACTION_VIEW` + chooser pattern) rather than hand-rolling a platform channel, consistent with "prefer existing implementations" applied at the package level since nothing in-repo does this yet.
+- **Not a second ADR:** a `FileProvider` declaration is Android's standard, narrowly-scoped mechanism for this exact use case — additive, not a new service boundary or a reversal of the storage-access decision. Flagged here for traceability since it touches `AndroidManifest.xml` again, not escalated.
+- Add an `onOpenWith` callback to `DocumentListTile` alongside the existing `onShare`/`onShowInfo` slots.
+
+### Missing-file / lost-permission robustness (ODF-021/023)
+- Add `DocumentInteractionController._verifyStillAccessible(DocumentModel document)`, called before `shareDocument`, before File Information's actions, and at the start of `openDocument` (which still shows its "not implemented" message afterward — this only stops it from claiming success on a file that no longer exists or is no longer reachable):
+  - `File(document.path).existsSync()` false → BRD §13 "This file may have been moved or deleted." with "Remove from Recents" wired to the existing `removeFromRecent`.
+  - `StorageAccessService.instance.hasAccess()` false → BRD §13 "OpenDocs no longer has access to this file." with "Grant Access" wired to the existing `StorageAccessService.instance.requestAccess()`/`openSettings()`.
+- This is the one shared place all three affected flows funnel through, closing the SRS's "no re-check if permission is revoked mid-session" gap without duplicating the check per screen.
+
+### ADR mitigation: disclosure screen
+- New screen in the onboarding flow (`lib/features/onboarding/`), shown immediately before `OnboardingController.allowAccess()` requests the permission, explaining why "All Files Access" is needed. Reuses the existing onboarding page-transition mechanism (`smooth_page_indicator`, already a dependency) rather than a new framework.
+
+### Dependencies
+Add `open_filex` (or an equivalent FileProvider-based Android `ACTION_VIEW` package) for Open With. Share and File Information need no new package.
+
+### Test Requirements
+- `_verifyStillAccessible`: file exists + permission granted → proceeds; file missing → correct BRD §13 message, share sheet/action not invoked; permission lost → correct BRD §13 message. Use dependency injection for the filesystem/permission checks, mirroring TASK-008's injectable-roots pattern for `DocumentScannerService`.
+- `FileInformationController`/`FileMetadataService`: metadata maps correctly from a `DocumentModel`; the two explicitly-unavailable fields render as "Not available," not blank or a crash.
+- `DocumentListTile` widget test: Share/Info/Open With menu items appear only when their respective callback is non-null (extends the existing widget-test pattern from TASK-008).
+
+### Acceptance criteria (TASK-007's revised scope)
+- ODF-009: selecting Share on any screen using `DocumentListTile` opens the system share sheet for that file, unless the file is missing or inaccessible, in which case the BRD §13 message shows instead.
+- ODF-010: File Information screen shows path, category, size, modified date for a valid document; shows "Not available" (not blank, not a crash) for created date and reader-derived counts; Share/Favorite/Open With all work from this screen.
+- ODF-021/023: opening, sharing, or viewing information for a document whose file was deleted or whose storage permission was revoked after the index was built shows the correct BRD §13 message and offered action, instead of silently proceeding or crashing.
+- ADR mitigation: the disclosure screen appears before every `MANAGE_EXTERNAL_STORAGE` request, including a re-request after a prior denial.

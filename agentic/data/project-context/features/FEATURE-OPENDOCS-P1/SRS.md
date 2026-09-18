@@ -64,8 +64,8 @@ Onboarding "Not Now" → App Shell in limited mode with a permission banner inst
 See the Functional Requirements table above — each row already carries `ID → status → evidence`, which doubles as the source-to-acceptance-criteria trace this section would otherwise repeat.
 
 ## Unresolved Specification Questions
-1. ODF-005 (Open With): no `AndroidManifest.xml` intent-filter or `IntentFilter` plugin decision has been made. Needs a technical-architecture-planner pass when Phase 4 starts.
-2. ODF-010 (File Information): no screen, no route. Needs its own FEATURE/task if pulled into an earlier phase than BRD's Phase 4.
+1. ODF-005 (Open From Other Apps): resolved as **blocked, not merely undecided** by the 2026-09-18 technical-architecture-planner pass (`TECH-SPEC.md` "TASK-007 planned LLD") — `DocumentInteractionController.openDocument()` is a stub with no reader to hand an incoming intent off to, matching BRD §30's own Phase 4 bundling of "External-app open" with the TXT/CSV readers. Tracked as `TASK-009.md`, gated on a reader existing, not on a technical-architecture-planner pass alone.
+2. ODF-010 (File Information): resolved by the same pass — screen/route/controller design is in `TECH-SPEC.md` "TASK-007 planned LLD"; tracked as `TASK-007.md`, pulled into this phase's follow-up work ahead of BRD's Phase 4.
 3. Whether "large file" (ODF-030) means scan-time (thousands of files) or reader-time (one huge PDF) is undecided — BRD §12.3/§14 imply both; Phase 1 only touches the scan-time case, and it is unverified even there.
 
 ## References

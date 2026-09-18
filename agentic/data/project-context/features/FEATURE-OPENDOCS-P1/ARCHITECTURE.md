@@ -51,6 +51,8 @@ Every repository method wraps its body in `runTask`, so a native/database except
 ## Security Boundaries
 Broad filesystem read access (`MANAGE_EXTERNAL_STORAGE`) is a genuine boundary widening for this app — see **Risks** below. No other privilege was requested. No document content is ever transmitted anywhere; the only I/O added is local file `stat()`/read and local SQLite.
 
+**Planned (TASK-007, not yet implemented):** Open With needs a `FileProvider` declaration in `AndroidManifest.xml` to hand a `content://` URI to another app via `ACTION_VIEW` (see `TECH-SPEC.md` "TASK-007 planned LLD"). This is additive and narrowly scoped to Android's documented mechanism for exactly this use case — assessed against this ADR process and judged not to need its own ADR, unlike the storage-access decision above.
+
 ## Alternatives Considered
 - **Local store**: SQLite (sqflite) vs. Hive/key-value. Chosen SQLite because BRD §12.3 anticipates 10,000+ indexed files and sortable/filterable queries (`ORDER BY`, `WHERE category=`) — a key-value store would require loading the full index into memory to sort/filter, which doesn't scale the same way.
 - **Storage access**: `MANAGE_EXTERNAL_STORAGE` (chosen) vs. MediaStore-scoped queries vs. Storage Access Framework (SAF) directory picker. MANAGE_EXTERNAL_STORAGE was chosen for simplicity of a first pass; it is the **highest-risk** choice of the three (see Risks) and is flagged, not silently settled.
