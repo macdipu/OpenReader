@@ -26,6 +26,9 @@ def main(argv=None):
     doctor.add_argument('--repo', type=Path, default=AGENTIC.parent)
     production = sub.add_parser('production-check', help='Validate bound readiness evidence; does not authorize or deploy')
     production.add_argument('--file', type=Path, required=True)
+    eval_check = sub.add_parser('eval-check', help='Compare real recorded specialist outputs against eval cases; fails on wrong/empty/unknown output')
+    eval_check.add_argument('--cases', type=Path, required=True, help='JSON list of eval cases')
+    eval_check.add_argument('--actuals', type=Path, required=True, help='JSON object mapping case id to the real handoff envelope produced for it')
     repair = sub.add_parser('repair-marker', help='Clear a damaged marker after database recovery and worker shutdown')
     repair.add_argument('--workers-stopped', action='store_true', required=True)
     repair.add_argument('--reason', required=True)
@@ -95,6 +98,13 @@ def main(argv=None):
             report = check_readiness(json.loads(args.file.read_text()), args.file.resolve().parent)
             print(json.dumps(report, indent=2))
             return 0 if report['status'] == 'EVIDENCE_COMPLETE' else 1
+        if args.cmd == 'eval-check':
+            from agentic_runtime.evals import run_eval_suite
+            cases = json.loads(args.cases.read_text())
+            actuals = json.loads(args.actuals.read_text())
+            report = run_eval_suite(cases, actuals)
+            print(json.dumps(report, indent=2))
+            return 0 if report['failed'] == 0 else 1
         if args.cmd == 'doctor':
             from agentic_runtime.doctor import diagnose
             report = diagnose(args.repo)

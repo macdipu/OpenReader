@@ -14,6 +14,7 @@ See the [production readiness checklist](production-readiness.md) for what organ
 | Context | Explicit scoped file hashes detect dirty changes and deletions | Caller selects sufficient files; no automatic dependency discovery or semantic freshness |
 | Skills | Stage eligibility and SHA-256 pins for instructions, references, shared contract | Trusted local files and adapters; no automatic model execution |
 | Results | Handoff shape, statuses, evidence presence, blocker consistency | Evidence truth and domain correctness require review |
+| Evaluations | `eval-check` compares a real recorded specialist output against named cases (allowed/forbidden status, minimum evidence, required output keys) and fails on wrong, empty, or unknown output; a missing actual output fails rather than being skipped | Cases and actual outputs are both caller-supplied; it does not run a specialist or a model itself, and cannot detect a domain-correct envelope that is still substantively wrong |
 | Tools | Explicit read/artifact/code/check/preview permissions, side-effect classification, idempotency reservation, audit, dry-run suppression | Legacy custom handlers may use L0–L6 ceilings; trusted handlers must declare effects correctly |
 | Default tools | Read/search, `write_artifact`, `write_file`, `run_command`, `run_preview`; each searched file is contained and commands match complete argv | Trusted local handlers; not OS isolation or race-proof access against hostile filesystem changes |
 | Coding-agent gate | A CLI-driven task protocol (`task-start`/`call-tool`/`task-finish`/`task-fail`) plus a Claude Code `PreToolUse` hook (`guard`) that checks native Bash/Write/Edit/NotebookEdit calls against the active task's explicit permissions and full Bash argument allowlist | Enforced only while a task is active and only for the matched tools; a session with no active governed task is unaffected |
@@ -211,4 +212,14 @@ Read the [upgrade notes](../../ADOPTION.md#upgrade-an-existing-installation) bef
 sh agentic/kit/scripts/validate-kit.sh
 ```
 
-Checks packaging, permissions, Markdown links and literal source paths, then runs the isolated smoke demo and behavioral tests for runtime policy, approvals, retries, cancellation, persistence rollback, hook execution, adoption, upgrades, installer recovery, and production evidence. The legacy delivery fixture reproduces a defect, modifies code, and executes review/QA with real checks and explicitly synthetic approvals. Run it separately with `python3 agentic/kit/examples/legacy-delivery.py`.
+Checks packaging, permissions, Markdown links and literal source paths, then runs the isolated smoke demo and behavioral tests for runtime policy, approvals, retries, cancellation, persistence rollback, hook execution, adoption, upgrades, installer recovery, production evidence, and the eval runner below. The legacy delivery fixture reproduces a defect, modifies code, and executes review/QA with real checks and explicitly synthetic approvals. Run it separately with `python3 agentic/kit/examples/legacy-delivery.py`.
+
+## Evaluations
+
+`eval-check` compares real, already-produced specialist outputs against named eval cases instead of asserting success unconditionally:
+
+```sh
+python3 agentic/kit/runtime/python/agentic_runtime/cli.py eval-check --cases path/to/cases.json --actuals path/to/actuals.json
+```
+
+`cases.json` is a list of `{"id", "expect_status"?, "forbid_status"?, "min_evidence"?, "require_output_keys"?}`. `actuals.json` maps each case id to the real [handoff envelope](../skills/RESULT-CONTRACT.md) a specialist run actually produced — this command never runs a specialist or a model itself. A case with no matching entry in `actuals.json` fails rather than being skipped, and an unrecognized status, missing evidence on a ready result, or a missing required output key are reported by id with the specific reason. Exit code is nonzero when any case fails.
