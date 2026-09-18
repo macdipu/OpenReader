@@ -7,6 +7,7 @@ import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/show_dialog/show_dialog.dart';
+import '../../../res/routes/app_routes.dart';
 import 'recents_controller.dart';
 
 class RecentsView extends GetView<RecentsController> {
@@ -55,6 +56,9 @@ class RecentsView extends GetView<RecentsController> {
                         isFavorite: interactions.isFavorite(recent.document.id),
                         onTap: () => interactions.openDocument(recent.document),
                         onToggleFavorite: (_) => interactions.toggleFavorite(recent.document.id),
+                        onShare: () => interactions.shareDocument(recent.document),
+                        onShowInfo: () => Get.toNamed(AppRoutes.fileInformation, arguments: recent.document),
+                        onOpenWith: () => interactions.openWithExternalApp(recent.document),
                         onRemoveFromRecent: () => controller.removeOne(recent.document.id),
                       ));
                 },

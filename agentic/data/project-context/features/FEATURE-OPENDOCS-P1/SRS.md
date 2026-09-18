@@ -22,10 +22,10 @@ Stable IDs reused from the BRD Requirement Traceability Matrix (§28) rather tha
 | ODF-006 | Maintain Recents | **DONE** | `recent_documents` table, `RecentRepositoryImpl`, Recents screen (BRD 9.9) |
 | ODF-007 | Maintain Favorites | **DONE** | `favorite_documents` table, `FavoriteRepositoryImpl`, Favorites tab, shared `DocumentInteractionController` |
 | ODF-008 | Restore reading position | **PARTIAL** | Schema has `reading_position` JSON column and `markOpened()` accepts it; nothing writes a real position yet because no reader exists to produce one |
-| ODF-009 | Share original document | **NOT DONE** | `DocumentListTile.onShare` hook exists but is never wired to `share_plus` |
-| ODF-010 | Display file metadata | **NOT DONE** | File Information screen (BRD 9.16) not built; not in Phase 1 deliverable list (§30) |
-| ODF-021 | Handle missing file | **PARTIAL** | No explicit "file no longer exists" check on tap; a deleted file would fail silently on open (untested — no reader exists to surface the failure) |
-| ODF-023 | Handle lost permission | **PARTIAL** | Home/Files show a permission banner when access is missing at *screen load*; no re-check if permission is revoked mid-session |
+| ODF-009 | Share original document | **DONE** (2026-09-18) | `DocumentInteractionController.shareDocument()` wired to `share_plus` from all five screens using `DocumentListTile`; guard-tested, real share-sheet opening left to device verification (TASK-007) |
+| ODF-010 | Display file metadata | **DONE** (2026-09-18) | File Information screen/route/controller (BRD 9.16), backed by `FileMetadataService`; created-date and reader-derived counts explicitly "Not available" per the BRD's own accepted corner case (TASK-007) |
+| ODF-021 | Handle missing file | **DONE for open/share/info/open-with** (2026-09-18) | `DocumentInteractionController._verifyStillAccessible()` checks file existence before all four actions and shows the BRD §13 message with a wired "Remove from Recents" action; still no reader to surface an in-reader failure, since none exists |
+| ODF-023 | Handle lost permission | **DONE for open/share/info/open-with** (2026-09-18) | Same shared guard re-checks `StorageAccessService.hasAccess()` before each action (not just at screen load) and shows the BRD §13 message with a wired "Grant Access" action |
 | ODF-025 | Keep user content local / offline | **DONE** | No network calls added; scanner/DB/repositories are 100% on-device |
 | ODF-026 | Never modify original file | **DONE** | Scanner only reads `stat()`; no write/delete path touches a discovered file |
 | ODF-027 | Dark/Light/System theme | **DONE** | Pre-existing `ThemeController`/`AppSettingsRepository`, wired into Settings UI |
@@ -64,8 +64,8 @@ Onboarding "Not Now" → App Shell in limited mode with a permission banner inst
 See the Functional Requirements table above — each row already carries `ID → status → evidence`, which doubles as the source-to-acceptance-criteria trace this section would otherwise repeat.
 
 ## Unresolved Specification Questions
-1. ODF-005 (Open From Other Apps): resolved as **blocked, not merely undecided** by the 2026-09-18 technical-architecture-planner pass (`TECH-SPEC.md` "TASK-007 planned LLD") — `DocumentInteractionController.openDocument()` is a stub with no reader to hand an incoming intent off to, matching BRD §30's own Phase 4 bundling of "External-app open" with the TXT/CSV readers. Tracked as `TASK-009.md`, gated on a reader existing, not on a technical-architecture-planner pass alone.
-2. ODF-010 (File Information): resolved by the same pass — screen/route/controller design is in `TECH-SPEC.md` "TASK-007 planned LLD"; tracked as `TASK-007.md`, pulled into this phase's follow-up work ahead of BRD's Phase 4.
+1. ODF-005 (Open From Other Apps): **remains blocked**, not resolved — `DocumentInteractionController.openDocument()` is still a stub with no reader to hand an incoming intent off to, matching BRD §30's own Phase 4 bundling of "External-app open" with the TXT/CSV readers. Tracked as `TASK-009.md`, gated on a reader existing.
+2. ODF-010 (File Information): **implemented 2026-09-18** — see the row above and `TECH-SPEC.md` "TASK-007 implementation delta".
 3. Whether "large file" (ODF-030) means scan-time (thousands of files) or reader-time (one huge PDF) is undecided — BRD §12.3/§14 imply both; Phase 1 only touches the scan-time case, and it is unverified even there.
 
 ## References

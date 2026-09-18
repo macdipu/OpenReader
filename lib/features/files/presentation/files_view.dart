@@ -9,6 +9,7 @@ import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/document/document_load_error_view.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../res/routes/app_routes.dart';
 import 'files_controller.dart';
 
 class FilesView extends GetView<FilesController> {
@@ -84,6 +85,9 @@ class FilesView extends GetView<FilesController> {
                           onTap: () => interactions.openDocument(document),
                           onToggleFavorite: (_) =>
                               interactions.toggleFavorite(document.id),
+                          onShare: () => interactions.shareDocument(document),
+                          onShowInfo: () => Get.toNamed(AppRoutes.fileInformation, arguments: document),
+                          onOpenWith: () => interactions.openWithExternalApp(document),
                         ));
                   },
                 ),

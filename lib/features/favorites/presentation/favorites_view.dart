@@ -6,6 +6,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../res/routes/app_routes.dart';
 import 'favorites_controller.dart';
 
 class FavoritesView extends GetView<FavoritesController> {
@@ -46,6 +47,9 @@ class FavoritesView extends GetView<FavoritesController> {
                         isFavorite: interactions.isFavorite(document.id),
                         onTap: () => interactions.openDocument(document),
                         onToggleFavorite: (_) => interactions.toggleFavorite(document.id),
+                        onShare: () => interactions.shareDocument(document),
+                        onShowInfo: () => Get.toNamed(AppRoutes.fileInformation, arguments: document),
+                        onOpenWith: () => interactions.openWithExternalApp(document),
                       ));
                 },
               );

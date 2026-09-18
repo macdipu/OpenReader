@@ -23,6 +23,8 @@ class CustomSnackbar {
     required String message,
     required SnackbarType type,
     Duration duration = const Duration(seconds: 3),
+    String? actionLabel,
+    VoidCallback? onAction,
   }) {
     final (backgroundColor, textColor, icon) = switch (type) {
       SnackbarType.success => (_pick(AppColors.success), _pick(AppColors.onSuccess), Icons.check_circle_outline),
@@ -48,6 +50,15 @@ class CustomSnackbar {
       animationDuration: const Duration(milliseconds: 300),
       overlayBlur: 0.5,
       overlayColor: _pick(AppColors.scrim).withValues(alpha: 0.1),
+      mainButton: onAction == null
+          ? null
+          : TextButton(
+              onPressed: () {
+                Get.closeCurrentSnackbar();
+                onAction();
+              },
+              child: Text(actionLabel ?? '', style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
+            ),
       snackbarStatus: (status) {
         if (status == SnackbarStatus.CLOSED) {
           // Snackbar closed
@@ -64,11 +75,13 @@ class CustomSnackbar {
     );
   }
 
-  static void error(String message, {String title = 'Error'}) {
+  static void error(String message, {String title = 'Error', String? actionLabel, VoidCallback? onAction}) {
     show(
       title: title,
       message: message,
       type: SnackbarType.error,
+      actionLabel: actionLabel,
+      onAction: onAction,
     );
   }
 

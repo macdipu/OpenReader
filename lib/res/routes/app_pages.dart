@@ -2,6 +2,8 @@ import 'package:get/get_navigation/src/routes/get_route.dart';
 
 import '../../app/shell/app_shell.dart';
 import '../../app/shell/app_shell_binding.dart';
+import '../../features/file_information/presentation/file_information_binding.dart';
+import '../../features/file_information/presentation/file_information_view.dart';
 import '../../features/onboarding/presentation/onboarding_binding.dart';
 import '../../features/onboarding/presentation/onboarding_view.dart';
 import '../../features/recents/presentation/recents_binding.dart';
@@ -40,6 +42,11 @@ class AppPages {
       name: AppRoutes.recents,
       page: () => const RecentsView(),
       bindings: [RecentsBinding()],
+    ),
+    GetPage(
+      name: AppRoutes.fileInformation,
+      page: () => const FileInformationView(),
+      bindings: [FileInformationBinding()],
     ),
   ];
 }

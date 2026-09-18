@@ -95,6 +95,9 @@ class HomeView extends GetView<HomeController> {
                     onTap: () => interactions.openDocument(recent.document),
                     onToggleFavorite: (_) =>
                         interactions.toggleFavorite(recent.document.id),
+                    onShare: () => interactions.shareDocument(recent.document),
+                    onShowInfo: () => Get.toNamed(AppRoutes.fileInformation, arguments: recent.document),
+                    onOpenWith: () => interactions.openWithExternalApp(recent.document),
                     trailingLabel: 'Opened ${recent.lastOpenedAt.toLocal()}'
                         .split('.')
                         .first,

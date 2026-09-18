@@ -14,6 +14,7 @@ class DocumentListTile extends StatelessWidget {
   final ValueChanged<bool> onToggleFavorite;
   final VoidCallback? onShare;
   final VoidCallback? onShowInfo;
+  final VoidCallback? onOpenWith;
   final VoidCallback? onRemoveFromRecent;
   final String? trailingLabel;
 
@@ -25,6 +26,7 @@ class DocumentListTile extends StatelessWidget {
     required this.onToggleFavorite,
     this.onShare,
     this.onShowInfo,
+    this.onOpenWith,
     this.onRemoveFromRecent,
     this.trailingLabel,
   });
@@ -59,6 +61,8 @@ class DocumentListTile extends StatelessWidget {
           if (onShare != null) const PopupMenuItem(value: _DocumentAction.share, child: Text('Share')),
           if (onShowInfo != null)
             const PopupMenuItem(value: _DocumentAction.info, child: Text('File Information')),
+          if (onOpenWith != null)
+            const PopupMenuItem(value: _DocumentAction.openWith, child: Text('Open With')),
           if (onRemoveFromRecent != null)
             const PopupMenuItem(value: _DocumentAction.removeFromRecent, child: Text('Remove from Recent')),
         ],
@@ -77,6 +81,9 @@ class DocumentListTile extends StatelessWidget {
       case _DocumentAction.info:
         onShowInfo?.call();
         break;
+      case _DocumentAction.openWith:
+        onOpenWith?.call();
+        break;
       case _DocumentAction.removeFromRecent:
         onRemoveFromRecent?.call();
         break;
@@ -84,4 +91,4 @@ class DocumentListTile extends StatelessWidget {
   }
 }
 
-enum _DocumentAction { favorite, share, info, removeFromRecent }
+enum _DocumentAction { favorite, share, info, openWith, removeFromRecent }

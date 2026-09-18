@@ -4,4 +4,5 @@ class AppRoutes {
   static const String appShell = '/app_shell';
   static const String search = '/search';
   static const String recents = '/recents';
+  static const String fileInformation = '/file_information';
 }

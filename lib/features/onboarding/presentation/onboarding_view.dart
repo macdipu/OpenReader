@@ -29,7 +29,9 @@ class OnboardingView extends GetView<OnboardingController> {
                 const SizedBox(height: 12),
                 Text(
                   'OpenDocs reads PDF, Word, Excel, PowerPoint, Text, and CSV files stored on '
-                  'this device. Nothing is uploaded — everything stays local and works offline.',
+                  'this device. Nothing is uploaded — everything stays local and works offline.\n\n'
+                  'Tapping Allow Access requests Android\'s "All Files Access" permission, since your '
+                  'documents can be in any folder, not just Downloads or Documents.',
                   textAlign: TextAlign.center,
                   style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
                 ),
