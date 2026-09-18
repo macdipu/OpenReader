@@ -57,6 +57,10 @@ dependencies:
   mobile_scanner: ^7.2.0
   cached_network_image: ^3.4.1
   open_filex: ^4.7.0
+  # Pinned (not a caret range): 2.5.0+ raises the Flutter SDK floor to
+  # 3.47.0, newer than this project's .fvmrc (3.44.4). See
+  # ADR-OPENDOCS-pdf-library before bumping this.
+  pdfrx: 2.4.8
 
   # Weather Pulse - Charts / Animations / Fonts
   fl_chart: ^0.69.0

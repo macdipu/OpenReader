@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:get/get.dart';
@@ -11,6 +12,8 @@ import '../../domain/repositories/favorite_repository.dart';
 import '../../domain/repositories/recent_repository.dart';
 import '../widgets/snackbar/custom_snackbar.dart';
 import '../../../services/utilities/storage_access_service.dart';
+import '../../domain/models/document_category.dart';
+import '../../../res/routes/app_routes.dart';
 
 /// Cross-screen document actions (favorite toggling, opening, sharing, Open
 /// With, and File Information's accessibility guard) and the single reactive
@@ -72,11 +75,19 @@ class DocumentInteractionController extends GetxController {
     );
   }
 
-  /// Records the open in Recent History and hands off to a reader. Reader
-  /// screens ship in BRD Phase 2/3; Phase 1 records the intent so Recents
-  /// behaves correctly once a reader exists.
+  /// Hands off to the matching reader, recording the open in Recent History.
+  /// Phase 3/4 readers (Word/Excel/PowerPoint/Text/CSV) don't exist yet, so
+  /// every other category still shows the stub message and records the open
+  /// itself; the PDF reader owns its own `markOpened` calls (initial restore
+  /// + per-page-change persistence), so this does not call it for PDF - a
+  /// bare `markOpened(id)` here would reset an existing reading position back
+  /// to `{}`, since it defaults to an empty map and replaces the whole row.
   Future<void> openDocument(DocumentModel document) async {
     if (!await _verifyStillAccessible(document)) return;
+    if (document.category == DocumentCategory.pdf) {
+      unawaited(Get.toNamed(AppRoutes.pdfReader, arguments: document));
+      return;
+    }
     await _recentRepository.markOpened(document.id);
     CustomSnackbar.info(
       '${document.category.label} reader is not part of this build yet.',

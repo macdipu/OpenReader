@@ -10,11 +10,11 @@ Classification: proposed `STORY_TASK` (multiple independently testable capabilit
 
 | ID | Acceptance criterion | Status | Evidence |
 |---|---|---|---|
-| ODF-011 | Read PDF offline | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P2/SRS.md) |
-| ODF-012 | Search PDF text | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P2/SRS.md) — depends on library choice |
-| ODF-008 | Restore reading position (PDF) | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P2/SRS.md) — no schema migration needed, confirmed against `app_database.dart` |
-| ODF-P2-01…06 | View modes, zoom, thumbnails, jump-to-page, password flow, search+highlight | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P2/SRS.md), [ARCHITECTURE](../project-context/features/FEATURE-OPENDOCS-P2/ARCHITECTURE.md) |
-| n/a | Favorite/Share/Open With/File Info inside the reader | NOT DONE (scoped, low risk) | [ARCHITECTURE](../project-context/features/FEATURE-OPENDOCS-P2/ARCHITECTURE.md) — reuses `DocumentInteractionController` and TASK-007's File Information route unchanged, no new work beyond wiring |
+| ODF-011 | Read PDF offline | DONE (native rendering unverified — see delta) | [TASK-010](../project-context/features/FEATURE-OPENDOCS-P2/tasks/TASK-010.md) |
+| ODF-012 | Search PDF text | DONE (highlighting unverified against a real PDF — see delta) | [TASK-010](../project-context/features/FEATURE-OPENDOCS-P2/tasks/TASK-010.md) |
+| ODF-008 | Restore reading position (PDF) | DONE, test-verified | [TASK-010](../project-context/features/FEATURE-OPENDOCS-P2/tasks/TASK-010.md) — no schema migration needed, reused the existing `reading_position` JSON column |
+| ODF-P2-01…06 | View modes, zoom, thumbnails, jump-to-page, password flow, search+highlight | DONE (2 view modes shipped, not 3 — see delta) | [TASK-010](../project-context/features/FEATURE-OPENDOCS-P2/tasks/TASK-010.md) |
+| n/a | Favorite/Share/Open With/File Info inside the reader | DONE | [TASK-010](../project-context/features/FEATURE-OPENDOCS-P2/tasks/TASK-010.md) — reuses `DocumentInteractionController` and TASK-007's File Information route unchanged |
 
 ## Design boundaries
 
@@ -24,10 +24,11 @@ Reuses Phase 1's clean-architecture layering, `BaseController`/GetX conventions,
 
 ## Validation and handoff
 
-No implementation code has been written. The one exception, done deliberately and reverted before this document was written: `pdfrx: 2.4.8` was temporarily added to `pubspec.yaml` to verify it actually resolves against this project's ~60 other dependencies and that `flutter analyze` stays clean — it does, and the change was then backed out so nothing lands before the ADR is approved. Next steps, in order:
-1. Approve (or amend) `ADR-OPENDOCS-pdf-library.md`.
-2. Decide TOC/bookmarks/hyperlinks in-or-out for this phase's first slice (`SRS.md` Unresolved Question 2).
-3. Task-breakdown pass once 1–2 are resolved — the story split sketched in `ARCHITECTURE.md`'s Risks section (core rendering/navigation → reading-position persistence → thumbnails → search → password flow → cross-format actions) is a reasonable default but not yet a committed Sprint Plan.
+**Implemented 2026-09-18** ("Approve it, start implementation" — the ADR was accepted and the reader was built directly, in one pass, rather than through the multi-task breakdown sketched below; see [TASK-010](../project-context/features/FEATURE-OPENDOCS-P2/tasks/TASK-010.md) for the as-built design, the implementation delta, and verified gaps). `flutter analyze`: 0 errors/warnings (158 pre-existing infos, unchanged baseline). `flutter test`: 65/65 passing (51 pre-existing + 14 new). Native PDF rendering itself is not verified in this environment (no PDFium available) — an explicit, documented gap, not claimed as done.
+
+Remaining open items, unchanged from the original scoping:
+1. Decide TOC/bookmarks/hyperlinks in-or-out for a later slice (`SRS.md` Unresolved Question 2) — still deferred, not resolved by TASK-010.
+2. TASK-009 (Open From Other Apps) — its "no reader exists" blocker is now partially cleared for PDF files, but the task itself is unimplemented.
 
 ## Process note
 

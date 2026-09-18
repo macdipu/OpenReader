@@ -13,7 +13,9 @@ ODF-005: let another app (file manager, WhatsApp, email, browser) hand a support
 Android `<intent-filter>` registration (`ACTION_VIEW`/`ACTION_SEND`, MIME types for supported categories), a handler that receives the content URI, validates extension/type and readable permission, and — per BRD §7.7 step 4 — opens the correct reader, then records the open in Recents (step 5, reusing `RecentRepository.markOpened`, already implemented).
 
 ## Dependencies
-**Blocked on at least one document reader existing** (BRD Phase 2/3). `DocumentInteractionController.openDocument()` is currently a stub (`lib/core/presentation/controllers/document_interaction_controller.dart:69-75`) that only shows "reader is not part of this build yet" — there is nothing for an incoming intent to hand off to. BRD §30's own Phase 4 exit criteria ("External-app open scenarios pass") is bundled with delivering the TXT/CSV readers in that same phase, so this task's own natural sequencing already assumes a reader ships first; this dependency is not a new constraint invented for this split, only made explicit.
+**Blocked on at least one document reader existing** (BRD Phase 2/3). `DocumentInteractionController.openDocument()` was a stub that only showed "reader is not part of this build yet" — there was nothing for an incoming intent to hand off to.
+
+**Partially cleared 2026-09-18**: `FEATURE-OPENDOCS-P2/tasks/TASK-010.md` shipped a PDF reader, so `openDocument()` now dispatches `DocumentCategory.pdf` to a real route. This unblocks this task's PDF-specific path, but Word/Excel/PowerPoint/Text/CSV still have no reader, so the general blocker (and this task's own implementation) remains open until at least those categories intended for Phase 4's exit criteria also ship.
 
 Also depends on TASK-007's `_verifyStillAccessible` accessibility check (`TECH-SPEC.md`, "TASK-007 planned LLD") — reuse it for the incoming-intent path (step 3, "validate readable permission") rather than re-implementing it.
 

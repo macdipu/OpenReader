@@ -39,6 +39,22 @@ class RecentRepositoryImpl implements RecentRepository {
   }
 
   @override
+  ResultFuture<Map<String, Object?>> getPosition(String documentId) {
+    return runTask(() async {
+      final db = await _appDatabase.database;
+      final rows = await db.query(
+        'recent_documents',
+        columns: ['reading_position'],
+        where: 'document_id = ?',
+        whereArgs: [documentId],
+        limit: 1,
+      );
+      if (rows.isEmpty) return <String, Object?>{};
+      return Map<String, Object?>.from(jsonDecode(rows.first['reading_position'] as String) as Map);
+    });
+  }
+
+  @override
   ResultFuture<void> markOpened(String documentId, {Map<String, Object?> readingPosition = const {}}) {
     return runTask(() async {
       final db = await _appDatabase.database;

@@ -68,7 +68,7 @@ None to the database (see Data Rules in `SRS.md`). Purely additive: a new route,
 4. **Thumbnails and jump-to-page are custom UI**, not library-provided widgets — built on `pdfrx`'s page-image/page-controller primitives. Reasonable scope (Phase 1's `DocumentScannerService`-style "pure function over a primitive" pattern applies), but real work, not a checkbox.
 
 ## ADR Recommendation
-**Drafted**: [ADR-OPENDOCS-pdf-library](adr/ADR-OPENDOCS-pdf-library.md) (Status: Proposed, not yet approved) records `pdfrx: 2.4.8` as the choice — the product owner ruled out any paid dependency, which resolves `SRS.md`'s Unresolved Specification Question 1 without needing further input. The ADR's value is the same as `ADR-OPENDOCS-storage-access`'s: a durable record of the alternatives ruled out and why (Syncfusion's licensing gate, `pdfx`'s web-only password support, `flutter_pdfview`'s missing search, `pdfrx` latest's Flutter SDK floor), so a future contributor doesn't have to redo this research. Still needs explicit approval before implementation starts, per AGENTS.md ("artifact creation is not approval").
+**Accepted**: [ADR-OPENDOCS-pdf-library](adr/ADR-OPENDOCS-pdf-library.md) records `pdfrx: 2.4.8` as the choice and was approved by the user on 2026-09-18 ("Approve it, start implementation"). The ADR's value is the same as `ADR-OPENDOCS-storage-access`'s: a durable record of the alternatives ruled out and why (Syncfusion's licensing gate, `pdfx`'s web-only password support, `flutter_pdfview`'s missing search, `pdfrx` latest's Flutter SDK floor), so a future contributor doesn't have to redo this research.
 
 ## References
 - `SRS.md` (this feature)

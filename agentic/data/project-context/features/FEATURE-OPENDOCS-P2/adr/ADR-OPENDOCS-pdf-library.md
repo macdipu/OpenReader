@@ -1,7 +1,7 @@
 # ADR-OPENDOCS-pdf-library: PDF rendering library for the Phase 2 reader
 
 ## Status
-Proposed — not yet approved. Requested by `ARCHITECTURE.md`'s "ADR Recommendation" before Phase 2 implementation starts. The underlying alternatives analysis and the "no paid dependency" constraint are already settled (the product owner ruled out paying for anything); this ADR records that decision and its reasoning, and still needs an explicit approval before code is written, per AGENTS.md ("artifact creation is not approval").
+**Accepted.** The user approved this ADR's Decision explicitly (2026-09-18): "Approve it, start implementation." `pdfrx: 2.4.8` is the library for Phase 2.
 
 ## Context
 BRD §30 Phase 2 (PDF Reader) needs, at minimum, offline rendering, zoom, multiple view modes, page thumbnails, jump-to-page, a password-protected-PDF flow, and full-text search with highlighting (BRD §9.10, §30's own Phase 2 deliverable list). No PDF library exists in this project yet (`pubspec.yaml` has none as of `FEATURE-OPENDOCS-P1`/TASK-007).

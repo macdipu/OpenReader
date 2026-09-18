@@ -6,6 +6,7 @@ import 'package:customer/core/domain/repositories/favorite_repository.dart';
 import 'package:customer/core/domain/repositories/recent_repository.dart';
 import 'package:customer/core/domain/usecase/usecase.dart';
 import 'package:customer/core/presentation/controllers/document_interaction_controller.dart';
+import 'package:customer/res/routes/app_routes.dart';
 import 'package:customer/services/utilities/storage_access_service.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
@@ -68,12 +69,12 @@ void main() {
   late FixtureAccess access;
   late DocumentInteractionController controller;
 
-  DocumentModel documentFor(String path) => DocumentModel(
+  DocumentModel documentFor(String path, {DocumentCategory category = DocumentCategory.pdf}) => DocumentModel(
         id: path,
         path: path,
         displayName: p.basename(path),
-        extension: 'pdf',
-        category: DocumentCategory.pdf,
+        extension: category == DocumentCategory.pdf ? 'pdf' : 'docx',
+        category: category,
         sizeBytes: 10,
         modifiedAt: DateTime(2026),
         lastSeenAt: DateTime(2026),
@@ -116,12 +117,35 @@ void main() {
   Future<void> drainSnackbar(WidgetTester tester) => tester.pump(const Duration(seconds: 4));
 
   group('openDocument accessibility guard (ODF-021/023)', () {
-    testWidgets('records the open and proceeds when the file is accessible', (tester) async {
+    testWidgets('records the open and proceeds when the file is accessible (non-PDF stub path)', (tester) async {
+      // Word/Excel/PowerPoint/Text/CSV have no reader yet, so openDocument()
+      // still records the open itself and shows the stub message. PDF's own
+      // dispatch (tested separately below) does not call markOpened here -
+      // the reader owns that, so this test deliberately uses a non-PDF
+      // category to exercise the still-current stub path.
+      final wordDocument = documentFor(existingFile.path, category: DocumentCategory.word);
       await pumpWithSnackbarHost(tester);
-      await controller.openDocument(accessibleDocument);
+      await controller.openDocument(wordDocument);
       await tester.pump();
       expect(recents.markOpenedCalls, 1);
       await drainSnackbar(tester);
+    });
+
+    testWidgets('dispatches an accessible PDF to the reader route instead of the stub message', (tester) async {
+      await tester.pumpWidget(GetMaterialApp(
+        initialRoute: '/',
+        getPages: [
+          GetPage(name: '/', page: () => const Scaffold(body: SizedBox())),
+          GetPage(name: AppRoutes.pdfReader, page: () => const Scaffold(body: Text('pdf reader stand-in'))),
+        ],
+      ));
+      await controller.openDocument(accessibleDocument);
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, AppRoutes.pdfReader);
+      expect(find.text('pdf reader stand-in'), findsOneWidget);
+      // The reader owns markOpened() itself (initial restore + per-page-change
+      // persistence); a bare call here would reset an existing position.
+      expect(recents.markOpenedCalls, 0);
     });
 
     testWidgets('blocks and offers Remove from Recents when the file is missing', (tester) async {
