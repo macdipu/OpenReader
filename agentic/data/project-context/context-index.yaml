@@ -31,3 +31,7 @@ features:
     status: IN_PROGRESS         # Text/CSV implemented 2026-09-18 (TASK-012); device verification and large-file corpus still outstanding
     path: agentic/data/project-context/features/FEATURE-OPENDOCS-P4
     last_indexed_revision: null
+  FEATURE-OPENDOCS-P5:
+    status: DRAFT               # Hardening scoping started 2026-09-18 (SRS/ARCHITECTURE only, no code); no new dependency expected, no ADR planned
+    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P5
+    last_indexed_revision: null
