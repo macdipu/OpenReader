@@ -8,6 +8,11 @@ abstract class DocumentRepository {
   /// dropped from the index but never touched on disk.
   ResultFuture<List<DocumentModel>> rescan();
 
+  /// Inserts or updates a single document (BRD §7.7 "Open From Other Apps" -
+  /// indexing a file another app hands to OpenDocs via an incoming intent).
+  /// Unlike [rescan], this never removes any other row.
+  ResultFuture<DocumentModel> indexDocument(DocumentModel document);
+
   ResultFuture<List<DocumentModel>> getDocuments({
     DocumentCategory? category,
     String? query,

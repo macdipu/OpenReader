@@ -59,6 +59,19 @@ class DocumentRepositoryImpl implements DocumentRepository {
   }
 
   @override
+  ResultFuture<DocumentModel> indexDocument(DocumentModel document) {
+    return runTask(() async {
+      final db = await _appDatabase.database;
+      await db.insert(
+        'documents',
+        document.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      return document;
+    });
+  }
+
+  @override
   ResultFuture<List<DocumentModel>> getDocuments({
     DocumentCategory? category,
     String? query,

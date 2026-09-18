@@ -65,6 +65,9 @@ dependencies:
   # documents natively; excel_plus is a parser only (no UI) - the Excel
   # reader's grid widget is first-party.
   docx_file_viewer: ^1.0.4
+  # TASK-009 (Open From Other Apps, BRD §7.7): receives ACTION_VIEW/
+  # ACTION_SEND intents for supported document types.
+  receive_sharing_intent: ^1.9.0
   excel_plus: ^2.22.0
 
   # Weather Pulse - Charts / Animations / Fonts

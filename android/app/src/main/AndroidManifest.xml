@@ -30,6 +30,52 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- BRD §7.7 / TASK-009: "Open with OpenDocs" from a file manager or
+                 similar app (a `content://` or, on some older/rooted-device
+                 tools, a `file://` URI). Deliberately excludes PowerPoint's MIME
+                 types - PPTX has no reader yet (FEATURE-OPENDOCS-P3), and
+                 offering OpenDocs as a handler it would then refuse is worse UX
+                 than not appearing as a candidate at all. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="content" android:mimeType="application/pdf"/>
+                <data android:scheme="content" android:mimeType="application/msword"/>
+                <data android:scheme="content" android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
+                <data android:scheme="content" android:mimeType="application/vnd.ms-excel"/>
+                <data android:scheme="content" android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
+                <data android:scheme="content" android:mimeType="text/plain"/>
+                <data android:scheme="content" android:mimeType="text/csv"/>
+                <data android:scheme="content" android:mimeType="text/comma-separated-values"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="file" android:mimeType="application/pdf"/>
+                <data android:scheme="file" android:mimeType="application/msword"/>
+                <data android:scheme="file" android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
+                <data android:scheme="file" android:mimeType="application/vnd.ms-excel"/>
+                <data android:scheme="file" android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
+                <data android:scheme="file" android:mimeType="text/plain"/>
+                <data android:scheme="file" android:mimeType="text/csv"/>
+                <data android:scheme="file" android:mimeType="text/comma-separated-values"/>
+            </intent-filter>
+
+            <!-- "Share" from another app's own share sheet (e.g. an email or
+                 messaging app's attachment menu), as opposed to "Open with". -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/pdf"/>
+                <data android:mimeType="application/msword"/>
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
+                <data android:mimeType="application/vnd.ms-excel"/>
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
+                <data android:mimeType="text/plain"/>
+                <data android:mimeType="text/csv"/>
+                <data android:mimeType="text/comma-separated-values"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
