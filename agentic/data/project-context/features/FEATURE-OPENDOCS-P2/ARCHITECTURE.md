@@ -1,7 +1,7 @@
 # ARCH-OPENDOCS-P2: PDF Reader (BRD Phase 2)
 
 ## Status
-Proposed — pre-implementation. Blocked on the PDF library decision below before any code is written.
+**Implemented** (2026-09-18). The PDF library decision below was accepted and the reader was built the same day — see `tasks/TASK-010.md` for the as-built design and implementation delta. This document is preserved as the pre-implementation design record; it is not updated in place as implementation proceeds.
 
 ## Requirements Covered
 ODF-011, ODF-012, ODF-008 (for PDF), ODF-P2-01 through ODF-P2-06 (see `SRS.md`).

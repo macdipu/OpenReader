@@ -1,7 +1,7 @@
 # ARCH-OPENDOCS-P4: Text/CSV Readers and Platform Integration (BRD Phase 4)
 
 ## Status
-Proposed — pre-implementation. Unlike `FEATURE-OPENDOCS-P2`/`P3`, **no new dependency decision is needed** for either reader (see Alternatives Considered), so no ADR is expected for this phase — flagged explicitly so its absence isn't mistaken for an oversight.
+**Implemented** (2026-09-18) — see `tasks/TASK-012.md` for the as-built design and delta; this document is preserved as the pre-implementation design record, not updated in place. Unlike `FEATURE-OPENDOCS-P2`/`P3`, **no new dependency decision was needed** for either reader (see Alternatives Considered), so no ADR exists for this phase — flagged explicitly so its absence isn't mistaken for an oversight.
 
 ## Requirements Covered
 ODF-019, ODF-020, ODF-008 (for TXT/CSV), ODF-P4-01 through ODF-P4-05 (see `SRS.md`).

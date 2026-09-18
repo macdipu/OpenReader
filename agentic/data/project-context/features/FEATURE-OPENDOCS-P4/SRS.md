@@ -1,7 +1,7 @@
 # SRS-OPENDOCS-P4: Text/CSV Readers and Platform Integration (BRD Phase 4)
 
 ## Status
-Draft. Scoping only — no implementation exists yet, following the same pre-implementation-proposal pattern `FEATURE-OPENDOCS-P2/SRS.md` and `FEATURE-OPENDOCS-P3/SRS.md` used.
+**Implemented** (2026-09-18) — see `tasks/TASK-012.md`, the source of truth where implementation diverged from this scoping record (e.g. the large-file strategy landed on the simpler of the two options this document proposed).
 
 ## Scope
 BRD §30 Phase 4: TXT reader, CSV reader, Android Open With integration, Share sheet, File Information — cross-checked against the per-format specs (§9.14 Text Reader, §9.15 CSV Reader) and Cross-Format Reader Requirements (§10).

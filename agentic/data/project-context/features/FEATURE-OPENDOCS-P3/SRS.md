@@ -1,7 +1,7 @@
 # SRS-OPENDOCS-P3: Office Readers (BRD Phase 3)
 
 ## Status
-Draft. Scoping only — no implementation exists yet, following the same pre-implementation-proposal pattern `FEATURE-OPENDOCS-P2/SRS.md` used (unlike P1's SRS, which was backfilled).
+**Word and Excel: implemented** (2026-09-18) — see `tasks/TASK-011.md`, the source of truth where implementation diverged from this scoping record. **PowerPoint: still Draft/unscoped for real** — blocked on Unresolved Question 1 below, not yet decided.
 
 ## Scope
 BRD §30 Phase 3 (Office Readers): DOCX reader, XLSX reader, PPTX reader, legacy format support "where feasible," search within supported Office readers, reading-state restoration — cross-checked against the fuller per-format specs (§9.11 Word, §9.12 Excel, §9.13 PowerPoint) and Cross-Format Reader Requirements (§10).

@@ -32,7 +32,7 @@ One real, verified risk carried into `ARCHITECTURE.md`: `excel_plus`'s CSV parsi
 
 The two CSV heuristics and TXT encoding scope proposed in `SRS.md`'s Unresolved Questions 1–3 were implemented exactly as proposed (defaults only, no smarter detection attempted) since no request for more came back. The large-file strategy (`SRS.md` Unresolved Question 4) landed on the simpler of the two proposed approaches: a hard size ceiling with BRD's existing "too large" message, not disk-backed windowed reading — see TASK-012's delta for what that does and doesn't cover.
 
-Remaining open item: TASK-009 (Open From Other Apps) now has no remaining "no reader exists" blocker for any category this app plans to ship a reader for except PowerPoint — worth revisiting TASK-009's own implementation now.
+TASK-009 (Open From Other Apps) shipped the same day (`FEATURE-OPENDOCS-P1/tasks/TASK-009.md`), once this phase's readers cleared its last blocker — no open item remains from this phase's side other than the PowerPoint gap already tracked in `FEATURE-OPENDOCS-P3`.
 
 ## Process note
 

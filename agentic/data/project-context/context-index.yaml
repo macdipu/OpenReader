@@ -16,10 +16,18 @@ modules:
 #     last_indexed_revision: null
 features:
   FEATURE-OPENDOCS-P1:
-    status: IN_PROGRESS        # TASK-007 and TASK-008 implemented (50 passing tests); UAT/release approval remain open; TASK-009 (ODF-005) blocked on a reader existing
+    status: IN_PROGRESS        # TASK-001..009 all implemented (TASK-009 shipped 2026-09-18, unblocked once P2/P3/P4 readers existed); UAT/release approval remain open; ODF-030 (large-file corpus) still unverified
     path: agentic/data/project-context/features/FEATURE-OPENDOCS-P1
     last_indexed_revision: c9faa36726c89d6585b10393535c6412c276b26e
   FEATURE-OPENDOCS-P2:
-    status: DRAFT               # Scoping only (SRS + ARCHITECTURE drafted 2026-09-18); blocked on the PDF-library ADR decision before implementation starts
+    status: IN_PROGRESS         # ADR accepted and PDF reader implemented 2026-09-18 (TASK-010); native rendering/device verification still outstanding
     path: agentic/data/project-context/features/FEATURE-OPENDOCS-P2
+    last_indexed_revision: null
+  FEATURE-OPENDOCS-P3:
+    status: IN_PROGRESS         # Word/Excel implemented 2026-09-18 (TASK-011); PowerPoint blocked on an undecided product question (SRS.md Unresolved Question 1), no ADR yet for that format
+    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P3
+    last_indexed_revision: null
+  FEATURE-OPENDOCS-P4:
+    status: IN_PROGRESS         # Text/CSV implemented 2026-09-18 (TASK-012); device verification and large-file corpus still outstanding
+    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P4
     last_indexed_revision: null

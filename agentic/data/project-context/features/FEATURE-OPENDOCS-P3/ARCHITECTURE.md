@@ -1,7 +1,7 @@
 # ARCH-OPENDOCS-P3: Office Readers (BRD Phase 3)
 
 ## Status
-Proposed — pre-implementation. Blocked on the DOCX/XLSX library decisions and, separately, an explicit product decision on PPTX (no verified library covers it well — see Alternatives and `SRS.md` Unresolved Question 1).
+**Word and Excel: implemented** (2026-09-18) — see `tasks/TASK-011.md` for the as-built design and delta; this document is preserved as the pre-implementation design record, not updated in place. **PowerPoint: still Proposed**, blocked on an explicit product decision (no verified library covers it well — see Alternatives and `SRS.md` Unresolved Question 1).
 
 ## Requirements Covered
 ODF-013 through ODF-018, ODF-008 (for Word/Excel/PowerPoint), ODF-P3-01 through ODF-P3-05 (see `SRS.md`).
@@ -98,10 +98,10 @@ None to the database (same Data Rules reasoning as P2). Purely additive: up to t
 6. **Large-workbook/large-table/large-deck performance** (BRD §9.11–13 Corner Cases: "100,000+ rows," "very large table," "500+ slides") is unverified against any candidate in this pass — `excel_plus`'s streaming-reader design is a good sign for XLSX specifically, but needs a real test-corpus pass during implementation, same posture P2 took for `pdfrx`.
 
 ## ADR Recommendation
-Two separate decisions are ready for an ADR; one is not:
-- **Word**: recommend `docx_file_viewer` — see `adr/ADR-OPENDOCS-office-libraries.md` (Proposed, not yet approved).
-- **Excel**: recommend `excel_plus` (parsing) + first-party grid UI — same ADR.
-- **PowerPoint**: **not ready for an ADR yet.** This needs an explicit product decision among the three Unresolved-Question-1 paths before any library commitment is recorded, the same way P2's PDF library ADR waited for the product owner's "I don't want to pay anything" instruction before Syncfusion could be definitively ruled out. Recording a PPTX library choice now would be guessing at a decision that hasn't been made.
+Two separate decisions; one is done, one is still not ready:
+- **Word**: `docx_file_viewer` — see `adr/ADR-OPENDOCS-office-libraries.md`, **Accepted** 2026-09-18 and implemented the same day (`tasks/TASK-011.md`).
+- **Excel**: `excel_plus` (parsing) + first-party grid UI — same ADR, same Accepted/implemented status.
+- **PowerPoint**: **still not ready for an ADR.** This needs an explicit product decision among the three Unresolved-Question-1 paths before any library commitment is recorded, the same way P2's PDF library ADR waited for the product owner's "I don't want to pay anything" instruction before Syncfusion could be definitively ruled out. Recording a PPTX library choice now would be guessing at a decision that still hasn't been made.
 
 ## References
 - `SRS.md` (this feature)

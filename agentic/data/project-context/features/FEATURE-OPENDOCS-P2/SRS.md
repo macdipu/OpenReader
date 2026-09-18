@@ -1,7 +1,7 @@
 # SRS-OPENDOCS-P2: PDF Reader (BRD Phase 2)
 
 ## Status
-Draft. Scoping only — no implementation exists yet. This is a pre-implementation proposal, unlike P1's SRS which was backfilled after the fact.
+**Implemented** (2026-09-18) — see `tasks/TASK-010.md` for the as-built design and delta. This document is preserved as the original pre-implementation scoping record, not updated in place; where implementation diverged from what's written below, TASK-010.md is the source of truth.
 
 ## Scope
 BRD §30 Phase 2 (PDF Reader), scoped to BRD's own named Phase 2 deliverables: PDF rendering, zoom, scroll/page modes, search, thumbnails, jump to page, password flow, reading position (§30) — cross-checked against the fuller PDF Reader Screen spec (§9.10) and Cross-Format Reader Requirements (§10). Two §9.10 items are **explicitly deferred**, not silently dropped: table of contents/bookmarks and internal/external hyperlink navigation — neither is named in Phase 2's own deliverable list, and both add real scope (a TOC data model, a link-target-resolution layer) beyond what a first PDF reader needs to hit BRD's own Phase 2 exit criterion ("PDF feature acceptance criteria pass using PDF test corpus"). Recommend a follow-up task once Phase 2's core ships, tracked below as an Unresolved Specification Question rather than assumed in scope.
