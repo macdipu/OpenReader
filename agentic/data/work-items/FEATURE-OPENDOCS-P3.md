@@ -10,20 +10,20 @@ Classification: proposed `STORY_TASK` grouping, same reasoning as P1/P2 (three i
 
 | ID | Acceptance criterion | Status | Evidence |
 |---|---|---|---|
-| ODF-013 | Read DOCX offline | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P3/SRS.md), [ARCHITECTURE](../project-context/features/FEATURE-OPENDOCS-P3/ARCHITECTURE.md) — real library found (`docx_file_viewer`) |
-| ODF-014 | Search DOCX text | NOT DONE (scoped) | Same — `docx_file_viewer` has built-in search |
-| ODF-015 | Read XLSX offline | NOT DONE (scoped) | Same — `excel_plus` for parsing, first-party grid UI |
-| ODF-016 | Search spreadsheet cells | NOT DONE (scoped) | First-party logic over parsed cell data, no library provides it |
+| ODF-013 | Read DOCX offline | DONE, test-verified (real-file round trip) | [TASK-011](../project-context/features/FEATURE-OPENDOCS-P3/tasks/TASK-011.md) |
+| ODF-014 | Search DOCX text | DONE | Same — `docx_file_viewer`'s built-in search, wired to the reader's app bar |
+| ODF-015 | Read XLSX offline | DONE, test-verified (real-file round trip) | Same — `excel_plus` for parsing, first-party grid UI |
+| ODF-016 | Search spreadsheet cells | DONE | First-party logic over parsed cell data, test-verified |
 | ODF-017 | Read PPTX offline | NOT DONE (scoped) — **library gap, not just unimplemented** | [ARCHITECTURE](../project-context/features/FEATURE-OPENDOCS-P3/ARCHITECTURE.md) Alternatives — no verified free library renders PPTX with real fidelity; needs a product decision (`SRS.md` Unresolved Question 1) before an ADR is even possible |
 | ODF-018 | Search slide text | NOT DONE (scoped), blocked on ODF-017 | Same |
-| ODF-008 | Restore reading position (Word/Excel/PowerPoint) | NOT DONE (scoped) | [SRS](../project-context/features/FEATURE-OPENDOCS-P3/SRS.md) — no schema migration needed, reuses `RecentRepository.getPosition`/`markOpened` added in `FEATURE-OPENDOCS-P2/TASK-010` |
-| n/a | Favorite/Share/Open With/File Info inside each reader | NOT DONE (scoped, low risk) | Reuses `DocumentInteractionController` unchanged, same pattern as the PDF reader |
+| ODF-008 | Restore reading position (Word/Excel/PowerPoint) | DONE for Excel; **write-only, no restore** for Word (real library gap — see TASK-011); n/a for PowerPoint (not built) | [TASK-011](../project-context/features/FEATURE-OPENDOCS-P3/tasks/TASK-011.md) |
+| n/a | Favorite/Share/Open With/File Info inside each reader | DONE for Word/Excel | Reuses `DocumentInteractionController` unchanged, same pattern as the PDF reader |
 
 ## Design boundaries
 
 Reuses Phase 1/2's clean-architecture layering, `BaseController`/GetX conventions, and `DocumentInteractionController` wholesale — no reimplementation per reader. `DocumentInteractionController.openDocument()` gains three more category branches (`word`, `excel`, `powerpoint`), the same seam `FEATURE-OPENDOCS-P2` used for `pdf`. `DocumentCategory` already has the right enum values (`word`/`excel`/`powerpoint`) — confirmed by reading `document_category.dart`, no model change needed.
 
-**Library research: done 2026-09-18, partially resolved.** Word and Excel have real, verified, free (MIT/Apache-2.0) library options with no licensing gate to navigate this time — `docx_file_viewer` (native rendering + built-in search) for Word, `excel_plus` (fast, well-adopted parser) plus a first-party grid widget for Excel. [ADR-OPENDOCS-office-libraries](../project-context/features/FEATURE-OPENDOCS-P3/adr/ADR-OPENDOCS-office-libraries.md) records this — **Status: Proposed, not yet approved**.
+**Library research: done 2026-09-18; Word and Excel implemented the same day.** `docx_file_viewer` (native rendering + built-in search) for Word, `excel_plus` (fast, well-adopted parser) plus a first-party grid widget for Excel — both free (MIT/Apache-2.0), no licensing gate. [ADR-OPENDOCS-office-libraries](../project-context/features/FEATURE-OPENDOCS-P3/adr/ADR-OPENDOCS-office-libraries.md) — **Accepted** ("Yes" — approving and starting implementation). See [TASK-011](../project-context/features/FEATURE-OPENDOCS-P3/tasks/TASK-011.md) for the as-built design and two real gaps found during implementation: Word's reading position can be saved but not restored (the library exposes no scroll-control API at all), and `DocxView` could not be exercised via `flutter test` in this environment (hangs; root cause not identified, isolated to the widget layer specifically).
 
 **PowerPoint is the one real open problem.** No free library found renders PPTX content natively with adequate fidelity — even the strongest actively-maintained multi-format alternative found (`universal_file_viewer`) falls back to opening PPTX in an external app rather than claim inline rendering it can't deliver. This is a verified finding, not a gap in this session's research effort — see `ARCHITECTURE.md` Alternatives for the specific packages checked and why each was insufficient. Three ways forward are laid out in `SRS.md` Unresolved Question 1, none decided here, since it's a product tradeoff (fidelity vs. effort vs. timeline), not an engineering one.
 
@@ -31,11 +31,12 @@ Two other items are explicitly deferred, not silently dropped: legacy binary for
 
 ## Validation and handoff
 
-No implementation code has been written; this pass is research and documentation only, matching how P2's own first scoping pass worked (before the "approve it, start implementation" turn). Next steps, in order:
-1. Approve (or amend) `ADR-OPENDOCS-office-libraries.md` for Word and Excel.
-2. Decide PPTX's path forward (`SRS.md` Unresolved Question 1) — this blocks writing a PPTX-specific ADR, not the Word/Excel implementation, which can proceed independently.
-3. Decide legacy-format and password-flow scope for this phase's first slice (`SRS.md` Unresolved Questions 2–3), or explicitly defer them.
-4. Task-breakdown pass once 1–3 are resolved enough to scope concretely — likely Word and Excel as their own tasks (parallel, independent), PowerPoint as a separate task once its path is chosen.
+**Word and Excel implemented 2026-09-18** (see [TASK-011](../project-context/features/FEATURE-OPENDOCS-P3/tasks/TASK-011.md) for the full implementation delta). `flutter analyze`: 0 errors/warnings (158 pre-existing infos, unchanged baseline). `flutter test`: 91/91 passing (65 pre-existing + 26 new). Unlike PDF, both libraries are pure Dart, so real `.docx`/`.xlsx` files were built and round-tripped through each reader's own controller in these tests — genuinely stronger verification than fixture-only tests, though `DocxView`'s actual on-screen rendering and both readers' behavior against a real device remain unverified (see TASK-011's gaps).
+
+Remaining open items:
+1. Decide PPTX's path forward (`SRS.md` Unresolved Question 1) — a product decision, not yet made; blocks a PPTX-specific ADR and its implementation, not Word/Excel (already done).
+2. Decide legacy-format and password-flow scope, or explicitly accept the current gaps (`SRS.md` Unresolved Questions 2–3; TASK-011's own gaps for Word/Excel specifically).
+3. Word's reading-position restore is unimplementable with `docx_file_viewer` 1.0.4 as-is — revisit if a future release adds scroll-control, or accept save-only as this phase's answer for Word.
 
 ## Process note
 

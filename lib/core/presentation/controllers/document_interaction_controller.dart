@@ -76,17 +76,26 @@ class DocumentInteractionController extends GetxController {
   }
 
   /// Hands off to the matching reader, recording the open in Recent History.
-  /// Phase 3/4 readers (Word/Excel/PowerPoint/Text/CSV) don't exist yet, so
-  /// every other category still shows the stub message and records the open
-  /// itself; the PDF reader owns its own `markOpened` calls (initial restore
-  /// + per-page-change persistence), so this does not call it for PDF - a
-  /// bare `markOpened(id)` here would reset an existing reading position back
-  /// to `{}`, since it defaults to an empty map and replaces the whole row.
+  /// PowerPoint/Text/CSV readers don't exist yet, so those categories still
+  /// show the stub message and record the open themselves; PDF/Word/Excel
+  /// readers each own their own `markOpened` calls (initial restore +
+  /// debounced persistence), so this does not call it for them - a bare
+  /// `markOpened(id)` here would reset an existing reading position back to
+  /// `{}`, since it defaults to an empty map and replaces the whole row.
   Future<void> openDocument(DocumentModel document) async {
     if (!await _verifyStillAccessible(document)) return;
-    if (document.category == DocumentCategory.pdf) {
-      unawaited(Get.toNamed(AppRoutes.pdfReader, arguments: document));
-      return;
+    switch (document.category) {
+      case DocumentCategory.pdf:
+        unawaited(Get.toNamed(AppRoutes.pdfReader, arguments: document));
+        return;
+      case DocumentCategory.word:
+        unawaited(Get.toNamed(AppRoutes.wordReader, arguments: document));
+        return;
+      case DocumentCategory.excel:
+        unawaited(Get.toNamed(AppRoutes.excelReader, arguments: document));
+        return;
+      default:
+        break;
     }
     await _recentRepository.markOpened(document.id);
     CustomSnackbar.info(

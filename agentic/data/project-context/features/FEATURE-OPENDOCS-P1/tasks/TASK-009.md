@@ -15,7 +15,7 @@ Android `<intent-filter>` registration (`ACTION_VIEW`/`ACTION_SEND`, MIME types 
 ## Dependencies
 **Blocked on at least one document reader existing** (BRD Phase 2/3). `DocumentInteractionController.openDocument()` was a stub that only showed "reader is not part of this build yet" — there was nothing for an incoming intent to hand off to.
 
-**Partially cleared 2026-09-18**: `FEATURE-OPENDOCS-P2/tasks/TASK-010.md` shipped a PDF reader, so `openDocument()` now dispatches `DocumentCategory.pdf` to a real route. This unblocks this task's PDF-specific path, but Word/Excel/PowerPoint/Text/CSV still have no reader, so the general blocker (and this task's own implementation) remains open until at least those categories intended for Phase 4's exit criteria also ship.
+**Partially cleared 2026-09-18**: `FEATURE-OPENDOCS-P2/tasks/TASK-010.md` shipped a PDF reader, and `FEATURE-OPENDOCS-P3/tasks/TASK-011.md` (same day) shipped Word and Excel readers — `openDocument()` now dispatches `pdf`/`word`/`excel` to real routes. This unblocks this task's path for three of six categories; PowerPoint/Text/CSV still have no reader, so the general blocker (and this task's own implementation) remains open until at least those categories intended for Phase 4's exit criteria also ship.
 
 Also depends on TASK-007's `_verifyStillAccessible` accessibility check (`TECH-SPEC.md`, "TASK-007 planned LLD") — reuse it for the incoming-intent path (step 3, "validate readable permission") rather than re-implementing it.
 

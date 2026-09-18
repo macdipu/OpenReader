@@ -73,7 +73,15 @@ void main() {
         id: path,
         path: path,
         displayName: p.basename(path),
-        extension: category == DocumentCategory.pdf ? 'pdf' : 'docx',
+        extension: switch (category) {
+          DocumentCategory.pdf => 'pdf',
+          DocumentCategory.word => 'docx',
+          DocumentCategory.excel => 'xlsx',
+          DocumentCategory.powerpoint => 'pptx',
+          DocumentCategory.text => 'txt',
+          DocumentCategory.csv => 'csv',
+          DocumentCategory.unknown => '',
+        },
         category: category,
         sizeBytes: 10,
         modifiedAt: DateTime(2026),
@@ -117,33 +125,49 @@ void main() {
   Future<void> drainSnackbar(WidgetTester tester) => tester.pump(const Duration(seconds: 4));
 
   group('openDocument accessibility guard (ODF-021/023)', () {
-    testWidgets('records the open and proceeds when the file is accessible (non-PDF stub path)', (tester) async {
-      // Word/Excel/PowerPoint/Text/CSV have no reader yet, so openDocument()
-      // still records the open itself and shows the stub message. PDF's own
-      // dispatch (tested separately below) does not call markOpened here -
-      // the reader owns that, so this test deliberately uses a non-PDF
-      // category to exercise the still-current stub path.
-      final wordDocument = documentFor(existingFile.path, category: DocumentCategory.word);
+    testWidgets('records the open and proceeds when the file is accessible (non-reader stub path)', (tester) async {
+      // PowerPoint/Text/CSV have no reader yet, so openDocument() still
+      // records the open itself and shows the stub message. PDF/Word/Excel's
+      // own dispatch (tested separately below) does not call markOpened
+      // here - each reader owns that, so this test deliberately uses a
+      // still-stubbed category to exercise the stub path.
+      final pptDocument = documentFor(existingFile.path, category: DocumentCategory.powerpoint);
       await pumpWithSnackbarHost(tester);
-      await controller.openDocument(wordDocument);
+      await controller.openDocument(pptDocument);
       await tester.pump();
       expect(recents.markOpenedCalls, 1);
       await drainSnackbar(tester);
     });
 
-    testWidgets('dispatches an accessible PDF to the reader route instead of the stub message', (tester) async {
+    testWidgets('dispatches an accessible PDF/Word/Excel document to its own reader route', (tester) async {
       await tester.pumpWidget(GetMaterialApp(
         initialRoute: '/',
         getPages: [
           GetPage(name: '/', page: () => const Scaffold(body: SizedBox())),
           GetPage(name: AppRoutes.pdfReader, page: () => const Scaffold(body: Text('pdf reader stand-in'))),
+          GetPage(name: AppRoutes.wordReader, page: () => const Scaffold(body: Text('word reader stand-in'))),
+          GetPage(name: AppRoutes.excelReader, page: () => const Scaffold(body: Text('excel reader stand-in'))),
         ],
       ));
+
       await controller.openDocument(accessibleDocument);
       await tester.pumpAndSettle();
       expect(Get.currentRoute, AppRoutes.pdfReader);
       expect(find.text('pdf reader stand-in'), findsOneWidget);
-      // The reader owns markOpened() itself (initial restore + per-page-change
+
+      final wordDocument = documentFor(existingFile.path, category: DocumentCategory.word);
+      await controller.openDocument(wordDocument);
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, AppRoutes.wordReader);
+      expect(find.text('word reader stand-in'), findsOneWidget);
+
+      final excelDocument = documentFor(existingFile.path, category: DocumentCategory.excel);
+      await controller.openDocument(excelDocument);
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, AppRoutes.excelReader);
+      expect(find.text('excel reader stand-in'), findsOneWidget);
+
+      // Each reader owns markOpened() itself (initial restore + debounced
       // persistence); a bare call here would reset an existing position.
       expect(recents.markOpenedCalls, 0);
     });

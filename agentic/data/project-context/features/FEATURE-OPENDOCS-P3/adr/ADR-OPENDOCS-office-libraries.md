@@ -1,7 +1,7 @@
 # ADR-OPENDOCS-office-libraries: Word and Excel reading libraries for the Phase 3 readers
 
 ## Status
-**Proposed.** Not approved. Per this project's own established process (`ADR-OPENDOCS-storage-access`, `ADR-OPENDOCS-pdf-library`), drafting this record is not approval — implementation does not start until the user explicitly approves it. Deliberately scoped to **Word and Excel only** — see Scope below for why PowerPoint is excluded.
+**Accepted.** The user approved this ADR's Decision explicitly (2026-09-18): "Yes" (approving Word+Excel and instructing implementation to start). `docx_file_viewer: 1.0.4` and `excel_plus: 2.22.0` are the libraries for Phase 3's Word/Excel readers. Deliberately scoped to **Word and Excel only** — see Scope below for why PowerPoint is excluded; that remains a separate, unresolved decision.
 
 ## Context
 BRD §30 Phase 3 needs DOCX, XLSX, and PPTX readers with search and reading-position restoration (§9.11–9.13, §10, §28 ODF-013…018). No Office-format library exists in this project yet.
