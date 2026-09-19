@@ -9,11 +9,14 @@ import '../../core/presentation/utils/logger.dart';
 /// Scoped to the shared/public roots most user documents land in, rather
 /// than a full-device walk: that keeps a rescan fast and avoids wandering
 /// into Android/data sandboxed app directories the OS hides anyway.
-class DocumentScannerService {
-  DocumentScannerService({Iterable<String> roots = _rootCandidates})
+///
+/// Named `FileScannerService` (not `DocumentScannerService`) to leave that
+/// name free for a future camera-based document scanner feature.
+class FileScannerService {
+  FileScannerService({Iterable<String> roots = _rootCandidates})
       : _roots = List.unmodifiable(roots);
 
-  static final DocumentScannerService instance = DocumentScannerService();
+  static final FileScannerService instance = FileScannerService();
   final List<String> _roots;
 
   static const _rootCandidates = [

@@ -7,13 +7,13 @@ import 'package:openreader/core/data/repositories/recent_repository_impl.dart';
 import 'package:openreader/core/domain/error/failure.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
-import 'package:openreader/services/utilities/document_scanner_service.dart';
+import 'package:openreader/services/utilities/file_scanner_service.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-class FixtureScanner implements DocumentScannerService {
+class FixtureScanner implements FileScannerService {
   List<DocumentModel> documents = [];
   bool fail = false;
   @override

@@ -6,17 +6,17 @@ import '../../domain/repositories/document_repository.dart';
 import '../../domain/usecase/usecase.dart';
 import '../../presentation/utils/task_runner.dart';
 import '../local/app_database.dart';
-import '../../../services/utilities/document_scanner_service.dart';
+import '../../../services/utilities/file_scanner_service.dart';
 
 class DocumentRepositoryImpl implements DocumentRepository {
   final AppDatabase _appDatabase;
-  final DocumentScannerService _scanner;
+  final FileScannerService _scanner;
 
   DocumentRepositoryImpl({
     AppDatabase? appDatabase,
-    DocumentScannerService? scanner,
+    FileScannerService? scanner,
   })  : _appDatabase = appDatabase ?? AppDatabase.instance,
-        _scanner = scanner ?? DocumentScannerService.instance;
+        _scanner = scanner ?? FileScannerService.instance;
 
   @override
   ResultFuture<List<DocumentModel>> rescan() {

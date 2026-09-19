@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:openreader/core/domain/models/document_category.dart';
-import 'package:openreader/services/utilities/document_scanner_service.dart';
+import 'package:openreader/services/utilities/file_scanner_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -43,7 +43,7 @@ void main() {
     await File(p.join(root.path, 'trailing.')).writeAsString('ignore');
     await File(p.join(root.path, 'empty.pdf')).create();
     final before = {for (final f in files) f.path: await f.readAsBytes()};
-    final scanned = await DocumentScannerService(roots: [root.path]).scan();
+    final scanned = await FileScannerService(roots: [root.path]).scan();
     expect(scanned, hasLength(files.length));
     for (final document in scanned) {
       expect(document.id, document.path);
@@ -64,7 +64,7 @@ void main() {
     final file = await File(p.join(nested.path, 'a.pdf')).writeAsString('pdf');
     await Link(p.join(root.path, 'linked.pdf')).create(file.path);
     await Link(p.join(root.path, 'loop')).create(root.path);
-    final result = await DocumentScannerService(
+    final result = await FileScannerService(
         roots: [nested.path, root.path, p.join(root.path, 'missing')]).scan();
     expect(result.map((d) => d.path), [file.path]);
   });
@@ -75,7 +75,7 @@ void main() {
       directory = await Directory(p.join(directory.path, '$depth')).create();
       await File(p.join(directory.path, '$depth.txt')).writeAsString('text');
     }
-    final result = await DocumentScannerService(roots: [root.path]).scan();
+    final result = await FileScannerService(roots: [root.path]).scan();
     expect(result, hasLength(8));
     expect(result.map((d) => d.displayName), contains('8.txt'));
     expect(result.map((d) => d.displayName), isNot(contains('9.txt')));
@@ -85,7 +85,7 @@ void main() {
     final good = await File(p.join(root.path, 'ok.txt')).writeAsString('ok');
     final actualRoot = root;
     final result = await IOOverrides.runZoned(
-      () => DocumentScannerService(roots: ['/unreadable', root.path]).scan(),
+      () => FileScannerService(roots: ['/unreadable', root.path]).scan(),
       createDirectory: (path) =>
           path == '/unreadable' ? UnreadableDirectory(path) : actualRoot,
     );
