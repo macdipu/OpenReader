@@ -53,7 +53,7 @@ void main() {
   final c = document('charlie.pdf', size: 20, modified: 100);
 
   setUp(() async {
-    temporary = await Directory.systemTemp.createTemp('opendocs-db-');
+    temporary = await Directory.systemTemp.createTemp('openreader-db-');
     database = AppDatabase(
         factory: databaseFactoryFfi, path: p.join(temporary.path, 'index.db'));
     scanner = FixtureScanner()..documents = [b, c, a];

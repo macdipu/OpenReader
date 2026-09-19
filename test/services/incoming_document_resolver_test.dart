@@ -31,7 +31,7 @@ void main() {
   late IncomingDocumentResolver resolver;
 
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('opendocs-incoming-');
+    root = await Directory.systemTemp.createTemp('openreader-incoming-');
     repository = FixtureDocumentRepository();
     resolver = IncomingDocumentResolver(documentRepository: repository);
   });

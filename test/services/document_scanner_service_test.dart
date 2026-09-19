@@ -22,7 +22,7 @@ class UnreadableDirectory implements Directory {
 void main() {
   late Directory root;
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('opendocs-scan-');
+    root = await Directory.systemTemp.createTemp('openreader-scan-');
   });
   tearDown(() async {
     await root.delete(recursive: true);

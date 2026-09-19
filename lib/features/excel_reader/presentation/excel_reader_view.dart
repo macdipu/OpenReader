@@ -11,7 +11,7 @@ import 'excel_reader_controller.dart';
 ///
 /// `excel_plus` (the parsing library, see `ExcelReaderController`'s own doc
 /// comment) ships no grid widget, so [CellGrid] - shared with the CSV reader
-/// since `FEATURE-OPENDOCS-P4` - is first-party OpenDocs UI built directly on
+/// since `FEATURE-OPENREADER-P4` - is first-party OpenReader UI built directly on
 /// its parsed cell model.
 class ExcelReaderView extends GetView<ExcelReaderController> {
   const ExcelReaderView({super.key});

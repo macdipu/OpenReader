@@ -22,7 +22,7 @@ class HomeView extends GetView<HomeController> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OpenDocs'),
+        title: const Text('OpenReader'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -171,7 +171,7 @@ class _PermissionBanner extends StatelessWidget {
                 size: 56, color: context.onSurfaceVariant),
             const SizedBox(height: 16),
             Text(
-              'OpenDocs needs storage access to show your documents.',
+              'OpenReader needs storage access to show your documents.',
               textAlign: TextAlign.center,
               style: context.bodyMedium,
             ),

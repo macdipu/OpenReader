@@ -65,7 +65,7 @@ class ApiClient {
   void removeToken() {
     _token = null;
     _cache.flushAll().then((_) {
-      // OpenDocs has no login flow (BRD non-goal); reset to the app's entry point.
+      // OpenReader has no login flow (BRD non-goal); reset to the app's entry point.
       getx.Get.offAllNamed(AppRoutes.splash);
     });
   }

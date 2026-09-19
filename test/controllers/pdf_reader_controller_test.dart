@@ -71,7 +71,7 @@ void main() {
 
   setUp(() async {
     Get.testMode = true;
-    root = await Directory.systemTemp.createTemp('opendocs-pdf-reader-');
+    root = await Directory.systemTemp.createTemp('openreader-pdf-reader-');
     final file = File(p.join(root.path, 'report.pdf'));
     await file.writeAsString('fixture');
     document = DocumentModel(

@@ -69,7 +69,7 @@ class SettingsView extends GetView<SettingsController> {
             title: Text('Local-only processing'),
             subtitle: Text(
               'Your documents, filenames, and search terms never leave this device. '
-              'OpenDocs has no server and no analytics.',
+              'OpenReader has no server and no analytics.',
             ),
           ),
           const Divider(),

@@ -53,7 +53,7 @@ class IncomingIntentService {
   @visibleForTesting
   Future<void> handle(List<SharedMediaFile> files) async {
     // BRD §7.7 describes a single incoming document; ACTION_SEND_MULTIPLE
-    // isn't a document use case OpenDocs models, so only the first file is
+    // isn't a document use case OpenReader models, so only the first file is
     // handled - a deliberate scope line, not a silent drop.
     if (files.isEmpty) return;
     final path = files.first.path;
@@ -65,7 +65,7 @@ class IncomingIntentService {
       case IncomingDocumentOutcome.unsupported:
         // BRD §13 "Unsupported format".
         CustomSnackbar.error(
-          "OpenDocs doesn't support this file type.",
+          "OpenReader doesn't support this file type.",
           actionLabel: 'Open With',
           onAction: () => OpenFilex.open(path),
         );

@@ -2,7 +2,7 @@ project: customer
 project_type: greenfield
 context_status: PARTIAL
 repositories:
-  - https://github.com/dipu-polygontech/OpenDocs.git
+  - https://github.com/dipu-polygontech/OpenReader.git
 modules:
   - app
   - core
@@ -15,14 +15,14 @@ integrations:
   - flutter_dotenv (runtime config; README flags this must move to compile-time injection before production)
   - shared_preferences (local cache)
   - sqflite (local document index / recents / favorites, app_database.dart)
-  - pdfrx 2.4.8 (PDF rendering; pinned to stay on this project's Flutter SDK - ADR-OPENDOCS-pdf-library)
-  - docx_file_viewer / docx_creator (Word rendering; ADR-OPENDOCS-office-libraries)
-  - excel_plus (Excel parsing + CSV import; ADR-OPENDOCS-office-libraries)
+  - pdfrx 2.4.8 (PDF rendering; pinned to stay on this project's Flutter SDK - ADR-OPENREADER-pdf-library)
+  - docx_file_viewer / docx_creator (Word rendering; ADR-OPENREADER-office-libraries)
+  - excel_plus (Excel parsing + CSV import; ADR-OPENREADER-office-libraries)
   - open_filex (Open With)
   - receive_sharing_intent (Open From Other Apps; TASK-009)
 last_indexed_revision: d98acde8822de2dbe266c3db28a5649b88e76451
 # context_status stays PARTIAL: core/features/services modules declared above have
 # no module-context.yaml of their own (only modules/app.yaml exists) - see
 # modules/app.yaml's own known_risks for what it covers in their place. Feature-level
-# docs (BRD/SRS/ARCHITECTURE/tasks) for FEATURE-OPENDOCS-P1..P4 are current as of the
+# docs (BRD/SRS/ARCHITECTURE/tasks) for FEATURE-OPENREADER-P1..P4 are current as of the
 # revision above; PARTIAL reflects the missing module-context files, not stale feature docs.

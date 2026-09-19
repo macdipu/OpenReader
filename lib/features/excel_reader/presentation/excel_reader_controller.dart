@@ -22,8 +22,8 @@ export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellM
 /// during `ARCHITECTURE.md`'s research: no adequate ready-made XLSX viewer
 /// widget exists on pub.dev). This controller owns the parsed workbook and
 /// exposes a plain row/column model; [CellGrid] (shared with the CSV reader
-/// since `FEATURE-OPENDOCS-P4`) builds the actual grid on top of it, the same
-/// "library gives primitives, OpenDocs builds the widget" pattern
+/// since `FEATURE-OPENREADER-P4`) builds the actual grid on top of it, the same
+/// "library gives primitives, OpenReader builds the widget" pattern
 /// `PdfReaderView` used for PDF thumbnails.
 ///
 /// Fixed cell sizing ([CellGridController.cellWidth]/[CellGridController.cellHeight])

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:permission_handler/permission_handler.dart';
 
-/// Wraps the platform permission(s) OpenDocs needs to discover documents
+/// Wraps the platform permission(s) OpenReader needs to discover documents
 /// anywhere on local storage (BRD 9.2 - Storage Access / Onboarding).
 ///
 /// Android 11+ scopes broad filesystem reads behind MANAGE_EXTERNAL_STORAGE,

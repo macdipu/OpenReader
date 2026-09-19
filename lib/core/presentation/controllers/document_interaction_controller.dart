@@ -118,7 +118,7 @@ class DocumentInteractionController extends GetxController {
   }
 
   /// Hands the file to another app to render via Android's `ACTION_VIEW`
-  /// chooser, since OpenDocs has no reader of its own yet.
+  /// chooser, since OpenReader has no reader of its own yet.
   Future<void> openWithExternalApp(DocumentModel document) async {
     if (!await _verifyStillAccessible(document)) return;
     final result = await OpenFilex.open(document.path);
@@ -142,7 +142,7 @@ class DocumentInteractionController extends GetxController {
     }
     if (!await _storageAccess.hasAccess()) {
       CustomSnackbar.error(
-        'OpenDocs no longer has access to this file.',
+        'OpenReader no longer has access to this file.',
         title: document.displayName,
         actionLabel: 'Grant Access',
         onAction: () => _storageAccess.requestAccess(),

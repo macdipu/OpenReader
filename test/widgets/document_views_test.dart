@@ -185,7 +185,7 @@ void main() {
       expect(f.documents.loadCalls, 0);
       expect(
           find.text(home
-              ? 'OpenDocs needs storage access to show your documents.'
+              ? 'OpenReader needs storage access to show your documents.'
               : 'Storage access is required to list files.'),
           findsOneWidget);
     });

@@ -14,9 +14,9 @@ dependencies:
   - firebase_messaging
   - flutter_dotenv
   - shared_preferences
-  - pdfrx 2.4.8 (PDF rendering, pinned - see ADR-OPENDOCS-pdf-library)
-  - docx_file_viewer / docx_creator (Word rendering - see ADR-OPENDOCS-office-libraries)
-  - excel_plus (Excel parsing + CSV import - see ADR-OPENDOCS-office-libraries)
+  - pdfrx 2.4.8 (PDF rendering, pinned - see ADR-OPENREADER-pdf-library)
+  - docx_file_viewer / docx_creator (Word rendering - see ADR-OPENREADER-office-libraries)
+  - excel_plus (Excel parsing + CSV import - see ADR-OPENREADER-office-libraries)
   - open_filex (Open With)
   - receive_sharing_intent (Open From Other Apps - see TASK-009)
 apis: []
@@ -44,15 +44,15 @@ known_risks:
   - 124 passing tests across the files above (flutter analyze: 0 errors/warnings, 158 pre-existing infos); Settings/Onboarding widget coverage and a real device/large-file corpus pass remain outside that scope
   - No CI config found (.github absent) — checks are local/manual only
   - README flags .env is bundled as a Flutter asset (readable if the APK is decompiled); must switch to compile-time injection before production
-  - PDF/Word/Excel/Text/CSV readers, Share/File Info/Open With, and Open From Other Apps (TASK-009) are all implemented (2026-09-18); PowerPoint has no reader, blocked on an undecided product question (FEATURE-OPENDOCS-P3/SRS.md Unresolved Question 1)
+  - PDF/Word/Excel/Text/CSV readers, Share/File Info/Open With, and Open From Other Apps (TASK-009) are all implemented (2026-09-18); PowerPoint has no reader, blocked on an undecided product question (FEATURE-OPENREADER-P3/SRS.md Unresolved Question 1)
   - No Android SDK/emulator is available in this environment - native rendering (PDF/Word), real intent delivery (TASK-009), and physical-device UAT remain unverified; see each phase's TASK doc for the specific gap
   - A testWidgets test combining an import that reaches document_repository_impl.dart (sqflite) with Directory.systemTemp.createTemp() hangs flutter_test's own teardown in this Flutter 3.44.4 environment (found while testing TASK-009's IncomingIntentService) - worth keeping in mind for future test files in this module
 last_indexed_revision: d98acde8822de2dbe266c3db28a5649b88e76451
 evidence:
   - pubspec.yaml (dependencies, SDK constraint >=3.2.3 <4.0.0)
-  - agentic/data/project-context/features/FEATURE-OPENDOCS-P1/tasks/TASK-007.md, TASK-008.md, TASK-009.md
-  - agentic/data/project-context/features/FEATURE-OPENDOCS-P2/tasks/TASK-010.md
-  - agentic/data/project-context/features/FEATURE-OPENDOCS-P3/tasks/TASK-011.md
-  - agentic/data/project-context/features/FEATURE-OPENDOCS-P4/tasks/TASK-012.md
+  - agentic/data/project-context/features/FEATURE-OPENREADER-P1/tasks/TASK-007.md, TASK-008.md, TASK-009.md
+  - agentic/data/project-context/features/FEATURE-OPENREADER-P2/tasks/TASK-010.md
+  - agentic/data/project-context/features/FEATURE-OPENREADER-P3/tasks/TASK-011.md
+  - agentic/data/project-context/features/FEATURE-OPENREADER-P4/tasks/TASK-012.md
   - README.md (env setup and production warning)
   - Real `flutter analyze`/`flutter test` runs (Flutter 3.44.4, installed into this environment) back every status above, not assumed

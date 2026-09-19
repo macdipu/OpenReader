@@ -90,7 +90,7 @@ void main() {
 
   setUp(() async {
     Get.testMode = true;
-    root = await Directory.systemTemp.createTemp('opendocs-interaction-');
+    root = await Directory.systemTemp.createTemp('openreader-interaction-');
     existingFile = File(p.join(root.path, 'report.pdf'));
     await existingFile.writeAsString('fixture');
     accessibleDocument = documentFor(existingFile.path);
@@ -209,7 +209,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(recents.markOpenedCalls, 0);
-      expect(find.text('OpenDocs no longer has access to this file.'), findsOneWidget);
+      expect(find.text('OpenReader no longer has access to this file.'), findsOneWidget);
       expect(find.text('Grant Access'), findsOneWidget);
 
       await tester.tap(find.text('Grant Access'));

@@ -66,7 +66,7 @@ void main() {
 
   setUp(() async {
     Get.testMode = true;
-    root = await Directory.systemTemp.createTemp('opendocs-word-reader-');
+    root = await Directory.systemTemp.createTemp('openreader-word-reader-');
 
     final built = DocxDocumentBuilder().h1('Report Title').p('The quick brown fox jumps over the lazy dog.').build();
     final bytes = await DocxExporter().exportToBytes(built);

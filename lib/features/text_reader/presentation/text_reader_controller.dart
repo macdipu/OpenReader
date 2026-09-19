@@ -15,12 +15,12 @@ import '../../../core/presentation/utils/text_decoding.dart';
 
 /// Drives the Text reader (BRD §9.14, ODF-019, ODF-008 for TXT).
 ///
-/// Unlike the Word reader (`FEATURE-OPENDOCS-P3`, which wraps a third-party
+/// Unlike the Word reader (`FEATURE-OPENREADER-P3`, which wraps a third-party
 /// widget with no scroll-control API), this reader owns a real
 /// [ScrollController] over first-party content, so reading position works
 /// both ways: saved **and** restored - no equivalent gap.
 ///
-/// No library is used or needed (`FEATURE-OPENDOCS-P4/ARCHITECTURE.md`
+/// No library is used or needed (`FEATURE-OPENREADER-P4/ARCHITECTURE.md`
 /// Alternatives Considered) - plain text has no format to parse.
 class TextReaderController extends BaseController {
   /// Above this size, the file is refused rather than read into memory in

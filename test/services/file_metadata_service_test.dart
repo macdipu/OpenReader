@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 void main() {
   late Directory root;
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('opendocs-metadata-');
+    root = await Directory.systemTemp.createTemp('openreader-metadata-');
   });
   tearDown(() async {
     await root.delete(recursive: true);

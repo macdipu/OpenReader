@@ -8,7 +8,7 @@ import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'csv_reader_controller.dart';
 
 /// BRD §9.15 CSV Reader Screen. Reuses [CellGrid], the same first-party grid
-/// the Excel reader uses (`FEATURE-OPENDOCS-P3/TASK-011`) - CSV has one
+/// the Excel reader uses (`FEATURE-OPENREADER-P3/TASK-011`) - CSV has one
 /// implicit sheet, so there is no sheet-tab bar here.
 class CsvReaderView extends GetView<CsvReaderController> {
   const CsvReaderView({super.key});

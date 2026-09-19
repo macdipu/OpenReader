@@ -70,7 +70,7 @@ void main() {
 
   setUp(() async {
     Get.testMode = true;
-    root = await Directory.systemTemp.createTemp('opendocs-text-reader-');
+    root = await Directory.systemTemp.createTemp('openreader-text-reader-');
     final file = File(p.join(root.path, 'notes.txt'));
     await file.writeAsString('line one\nline two has fox\nline three\nfox again here');
 

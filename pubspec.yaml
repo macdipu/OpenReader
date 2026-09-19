@@ -59,9 +59,9 @@ dependencies:
   open_filex: ^4.7.0
   # Pinned (not a caret range): 2.5.0+ raises the Flutter SDK floor to
   # 3.47.0, newer than this project's .fvmrc (3.44.4). See
-  # ADR-OPENDOCS-pdf-library before bumping this.
+  # ADR-OPENREADER-pdf-library before bumping this.
   pdfrx: 2.4.8
-  # See ADR-OPENDOCS-office-libraries. docx_file_viewer renders Word
+  # See ADR-OPENREADER-office-libraries. docx_file_viewer renders Word
   # documents natively; excel_plus is a parser only (no UI) - the Excel
   # reader's grid widget is first-party.
   docx_file_viewer: ^1.0.4
@@ -84,7 +84,7 @@ dependencies:
 
   # Notifications / Firebase
   # Bumped from ^21.0.0: its Windows plugin transitively pins xml ^6.5.0,
-  # conflicting with excel_plus's xml ^7.0.1 (ADR-OPENDOCS-office-libraries).
+  # conflicting with excel_plus's xml ^7.0.1 (ADR-OPENREADER-office-libraries).
   # 22.x has no breaking changes for the methods this project uses
   # (initialize/show/cancel/cancelAll/getNotificationAppLaunchDetails),
   # verified against the package changelog before bumping.
@@ -117,7 +117,7 @@ dev_dependencies:
   # rename_app removed: it hard-pins xml ^6.5.0 (even at its latest 1.6.6),
   # which conflicts with excel_plus's xml ^7.0.1 requirement. It's a one-shot
   # setup CLI (rename the bundle ID/app name), not referenced anywhere else
-  # in this repo - see ADR-OPENDOCS-office-libraries.
+  # in this repo - see ADR-OPENREADER-office-libraries.
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.8
 

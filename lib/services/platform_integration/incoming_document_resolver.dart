@@ -8,13 +8,13 @@ import '../../core/domain/models/document_model.dart';
 import '../../core/domain/repositories/document_repository.dart';
 
 /// What happened when [IncomingDocumentResolver.resolve] processed a raw
-/// path handed to OpenDocs by another app.
+/// path handed to OpenReader by another app.
 enum IncomingDocumentOutcome {
   /// Indexed and ready to open - [IncomingDocumentResolution.document] is set.
   success,
 
   /// The extension has no reader (BRD §13 "Unsupported format") - includes
-  /// PowerPoint, which has no reader yet either (`FEATURE-OPENDOCS-P3`).
+  /// PowerPoint, which has no reader yet either (`FEATURE-OPENREADER-P3`).
   unsupported,
 
   /// The path doesn't exist or couldn't be read/indexed (BRD §13 "File
@@ -35,7 +35,7 @@ class IncomingDocumentResolution {
   const IncomingDocumentResolution.inaccessible() : this._(null, IncomingDocumentOutcome.inaccessible);
 }
 
-/// Resolves a raw file path handed to OpenDocs by another app (BRD §7.7,
+/// Resolves a raw file path handed to OpenReader by another app (BRD §7.7,
 /// TASK-009) into an indexed [DocumentModel] ready to open, or a reason it
 /// can't be.
 ///

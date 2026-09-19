@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage"/>
     <application
-        android:label="OpenDocs"
+        android:label="OpenReader"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -31,11 +31,11 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- BRD §7.7 / TASK-009: "Open with OpenDocs" from a file manager or
+            <!-- BRD §7.7 / TASK-009: "Open with OpenReader" from a file manager or
                  similar app (a `content://` or, on some older/rooted-device
                  tools, a `file://` URI). Deliberately excludes PowerPoint's MIME
-                 types - PPTX has no reader yet (FEATURE-OPENDOCS-P3), and
-                 offering OpenDocs as a handler it would then refuse is worse UX
+                 types - PPTX has no reader yet (FEATURE-OPENREADER-P3), and
+                 offering OpenReader as a handler it would then refuse is worse UX
                  than not appearing as a candidate at all. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>

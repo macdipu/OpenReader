@@ -17,7 +17,7 @@ class SplashView extends GetView<SplashController> {
           children: [
             Icon(Icons.folder_copy_outlined, size: 72, color: context.primary),
             const SizedBox(height: 16),
-            Text('OpenDocs', style: context.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+            Text('OpenReader', style: context.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 24),
             SizedBox(
               height: 24,

@@ -15,23 +15,23 @@ modules:
 #     path: agentic/data/project-context/features/FEATURE-042
 #     last_indexed_revision: null
 features:
-  FEATURE-OPENDOCS-P1:
+  FEATURE-OPENREADER-P1:
     status: IN_PROGRESS        # TASK-001..009 all implemented (TASK-009 shipped 2026-09-18, unblocked once P2/P3/P4 readers existed); UAT/release approval remain open; ODF-030 (large-file corpus) still unverified
-    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P1
+    path: agentic/data/project-context/features/FEATURE-OPENREADER-P1
     last_indexed_revision: c9faa36726c89d6585b10393535c6412c276b26e
-  FEATURE-OPENDOCS-P2:
+  FEATURE-OPENREADER-P2:
     status: IN_PROGRESS         # ADR accepted and PDF reader implemented 2026-09-18 (TASK-010); native rendering/device verification still outstanding
-    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P2
+    path: agentic/data/project-context/features/FEATURE-OPENREADER-P2
     last_indexed_revision: null
-  FEATURE-OPENDOCS-P3:
+  FEATURE-OPENREADER-P3:
     status: IN_PROGRESS         # Word/Excel implemented 2026-09-18 (TASK-011); PowerPoint blocked on an undecided product question (SRS.md Unresolved Question 1), no ADR yet for that format
-    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P3
+    path: agentic/data/project-context/features/FEATURE-OPENREADER-P3
     last_indexed_revision: null
-  FEATURE-OPENDOCS-P4:
+  FEATURE-OPENREADER-P4:
     status: IN_PROGRESS         # Text/CSV implemented 2026-09-18 (TASK-012); device verification and large-file corpus still outstanding
-    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P4
+    path: agentic/data/project-context/features/FEATURE-OPENREADER-P4
     last_indexed_revision: null
-  FEATURE-OPENDOCS-P5:
-    status: DRAFT               # Hardening scoping started 2026-09-18 (SRS/ARCHITECTURE only, no code); no new dependency expected, no ADR planned
-    path: agentic/data/project-context/features/FEATURE-OPENDOCS-P5
+  FEATURE-OPENREADER-P5:
+    status: TECHNICAL_READY     # Hardening scoping confirmed 2026-09-19 (all 4 SRS Unresolved Questions resolved, incl. ODF-P5-02 storage-access channel decision); task breakdown not yet done; no new dependency expected, no ADR planned
+    path: agentic/data/project-context/features/FEATURE-OPENREADER-P5
     last_indexed_revision: null

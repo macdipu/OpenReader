@@ -21,10 +21,10 @@ export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellM
 /// Drives the CSV reader (BRD §9.15, ODF-020, ODF-008 for CSV).
 ///
 /// Parses via `excel_plus`'s `Excel.fromCsv` (already a dependency since
-/// `FEATURE-OPENDOCS-P3`) rather than a dedicated CSV library or a hand-rolled
+/// `FEATURE-OPENREADER-P3`) rather than a dedicated CSV library or a hand-rolled
 /// parser - it already handles BRD's hardest CSV corner cases (quoted commas,
 /// multi-line quoted values) as part of its own tested surface
-/// (`FEATURE-OPENDOCS-P4/ARCHITECTURE.md` Alternatives Considered).
+/// (`FEATURE-OPENREADER-P4/ARCHITECTURE.md` Alternatives Considered).
 ///
 /// `Excel.fromCsv` has no isolate-friendly entry point (confirmed by reading
 /// `excel_plus`'s source - unlike its `.xlsx` path's `decodeBytesAsync`), so
@@ -35,7 +35,7 @@ export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellM
 /// this way (via `Isolate.exit`, not a deep copy).
 ///
 /// Reuses the same [CellGridController]/`CellGrid` the Excel reader uses
-/// (`FEATURE-OPENDOCS-P3/TASK-011`, extracted to be shared in this phase) -
+/// (`FEATURE-OPENREADER-P3/TASK-011`, extracted to be shared in this phase) -
 /// CSV has one implicit sheet, so there is no sheet-tab bar, but the row/
 /// column grid itself is identical.
 class CsvReaderController extends BaseController implements CellGridController {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -13,7 +15,8 @@ class AppDatabase {
   final DatabaseFactory? _factory;
   final String? _path;
 
-  static const _fileName = 'opendocs.db';
+  static const _fileName = 'openreader.db';
+  static const _legacyFileName = 'opendocs.db';
   static const _version = 1;
 
   Database? _database;
@@ -22,9 +25,24 @@ class AppDatabase {
     return _database ??= await _open();
   }
 
+  /// Renamed from `opendocs.db` (ODF-P5 app rename). Existing installs keep
+  /// their recents/favorites by having the old file renamed in place on first
+  /// open after upgrade, rather than starting from an empty index.
+  Future<void> _migrateLegacyFileName(String directory, String path) async {
+    if (await File(path).exists()) return;
+    final legacy = File(p.join(directory, _legacyFileName));
+    if (await legacy.exists()) {
+      await legacy.rename(path);
+    }
+  }
+
   Future<Database> _open() async {
     final factory = _factory ?? databaseFactory;
-    final path = _path ?? p.join(await factory.getDatabasesPath(), _fileName);
+    final directory = await factory.getDatabasesPath();
+    final path = _path ?? p.join(directory, _fileName);
+    if (_path == null) {
+      await _migrateLegacyFileName(directory, path);
+    }
     return factory.openDatabase(
       path,
       options: OpenDatabaseOptions(
