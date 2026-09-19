@@ -16,7 +16,7 @@ Classification: proposed grouping of independently shippable hardening items (no
 | ODF-P5-01 | Stop bundling `.env` as a readable asset | Security | DONE (2026-09-19) — compile-time constants, `flutter_dotenv` removed | commit `2aeae27` |
 | ODF-P5-02 | Storage-access distribution-channel decision | Security | DECIDED (2026-09-19) — Play Store, general release, special-access declaration | `ADR-OPENREADER-storage-access.md` |
 | ODF-P5-03/04 | Office ZIP/security + corrupted-file hardening | Security / Corrupted-file | DONE (2026-09-19) — `ZipSafetyGuard` | [TASK-015.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-015.md) |
-| ODF-P5-05 | Offline/network audit | Offline/network | NOT DONE, scoped | Same |
+| ODF-P5-05 | Offline/network audit | Offline/network | DONE (2026-09-19) — satisfied, no violation | [TASK-016.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-016.md) |
 | ODF-P5-06 | Dependency reconciliation | Dependency audit | NOT DONE, scoped | Same |
 | ODF-P5-07 | Add CI config | Dependency audit / Security | DONE (2026-09-19) — `.github/workflows/ci.yml` | [TASK-013.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-013.md) |
 | ODF-P5-08 | Accessibility semantics baseline | Accessibility | NOT DONE, fresh scope (no prior mention anywhere) | Same |
@@ -45,6 +45,8 @@ First implementation slice (a) is done: ODF-P5-01 (`.env` fix, commit `2aeae27`)
 - All 5 implemented readers (PDF, Word, Excel, CSV, Text) now verified working end-to-end with real files, plus Home, All Files, Search, Favorites, and Settings' "Refresh file index". A minor cosmetic duplicate-entry artifact (a stray private-cache-path document) was found but not root-caused — flagged for later, not fixed.
 
 Second implementation slice (b) is done: ODF-P5-03/04 (Office ZIP/security hardening — [TASK-015.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-015.md)). A shared `ZipSafetyGuard` rejects an oversized/malicious ZIP before either Office reader decompresses it, reusing BRD §13's existing "too large" message; a fixture shaped like a real password-protected file (Office's OLE2 compound-file signature — real encrypted files aren't ZIPs at all) confirmed the existing generic corrupted-file message fires instead of a crash or hang. `flutter analyze` (0 errors/warnings, same 152 pre-existing infos) and `flutter test` (134/136 — same 2 pre-existing failures, plus 10 new passing tests) both verified.
+
+Third implementation slice (c) is done: ODF-P5-05 offline/network audit — [TASK-016.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-016.md). Audit-only, no code change: traced every call site of `dio`/`firebase_core`/`firebase_messaging`/`internet_connection_checker_plus`. Result: no violation of BRD §15. `dio` isn't even a dependency (a stale SRS reference, now corrected); Firebase is dormant behind a commented-out bootstrap call with an explicit "enable for production" TODO; the network-connectivity checker is reachable only from `VersionUpdateService`, which turned out to be dead code no controller ever calls — flagged for ODF-P5-06 rather than fixed here, since that's a dependency-reconciliation decision, not an offline-audit one.
 
 ## Process note
 
