@@ -7,7 +7,12 @@ plugins {
 
 android {
     namespace = "com.onkur.customer"
-    compileSdk = flutter.compileSdkVersion
+    // ODF-P5-06: flutter.compileSdkVersion resolves to 36 on this Flutter
+    // version, but receive_sharing_intent requires compileSdk 37 (confirmed
+    // via a real `flutter build apk --debug` on this project's Android
+    // toolchain, not assumed) - hardcoded per the build's own suggested fix.
+    // compileSdk is backward-compatible, so this doesn't affect minSdk/targetSdk.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
