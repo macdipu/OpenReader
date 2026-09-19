@@ -146,7 +146,7 @@ class ${featureNamePascal}ItemList {
 }
 
 String generateRepositoryFile(String featureName, String featureNamePascal) {
-  return '''import 'package:customer/core/domain/usecase/usecase.dart';
+  return '''import 'package:openreader/core/domain/usecase/usecase.dart';
 
 import '../entity/${featureName}_item.dart';
 
@@ -158,7 +158,7 @@ abstract class ${featureNamePascal}Repository {
 
 String generateUseCaseFile(String featureName, String featureNamePascal, String featureNameCamel) {
   return '''import 'package:dartz/dartz.dart';
-import 'package:customer/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
 
 import '../entity/${featureName}_item.dart';
 import '../repo/${featureName}_repository.dart';
@@ -215,9 +215,9 @@ class ${featureNamePascal}ItemData {
 
 String generateHttpImplFile(String featureName, String featureNamePascal, String featureNameCamel) {
   return '''import 'package:dartz/dartz.dart';
-import 'package:customer/core/data/http/client/base_http_repository.dart';
-import 'package:customer/core/domain/error/failure.dart';
-import 'package:customer/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/data/http/client/base_http_repository.dart';
+import 'package:openreader/core/domain/error/failure.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
 
 import '../../domain/entity/${featureName}_item.dart';
 import '../../domain/repo/${featureName}_repository.dart';
@@ -255,9 +255,9 @@ String generateCacheImplFile(String featureName, String featureNamePascal, Strin
   return '''import 'dart:convert';
 
 import 'package:dartz/dartz.dart';
-import 'package:customer/core/data/cache/client/base_cache_repository.dart';
-import 'package:customer/core/domain/domain_export.dart';
-import 'package:customer/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/data/cache/client/base_cache_repository.dart';
+import 'package:openreader/core/domain/domain_export.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
 
 import '../../domain/entity/${featureName}_item.dart';
 import '../../domain/repo/${featureName}_repository.dart';
@@ -302,7 +302,7 @@ class ${featureNamePascal}CacheImpl extends BaseCacheRepository implements ${fea
 
 String generateControllerFile(String featureName, String featureNamePascal, String featureNameCamel) {
   return '''import 'package:get/get.dart';
-import 'package:customer/core/presentation/controllers/base_controller.dart';
+import 'package:openreader/core/presentation/controllers/base_controller.dart';
 
 import '../../domain/entity/${featureName}_item.dart';
 import '../../domain/usecase/${featureName}_use_case.dart';
@@ -404,13 +404,13 @@ class _${featureNamePascal}ListTile extends StatelessWidget {
 
 String generateBindingFile(String featureName, String featureNamePascal, String featureNameCamel) {
   return '''import 'package:get/get.dart';
-import 'package:customer/core/data/cache/client/preference_cache.dart';
-import 'package:customer/core/data/http/client/api_client.dart';
-import 'package:customer/features/$featureName/data/repo_impl/${featureName}_cache_impl.dart';
-import 'package:customer/features/$featureName/data/repo_impl/${featureName}_http_impl.dart';
-import 'package:customer/features/$featureName/domain/repo/${featureName}_repository.dart';
-import 'package:customer/features/$featureName/domain/usecase/${featureName}_use_case.dart';
-import 'package:customer/features/$featureName/presentation/controller/${featureName}_screen_controller.dart';
+import 'package:openreader/core/data/cache/client/preference_cache.dart';
+import 'package:openreader/core/data/http/client/api_client.dart';
+import 'package:openreader/features/$featureName/data/repo_impl/${featureName}_cache_impl.dart';
+import 'package:openreader/features/$featureName/data/repo_impl/${featureName}_http_impl.dart';
+import 'package:openreader/features/$featureName/domain/repo/${featureName}_repository.dart';
+import 'package:openreader/features/$featureName/domain/usecase/${featureName}_use_case.dart';
+import 'package:openreader/features/$featureName/presentation/controller/${featureName}_screen_controller.dart';
 
 class ${featureNamePascal}Binding extends Bindings {
   @override
@@ -441,7 +441,7 @@ class ${featureNamePascal}Binding extends Bindings {
 
 String generatePagesFile(String featureName, String featureNamePascal, String featureNameCamel) {
   return '''import 'package:get/get.dart';
-import 'package:customer/res/routes/app_routes.dart';
+import 'package:openreader/res/routes/app_routes.dart';
 
 import 'bindings/${featureName}_binding.dart';
 import 'screens/${featureName}_screen.dart';

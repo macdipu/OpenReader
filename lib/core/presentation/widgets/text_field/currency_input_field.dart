@@ -1,4 +1,4 @@
-import 'package:customer/core/presentation/widgets/formatter/currency_formatter.dart';
+import 'package:openreader/core/presentation/widgets/formatter/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'custom_text_field.dart';

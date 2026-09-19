@@ -1,5 +1,5 @@
-import 'package:customer/core/domain/models/theme_mode_enum.dart';
-import 'package:customer/core/domain/repositories/app_settings_repository.dart';
+import 'package:openreader/core/domain/models/theme_mode_enum.dart';
+import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
 import '../cache/preference/shared_preference.dart';
 
 class AppSettingsRepositoryImpl implements AppSettingsRepository {

@@ -1,6 +1,6 @@
-import 'package:customer/core/domain/error/failure.dart';
-import 'package:customer/core/presentation/utils/state_status.dart';
-import 'package:customer/core/presentation/widgets/snackbar/custom_snackbar.dart';
+import 'package:openreader/core/domain/error/failure.dart';
+import 'package:openreader/core/presentation/utils/state_status.dart';
+import 'package:openreader/core/presentation/widgets/snackbar/custom_snackbar.dart';
 import 'package:get/get.dart';
 
 abstract class BaseController extends GetxController {

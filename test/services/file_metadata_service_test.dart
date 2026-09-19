@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:customer/core/domain/models/document_category.dart';
-import 'package:customer/services/utilities/file_metadata_service.dart';
+import 'package:openreader/core/domain/models/document_category.dart';
+import 'package:openreader/services/utilities/file_metadata_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 

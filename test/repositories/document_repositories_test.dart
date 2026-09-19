@@ -1,13 +1,13 @@
 import 'dart:io';
 
-import 'package:customer/core/data/local/app_database.dart';
-import 'package:customer/core/data/repositories/document_repository_impl.dart';
-import 'package:customer/core/data/repositories/favorite_repository_impl.dart';
-import 'package:customer/core/data/repositories/recent_repository_impl.dart';
-import 'package:customer/core/domain/error/failure.dart';
-import 'package:customer/core/domain/models/document_category.dart';
-import 'package:customer/core/domain/models/document_model.dart';
-import 'package:customer/services/utilities/document_scanner_service.dart';
+import 'package:openreader/core/data/local/app_database.dart';
+import 'package:openreader/core/data/repositories/document_repository_impl.dart';
+import 'package:openreader/core/data/repositories/favorite_repository_impl.dart';
+import 'package:openreader/core/data/repositories/recent_repository_impl.dart';
+import 'package:openreader/core/domain/error/failure.dart';
+import 'package:openreader/core/domain/models/document_category.dart';
+import 'package:openreader/core/domain/models/document_model.dart';
+import 'package:openreader/services/utilities/document_scanner_service.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;

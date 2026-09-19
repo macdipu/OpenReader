@@ -1,13 +1,13 @@
 import 'dart:io';
 
-import 'package:customer/core/domain/models/document_category.dart';
-import 'package:customer/core/domain/models/document_model.dart';
-import 'package:customer/core/domain/repositories/favorite_repository.dart';
-import 'package:customer/core/domain/repositories/recent_repository.dart';
-import 'package:customer/core/domain/usecase/usecase.dart';
-import 'package:customer/core/presentation/controllers/document_interaction_controller.dart';
-import 'package:customer/core/presentation/utils/state_status.dart';
-import 'package:customer/features/excel_reader/presentation/excel_reader_controller.dart';
+import 'package:openreader/core/domain/models/document_category.dart';
+import 'package:openreader/core/domain/models/document_model.dart';
+import 'package:openreader/core/domain/repositories/favorite_repository.dart';
+import 'package:openreader/core/domain/repositories/recent_repository.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
+import 'package:openreader/core/presentation/utils/state_status.dart';
+import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
 import 'package:dartz/dartz.dart';
 import 'package:excel_plus/excel_plus.dart' as xls;
 import 'package:flutter/material.dart';

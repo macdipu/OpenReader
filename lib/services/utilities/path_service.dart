@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:customer/core/domain/usecase/usecase.dart';
-import 'package:customer/core/presentation/utils/task_runner.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/presentation/utils/task_runner.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// A service to easily access platform-specific file system locations.

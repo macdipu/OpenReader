@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:customer/core/presentation/theme/color_schemes.dart';
+import 'package:openreader/core/presentation/theme/color_schemes.dart';
 
 class LocalNotificationService {
   final FlutterLocalNotificationsPlugin _flutterLocalNotifications =

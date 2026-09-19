@@ -1,11 +1,11 @@
 
 
-import 'package:customer/core/domain/error/failure.dart';
-import 'package:customer/core/domain/usecase/usecase.dart';
-import 'package:customer/core/presentation/utils/error_handler.dart';
-import 'package:customer/core/presentation/utils/logger.dart';
-import 'package:customer/core/presentation/widgets/snackbar/custom_snackbar.dart';
-import 'package:customer/services/utilities/internet_connection_service.dart';
+import 'package:openreader/core/domain/error/failure.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/presentation/utils/error_handler.dart';
+import 'package:openreader/core/presentation/utils/logger.dart';
+import 'package:openreader/core/presentation/widgets/snackbar/custom_snackbar.dart';
+import 'package:openreader/services/utilities/internet_connection_service.dart';
 import 'package:dartz/dartz.dart';
 
 /// A reusable generic function to handle potential exceptions in async tasks

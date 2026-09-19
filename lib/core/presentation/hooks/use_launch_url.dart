@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:customer/core/presentation/utils/app_utils.dart';
-import 'package:customer/core/presentation/utils/logger.dart';
-import 'package:customer/core/presentation/widgets/snackbar/custom_snackbar.dart';
+import 'package:openreader/core/presentation/utils/app_utils.dart';
+import 'package:openreader/core/presentation/utils/logger.dart';
+import 'package:openreader/core/presentation/widgets/snackbar/custom_snackbar.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:url_launcher/url_launcher.dart';
 

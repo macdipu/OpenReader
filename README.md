@@ -22,7 +22,6 @@ Reference: `lib/features/` (`pdf_reader`, `word_reader`, `excel_reader`, `csv_re
 - **Framework:** Flutter (SDK `>=3.2.3 <4.0.0`)
 - **State management:** GetX
 - **Architecture:** Clean Architecture (presentation / domain / data per feature)
-- **HTTP:** dio
 - **Local storage:** sqflite (document index), shared_preferences, flutter_secure_storage
 - **Document rendering:** pdfrx (PDF), docx_file_viewer/docx_creator (Word), excel_plus (Excel/CSV)
 - **File integration:** open_filex (Open With), receive_sharing_intent (Open From Other Apps)
@@ -30,32 +29,14 @@ Reference: `lib/features/` (`pdf_reader`, `word_reader`, `excel_reader`, `csv_re
 
 ---
 
-## Environment Setup
-
-Copy `env_example` to `.env` and fill in values:
-
-```bash
-cp env_example .env
-```
-
-Config is injected at **compile time** via `--dart-define-from-file`, read through `String.fromEnvironment`/`bool.fromEnvironment` in `AppConfig` — not bundled as a readable asset:
-
-```bash
-flutter run --dart-define-from-file=.env
-flutter build apk --release --dart-define-from-file=.env
-```
-
-`.env` is git-ignored and never packaged into the build output, so secrets never land in the binary.
-
----
-
 ## Getting Started
+
+OpenReader is fully offline and calls no API, so there's no environment/config setup step.
 
 1. **Clone the repository**
 2. **Install dependencies:** `flutter pub get`
-3. **Set up `.env`** (see Environment Setup above)
-4. **Run the app:** `flutter run --dart-define-from-file=.env`
-5. **Run tests:** `flutter test`
+3. **Run the app:** `flutter run`
+4. **Run tests:** `flutter test`
 
 ---
 
@@ -64,7 +45,7 @@ flutter build apk --release --dart-define-from-file=.env
 ```
 lib/
 ├── app/                  ← App bootstrap, flavours, top-level view
-├── core/                 ← Shared data/domain/presentation (http client, widgets, controllers)
+├── core/                 ← Shared data/domain/presentation (cache, widgets, controllers)
 ├── features/             ← One folder per feature (pdf_reader, word_reader, excel_reader, csv_reader,
 │                            text_reader, files, home, recents, favorites, search, settings,
 │                            onboarding, splash, file_information)

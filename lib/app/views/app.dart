@@ -1,6 +1,6 @@
-import 'package:customer/res/strings/string_enum.dart';
-import 'package:customer/services/navigation/navigation_history_observer.dart';
-import 'package:customer/services/navigation/navigation_service.dart';
+import 'package:openreader/res/strings/string_enum.dart';
+import 'package:openreader/services/navigation/navigation_history_observer.dart';
+import 'package:openreader/services/navigation/navigation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

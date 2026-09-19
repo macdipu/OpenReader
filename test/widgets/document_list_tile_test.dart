@@ -1,6 +1,6 @@
-import 'package:customer/core/domain/models/document_category.dart';
-import 'package:customer/core/domain/models/document_model.dart';
-import 'package:customer/core/presentation/widgets/document/document_list_tile.dart';
+import 'package:openreader/core/domain/models/document_category.dart';
+import 'package:openreader/core/domain/models/document_model.dart';
+import 'package:openreader/core/presentation/widgets/document/document_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

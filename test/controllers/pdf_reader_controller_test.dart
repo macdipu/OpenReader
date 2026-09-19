@@ -1,13 +1,13 @@
 import 'dart:io';
 
-import 'package:customer/core/domain/models/document_category.dart';
-import 'package:customer/core/domain/models/document_model.dart';
-import 'package:customer/core/domain/repositories/favorite_repository.dart';
-import 'package:customer/core/domain/repositories/recent_repository.dart';
-import 'package:customer/core/domain/usecase/usecase.dart';
-import 'package:customer/core/presentation/controllers/document_interaction_controller.dart';
-import 'package:customer/core/presentation/utils/state_status.dart';
-import 'package:customer/features/pdf_reader/presentation/pdf_reader_controller.dart';
+import 'package:openreader/core/domain/models/document_category.dart';
+import 'package:openreader/core/domain/models/document_model.dart';
+import 'package:openreader/core/domain/repositories/favorite_repository.dart';
+import 'package:openreader/core/domain/repositories/recent_repository.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
+import 'package:openreader/core/presentation/utils/state_status.dart';
+import 'package:openreader/features/pdf_reader/presentation/pdf_reader_controller.dart';
 import 'package:dartz/dartz.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';

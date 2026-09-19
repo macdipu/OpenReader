@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:customer/res/routes/global_navigator.dart';
+import 'package:openreader/res/routes/global_navigator.dart';
 
 /// Shows a premium custom dialog with optional backdrop blur.
 /// 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:customer/core/presentation/theme/color_schemes.dart';
-import 'package:customer/res/routes/global_navigator.dart';
+import 'package:openreader/core/presentation/theme/color_schemes.dart';
+import 'package:openreader/res/routes/global_navigator.dart';
 import 'package:get/get.dart';
 
 enum SnackbarType {

@@ -1,12 +1,12 @@
 import 'dart:io';
 
-import 'package:customer/core/domain/models/document_category.dart';
-import 'package:customer/core/domain/models/document_model.dart';
-import 'package:customer/core/domain/repositories/favorite_repository.dart';
-import 'package:customer/core/domain/repositories/recent_repository.dart';
-import 'package:customer/core/domain/usecase/usecase.dart';
-import 'package:customer/core/presentation/controllers/document_interaction_controller.dart';
-import 'package:customer/features/word_reader/presentation/word_reader_controller.dart';
+import 'package:openreader/core/domain/models/document_category.dart';
+import 'package:openreader/core/domain/models/document_model.dart';
+import 'package:openreader/core/domain/repositories/favorite_repository.dart';
+import 'package:openreader/core/domain/repositories/recent_repository.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
+import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
 import 'package:dartz/dartz.dart';
 import 'package:docx_creator/docx_creator.dart';
 import 'package:fake_async/fake_async.dart';

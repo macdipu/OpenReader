@@ -1,11 +1,11 @@
 import 'dart:io';
 
-import 'package:customer/core/domain/error/failure.dart';
-import 'package:customer/core/domain/models/document_category.dart';
-import 'package:customer/core/domain/models/document_model.dart';
-import 'package:customer/core/domain/repositories/document_repository.dart';
-import 'package:customer/core/domain/usecase/usecase.dart';
-import 'package:customer/services/platform_integration/incoming_document_resolver.dart';
+import 'package:openreader/core/domain/error/failure.dart';
+import 'package:openreader/core/domain/models/document_category.dart';
+import 'package:openreader/core/domain/models/document_model.dart';
+import 'package:openreader/core/domain/repositories/document_repository.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
+import 'package:openreader/services/platform_integration/incoming_document_resolver.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;

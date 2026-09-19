@@ -1,6 +1,6 @@
 
-import 'package:customer/core/presentation/utils/logger.dart';
-import 'package:customer/services/utilities/share_service.dart';
+import 'package:openreader/core/presentation/utils/logger.dart';
+import 'package:openreader/services/utilities/share_service.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 

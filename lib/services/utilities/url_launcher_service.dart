@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:customer/core/domain/usecase/usecase.dart';
-import 'package:customer/core/presentation/utils/app_utils.dart';
-import 'package:customer/core/presentation/utils/task_runner.dart';
+import 'package:openreader/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/presentation/utils/app_utils.dart';
+import 'package:openreader/core/presentation/utils/task_runner.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A service to handle URL launching operations.
