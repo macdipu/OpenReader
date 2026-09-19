@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 
 import '../../core/domain/models/document_category.dart';
+import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/files/presentation/files_controller.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 
@@ -35,6 +36,18 @@ class AppShellController extends GetxController {
 
   void changeTab(int index) {
     currentIndex.value = index;
+    // Belt-and-suspenders reload on tab select: verified on a real device
+    // that FavoritesController's own `ever(...favoriteIds...)` reactive
+    // subscription (favorites_controller.dart) does not reliably pick up a
+    // favorite toggled from a different screen (e.g. Files' context menu)
+    // once the Favorites tab has already been visited once this session —
+    // the database write succeeds but the tab keeps showing its old list
+    // until this. Root cause in the reactive chain itself wasn't isolated
+    // further; reloading on every tab-select is small and guaranteed
+    // correct regardless of it.
+    if (index == favoritesIndex) {
+      Get.find<FavoritesController>().load();
+    }
   }
 
   /// Switches to the Files tab, optionally pre-filtered to [category]

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:excel_plus/excel_plus.dart' as xls;
 import 'package:flutter/widgets.dart';
@@ -26,13 +25,20 @@ export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellM
 /// multi-line quoted values) as part of its own tested surface
 /// (`FEATURE-OPENREADER-P4/ARCHITECTURE.md` Alternatives Considered).
 ///
-/// `Excel.fromCsv` has no isolate-friendly entry point (confirmed by reading
-/// `excel_plus`'s source - unlike its `.xlsx` path's `decodeBytesAsync`), so
-/// this controller wraps the parse call in its own `Isolate.run` rather than
-/// assuming the library keeps the UI thread responsive for a large CSV
-/// (`ARCHITECTURE.md` Risk 2). `Excel.decodeBytesAsync`'s own implementation
-/// confirms `Excel` objects are safe to hand back across an isolate boundary
-/// this way (via `Isolate.exit`, not a deep copy).
+/// Runs on the calling isolate, not offloaded via `Isolate.run` — verified on
+/// a real device that `Isolate.run(() => xls.Excel.fromCsv(csvText))` always
+/// throws ("object is unsendable - Library:'dart:async' Class:
+/// _AsyncCompleter"), because the resulting `Excel`/`Sheet` object graph from
+/// this factory isn't isolate-sendable, unlike the plain-byte-decode path
+/// `Excel.decodeBytesAsync` uses (which happens to produce a sendable result
+/// and was wrongly assumed to prove the same held here — it doesn't; both
+/// call the same underlying `Isolate.run`, so sendability depends on what the
+/// factory actually builds, not on which `Excel` entry point is used). This
+/// was a real bug: every `.csv` file failed to open ("This document may be
+/// damaged or incomplete.") until this was found and fixed (see
+/// `FEATURE-OPENREADER-P5/tasks/TASK-014.md`). `ARCHITECTURE.md` Risk 2 (UI
+/// jank on a large CSV) is therefore unmitigated again pending a real
+/// isolate-safe fix — the 20MB `maxBytes` ceiling below is the only guard.
 ///
 /// Reuses the same [CellGridController]/`CellGrid` the Excel reader uses
 /// (`FEATURE-OPENREADER-P3/TASK-011`, extracted to be shared in this phase) -
@@ -109,7 +115,7 @@ class CsvReaderController extends BaseController implements CellGridController {
 
       final bytes = await file.readAsBytes();
       final csvText = decodeTextBytes(bytes);
-      final workbook = await Isolate.run(() => xls.Excel.fromCsv(csvText));
+      final workbook = xls.Excel.fromCsv(csvText);
       _sheet = workbook.sheets[workbook.getDefaultSheet()];
       status.value = StateStatus.success;
     } catch (e) {
