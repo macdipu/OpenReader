@@ -12,13 +12,13 @@ Classification: proposed grouping of independently shippable hardening items (no
 
 | ID | Acceptance criterion | Bucket | Status | Evidence |
 |---|---|---|---|---|
-| ODF-030 | Remain responsive with large files | Large-file / Performance | NOT VERIFIED, standing gap since P1 | [SRS.md](../project-context/features/FEATURE-OPENREADER-P5/SRS.md) |
-| ODF-P5-01 | Stop bundling `.env` as a readable asset | Security | NOT DONE, scoped | Same |
-| ODF-P5-02 | Storage-access distribution-channel decision | Security | BLOCKED on product decision | Same |
+| ODF-030 | Remain responsive with large files | Large-file / Performance | NOT VERIFIED (no large-file corpus) — but the total cold-boot blocker found on 2026-09-19 is FIXED, see below | [TASK-013.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-013.md) |
+| ODF-P5-01 | Stop bundling `.env` as a readable asset | Security | DONE (2026-09-19) — compile-time constants, `flutter_dotenv` removed | commit `2aeae27` |
+| ODF-P5-02 | Storage-access distribution-channel decision | Security | DECIDED (2026-09-19) — Play Store, general release, special-access declaration | `ADR-OPENREADER-storage-access.md` |
 | ODF-P5-03/04 | Office ZIP/security + corrupted-file hardening | Security / Corrupted-file | NOT DONE, scoped | Same |
 | ODF-P5-05 | Offline/network audit | Offline/network | NOT DONE, scoped | Same |
 | ODF-P5-06 | Dependency reconciliation | Dependency audit | NOT DONE, scoped | Same |
-| ODF-P5-07 | Add CI config | Dependency audit / Security | NOT DONE, scoped | Same |
+| ODF-P5-07 | Add CI config | Dependency audit / Security | DONE (2026-09-19) — `.github/workflows/ci.yml` | [TASK-013.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-013.md) |
 | ODF-P5-08 | Accessibility semantics baseline | Accessibility | NOT DONE, fresh scope (no prior mention anywhere) | Same |
 | ODF-P5-09/10/11 | Large-file corpus, performance profiling, native/device verification | Large-file / Performance | BLOCKED on environment | Same |
 | ODF-P5-12 | Low-memory TXT reader tradeoff | Low-memory | Documented, not fixed this pass | Same |
@@ -33,7 +33,11 @@ Three items are explicitly out of this phase's reach rather than silently droppe
 
 ## Validation and handoff
 
-Scoping confirmed 2026-09-19 — user resolved all four `SRS.md` Unresolved Specification Questions: implementation order accepted as proposed; ODF-P5-02 decided (Play Store, general release, special-access declaration path — recorded in `ADR-OPENREADER-storage-access.md`); ODF-P5-09/10/11 documented-only (no simulated device verification); ODF-P5-08 accessibility baseline confirmed as `Semantics`/`flutter test` coverage. Not yet implemented — ready for task breakdown against the first slice (ODF-P5-01 `.env` fix + ODF-P5-07 CI config).
+Scoping confirmed 2026-09-19 — user resolved all four `SRS.md` Unresolved Specification Questions: implementation order accepted as proposed; ODF-P5-02 decided (Play Store, general release, special-access declaration path — recorded in `ADR-OPENREADER-storage-access.md`); ODF-P5-09/10/11 documented-only (no simulated device verification); ODF-P5-08 accessibility baseline confirmed as `Semantics`/`flutter test` coverage.
+
+First implementation slice (a) is done: ODF-P5-01 (`.env` fix, commit `2aeae27`) and ODF-P5-07 (CI config, [TASK-013.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-013.md)), both verified via `flutter analyze` (0 errors/warnings) and `flutter test` (122/124 — 2 pre-existing failures unrelated to this slice, a Windows-path-separator bug in `DocumentScannerService._nameOf()`, documented in TASK-013 as a new latent-bug finding, not fixed).
+
+**Severe finding, found and fixed same session:** the user asked to also run the app on a real Android emulator — the first time this has happened in this project's history. It surfaced a genuine total-blocker: the app never got past its splash screen. Initial investigation suspected `FlutterSecureStorage`'s Android-Keystore migration (a real, separate improvement was made regardless — `AppSettingsRepositoryImpl` now uses plain `shared_preferences` instead, since none of its values are sensitive), but that was a red herring. The actual root cause: `SplashView` never reads `GetView.controller`, and `SplashBinding` registered `SplashController` with `Get.lazyPut` (only constructed on first `Get.find()`) — so `SplashController` was never instantiated at all, and its `onInit()` (which drives bootstrap-and-navigate) never ran. Fixed by switching to eager `Get.put` in `SplashBinding`, matching how `ThemeController`/`LocaleController` are already registered in `app.dart`. Verified end-to-end on the emulator: splash → onboarding → app shell (Home/Files/Favorites/Settings) all render correctly. Full diagnostic trail in [TASK-013.md](../project-context/features/FEATURE-OPENREADER-P5/tasks/TASK-013.md). `flutter analyze`/`flutter test` unaffected (same baseline as before).
 
 ## Process note
 

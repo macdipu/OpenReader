@@ -1,7 +1,15 @@
 import 'package:openreader/core/domain/models/theme_mode_enum.dart';
 import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
-import '../cache/preference/shared_preference.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+/// None of these values are sensitive (theme choice, locale, an onboarding
+/// flag), so this reads/writes plain SharedPreferences directly rather than
+/// going through the Keystore-backed `SharedPreference` cache wrapper
+/// (lib/core/data/cache/preference/shared_preference.dart, despite its name,
+/// wraps FlutterSecureStorage). That wrapper's Android-Keystore cipher
+/// migration was verified to hang the app's cold-start bootstrap indefinitely
+/// on a real emulator (see FEATURE-OPENREADER-P5/tasks/TASK-013.md) — routing
+/// non-sensitive settings around it removes that hang from the splash path.
 class AppSettingsRepositoryImpl implements AppSettingsRepository {
   static const String _themeKey = 'app_settings:theme_mode';
   static const String _localeKey = 'app_settings:locale';
@@ -10,7 +18,8 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   @override
   Future<AppThemeMode> getThemeMode() async {
     try {
-      final value = await SharedPreference.getValue(_themeKey);
+      final prefs = await SharedPreferences.getInstance();
+      final value = prefs.getString(_themeKey);
       if (value == null) {
         return AppThemeMode.system;
       }
@@ -22,34 +31,40 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
 
   @override
   Future<void> setThemeMode(AppThemeMode mode) async {
-    await SharedPreference.setValue(_themeKey, mode.toStringValue());
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeKey, mode.toStringValue());
   }
 
   @override
   Future<String?> getLocale() async {
-    return await SharedPreference.getValue(_localeKey);
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_localeKey);
   }
 
   @override
   Future<void> setLocale(String locale) async {
-    await SharedPreference.setValue(_localeKey, locale);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_localeKey, locale);
   }
 
   @override
   Future<bool> hasCompletedOnboarding() async {
-    return SharedPreference.getBool(_onboardingCompleteKey);
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingCompleteKey) ?? false;
   }
 
   @override
   Future<void> setOnboardingComplete(bool value) async {
-    await SharedPreference.setBool(_onboardingCompleteKey, value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingCompleteKey, value);
   }
 
   @override
   Future<void> clearSettings() async {
-    await SharedPreference.remove(_themeKey);
-    await SharedPreference.remove(_localeKey);
-    await SharedPreference.remove(_onboardingCompleteKey);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_themeKey);
+    await prefs.remove(_localeKey);
+    await prefs.remove(_onboardingCompleteKey);
   }
 }
 

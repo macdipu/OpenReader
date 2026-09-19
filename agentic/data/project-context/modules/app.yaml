@@ -12,7 +12,6 @@ dependencies:
   - dio
   - firebase_core
   - firebase_messaging
-  - flutter_dotenv
   - shared_preferences
   - pdfrx 2.4.8 (PDF rendering, pinned - see ADR-OPENREADER-pdf-library)
   - docx_file_viewer / docx_creator (Word rendering - see ADR-OPENREADER-office-libraries)
@@ -41,13 +40,13 @@ tests:
   - test/controllers/text_reader_controller_test.dart
   - test/controllers/csv_reader_controller_test.dart
 known_risks:
-  - 124 passing tests across the files above (flutter analyze: 0 errors/warnings, 158 pre-existing infos); Settings/Onboarding widget coverage and a real device/large-file corpus pass remain outside that scope
-  - No CI config found (.github absent) — checks are local/manual only
-  - README flags .env is bundled as a Flutter asset (readable if the APK is decompiled); must switch to compile-time injection before production
+  - 124 tests across the files above (flutter analyze: 0 errors/warnings, 152 pre-existing infos); 122/124 pass — 2 pre-existing failures in document_scanner_service_test.dart from a Windows-path-separator bug in DocumentScannerService._nameOf() (splits on '/' only), invisible on CI's ubuntu-latest runner and on real Android, not yet fixed (see FEATURE-OPENREADER-P5/tasks/TASK-013.md); Settings/Onboarding widget coverage and a real device/large-file corpus pass remain outside that scope
+  - CI config added 2026-09-19 (.github/workflows/ci.yml) — flutter analyze/flutter test now run on push/PR to main (ODF-P5-07, TASK-013.md)
+  - .env fix done 2026-09-19 — flutter_dotenv removed, env moved to compile-time constants (ODF-P5-01, commit 2aeae27)
   - PDF/Word/Excel/Text/CSV readers, Share/File Info/Open With, and Open From Other Apps (TASK-009) are all implemented (2026-09-18); PowerPoint has no reader, blocked on an undecided product question (FEATURE-OPENREADER-P3/SRS.md Unresolved Question 1)
-  - No Android SDK/emulator is available in this environment - native rendering (PDF/Word), real intent delivery (TASK-009), and physical-device UAT remain unverified; see each phase's TASK doc for the specific gap
+  - FIXED (2026-09-19): first real-device run (Android 17/API 37 emulator, first ever in this project) found the app never got past its splash screen. Root cause: SplashView never reads GetView.controller, and SplashBinding registered SplashController with Get.lazyPut, so it was never instantiated and its onInit() (bootstrap-and-navigate) never ran — unrelated to FlutterSecureStorage/sqflite/shared_preferences, which were red herrings chased first. Fixed via eager Get.put in SplashBinding. Verified end-to-end: splash -> onboarding -> app shell all render correctly. AppSettingsRepositoryImpl was also switched from FlutterSecureStorage to plain shared_preferences (non-sensitive values, already a dependency) as a real but separate improvement. See FEATURE-OPENREADER-P5/tasks/TASK-013.md for full diagnostic trail. Native rendering (PDF/Word) and real intent delivery (TASK-009) can now actually be exercised on-device for the first time, but have not yet been manually walked through beyond reaching the app shell
   - A testWidgets test combining an import that reaches document_repository_impl.dart (sqflite) with Directory.systemTemp.createTemp() hangs flutter_test's own teardown in this Flutter 3.44.4 environment (found while testing TASK-009's IncomingIntentService) - worth keeping in mind for future test files in this module
-last_indexed_revision: d98acde8822de2dbe266c3db28a5649b88e76451
+last_indexed_revision: 486c36ec0cac7cb54cb59d5df35da1b4061671ef
 evidence:
   - pubspec.yaml (dependencies, SDK constraint >=3.2.3 <4.0.0)
   - agentic/data/project-context/features/FEATURE-OPENREADER-P1/tasks/TASK-007.md, TASK-008.md, TASK-009.md

@@ -19,13 +19,20 @@ class SplashController extends GetxController {
     _bootstrapAndRoute();
   }
 
+  static const _bootstrapTimeout = Duration(seconds: 5);
+
   Future<void> _bootstrapAndRoute() async {
     var onboardingComplete = false;
     try {
       // Opens (and, on first run, creates) the local document/recent/favorite
       // database so the app shell never hits a cold-open delay.
-      await AppDatabase.instance.database;
-      onboardingComplete = await _settingsRepository.hasCompletedOnboarding();
+      //
+      // Wrapped in a timeout: a plain try/catch only guards against a thrown
+      // exception, not a platform call that never completes.
+      await Future(() async {
+        await AppDatabase.instance.database;
+        onboardingComplete = await _settingsRepository.hasCompletedOnboarding();
+      }).timeout(_bootstrapTimeout);
     } catch (e) {
       // BRD 9.1 corner case: never block permanently on splash. Fall back to
       // onboarding so the user can still proceed even if local state is unreadable.
