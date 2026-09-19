@@ -1,6 +1,32 @@
-# clean_architecture_getx
+# OpenReader
 
-A Flutter project with Clean Architecture and automated feature generation.
+A privacy-first, fully offline Android document reader built with Flutter. OpenReader lets users discover, open, read, search, and navigate documents stored locally on their device — no accounts, no cloud upload, no server dependency.
+
+**Supported formats:** PDF, DOC/DOCX, XLS/XLSX, CSV, TXT. (PPT/PPTX has no reader yet — blocked on an open product decision, see `agentic/data/project-context/features/FEATURE-OPENREADER-P3`.)
+
+---
+
+## Features
+
+- **Readers:** PDF (page-based), Word (paginated/flow), Excel/CSV (spreadsheet grid), plain text
+- **File discovery:** on-device document scanner, Recents, Favorites, Search
+- **Sharing:** Share, File Info, Open With, and Open From Other Apps (receive shared/opened files from other apps)
+- **Offline-first:** all reading happens on-device; local SQLite index for recents/favorites
+
+Reference: `lib/features/` (`pdf_reader`, `word_reader`, `excel_reader`, `csv_reader`, `text_reader`, `files`, `recents`, `favorites`, `search`, `settings`, `onboarding`, `home`).
+
+---
+
+## Tech Stack
+
+- **Framework:** Flutter (SDK `>=3.2.3 <4.0.0`)
+- **State management:** GetX
+- **Architecture:** Clean Architecture (presentation / domain / data per feature)
+- **HTTP:** dio
+- **Local storage:** sqflite (document index), shared_preferences, flutter_secure_storage
+- **Document rendering:** pdfrx (PDF), docx_file_viewer/docx_creator (Word), excel_plus (Excel/CSV)
+- **File integration:** open_filex (Open With), receive_sharing_intent (Open From Other Apps)
+- **Push notifications:** firebase_core / firebase_messaging (currently disabled — see `TODO` in `lib/app/flavours/app_flavour.dart`)
 
 ---
 
@@ -12,450 +38,85 @@ Copy `env_example` to `.env` and fill in values:
 cp env_example .env
 ```
 
-The app loads config at runtime from `.env` via `flutter_dotenv`.
+Config is injected at **compile time** via `--dart-define-from-file`, read through `String.fromEnvironment`/`bool.fromEnvironment` in `AppConfig` — not bundled as a readable asset:
 
-> **⚠️ Before production:** The `.env` file is bundled in the APK as a Flutter asset, which means anyone who decompiles the APK can read it. Before shipping to production, switch to compile-time injection instead:
->
-> 1. Remove `.env` from `pubspec.yaml` assets
-> 2. Remove `flutter_dotenv` dependency
-> 3. Replace `dotenv.env['KEY']` getters in `AppConfig` with `String.fromEnvironment('KEY')`
-> 4. Pass secrets at build time: `flutter build apk --release --dart-define-from-file=.env`
->
-> This way secrets never land in the binary.
+```bash
+flutter run --dart-define-from-file=.env
+flutter build apk --release --dart-define-from-file=.env
+```
+
+`.env` is git-ignored and never packaged into the build output, so secrets never land in the binary.
 
 ---
 
-## 🚀 Quick Start - Feature Generator
+## Getting Started
 
-Generate complete feature modules in seconds!
+1. **Clone the repository**
+2. **Install dependencies:** `flutter pub get`
+3. **Set up `.env`** (see Environment Setup above)
+4. **Run the app:** `flutter run --dart-define-from-file=.env`
+5. **Run tests:** `flutter test`
+
+---
+
+## Project Structure
+
+```
+lib/
+├── app/                  ← App bootstrap, flavours, top-level view
+├── core/                 ← Shared data/domain/presentation (http client, widgets, controllers)
+├── features/             ← One folder per feature (pdf_reader, word_reader, excel_reader, csv_reader,
+│                            text_reader, files, home, recents, favorites, search, settings,
+│                            onboarding, splash, file_information)
+├── services/             ← Platform integration (Open With, Open From Other Apps, push notifications)
+├── res/                  ← Routes, strings, themes
+└── main.dart
+```
+
+Each feature follows Clean Architecture layering:
+
+```
+features/<feature_name>/
+├── data/         ← repo_impl, models
+├── domain/       ← entity, repo interface, usecase
+└── presentation/ ← controller, screens, bindings
+```
+
+---
+
+## Feature Generator
+
+New feature scaffolding (folders, entity, repo, controller, bindings, routes wiring) can be generated with:
 
 ```bash
 dart generate_feature.dart <feature_name>
 ```
 
-**Example:**
-```bash
-dart generate_feature.dart user_profile
-```
-
-**What it generates:**
-- ✅ Complete folder structure (8 folders)
-- ✅ All necessary files (10 files, ~700 lines)
-- ✅ Clean Architecture setup
-- ✅ GetX state management
-- ✅ Cache implementation
-- ✅ HTTP client integration
-- ✅ Dependency injection
-
-**Time saved:** 93% faster (40 minutes → 3 minutes)
+This generates the Clean Architecture + GetX skeleton for a new feature; you then wire up the entity fields, API/response mapping, HTTP endpoint, and routes for the new feature. Use `lib/features/pdf_reader/` or `lib/features/text_reader/` as a reference for a complete, wired-up feature.
 
 ---
 
-## 📋 4-Step Setup Process
+## Testing & Quality
 
-After generation, customize these 4 things (takes 2-3 minutes):
+- `flutter analyze` — 0 errors/warnings (informational lints only)
+- `flutter test` — unit/widget coverage across services, repositories, controllers, and widgets (see `test/`)
+- No CI configuration yet (`.github` absent) — checks are run locally/manually
 
-### 1️⃣ Update Entity
-**File:** `domain/entity/<feature>_item.dart`
-
-```dart
-class UserProfileItem {
-  String? id;
-  String? email;
-  String? fullName;
-  // Add your fields here
-  
-  UserProfileItem({this.id, this.email, this.fullName});
-  
-  UserProfileItem.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    email = json['email'];
-    fullName = json['fullName'];
-  }
-  
-  Map<String, dynamic> toJson() {
-    return {'id': id, 'email': email, 'fullName': fullName};
-  }
-}
-```
+Known gaps: PowerPoint has no reader (open product question); no Android SDK/emulator available in this dev environment, so native rendering, real intent delivery (Open From Other Apps), and physical-device UAT remain to be verified on-device.
 
 ---
 
-### 2️⃣ Update Response Model
-**File:** `data/model/item_list_response.dart`
+## Documentation
 
-```dart
-class ItemData {
-  // Match API field names (usually PascalCase)
-  ItemData.fromJson(dynamic json) {
-    _id = json['Id'];           // ← API field name
-    _email = json['Email'];     // ← API field name
-    _fullName = json['FullName']; // ← API field name
-  }
-}
-```
+Project context, requirements, architecture, and task tracking live under `agentic/`:
 
-**Your API Response Format:**
-```json
-{
-  "Success": true,
-  "Data": [
-    {
-      "Id": "123",
-      "Email": "user@example.com",
-      "FullName": "John Doe"
-    }
-  ],
-  "ErrorMessage": null
-}
-```
+- `agentic/data/project-context/features/OpenReader_BRD_v1.0.md` — business requirements
+- `agentic/data/project-context/features/FEATURE-OPENREADER-P1..P5/` — per-phase SRS, architecture, and tasks
+- `agentic/README.md` and `AGENTS.md` — agentic workflow entrypoint for this repo
 
 ---
 
-### 3️⃣ Update HTTP Implementation
-**File:** `data/repo_impl/<feature>_http_impl.dart`
-
-**Step A:** Add endpoint to `lib/core/data/http/urls/api_urls.dart`:
-```dart
-class ApiUrl {
-  String get getAllUserProfile => "/api/users/profile";
-}
-```
-
-**Step B:** Update HTTP implementation:
-```dart
-@override
-ResultFuture<UserProfileItemList> getUserProfileList() async {
-  try {
-    final response = await client.authorizedGet(urls.getAllUserProfile);
-    
-    if (response.messageCode == 200) {
-      ItemListResponse itemList = ItemListResponse.fromJson(response.response);
-      
-      List<UserProfileItem> list = [];
-      for (var item in itemList.data!) {
-        list.add(UserProfileItem(
-          id: item.id,
-          email: item.email,
-          fullName: item.fullName,
-        ));
-      }
-      
-      return Right(UserProfileItemList(userProfileItems: list));
-    }
-    return const Left(ConnectionFailure("Failed to fetch data"));
-  } catch (e) {
-    return Left(ConnectionFailure(e.toString()));
-  }
-}
-```
-
----
-
-### 4️⃣ Register Routes
-
-**Step A:** Add route constant - `lib/res/routes/app_routes.dart`:
-```dart
-class AppRoutes {
-  static const String login = '/login';
-  static const String trades = '/trades';
-  static const String userProfile = '/user_profile';  // ← Add
-}
-```
-
-**Step B:** Register pages - `lib/res/routes/app_pages.dart`:
-```dart
-import 'package:aminul_haque/features/user_profile/presentation/pages.dart';
-
-class AppPages {
-  static final List<GetPage> routes = [
-    ...AuthPages.routes,
-    ...UserProfilePages.routes,  // ← Add
-  ];
-}
-```
-
----
-
-## ✅ Final Checklist
-
-```
-□ Generated feature folder
-□ Updated entity with fields
-□ Updated response model with API fields
-□ Added API endpoint in api_urls.dart
-□ Updated HTTP implementation
-□ Added route constant in app_routes.dart
-□ Imported and registered in app_pages.dart
-□ Customized UI screen
-□ Tested screen loads
-□ Tested data fetches
-□ Tested pull-to-refresh
-```
-
----
-
-## 📝 Naming Convention Examples
-
-| Feature Name | Entity Class | Controller | Route Constant |
-|--------------|-------------|------------|----------------|
-| `user_profile` | `UserProfileItem` | `UserProfileScreenController` | `userProfile` |
-| `product_list` | `ProductListItem` | `ProductListScreenController` | `productList` |
-| `order_history` | `OrderHistoryItem` | `OrderHistoryScreenController` | `orderHistory` |
-
----
-
-## 🎨 Bonus: Customize UI
-
-**File:** `presentation/screens/<feature>_screen.dart`
-
-```dart
-class _ListTile extends StatelessWidget {
-  const _ListTile({required this.item});
-  final UserProfileItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          child: Text(item.fullName?[0] ?? '?'),
-        ),
-        title: Text(item.fullName ?? 'N/A'),
-        subtitle: Text(item.email ?? ''),
-        trailing: const Icon(Icons.arrow_forward_ios),
-        onTap: () {
-          // Navigate to detail screen
-        },
-      ),
-    );
-  }
-}
-```
-
----
-
-## 🧪 Test Navigation
-
-```dart
-// Navigate to your new feature
-Get.toNamed(AppRoutes.userProfile);
-
-// Or with arguments
-Get.toNamed(AppRoutes.userProfile, arguments: {'id': '123'});
-```
-
----
-
-## 🆘 Common Errors
-
-**Error: Route not found**
-→ Check route name in `app_routes.dart` matches `pages.dart`
-
-**Error: Dependency not found**
-→ Verify binding is added in `pages.dart`
-
-**Error: Type mismatch**
-→ Entity fields must match response model fields
-
-**Error: 401/403**
-→ Use `client.authorizedGet()` not `client.get()`
-
----
-
-## 📚 File Reference
-
-```
-features/<feature_name>/
-├── data/
-│   ├── model/
-│   │   └── item_list_response.dart      ← Step 2
-│   └── repo_impl/
-│       ├── <feature>_http_impl.dart      ← Step 3
-│       └── <feature>_cache_impl.dart     
-├── domain/
-│   ├── entity/
-│   │   └── <feature>_item.dart           ← Step 1
-│   ├── repo/
-│   └── usecase/
-└── presentation/
-    ├── bindings/
-    ├── controller/
-    ├── screens/
-    │   └── <feature>_screen.dart         ← UI customization
-    └── pages.dart                        ← Step 4B
-```
-
----
-
-## 🎯 That's It!
-
-Just **4 steps** to a fully working feature:
-1. Entity fields
-2. Response model
-3. HTTP endpoint
-4. Route registration
-
-**Reference:** Check `lib/features/trades/` for a complete example.
-
----
-
-## 📖 Complete Documentation
-
-For more detailed information, see:
-- **QUICK_START_CHEAT_SHEET.md** - Fast 4-step guide
-- **FEATURE_SETUP_GUIDE.md** - Complete walkthrough with examples
-- **ARCHITECTURE_OVERVIEW.md** - Deep dive into clean architecture
-- **VISUAL_SUMMARY.md** - Visual workflow and diagrams
-- **INDEX.md** - Documentation navigation hub
-
----
-
-## 🏗️ Clean Architecture Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         PRESENTATION LAYER                          │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Screen (UI)                                                 │   │
-│  │  • Displays data                                             │   │
-│  │  • Handles user input                                        │   │
-│  │  • Shows loading/error states                                │   │
-│  └────────────────────────┬─────────────────────────────────────┘   │
-│                           │ Observes                                │
-│                           ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Controller (GetX)                                           │   │
-│  │  • Manages UI state                                          │   │
-│  │  • Calls use cases                                           │   │
-│  │  • Handles business logic                                    │   │
-│  └────────────────────────┬─────────────────────────────────────┘   │
-│                           │ Calls                                   │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Binding (Dependency Injection)                              │   │
-│  │  • Initializes dependencies                                  │   │
-│  │  • Manages lifecycle                                         │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │
-┌────────────────────────────┼────────────────────────────────────────┐
-│                         DOMAIN LAYER                                │
-│                            │                                         │
-│  ┌─────────────────────────▼─────────────────────────────────────┐ │
-│  │  Use Case                                                      │ │
-│  │  • Contains business rules                                     │ │
-│  │  • Orchestrates data flow                                      │ │
-│  │  • Returns Either<Failure, Data>                               │ │
-│  └────────────────────────┬───────────────────────────────────────┘ │
-│                           │ Calls                                   │
-│  ┌─────────────────────────▼─────────────────────────────────────┐ │
-│  │  Repository Interface                                          │ │
-│  │  • Defines contract                                            │ │
-│  │  • Abstract methods                                            │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-│                                                                      │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  Entity                                                       │  │
-│  │  • Pure business objects                                      │  │
-│  │  • No dependencies                                            │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└────────────────────────────┬─────────────────────────────────────────┘
-                             │
-┌────────────────────────────┼─────────────────────────────────────────┐
-│                         DATA LAYER                                  │
-│                            │                                         │
-│  ┌─────────────────────────▼─────────────────────────────────────┐ │
-│  │  Cache Implementation                                          │ │
-│  │  • Checks local cache first                                    │ │
-│  │  • Falls back to HTTP if needed                                │ │
-│  │  • Saves data locally                                          │ │
-│  └────────────────────────┬───────────────────────────────────────┘ │
-│                           │ Delegates to                            │
-│  ┌─────────────────────────▼─────────────────────────────────────┐ │
-│  │  HTTP Implementation                                           │ │
-│  │  • Makes API calls                                             │ │
-│  │  • Handles network errors                                      │ │
-│  │  • Maps response to entity                                     │ │
-│  └────────────────────────┬───────────────────────────────────────┘ │
-│                           │ Uses                                    │
-│  ┌─────────────────────────▼─────────────────────────────────────┐ │
-│  │  Response Model                                                │ │
-│  │  • Maps API JSON                                               │ │
-│  │  • Handles serialization                                       │ │
-│  └────────────────────────┬───────────────────────────────────────┘ │
-│                           │                                         │
-└────────────────────────────┼─────────────────────────────────────────┘
-                             │
-                             ▼
-                    ┌────────────────┐
-                    │   REST API     │
-                    │   (Backend)    │
-                    └────────────────┘
-```
-
----
-
-## 📊 Project Structure
-
-```
-lib/
-├── features/
-│   ├── trades/              ← Example feature (reference this!)
-│   ├── authentication/
-│   └── your_feature/        ← Generated features go here
-├── core/
-│   ├── data/
-│   │   ├── cache/
-│   │   └── http/
-│   ├── domain/
-│   │   ├── usecase/
-│   │   └── error/
-│   └── presentation/
-│       └── widgets/
-└── res/
-    ├── routes/
-    │   ├── app_routes.dart  ← Add route constants here
-    │   └── app_pages.dart   ← Register pages here
-    └── strings/
-```
-
----
-
-## 💡 Key Principles
-
-### 1. Separation of Concerns
-- **Presentation**: What user sees
-- **Domain**: What app does
-- **Data**: Where data comes from
-
-### 2. Dependency Rule
-- Domain doesn't depend on anything
-- Data depends on domain
-- Presentation depends on domain
-
-### 3. Testability
-- Each layer can be tested independently
-- Mock interfaces for testing
-- No tight coupling
-
-### 4. Maintainability
-- Change API? Update data layer only
-- Change UI? Update presentation only
-- Change business logic? Update domain only
-
----
-
-## 🚀 Getting Started
-
-1. **Clone the repository**
-2. **Run:** `flutter pub get`
-3. **Generate a feature:** `dart generate_feature.dart my_feature`
-4. **Follow the 4-step setup process above**
-5. **Run the app:** `flutter run`
-
----
-
-## 🐳 Docker Development (Run everything in containers)
+## Docker Development (Run everything in containers)
 
 You can run and test the app entirely inside Docker. This is the recommended way to ensure everyone on the team has the same SDKs, toolchains and emulator behaviour.
 
@@ -513,13 +174,13 @@ Makefile targets (shortcuts):
 - make flutter ...# run flutter <args> inside the container
 - make down       # stop and remove containers
 - make logs       # follow emulator logs
+
 Additional Makefile helpers:
 
 - make ensure-perms     # ensure repo helper scripts are executable
 - make recreate-volumes # remove compose volumes and restart emulator (repopulates SDK bundle)
 - make reset-volumes    # alias for recreate-volumes
 - make devcontainer     # start VS Code devcontainer via devcontainer CLI (if .devcontainer exists)
-
 - make emulator-container   # start the emulator via the repo scripts in container mode (EMULATOR_MODE=container)
 - make emulator-host-connect # connect the flutter container to a host-running emulator (EMULATOR_MODE=host)
 
@@ -531,7 +192,7 @@ Emulator Modes
 
 You can override with EMULATOR_MODE=container|host|auto when running scripts/start.sh or `make up`.
 
-## macOS Apple Silicon (M1/M2/M3) Setup
+### macOS Apple Silicon (M1/M2/M3) Setup
 
 The setup automatically detects Apple Silicon (ARM64) and uses the ARM64 Android emulator in container mode.
 
@@ -557,7 +218,7 @@ The setup automatically detects Apple Silicon (ARM64) and uses the ARM64 Android
 
 For graphical interaction, use scrcpy with the VNC port (5900) or connect to the emulator via ADB.
 
-Use a physical Android device (Linux USB passthrough)
+### Use a physical Android device (Linux USB passthrough)
 
 1. Start with the usb override (Linux only):
 
@@ -568,23 +229,23 @@ Use a physical Android device (Linux USB passthrough)
     ./scripts/start.sh
     ./scripts/start.sh connect
 
-Host emulator (macOS/Windows)
+### Host emulator (macOS/Windows)
 
 - Start the emulator on your host (Android Studio or command line) and then connect the flutter container to the host adb:
 
   docker compose exec flutter bash -lc "/opt/android-sdk/platform-tools/adb connect host.docker.internal:5555"
 
-Stopping everything
+### Stopping everything
 
   docker compose down
 
-Alternative: use a prebuilt android-build-box image for one-off commands
+### Alternative: use a prebuilt android-build-box image for one-off commands
 
 If you prefer not to build the images in this repo you can use the community image `mingc/android-build-box` to run one-off commands against the project folder (example below runs tests):
 
   docker run --rm -v "$(pwd)":/project -w /project -e ANDROID_SDK_ROOT=/opt/android-sdk mingc/android-build-box:latest bash -lc "flutter pub get && flutter test"
 
-New: docker-compose (no custom Dockerfiles)
+### docker-compose (no custom Dockerfiles)
 
 1. Start stack (emulator + flutter + scrcpy-web):
 
@@ -617,14 +278,15 @@ Port collisions and multi-arch images
 
 - The scrcpy-web image used must match your host architecture. The compose file uses a multi-arch-friendly image by default; if you still see platform mismatch messages, select a scrcpy-web image that matches your host (search Docker Hub for `scrcpy-web` and pick an image with the appropriate platform support).
 
-VS Code devcontainer
+### VS Code devcontainer
 
 - Open the repository in VS Code and use the Remote - Containers (Dev Containers) extension to reopen in container. The .devcontainer/devcontainer.json targets the `flutter` service.
 
-More commands and troubleshooting are available in docker/README.md — it contains detailed platform-specific instructions and examples.
+More commands and troubleshooting are available in `docker/README.md` — it contains detailed platform-specific instructions and examples.
 
+---
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Clean Architecture by Robert C. Martin](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [GetX Documentation](https://pub.dev/packages/get)
@@ -632,15 +294,9 @@ More commands and troubleshooting are available in docker/README.md — it conta
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-1. Generate your feature using the CLI tool
-2. Follow the established patterns
-3. Test thoroughly
+1. Check `agentic/data/project-context/` for current requirements/architecture before making changes
+2. Follow the established Clean Architecture + GetX patterns (use `generate_feature.dart` for new features)
+3. Run `flutter analyze` and `flutter test` before submitting
 4. Submit your PR
-
----
-
-**Generate → Update → Register → Test** 🚀
-
-Made with ❤️ for fast Flutter development

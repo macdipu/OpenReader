@@ -29,7 +29,7 @@ class _MyAppState extends State<MyApp> {
       fallbackLocale: const Locale('en'),
       supportedLocales: AppTranslations.supportedLocales,
       translations: AppTranslations(),
-      title: TextEnum.appName.tr,
+      title: TextEnum.appName.en,
 
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
