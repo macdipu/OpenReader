@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:docx_file_viewer/docx_file_viewer.dart';
 import 'package:get/get.dart';
@@ -9,6 +11,7 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
+import '../../../core/presentation/utils/zip_safety_guard.dart';
 
 /// Drives the Word reader (BRD §9.11, ODF-013/014, ODF-008 for Word).
 ///
@@ -48,7 +51,17 @@ class WordReaderController extends BaseController {
   /// first, since both update from the same callback.
   final hasError = false.obs;
 
-  void onLoadError(Object error) => hasError.value = true;
+  void onLoadError(Object error) {
+    hasError.value = true;
+    errorMessage.value ??= 'This document may be damaged or incomplete.';
+  }
+
+  /// Read once in [_loadInitialPosition] and validated via [ZipSafetyGuard]
+  /// (ODF-P5-03) before the view ever constructs a `DocxView` - passed to it
+  /// as `bytes:` rather than `path:` so the guard's read isn't repeated.
+  /// Null until validation succeeds.
+  Uint8List? _validatedBytes;
+  Uint8List? get validatedBytes => _validatedBytes;
 
   double _initialScrollOffset = 0;
   double get initialScrollOffset => _initialScrollOffset;
@@ -69,7 +82,27 @@ class WordReaderController extends BaseController {
       final offset = position['scroll_offset'];
       if (offset is num && offset > 0) _initialScrollOffset = offset.toDouble();
     });
+    await _loadAndValidateBytes();
     status.value = StateStatus.success;
+  }
+
+  Future<void> _loadAndValidateBytes() async {
+    try {
+      final bytes = await File(document.path).readAsBytes();
+      switch (ZipSafetyGuard.check(bytes)) {
+        case ZipSafetyResult.safe:
+          _validatedBytes = bytes;
+        case ZipSafetyResult.tooLarge:
+          hasError.value = true;
+          errorMessage.value = 'This document is too large to render safely on this device.';
+        case ZipSafetyResult.corrupted:
+          hasError.value = true;
+          errorMessage.value = 'This document may be damaged or incomplete.';
+      }
+    } catch (_) {
+      hasError.value = true;
+      errorMessage.value = 'This document may be damaged or incomplete.';
+    }
   }
 
   /// Called from the view's `NotificationListener<ScrollNotification>` as the

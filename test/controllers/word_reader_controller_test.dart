@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
@@ -6,7 +7,9 @@ import 'package:openreader/core/domain/repositories/favorite_repository.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
+import 'package:openreader/core/presentation/utils/zip_safety_guard.dart';
 import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
+import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
 import 'package:docx_creator/docx_creator.dart';
 import 'package:fake_async/fake_async.dart';
@@ -58,6 +61,12 @@ void main() {
   late DocumentInteractionController interactions;
   late WordReaderController controller;
 
+  Future<WordReaderController> loaded(WordReaderController c) async {
+    c.onInit();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    return c;
+  }
+
   setUpAll(() async {
     // docx_creator's font embedding touches Flutter binding APIs during
     // export; ensureInitialized keeps that safe outside a widget test.
@@ -106,22 +115,19 @@ void main() {
 
   group('initial position restore', () {
     test('defaults to no scroll offset when nothing is stored', () async {
-      controller.onInit();
-      await Future<void>.delayed(Duration.zero);
+      await loaded(controller);
       expect(controller.initialScrollOffset, 0);
     });
 
     test('restores a saved scroll offset', () async {
       recents.position = {'scroll_offset': 250.5};
-      controller.onInit();
-      await Future<void>.delayed(Duration.zero);
+      await loaded(controller);
       expect(controller.initialScrollOffset, 250.5);
     });
 
     test('ignores a non-positive or malformed scroll_offset', () async {
       recents.position = {'scroll_offset': -5};
-      controller.onInit();
-      await Future<void>.delayed(Duration.zero);
+      await loaded(controller);
       expect(controller.initialScrollOffset, 0);
     });
   });
@@ -185,6 +191,66 @@ void main() {
       expect(controller.hasError.value, isFalse);
       controller.onLoadError(Exception('boom'));
       expect(controller.hasError.value, isTrue);
+    });
+
+    test('a valid docx passes the ZIP-safety guard and exposes validatedBytes', () async {
+      await loaded(controller);
+      expect(controller.hasError.value, isFalse);
+      expect(controller.validatedBytes, isNotNull);
+    });
+
+    // ODF-P5-04: a real password-protected .docx isn't a ZIP at all - Office
+    // wraps the whole package in an OLE2 compound file (`EncryptedPackage`/
+    // `EncryptionInfo` streams). This fixture reproduces that exact 8-byte
+    // OLE2 signature (no real encryption needed to verify the fallback path,
+    // since the file is provably not ZIP-shaped either way) and asserts it
+    // fails gracefully through the same existing generic message, not a
+    // crash or hang.
+    test('surfaces the generic corrupted-file error for an OLE2-wrapped (password-protected-shaped) file', () async {
+      final encryptedFile = File(p.join(root.path, 'protected.docx'));
+      await encryptedFile.writeAsBytes([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1, ...List.filled(504, 0)]);
+      final encryptedDocument = DocumentModel(
+        id: encryptedFile.path,
+        path: encryptedFile.path,
+        displayName: 'protected.docx',
+        extension: 'docx',
+        category: DocumentCategory.word,
+        sizeBytes: 512,
+        modifiedAt: DateTime(2026),
+        lastSeenAt: DateTime(2026),
+      );
+      final encryptedController = WordReaderController(document: encryptedDocument, recentRepository: recents, interactions: interactions);
+      await loaded(encryptedController);
+      expect(encryptedController.hasError.value, isTrue);
+      expect(encryptedController.errorMessage.value, 'This document may be damaged or incomplete.');
+      expect(encryptedController.validatedBytes, isNull);
+    });
+
+    // ODF-P5-03: the ZIP-safety guard rejects an oversized declared
+    // uncompressed size before `docx_file_viewer` ever decompresses it.
+    test('surfaces the too-large error for a document exceeding the ZIP-safety ceiling', () async {
+      final archive = Archive()
+        ..addFile(ArchiveFile(
+          'huge.bin',
+          ZipSafetyGuard.maxUncompressedBytes + 1,
+          Uint8List(0),
+        ));
+      final oversizedFile = File(p.join(root.path, 'huge.docx'));
+      await oversizedFile.writeAsBytes(ZipEncoder().encode(archive));
+      final oversizedDocument = DocumentModel(
+        id: oversizedFile.path,
+        path: oversizedFile.path,
+        displayName: 'huge.docx',
+        extension: 'docx',
+        category: DocumentCategory.word,
+        sizeBytes: await oversizedFile.length(),
+        modifiedAt: DateTime(2026),
+        lastSeenAt: DateTime(2026),
+      );
+      final oversizedController = WordReaderController(document: oversizedDocument, recentRepository: recents, interactions: interactions);
+      await loaded(oversizedController);
+      expect(oversizedController.hasError.value, isTrue);
+      expect(oversizedController.errorMessage.value, 'This document is too large to render safely on this device.');
     });
   });
 

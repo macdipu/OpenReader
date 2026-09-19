@@ -64,6 +64,10 @@ dependencies:
   # ACTION_SEND intents for supported document types.
   receive_sharing_intent: ^1.9.0
   excel_plus: ^2.22.0
+  # ODF-P5-03: was already transitive via docx_file_viewer/excel_plus;
+  # promoted to direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
+  # ZIP container's central directory before either library decompresses it.
+  archive: ^4.3.0
 
   # Weather Pulse - Charts / Animations / Fonts
   fl_chart: ^0.69.0

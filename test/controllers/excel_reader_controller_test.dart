@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
@@ -7,7 +8,9 @@ import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
+import 'package:openreader/core/presentation/utils/zip_safety_guard.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
+import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
 import 'package:excel_plus/excel_plus.dart' as xls;
 import 'package:flutter/material.dart';
@@ -152,6 +155,59 @@ void main() {
       await loaded(badController);
       expect(badController.status.value, StateStatus.error);
       expect(badController.errorMessage.value, 'This document may be damaged or incomplete.');
+    });
+
+    // ODF-P5-04: a real password-protected .xlsx isn't a ZIP at all - Office
+    // wraps the whole package in an OLE2 compound file (`EncryptedPackage`/
+    // `EncryptionInfo` streams). This fixture reproduces that exact 8-byte
+    // OLE2 signature (no real encryption needed to verify the fallback path,
+    // since the file is provably not ZIP-shaped either way) and asserts it
+    // fails gracefully through the same existing generic message, not a
+    // crash or hang.
+    test('surfaces the generic corrupted-file error for an OLE2-wrapped (password-protected-shaped) file', () async {
+      final encryptedFile = File(p.join(root.path, 'protected.xlsx'));
+      await encryptedFile.writeAsBytes([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1, ...List.filled(504, 0)]);
+      final encryptedDocument = DocumentModel(
+        id: encryptedFile.path,
+        path: encryptedFile.path,
+        displayName: 'protected.xlsx',
+        extension: 'xlsx',
+        category: DocumentCategory.excel,
+        sizeBytes: 512,
+        modifiedAt: DateTime(2026),
+        lastSeenAt: DateTime(2026),
+      );
+      final encryptedController = ExcelReaderController(document: encryptedDocument, recentRepository: recents, interactions: interactions);
+      await loaded(encryptedController);
+      expect(encryptedController.status.value, StateStatus.error);
+      expect(encryptedController.errorMessage.value, 'This document may be damaged or incomplete.');
+    });
+
+    // ODF-P5-03: the ZIP-safety guard rejects an oversized declared
+    // uncompressed size before `excel_plus` ever decompresses it.
+    test('surfaces the too-large error for a workbook exceeding the ZIP-safety ceiling', () async {
+      final archive = Archive()
+        ..addFile(ArchiveFile(
+          'huge.bin',
+          ZipSafetyGuard.maxUncompressedBytes + 1,
+          Uint8List(0),
+        ));
+      final oversizedFile = File(p.join(root.path, 'huge.xlsx'));
+      await oversizedFile.writeAsBytes(ZipEncoder().encode(archive));
+      final oversizedDocument = DocumentModel(
+        id: oversizedFile.path,
+        path: oversizedFile.path,
+        displayName: 'huge.xlsx',
+        extension: 'xlsx',
+        category: DocumentCategory.excel,
+        sizeBytes: await oversizedFile.length(),
+        modifiedAt: DateTime(2026),
+        lastSeenAt: DateTime(2026),
+      );
+      final oversizedController = ExcelReaderController(document: oversizedDocument, recentRepository: recents, interactions: interactions);
+      await loaded(oversizedController);
+      expect(oversizedController.status.value, StateStatus.error);
+      expect(oversizedController.errorMessage.value, 'This document is too large to render safely on this device.');
     });
   });
 

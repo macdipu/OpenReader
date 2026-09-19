@@ -24,7 +24,7 @@ class WordReaderView extends GetView<WordReaderController> {
             return false;
           },
           child: DocxView(
-            path: controller.document.path,
+            bytes: controller.validatedBytes!,
             searchController: controller.searchController,
             onError: controller.onLoadError,
           ),
@@ -107,7 +107,7 @@ class _ReaderErrorView extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 40),
             const SizedBox(height: 16),
-            const Text('This document may be damaged or incomplete.', textAlign: TextAlign.center),
+            Text(controller.errorMessage.value ?? 'This document may be damaged or incomplete.', textAlign: TextAlign.center),
             const SizedBox(height: 16),
             Row(
               mainAxisSize: MainAxisSize.min,

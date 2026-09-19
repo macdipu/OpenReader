@@ -11,6 +11,7 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
+import '../../../core/presentation/utils/zip_safety_guard.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_grid_controller.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_match.dart';
 
@@ -98,6 +99,18 @@ class ExcelReaderController extends BaseController implements CellGridController
       });
 
       final bytes = await File(document.path).readAsBytes();
+      switch (ZipSafetyGuard.check(bytes)) {
+        case ZipSafetyResult.tooLarge:
+          status.value = StateStatus.error;
+          errorMessage.value = 'This document is too large to render safely on this device.';
+          return;
+        case ZipSafetyResult.corrupted:
+          status.value = StateStatus.error;
+          errorMessage.value = 'This document may be damaged or incomplete.';
+          return;
+        case ZipSafetyResult.safe:
+      }
+
       final workbook = await xls.Excel.decodeBytesAsync(bytes);
       _workbook = workbook;
       final names = workbook.sheetOrder;
