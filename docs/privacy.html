@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — OpenReader</title>
+  <meta name="description" content="OpenReader privacy policy: fully offline document reader, no accounts, no data collection, no tracking." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <div class="brand"><span class="mark">📄</span> OpenReader</div>
+      <nav class="site">
+        <a href="index.html">Home</a>
+        <a href="https://github.com/macdipu/OpenDocs">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap doc">
+      <a class="back-link" href="index.html">&larr; Back to OpenReader</a>
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: September 20, 2026</p>
+
+      <p>
+        OpenReader ("the app") is a fully offline Android document reader. This policy explains
+        what happens (and, more importantly, what does not happen) to your data when you use it.
+      </p>
+
+      <h2>No data collection</h2>
+      <p>OpenReader does not collect, transmit, or sell any personal data. Specifically, the app:</p>
+      <ul>
+        <li>Does not require account creation or sign-in</li>
+        <li>Does not upload your documents or any file content to any server</li>
+        <li>Does not use analytics, advertising, or tracking SDKs</li>
+        <li>Does not have a backend or cloud dependency — it works entirely offline</li>
+      </ul>
+
+      <h2>What stays on your device</h2>
+      <p>
+        To provide features like Recents, Favorites, and Search, OpenReader keeps a local index
+        of documents you open, stored in an on-device SQLite database and local app preferences.
+        This index never leaves your device and is not accessible to the app developer or any
+        third party.
+      </p>
+
+      <h2>File and storage access</h2>
+      <p>
+        OpenReader requests storage/file permissions solely to discover and open documents you
+        choose to read, and to support "Open With" and "Open From Other Apps" integrations. Files
+        are read and rendered locally; they are never sent anywhere.
+      </p>
+
+      <h2>Push notifications</h2>
+      <p>
+        The app includes Firebase Cloud Messaging integration for potential future push
+        notifications; this is currently disabled and not active in released builds. This policy
+        will be updated if and when that feature is enabled.
+      </p>
+
+      <h2>Children's privacy</h2>
+      <p>
+        OpenReader does not knowingly collect any data from anyone, including children, because it
+        does not collect data at all.
+      </p>
+
+      <h2>Changes to this policy</h2>
+      <p>
+        If this policy changes, the updated version will be published at this same page with a
+        revised "Last updated" date.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this policy or the app can be raised via
+        <a href="https://github.com/macdipu/OpenDocs/issues">GitHub Issues</a>.
+      </p>
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      <span>OpenReader — built with Flutter</span>
+      <span>
+        <a href="index.html">Home</a> ·
+        <a href="https://github.com/macdipu/OpenDocs">GitHub</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>
