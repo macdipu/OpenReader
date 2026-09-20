@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../core/domain/models/document_category.dart';
 import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/files/presentation/files_controller.dart';
+import '../../features/home/presentation/home_controller.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 
 class AppShellController extends GetxController {
@@ -46,6 +47,14 @@ class AppShellController extends GetxController {
     // correct regardless of it.
     if (index == favoritesIndex) {
       Get.find<FavoritesController>().load();
+    }
+    // Same reasoning as above, for Home's Recent Documents/Continue Reading
+    // list: Settings > "Clear Recent History" and Favorites' History tab
+    // both clear via their own RecentRepository call without notifying
+    // Home's separate `recentDocuments` list, which would otherwise show a
+    // stale (already-deleted) history until the app restarts.
+    if (index == homeIndex) {
+      Get.find<HomeController>().load();
     }
   }
 

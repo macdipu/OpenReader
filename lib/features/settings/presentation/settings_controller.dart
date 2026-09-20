@@ -11,6 +11,7 @@ import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/document_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/theme_controller.dart';
+import '../../home/presentation/home_controller.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/utilities/path_service.dart';
 
@@ -116,6 +117,13 @@ class SettingsController extends GetxController {
       (failure) => CustomSnackbar.error(failure.message),
       (_) => CustomSnackbar.success('Recent history cleared.'),
     );
+    // Settings is a pushed route, not a shell tab - popping back to Home
+    // doesn't trigger any tab-select reload, so Home's own `recentDocuments`
+    // list would otherwise keep showing the just-deleted history until the
+    // app restarts.
+    if (Get.isRegistered<HomeController>()) {
+      await Get.find<HomeController>().load();
+    }
   }
 
   Future<void> clearCache() async {

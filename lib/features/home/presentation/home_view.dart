@@ -153,6 +153,16 @@ class HomeView extends GetView<HomeController> {
                 const Padding(
                   padding: EdgeInsets.only(top: 48),
                   child: CommonEmptyView(message: 'No documents found'),
+                )
+              else
+                // Files are indexed (chips above show real counts) but
+                // there's no reading history - e.g. right after "Clear
+                // Recent History" in Settings. Without this branch the body
+                // renders nothing below the chips, which reads as a blank
+                // screen bug rather than an intentional empty state.
+                Padding(
+                  padding: const EdgeInsets.only(top: 48),
+                  child: CommonEmptyView(message: 'No reading history yet. Open a document to see it here.'),
                 ),
             ],
           ),
