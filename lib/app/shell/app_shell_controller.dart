@@ -11,7 +11,6 @@ class AppShellController extends GetxController {
   static const homeIndex = 0;
   static const filesIndex = 1;
   static const favoritesIndex = 2;
-  static const settingsIndex = 3;
 
   final RxInt currentIndex = homeIndex.obs;
 

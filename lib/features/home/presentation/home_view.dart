@@ -33,6 +33,11 @@ class HomeView extends GetView<HomeController> {
             icon: const Icon(Icons.search_rounded),
             onPressed: () => Get.toNamed(AppRoutes.search),
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () => Get.toNamed(AppRoutes.settings),
+          ),
         ],
       ),
       floatingActionButton: Obx(() => controller.status.value.isBusy
@@ -85,7 +90,9 @@ class HomeView extends GetView<HomeController> {
                   child: Text('Continue Reading', style: context.headlineSmall),
                 ),
                 SizedBox(
-                  height: 132,
+                  // Tall enough for Nocturne's Space Grotesk/JetBrains Mono
+                  // line heights, which run taller than Inter (light).
+                  height: 156,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
