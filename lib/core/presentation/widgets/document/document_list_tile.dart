@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../domain/extensions/extension_export.dart';
+import '../../../domain/models/document_category.dart';
 import '../../../domain/models/document_model.dart';
+import '../../../../services/utilities/pdf_thumbnail_service.dart';
 import '../../theme/theme_extensions.dart';
 import '../../utils/file_size_formatter.dart';
 
@@ -58,20 +62,7 @@ class DocumentListTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: badgeSize,
-              height: badgeSize,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: tint,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: accent.withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                document.category.shortCode,
-                style: context.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800),
-              ),
-            ),
+            _DocumentThumbnail(document: document, size: badgeSize, accent: accent, tint: tint),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -154,3 +145,80 @@ class DocumentListTile extends StatelessWidget {
 }
 
 enum _DocumentAction { share, info, openWith, removeFromRecent }
+
+/// PDF first-page preview with the format icon stacked on its corner, per
+/// PdfThumbnailService; every other format (no renderer available - see
+/// that service's doc comment) falls back to the plain code badge.
+class _DocumentThumbnail extends StatelessWidget {
+  final DocumentModel document;
+  final double size;
+  final Color accent;
+  final Color tint;
+
+  const _DocumentThumbnail({required this.document, required this.size, required this.accent, required this.tint});
+
+  @override
+  Widget build(BuildContext context) {
+    if (document.category != DocumentCategory.pdf) return _badge(context);
+
+    return FutureBuilder<File?>(
+      future: PdfThumbnailService.instance.getThumbnail(document),
+      builder: (context, snapshot) {
+        final file = snapshot.data;
+        if (file == null) return _badge(context);
+
+        return SizedBox(
+          width: size,
+          height: size,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  file,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => _badge(context),
+                ),
+              ),
+              Positioned(
+                right: -4,
+                bottom: -4,
+                child: Container(
+                  width: size * 0.42,
+                  height: size * 0.42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: tint,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.surfaceContainerLowest, width: 1.5),
+                  ),
+                  child: Icon(document.category.icon, size: size * 0.24, color: accent),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _badge(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        document.category.shortCode,
+        style: context.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
