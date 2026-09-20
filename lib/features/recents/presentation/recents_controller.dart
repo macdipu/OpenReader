@@ -6,6 +6,7 @@ import '../../../core/domain/models/recent_document_model.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
+import '../../home/presentation/home_controller.dart';
 
 /// Recent Files screen (BRD 9.9).
 class RecentsController extends BaseController {
@@ -59,12 +60,27 @@ class RecentsController extends BaseController {
 
   Future<void> removeOne(String documentId) async {
     final result = await _recentRepository.remove(documentId);
-    result.fold((failure) => handleFailure(failure), (_) => load());
+    await result.fold((failure) async => handleFailure(failure), (_) async {
+      await load();
+      await _refreshHome();
+    });
   }
 
   Future<void> clearAll() async {
     final result = await _recentRepository.clearAll();
-    result.fold((failure) => handleFailure(failure), (_) => load());
+    await result.fold((failure) async => handleFailure(failure), (_) async {
+      await load();
+      await _refreshHome();
+    });
+  }
+
+  /// This controller backs both the standalone Recents route and the
+  /// History tab inside Favorites - either can mutate history behind Home's
+  /// back, since Home keeps its own separate `recentDocuments` list.
+  Future<void> _refreshHome() async {
+    if (Get.isRegistered<HomeController>()) {
+      await Get.find<HomeController>().load();
+    }
   }
 
   void setSearchQuery(String query) => searchQuery.value = query;
