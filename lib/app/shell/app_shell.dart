@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/presentation/theme/theme_extensions.dart';
 import '../../features/favorites/presentation/favorites_view.dart';
 import '../../features/files/presentation/files_view.dart';
 import '../../features/home/presentation/home_view.dart';
@@ -8,6 +9,9 @@ import '../../features/settings/presentation/settings_view.dart';
 import 'app_shell_controller.dart';
 
 /// Bottom-nav shell: Home / Files / Favorites / Settings (BRD 9.3).
+///
+/// Nav bar follows DESIGN_SPEC.md "BottomNavBar": 80dp, hairline top border,
+/// active destination gets a pill-shaped highlight behind icon+label.
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
 
@@ -25,37 +29,96 @@ class AppShell extends StatelessWidget {
               SettingsView(),
             ],
           )),
-      bottomNavigationBar: Obx(
-        () => BottomNavigationBar(
-          currentIndex: controller.currentIndex.value,
-          onTap: controller.changeTab,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          selectedItemColor: Theme.of(context).colorScheme.primary,
-          unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.folder_outlined),
-              activeIcon: Icon(Icons.folder),
-              label: 'Files',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border),
-              activeIcon: Icon(Icons.favorite),
-              label: 'Favorites',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
+      bottomNavigationBar: Obx(() => _AppNavBar(
+            currentIndex: controller.currentIndex.value,
+            onTap: controller.changeTab,
+          )),
+    );
+  }
+}
+
+class _AppNavBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _AppNavBar({required this.currentIndex, required this.onTap});
+
+  static const _items = [
+    (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
+    (icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded, label: 'Files'),
+    (icon: Icons.star_outline_rounded, activeIcon: Icons.star_rounded, label: 'Favorites'),
+    (icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded, label: 'Settings'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: context.surfaceContainerLowest,
+        border: Border(top: BorderSide(color: context.outlineVariant)),
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              for (var i = 0; i < _items.length; i++)
+                _NavItem(
+                  icon: _items[i].icon,
+                  activeIcon: _items[i].activeIcon,
+                  label: _items[i].label,
+                  selected: currentIndex == i,
+                  onTap: () => onTap(i),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? context.secondary : context.onSurfaceVariant;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? context.secondaryContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(selected ? activeIcon : icon, color: color, size: 22),
+            if (selected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: context.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w700),
+              ),
+            ],
           ],
         ),
       ),

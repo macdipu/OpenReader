@@ -26,6 +26,7 @@ class _PdfPasswordDialogState extends State<PdfPasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      icon: Icon(Icons.key_rounded, color: Theme.of(context).colorScheme.secondary),
       title: const Text('Password required'),
       content: Column(
         mainAxisSize: MainAxisSize.min,

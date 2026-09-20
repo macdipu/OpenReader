@@ -39,24 +39,15 @@ class CommonAppbar extends StatelessWidget implements PreferredSizeWidget {
               : null),
       actions: actions,
       bottom: bottom,
-
-      centerTitle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(18),
-        ),
-      ),
+      centerTitle: false,
       title: Text(
         title ?? '',
-        style: theme.textTheme.titleLarge?.copyWith(fontSize: 16, color: theme.colorScheme.onSurface),
-      ),
-      flexibleSpace: Container(
-        height: kToolbarHeight,
-        color: Colors.transparent,
-        child: const SizedBox.shrink(),
+        style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.onSurface),
       ),
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: theme.colorScheme.surface,
+      scrolledUnderElevation: 0,
+      bottomOpacity: 1,
     );
   }
 

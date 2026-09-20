@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
+import '../../../core/presentation/theme/theme_extensions.dart';
+import '../../../core/presentation/utils/relative_time_formatter.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
@@ -31,15 +33,16 @@ class RecentsView extends GetView<RecentsController> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              onChanged: controller.setSearchQuery,
-              decoration: InputDecoration(
-                hintText: 'Search recent files',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              ),
-            ),
+            child: Builder(builder: (context) {
+              return TextField(
+                onChanged: controller.setSearchQuery,
+                style: context.bodyMedium,
+                decoration: InputDecoration(
+                  hintText: 'Search recent files',
+                  prefixIcon: Icon(Icons.search_rounded, color: context.onSurfaceVariant),
+                ),
+              );
+            }),
           ),
           Expanded(
             child: Obx(() {
@@ -60,6 +63,7 @@ class RecentsView extends GetView<RecentsController> {
                         onShowInfo: () => Get.toNamed(AppRoutes.fileInformation, arguments: recent.document),
                         onOpenWith: () => interactions.openWithExternalApp(recent.document),
                         onRemoveFromRecent: () => controller.removeOne(recent.document.id),
+                        trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                       ));
                 },
               );
