@@ -28,6 +28,7 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
       body: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
         if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
+        final sheetIndex = controller.activeSheetIndex.value;
         return Column(
           children: [
             Expanded(
@@ -38,7 +39,7 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: CellGrid(controller: controller, emptyMessage: 'Empty workbook'),
+                child: CellGrid(key: ValueKey(sheetIndex), controller: controller, emptyMessage: 'Empty workbook'),
               ),
             ),
             _SheetTabBar(controller: controller),
