@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
+import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
 import 'package:openreader/core/domain/repositories/favorite_repository.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
@@ -61,6 +62,14 @@ class FixtureRecents implements RecentRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class FixtureSettings implements AppSettingsRepository {
+  @override
+  Future<bool> getDefaultContinuousScroll() async => true;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late Directory root;
   late DocumentModel document;
@@ -97,7 +106,7 @@ void main() {
 
     recents = FixtureRecents();
     interactions = DocumentInteractionController(favoriteRepository: FixtureFavorites(), recentRepository: recents);
-    controller = PdfReaderController(document: document, recentRepository: recents, interactions: interactions);
+    controller = PdfReaderController(document: document, recentRepository: recents, interactions: interactions, settingsRepository: FixtureSettings());
   });
 
   tearDown(() async {
@@ -215,7 +224,7 @@ void main() {
 
     testWidgets('share blocks on a missing file before reaching the share sheet', (tester) async {
       await tester.pumpWidget(const GetMaterialApp(home: Scaffold(body: SizedBox())));
-      final missingController = PdfReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
+      final missingController = PdfReaderController(document: missingDocument, recentRepository: recents, interactions: interactions, settingsRepository: FixtureSettings());
       await missingController.share();
       await tester.pump();
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
@@ -224,7 +233,7 @@ void main() {
 
     testWidgets('openWith blocks on a missing file before reaching the chooser', (tester) async {
       await tester.pumpWidget(const GetMaterialApp(home: Scaffold(body: SizedBox())));
-      final missingController = PdfReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
+      final missingController = PdfReaderController(document: missingDocument, recentRepository: recents, interactions: interactions, settingsRepository: FixtureSettings());
       await missingController.openWith();
       await tester.pump();
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
