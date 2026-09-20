@@ -11,7 +11,7 @@ import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/document/document_load_error_view.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
-import '../../../res/routes/app_routes.dart';
+import '../../file_information/presentation/file_information_view.dart';
 import 'files_controller.dart';
 
 /// All Files Explorer (DESIGN_SPEC.md #10): format filter pills, storage
@@ -25,15 +25,21 @@ class FilesView extends GetView<FilesController> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Files'),
-        actions: [
-          PopupMenuButton<DocumentSortMode>(
-            icon: const Icon(Icons.sort_rounded),
-            onSelected: controller.setSort,
-            itemBuilder: (context) =>
-                DocumentSortMode.values.map((mode) => PopupMenuItem(value: mode, child: Text(mode.label))).toList(),
-          ),
-        ],
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('All Files'),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: context.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text('LOCAL', style: context.monoMetadata),
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -44,8 +50,18 @@ class FilesView extends GetView<FilesController> {
           const SizedBox(height: 12),
           Obx(() => _CategoryFilterRow(
                 selected: controller.selectedCategory.value,
+                counts: controller.categoryCounts,
                 onSelected: controller.selectCategory,
               )),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Obx(() => _SortChip(mode: controller.sortMode.value, onSelected: controller.setSort)),
+            ),
+          ),
+          const SizedBox(height: 4),
           Expanded(
             child: Obx(() {
               if (!controller.hasAccess.value) {
@@ -73,10 +89,10 @@ class FilesView extends GetView<FilesController> {
                           document: document,
                           dense: true,
                           isFavorite: interactions.isFavorite(document.id),
-                          onTap: () => interactions.openDocument(document),
+                          onTap: () => _showFileActionSheet(context, document, interactions),
                           onToggleFavorite: (_) => interactions.toggleFavorite(document.id),
                           onShare: () => interactions.shareDocument(document),
-                          onShowInfo: () => Get.toNamed(AppRoutes.fileInformation, arguments: document),
+                          onShowInfo: () => showFileInformationSheet(context, document),
                           onOpenWith: () => interactions.openWithExternalApp(document),
                         ));
                   },
@@ -150,25 +166,28 @@ class _StorageSummaryBanner extends StatelessWidget {
 
 class _CategoryFilterRow extends StatelessWidget {
   final DocumentCategory? selected;
+  final Map<DocumentCategory, int> counts;
   final ValueChanged<DocumentCategory?> onSelected;
 
-  const _CategoryFilterRow({required this.selected, required this.onSelected});
+  const _CategoryFilterRow({required this.selected, required this.counts, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
     final categories = DocumentCategory.values.where((c) => c != DocumentCategory.unknown).toList();
+    final total = counts.values.fold<int>(0, (a, b) => a + b);
     return SizedBox(
       height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          _Pill(label: 'All', selected: selected == null, onTap: () => onSelected(null)),
+          _Pill(label: 'All', count: total, selected: selected == null, onTap: () => onSelected(null)),
           for (final category in categories)
             Padding(
               padding: const EdgeInsets.only(left: 8),
               child: _Pill(
                 label: category.label,
+                count: counts[category] ?? 0,
                 selected: selected == category,
                 accent: category.accentColor(context),
                 onTap: () => onSelected(category),
@@ -182,11 +201,18 @@ class _CategoryFilterRow extends StatelessWidget {
 
 class _Pill extends StatelessWidget {
   final String label;
+  final int count;
   final bool selected;
   final Color? accent;
   final VoidCallback onTap;
 
-  const _Pill({required this.label, required this.selected, this.accent, required this.onTap});
+  const _Pill({
+    required this.label,
+    required this.count,
+    required this.selected,
+    this.accent,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -208,9 +234,186 @@ class _Pill extends StatelessWidget {
               const SizedBox(width: 8),
             ],
             Text(label, style: context.labelMedium?.copyWith(color: selected ? context.onPrimary : context.onSurface)),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: selected ? context.onPrimary.withValues(alpha: 0.2) : context.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$count',
+                style: context.labelSmall?.copyWith(
+                  color: selected ? context.onPrimary : context.onSurfaceVariant,
+                ),
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Visible "current sort" chip (DESIGN_SPEC #10 "Sort/view sub-bar") that
+/// opens the same sort menu previously hidden behind an app-bar icon.
+class _SortChip extends StatelessWidget {
+  final DocumentSortMode mode;
+  final ValueChanged<DocumentSortMode> onSelected;
+
+  const _SortChip({required this.mode, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<DocumentSortMode>(
+      onSelected: onSelected,
+      itemBuilder: (context) =>
+          DocumentSortMode.values.map((m) => PopupMenuItem(value: m, child: Text(m.label))).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: context.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: context.outlineVariant),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.swap_vert_rounded, size: 16, color: context.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text(mode.label, style: context.labelMedium?.copyWith(color: context.onSurface)),
+            const SizedBox(width: 4),
+            Icon(Icons.expand_more_rounded, size: 16, color: context.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet action list on row tap (DESIGN_SPEC #10 "Bottom sheet
+/// modal"): Open in Reader / Favorite / Share / Info / Open With.
+Future<void> _showFileActionSheet(
+  BuildContext context,
+  DocumentModel document,
+  DocumentInteractionController interactions,
+) {
+  return showModalBottomSheet(
+    context: context,
+    builder: (sheetContext) {
+      final accent = document.category.accentColor(sheetContext);
+      final tint = document.category.tintColor(sheetContext);
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: sheetContext.outlineVariant,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: tint,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: accent.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      document.category.shortCode,
+                      style: sheetContext.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: sheetContext.titleMedium),
+                        Text(
+                          '${formatFileSize(document.sizeBytes)} • ${document.category.label}',
+                          style: sheetContext.bodySmall?.copyWith(color: sheetContext.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.of(sheetContext).pop()),
+                ],
+              ),
+            ),
+            const Divider(height: 24),
+            _SheetAction(
+              icon: Icons.menu_book_outlined,
+              title: 'Open in Reader',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                interactions.openDocument(document);
+              },
+            ),
+            Obx(() => _SheetAction(
+                  icon: interactions.isFavorite(document.id) ? Icons.star_rounded : Icons.star_outline_rounded,
+                  title: interactions.isFavorite(document.id) ? 'Remove from Favorites' : 'Add to Favorites',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    interactions.toggleFavorite(document.id);
+                  },
+                )),
+            _SheetAction(
+              icon: Icons.share_outlined,
+              title: 'Share File',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                interactions.shareDocument(document);
+              },
+            ),
+            _SheetAction(
+              icon: Icons.info_outline,
+              title: 'File Information',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                showFileInformationSheet(context, document);
+              },
+            ),
+            _SheetAction(
+              icon: Icons.open_in_new_rounded,
+              title: 'Open With (External App)',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                interactions.openWithExternalApp(document);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _SheetAction extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _SheetAction({required this.icon, required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: context.onSurfaceVariant),
+      title: Text(title, style: context.bodyLarge),
+      onTap: onTap,
     );
   }
 }

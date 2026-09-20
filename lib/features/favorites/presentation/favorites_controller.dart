@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/favorite_repository_impl.dart';
+import '../../../core/domain/models/document_category.dart';
 import '../../../core/domain/models/document_model.dart';
 import '../../../core/domain/repositories/favorite_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
@@ -16,6 +17,7 @@ class FavoritesController extends BaseController {
 
   final favorites = <DocumentModel>[].obs;
   final searchQuery = ''.obs;
+  final selectedCategory = Rxn<DocumentCategory>();
 
   @override
   void onInit() {
@@ -27,9 +29,24 @@ class FavoritesController extends BaseController {
 
   List<DocumentModel> get filtered {
     final query = searchQuery.value.trim().toLowerCase();
-    if (query.isEmpty) return favorites;
-    return favorites.where((d) => d.displayName.toLowerCase().contains(query)).toList();
+    final category = selectedCategory.value;
+    return favorites.where((d) {
+      final matchesQuery = query.isEmpty || d.displayName.toLowerCase().contains(query);
+      final matchesCategory = category == null || d.category == category;
+      return matchesQuery && matchesCategory;
+    }).toList();
   }
+
+  /// Per-format counts among the current favorites (DESIGN_SPEC #06 filter chips).
+  Map<DocumentCategory, int> get categoryCounts {
+    final counts = <DocumentCategory, int>{};
+    for (final document in favorites) {
+      counts[document.category] = (counts[document.category] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  void selectCategory(DocumentCategory? category) => selectedCategory.value = category;
 
   Future<void> load() async {
     status.value = StateStatus.loading;
