@@ -1,8 +1,8 @@
-import 'dart:async';
-
+import 'package:dartz/dartz.dart';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/document_repository_impl.dart';
+import '../../../core/domain/error/failure.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/domain/models/document_model.dart';
 import '../../../core/domain/repositories/document_repository.dart';
@@ -49,11 +49,17 @@ class FilesController extends BaseController {
       return;
     }
 
-    final result = await _documentRepository.getDocuments(
+    final documentsFuture = _documentRepository.getDocuments(
       category: selectedCategory.value,
       query: searchQuery.value,
       sort: sortMode.value,
     );
+    // Awaited together so the chip counts are already populated by the time
+    // `status` flips and triggers the rebuild - assigning them after would
+    // silently never repaint, since nothing reads `categoryCounts` inside an
+    // Obx closure the way `status`/`documents` are read.
+    final results = await Future.wait([documentsFuture, _loadCounts()]);
+    final result = results[0] as Either<Failure, List<DocumentModel>>;
     result.fold(
       (failure) => handleFailure(failure),
       (list) {
@@ -61,7 +67,6 @@ class FilesController extends BaseController {
         status.value = list.isEmpty ? StateStatus.empty : StateStatus.success;
       },
     );
-    unawaited(_loadCounts());
   }
 
   /// Per-format counts for the filter-chip badges (DESIGN_SPEC #10), kept

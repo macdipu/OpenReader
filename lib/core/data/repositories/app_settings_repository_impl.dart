@@ -14,6 +14,8 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   static const String _themeKey = 'app_settings:theme_mode';
   static const String _localeKey = 'app_settings:locale';
   static const String _onboardingCompleteKey = 'app_settings:onboarding_complete';
+  static const String _autoScannedKey = 'app_settings:auto_scanned';
+  static const String _defaultContinuousScrollKey = 'app_settings:default_continuous_scroll';
 
   @override
   Future<AppThemeMode> getThemeMode() async {
@@ -60,11 +62,37 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   }
 
   @override
+  Future<bool> hasAutoScanned() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoScannedKey) ?? false;
+  }
+
+  @override
+  Future<void> setAutoScanned(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoScannedKey, value);
+  }
+
+  @override
+  Future<bool> getDefaultContinuousScroll() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_defaultContinuousScrollKey) ?? true;
+  }
+
+  @override
+  Future<void> setDefaultContinuousScroll(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_defaultContinuousScrollKey, value);
+  }
+
+  @override
   Future<void> clearSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_themeKey);
     await prefs.remove(_localeKey);
     await prefs.remove(_onboardingCompleteKey);
+    await prefs.remove(_autoScannedKey);
+    await prefs.remove(_defaultContinuousScrollKey);
   }
 }
 

@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
 import '../../../core/domain/models/document_model.dart';
+import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
@@ -34,13 +36,16 @@ class PdfReaderController extends BaseController {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;
+  final AppSettingsRepository _settingsRepository;
 
   PdfReaderController({
     required this.document,
     RecentRepository? recentRepository,
     DocumentInteractionController? interactions,
+    AppSettingsRepository? settingsRepository,
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
-        _interactions = interactions ?? Get.find<DocumentInteractionController>();
+        _interactions = interactions ?? Get.find<DocumentInteractionController>(),
+        _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl();
 
   final pdfController = PdfViewerController();
 
@@ -67,6 +72,16 @@ class PdfReaderController extends BaseController {
   void onInit() {
     super.onInit();
     _loadInitialPosition();
+    _loadDefaultViewMode();
+  }
+
+  /// Applies the Settings > Reading Engine Preferences default (BRD 9.18)
+  /// unless this document already has its own remembered view mode -
+  /// [readingPosition] doesn't track view mode per document, so this is a
+  /// one-shot default, not a per-file override.
+  Future<void> _loadDefaultViewMode() async {
+    final continuous = await _settingsRepository.getDefaultContinuousScroll();
+    viewMode.value = continuous ? PdfReaderViewMode.continuous : PdfReaderViewMode.horizontal;
   }
 
   Future<void> _loadInitialPosition() async {

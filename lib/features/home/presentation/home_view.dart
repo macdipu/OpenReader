@@ -11,6 +11,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/document/document_load_error_view.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
+import '../../../features/file_information/presentation/file_information_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../res/routes/app_routes.dart';
 import '../../../services/utilities/storage_access_service.dart';
@@ -40,13 +41,25 @@ class HomeView extends GetView<HomeController> {
           ),
         ],
       ),
-      floatingActionButton: Obx(() => controller.status.value.isBusy
-          ? const SizedBox.shrink()
-          : FloatingActionButton.extended(
-              onPressed: controller.refresh,
-              icon: const Icon(Icons.sync_rounded),
-              label: const Text('Scan Storage'),
-            )),
+      floatingActionButton: Obx(() {
+        if (controller.status.value.isBusy) return const SizedBox.shrink();
+        if (controller.isScanning.value) {
+          return FloatingActionButton.extended(
+            onPressed: null,
+            icon: const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            label: Text('Found ${controller.scanProgress.value}…'),
+          );
+        }
+        return FloatingActionButton.extended(
+          onPressed: controller.refresh,
+          icon: const Icon(Icons.sync_rounded),
+          label: const Text('Scan Storage'),
+        );
+      }),
       body: Obx(() {
         if (!controller.hasAccess.value) {
           return _PermissionBanner(onRequestAccess: () async {
@@ -128,7 +141,7 @@ class HomeView extends GetView<HomeController> {
                         onTap: () => interactions.openDocument(recent.document),
                         onToggleFavorite: (_) => interactions.toggleFavorite(recent.document.id),
                         onShare: () => interactions.shareDocument(recent.document),
-                        onShowInfo: () => Get.toNamed(AppRoutes.fileInformation, arguments: recent.document),
+                        onShowInfo: () => showFileInformationSheet(context, recent.document),
                         onOpenWith: () => interactions.openWithExternalApp(recent.document),
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                       )),
