@@ -86,7 +86,11 @@ class HomeView extends GetView<HomeController> {
               ),
               const SizedBox(height: 16),
               _FormatChipRow(
-                categoryCounts: controller.categoryCounts,
+                // `Map.of(...)` forces this Obx to actually read the RxMap's
+                // entries so it subscribes to it - see files_view.dart's
+                // `_CategoryFilterRow` call site for why a bare reference
+                // silently never triggers a repaint.
+                categoryCounts: Map.of(controller.categoryCounts),
                 onSelected: (category) =>
                     category == null ? controller.openAllFiles() : controller.openCategory(category),
               ),
