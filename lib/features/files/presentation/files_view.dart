@@ -50,7 +50,12 @@ class FilesView extends GetView<FilesController> {
           const SizedBox(height: 12),
           Obx(() => _CategoryFilterRow(
                 selected: controller.selectedCategory.value,
-                counts: controller.categoryCounts,
+                // `Map.of(...)` (not a bare reference) so this Obx actually
+                // reads the RxMap's entries and subscribes to it - passing
+                // the RxMap through unread never registers a dependency, so
+                // `categoryCounts.assignAll(...)` would otherwise silently
+                // never repaint this row.
+                counts: Map.of(controller.categoryCounts),
                 onSelected: controller.selectCategory,
               )),
           const SizedBox(height: 8),
