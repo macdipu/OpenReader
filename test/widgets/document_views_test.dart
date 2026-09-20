@@ -65,7 +65,7 @@ class FixtureDocuments implements DocumentRepository {
   }
 
   @override
-  ResultFuture<List<DocumentModel>> rescan() async {
+  ResultFuture<List<DocumentModel>> rescan({void Function(int foundSoFar)? onProgress}) async {
     scanCalls++;
     return failScan
         ? const Left(ServerFailure('Could not scan documents'))
@@ -173,7 +173,10 @@ void main() {
       await f.mount(tester, home);
       await f.complete(tester);
       expect(f.controller.status.value, StateStatus.success);
-      expect(find.text('report.pdf'), findsOneWidget);
+      // Home now also shows a "Continue Reading" card for the same document
+      // above the Recent Documents row (DESIGN_SPEC #08), so its filename
+      // can legitimately appear twice.
+      expect(find.text('report.pdf'), findsWidgets);
       expect(find.text('No documents found'), findsNothing);
     });
 
@@ -261,10 +264,14 @@ void main() {
     await tester.enterText(find.byType(TextField), 'report');
     await tester.pumpAndSettle();
     expect(f.documents.query, 'report');
-    await tester.tap(find.widgetWithText(ChoiceChip, 'PDF'));
+    // The category filter is a custom pill chip (files_view.dart's `_Pill`),
+    // not a Material `ChoiceChip`, after the DESIGN_SPEC visual refactor.
+    await tester.tap(find.text('PDF'));
     await tester.pumpAndSettle();
     expect(f.documents.category, DocumentCategory.pdf);
-    await tester.tap(find.byIcon(Icons.sort));
+    // Sort is triggered from the visible "current sort" chip
+    // (files_view.dart's `_SortChip`) instead of an app-bar icon.
+    await tester.tap(find.text(DocumentSortMode.nameAsc.label));
     await tester.pumpAndSettle();
     await tester.tap(find.text(DocumentSortMode.largestFirst.label));
     await tester.pumpAndSettle();
