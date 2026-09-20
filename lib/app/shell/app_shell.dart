@@ -5,10 +5,12 @@ import '../../core/presentation/theme/theme_extensions.dart';
 import '../../features/favorites/presentation/favorites_view.dart';
 import '../../features/files/presentation/files_view.dart';
 import '../../features/home/presentation/home_view.dart';
-import '../../features/settings/presentation/settings_view.dart';
 import 'app_shell_controller.dart';
 
-/// Bottom-nav shell: Home / Files / Favorites / Settings (BRD 9.3).
+/// Bottom-nav shell: Home / Files / Favorites (BRD 9.3). Settings moved out
+/// of the tab bar to a pushed route (AppRoutes.settings), reached via the
+/// gear icon in Home's app bar - it's a one-off destination, not a place
+/// people live in, so it doesn't need a permanent tab slot.
 ///
 /// Nav bar follows DESIGN_SPEC.md "BottomNavBar": 80dp, hairline top border,
 /// active destination gets a pill-shaped highlight behind icon+label.
@@ -26,7 +28,6 @@ class AppShell extends StatelessWidget {
               HomeView(),
               FilesView(),
               FavoritesView(),
-              SettingsView(),
             ],
           )),
       bottomNavigationBar: Obx(() => _AppNavBar(
@@ -47,7 +48,6 @@ class _AppNavBar extends StatelessWidget {
     (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded, label: 'Files'),
     (icon: Icons.star_outline_rounded, activeIcon: Icons.star_rounded, label: 'Favorites'),
-    (icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded, label: 'Settings'),
   ];
 
   @override
@@ -97,29 +97,34 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected ? context.secondary : context.onSurfaceVariant;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? context.secondaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(selected ? activeIcon : icon, color: color, size: 22),
-            if (selected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: context.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w700),
-              ),
+    return Semantics(
+      label: label,
+      selected: selected,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? context.secondaryContainer : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(selected ? activeIcon : icon, color: color, size: 22, semanticLabel: ''),
+              if (selected) ...[
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: context.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w700),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

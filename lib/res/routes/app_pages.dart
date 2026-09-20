@@ -16,6 +16,8 @@ import '../../features/recents/presentation/recents_binding.dart';
 import '../../features/recents/presentation/recents_view.dart';
 import '../../features/search/presentation/search_binding.dart';
 import '../../features/search/presentation/search_view.dart';
+import '../../features/settings/presentation/settings_binding.dart';
+import '../../features/settings/presentation/settings_view.dart';
 import '../../features/splash/presentation/splash_binding.dart';
 import '../../features/splash/presentation/splash_view.dart';
 import '../../features/text_reader/presentation/text_reader_binding.dart';
@@ -42,6 +44,11 @@ class AppPages {
       name: AppRoutes.appShell,
       page: () => const AppShell(),
       bindings: [AppShellBinding()],
+    ),
+    GetPage(
+      name: AppRoutes.settings,
+      page: () => const SettingsView(),
+      bindings: [SettingsBinding()],
     ),
     GetPage(
       name: AppRoutes.search,
