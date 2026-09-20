@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:docx_file_viewer/docx_file_viewer.dart';
 
+import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'word_reader_controller.dart';
 
-/// BRD §9.11 Word Reader Screen.
+/// BRD §9.11 Word Reader Screen (DESIGN_SPEC.md #02 / #13 - light + AMOLED).
 class WordReaderView extends GetView<WordReaderController> {
   const WordReaderView({super.key});
 
@@ -18,15 +19,30 @@ class WordReaderView extends GetView<WordReaderController> {
       body: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
         if (controller.hasError.value) return _ReaderErrorView(controller: controller);
-        return NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            controller.onScrollOffsetChanged(notification.metrics.pixels);
-            return false;
-          },
-          child: DocxView(
-            bytes: controller.validatedBytes!,
-            searchController: controller.searchController,
-            onError: controller.onLoadError,
+        return Container(
+          color: context.background,
+          padding: const EdgeInsets.all(12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.outlineVariant),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                controller.onScrollOffsetChanged(notification.metrics.pixels);
+                return false;
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: DocxView(
+                  bytes: controller.validatedBytes!,
+                  searchController: controller.searchController,
+                  onError: controller.onLoadError,
+                ),
+              ),
+            ),
           ),
         );
       }),
@@ -44,26 +60,58 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = DocumentCategory.word.accentColor(context);
+    final tint = DocumentCategory.word.tintColor(context);
+
     return AppBar(
       title: Obx(
         () => controller.isSearching.value
             ? TextField(
                 autofocus: true,
                 style: context.titleMedium,
-                decoration: const InputDecoration(hintText: 'Search in document', border: InputBorder.none),
+                cursorColor: context.secondary,
+                decoration: InputDecoration(
+                  hintText: 'Search in document',
+                  hintStyle: context.titleMedium?.copyWith(color: context.onSurfaceVariant),
+                  border: InputBorder.none,
+                ),
                 onChanged: controller.onSearchQueryChanged,
               )
-            : Text(controller.document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
+            : Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: tint,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: accent.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      DocumentCategory.word.shortCode,
+                      style: context.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800, fontSize: 9),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(controller.document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ),
       ),
       actions: [
         Obx(
           () => controller.isSearching.value
-              ? IconButton(icon: const Icon(Icons.close), onPressed: controller.stopSearching)
-              : IconButton(icon: const Icon(Icons.search), onPressed: controller.startSearching),
+              ? IconButton(icon: const Icon(Icons.close_rounded), onPressed: controller.stopSearching)
+              : IconButton(icon: const Icon(Icons.search_rounded), onPressed: controller.startSearching),
         ),
         Obx(
           () => IconButton(
-            icon: Icon(controller.isFavorite ? Icons.favorite : Icons.favorite_border),
+            icon: Icon(
+              controller.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: controller.isFavorite ? context.secondary : null,
+            ),
             onPressed: controller.toggleFavorite,
           ),
         ),
@@ -105,9 +153,13 @@ class _ReaderErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 40),
+            Icon(Icons.error_outline_rounded, size: 40, color: context.error),
             const SizedBox(height: 16),
-            Text(controller.errorMessage.value ?? 'This document may be damaged or incomplete.', textAlign: TextAlign.center),
+            Text(
+              controller.errorMessage.value ?? 'This document may be damaged or incomplete.',
+              textAlign: TextAlign.center,
+              style: context.bodyMedium,
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -133,36 +185,41 @@ class _SearchStatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (!controller.isSearching.value) return const SizedBox.shrink();
-      return ListenableBuilder(
-        listenable: controller.searchController,
-        builder: (context, _) {
-          final searcher = controller.searchController;
-          final String label;
-          if (searcher.query.isEmpty) {
-            label = '';
-          } else if (searcher.matchCount == 0) {
-            // BRD §13.
-            label = 'No searchable text found.';
-          } else {
-            label = '${searcher.currentMatchIndex + 1} of ${searcher.matchCount} result(s)';
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                Expanded(child: Text(label, style: context.bodySmall)),
-                IconButton(
-                  icon: const Icon(Icons.keyboard_arrow_up),
-                  onPressed: searcher.matchCount > 0 ? controller.goToPrevMatch : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.keyboard_arrow_down),
-                  onPressed: searcher.matchCount > 0 ? controller.goToNextMatch : null,
-                ),
-              ],
-            ),
-          );
-        },
+      return Container(
+        color: context.surfaceContainerLow,
+        child: ListenableBuilder(
+          listenable: controller.searchController,
+          builder: (context, _) {
+            final searcher = controller.searchController;
+            final String label;
+            if (searcher.query.isEmpty) {
+              label = '';
+            } else if (searcher.matchCount == 0) {
+              // BRD §13.
+              label = 'No searchable text found.';
+            } else {
+              label = '${searcher.currentMatchIndex + 1} of ${searcher.matchCount} result(s)';
+            }
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(child: Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant))),
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_up_rounded),
+                    color: context.onSurfaceVariant,
+                    onPressed: searcher.matchCount > 0 ? controller.goToPrevMatch : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                    color: context.onSurfaceVariant,
+                    onPressed: searcher.matchCount > 0 ? controller.goToNextMatch : null,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       );
     });
   }

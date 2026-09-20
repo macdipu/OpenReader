@@ -36,95 +36,99 @@ class AppColors {
 
   // =========================================================
   // BRAND COLORS
+  // OpenReader (light) / Nocturne Reader (dark, AMOLED true-black)
+  // See agentic/data/design/stitch/DESIGN_SPEC.md
   // =========================================================
 
-  static const Color brandPrimary = Color(0xFF0A1A2F);
-  static const Color brandSecondary = Color(0xFFF4C430);
-  static const Color brandAccent = Color(0xFFF2633B);
-  static const Color brandGreen = Color(0xFF1FA45D);
-  static const Color brandGray = Color(0xFFE6E8EC);
+  static const Color brandPrimary = Color(0xFF0051D5);
+  static const Color brandSecondary = Color(0xFF38BDF8);
+  static const Color brandAccent = Color(0xFF059669);
+  static const Color brandGreen = Color(0xFF10B981);
+  static const Color brandGray = Color(0xFFE2E8F0);
 
   // =========================================================
   // MATERIAL 3 SYSTEM COLORS - ADAPTIVE
   // =========================================================
 
-  // Primary
+  // Primary - near-black ink (light) / soft sky text-on-black (dark)
   static const primary = AdaptiveColor(
-    light: Color(0xFF0A1A2F),
-    dark: Color(0xFF8FA8C8),
+    light: Color(0xFF091426),
+    dark: Color(0xFF8ED5FF),
   );
 
   static const onPrimary = AdaptiveColor(
     light: Colors.white,
-    dark: Colors.black,
+    dark: Color(0xFF00354A),
   );
 
   static const primaryContainer = AdaptiveColor(
-    light: Color(0xFF13263F),
-    dark: Color(0xFF0A1A2F),
+    light: Color(0xFF1E293B),
+    dark: Color(0xFF38BDF8),
   );
 
   static const onPrimaryContainer = AdaptiveColor(
     light: Colors.white,
-    dark: Colors.white,
+    dark: Color(0xFF00354A),
   );
 
-  // Secondary
+  // Secondary - the real interactive/CTA accent (buttons, active states,
+  // focus rings, progress fill). Nocturne has no separate accent, so dark
+  // reuses primary-container's electric sky blue.
   static const secondary = AdaptiveColor(
-    light: Color(0xFFF4C430),
-    dark: Color(0xFFFFD76A),
+    light: Color(0xFF0051D5),
+    dark: Color(0xFF38BDF8),
   );
 
   static const onSecondary = AdaptiveColor(
-    light: Color(0xFF332400),
-    dark: Colors.black,
+    light: Colors.white,
+    dark: Color(0xFF00354A),
   );
 
   static const secondaryContainer = AdaptiveColor(
-    light: Color(0xFFFFF4CC),
-    dark: Color(0xFF4A3A00),
+    light: Color(0xFFDCE9FF),
+    dark: Color(0xFF0F2A3D),
   );
 
   static const onSecondaryContainer = AdaptiveColor(
-    light: Color(0xFF2D1F00),
-    dark: Color(0xFFFFF4CC),
+    light: Color(0xFF00266B),
+    dark: Color(0xFF8ED5FF),
   );
 
-  // Tertiary (Accent)
+  // Tertiary - success/mint accent (also the XLSX format accent family)
   static const tertiary = AdaptiveColor(
-    light: Color(0xFFF2633B),
-    dark: Color(0xFFFF9D7F),
+    light: Color(0xFF059669),
+    dark: Color(0xFF4EE6AA),
   );
 
   static const onTertiary = AdaptiveColor(
     light: Colors.white,
-    dark: Colors.black,
+    dark: Color(0xFF003825),
   );
 
   static const tertiaryContainer = AdaptiveColor(
-    light: Color(0xFFFFE7DF),
-    dark: Color(0xFF661F0F),
+    light: Color(0xFFECFDF5),
+    dark: Color(0xFF22C990),
   );
 
   static const onTertiaryContainer = AdaptiveColor(
-    light: Color(0xFF3F0C00),
-    dark: Color(0xFFFFE7DF),
+    light: Color(0xFF00301F),
+    dark: Color(0xFF003825),
   );
 
   // Error
   static const error = AdaptiveColor(
-    light: Color(0xFFE63946),
-    dark: Color(0xFFF2B8B5),
+    light: Color(0xFFBA1A1A),
+    dark: Color(0xFFFFB4AB),
   );
 
   static const onError = AdaptiveColor(
     light: Colors.white,
-    dark: Color(0xFF601410),
+    dark: Color(0xFF690005),
   );
 
   static const errorContainer = AdaptiveColor(
     light: Color(0xFFFFDAD6),
-    dark: Color(0xFF8C1D18),
+    dark: Color(0xFF93000A),
   );
 
   static const onErrorContainer = AdaptiveColor(
@@ -134,67 +138,68 @@ class AppColors {
 
   // Surface
   static const surface = AdaptiveColor(
-    light: Colors.white,
-    dark: Color(0xFF111827),
+    light: Color(0xFFF8FAFC),
+    dark: Color(0xFF000000),
   );
 
   static const onSurface = AdaptiveColor(
-    light: Color(0xFF1A1A1A),
-    dark: Colors.white,
+    light: Color(0xFF0F172A),
+    dark: Color(0xFFF1F5F9),
   );
 
   static const onSurfaceVariant = AdaptiveColor(
-    light: Color(0xFF4A4A4A),
-    dark: Color(0xFFCAD6E3),
+    light: Color(0xFF475569),
+    dark: Color(0xFF94A3B8),
   );
 
   // Layered surface tiers - low to high emphasis, for card/dialog/sheet
-  // hierarchy so dark mode reads as soft stacked panels, not flat black.
+  // hierarchy. Dark stays true-black at the lowest tier (AMOLED) and steps
+  // up through Nocturne's "deep-space elevation" panels.
   static const surfaceContainerLowest = AdaptiveColor(
-    light: Colors.white,
-    dark: Color(0xFF0B1220),
+    light: Color(0xFFFFFFFF),
+    dark: Color(0xFF0A0E17),
   );
 
   static const surfaceContainerLow = AdaptiveColor(
-    light: Color(0xFFF7F8FA),
-    dark: Color(0xFF161F33),
+    light: Color(0xFFF1F5F9),
+    dark: Color(0xFF181B25),
   );
 
   static const surfaceContainer = AdaptiveColor(
-    light: Color(0xFFF1F2F5),
-    dark: Color(0xFF1C2740),
+    light: Color(0xFFEAF1FF),
+    dark: Color(0xFF1C1F29),
   );
 
   static const surfaceContainerHigh = AdaptiveColor(
-    light: Color(0xFFEAECF0),
-    dark: Color(0xFF23304D),
+    light: Color(0xFFDCE9FF),
+    dark: Color(0xFF262A34),
   );
 
   static const surfaceContainerHighest = AdaptiveColor(
-    light: Color(0xFFE3E6EC),
-    dark: Color(0xFF2A3654),
+    light: Color(0xFFCBD5E1),
+    dark: Color(0xFF31353F),
   );
 
-  // Background
+  // Background - alias target for scaffolds; AMOLED true-black on dark.
   static const background = AdaptiveColor(
-    light: Color(0xFFFAFAFA),
-    dark: Color(0xFF0B1220),
+    light: Color(0xFFF8FAFC),
+    dark: Color(0xFF000000),
   );
 
   static const onBackground = AdaptiveColor(
-    light: Color(0xFF0A1A2F),
-    dark: Colors.white,
+    light: Color(0xFF0F172A),
+    dark: Color(0xFFF1F5F9),
   );
 
   // Outlines
   static const outline = AdaptiveColor(
-    light: Color(0xFFC7C9CC),
-    dark: Color(0xFF5A5F6A),
+    light: Color(0xFFCBD5E1),
+    dark: Color(0xFF334155),
   );
 
   static const outlineVariant = AdaptiveColor(
-    light: Color(0xFFEAECF0),
-    dark: Color(0xFF404040),
+    light: Color(0xFFE2E8F0),
+    dark: Color(0xFF1E293B),
   );
 
   // Shadow & Scrim
@@ -210,18 +215,18 @@ class AppColors {
 
   // Inverse
   static const inverseSurface = AdaptiveColor(
-    light: Color(0xFF2F3137),
-    dark: Color(0xFFE6E8EC),
+    light: Color(0xFF213145),
+    dark: Color(0xFFDFE2EF),
   );
 
   static const onInverseSurface = AdaptiveColor(
-    light: Color(0xFFF4F4F4),
-    dark: Color(0xFF121212),
+    light: Color(0xFFEAF1FF),
+    dark: Color(0xFF0F131C),
   );
 
   static const inversePrimary = AdaptiveColor(
-    light: Color(0xFFF4C430),
-    dark: Color(0xFFF4C430),
+    light: Color(0xFF8ED5FF),
+    dark: Color(0xFF091426),
   );
 
   // =========================================================
@@ -229,63 +234,63 @@ class AppColors {
   // =========================================================
 
   static const success = AdaptiveColor(
-    light: Color(0xFF1FA45D),
-    dark: Color(0xFF34D399),
+    light: Color(0xFF059669),
+    dark: Color(0xFF4EE6AA),
   );
 
   static const onSuccess = AdaptiveColor(
     light: Colors.white,
-    dark: Colors.black,
+    dark: Color(0xFF003825),
   );
 
   static const successContainer = AdaptiveColor(
-    light: Color(0xFFECF9ED),
+    light: Color(0xFFECFDF5),
     dark: Color(0xFF12472C),
   );
 
   static const onSuccessContainer = AdaptiveColor(
-    light: Color(0xFF0D3B20),
-    dark: Color(0xFFECF9ED),
+    light: Color(0xFF00301F),
+    dark: Color(0xFFECFDF5),
   );
 
   static const warning = AdaptiveColor(
-    light: Color(0xFFB8860B),
-    dark: Color(0xFFFBBF24),
+    light: Color(0xFFD97706),
+    dark: Color(0xFFFB923C),
   );
 
   static const onWarning = AdaptiveColor(
-    light: Colors.black,
-    dark: Colors.black,
+    light: Colors.white,
+    dark: Color(0xFF3A1D00),
   );
 
   static const warningContainer = AdaptiveColor(
-    light: Color(0xFFFFF4CC),
-    dark: Color(0xFF4A3A00),
+    light: Color(0xFFFFFBEB),
+    dark: Color(0xFF4A3200),
   );
 
   static const onWarningContainer = AdaptiveColor(
     light: Color(0xFF3D2E00),
-    dark: Color(0xFFFFF4CC),
+    dark: Color(0xFFFFFBEB),
   );
 
   static const info = AdaptiveColor(
-    light: Color(0xFF3B82F6),
-    dark: Color(0xFF60A5FA),
+    light: Color(0xFF2563EB),
+    dark: Color(0xFF38BDF8),
   );
 
   static const onInfo = AdaptiveColor(
     light: Colors.white,
-    dark: Colors.black,
+    dark: Color(0xFF00354A),
   );
 
   static const infoContainer = AdaptiveColor(
-    light: Color(0xFFE6F0FF),
-    dark: Color(0xFF1E3A66),
+    light: Color(0xFFEFF6FF),
+    dark: Color(0xFF0F2A3D),
   );
 
   static const onInfoContainer = AdaptiveColor(
     light: Color(0xFF0A2E5C),
-    dark: Color(0xFFE6F0FF),
+    dark: Color(0xFFEFF6FF),
   );
 
   // =========================================================
@@ -347,23 +352,23 @@ class AppColors {
   // =========================================================
 
   static const text = AdaptiveColor(
-    light: Color(0xFF0A1A2F),
-    dark: Colors.white,
+    light: Color(0xFF0F172A),
+    dark: Color(0xFFF1F5F9),
   );
 
   static const textSecondary = AdaptiveColor(
-    light: Color(0xFF4A4A4A),
-    dark: Color(0xFFCAD6E3),
+    light: Color(0xFF475569),
+    dark: Color(0xFF94A3B8),
   );
 
   static const textTertiary = AdaptiveColor(
-    light: Color(0xFF9CA3AF),
-    dark: Color(0xFF6B7280),
+    light: Color(0xFF94A3B8),
+    dark: Color(0xFF64748B),
   );
 
   static const textDisabled = AdaptiveColor(
-    light: Color(0xFFD1D5DB),
-    dark: Color(0xFF4B5563),
+    light: Color(0xFFCBD5E1),
+    dark: Color(0xFF334155),
   );
 
   // =========================================================
@@ -371,13 +376,13 @@ class AppColors {
   // =========================================================
 
   static const border = AdaptiveColor(
-    light: Color(0xFFEFEFEF),
-    dark: Color(0xFF2F3137),
+    light: Color(0xFFE2E8F0),
+    dark: Color(0xFF1E293B),
   );
 
   static const divider = AdaptiveColor(
-    light: Color(0xFFE6E8EC),
-    dark: Color(0xFF3A3D45),
+    light: Color(0xFFE2E8F0),
+    dark: Color(0xFF1E293B),
   );
 
   // =========================================================
@@ -386,24 +391,24 @@ class AppColors {
 
   // Complaint/Report specific colors
   static const complaint = AdaptiveColor(
-    light: Color(0xFFEF4444),
-    dark: Color(0xFFDC2626),
+    light: Color(0xFFBA1A1A),
+    dark: Color(0xFFFFB4AB),
   );
 
   static const complaintBackground = AdaptiveColor(
-    light: Color(0xFFFFEEF0),
+    light: Color(0xFFFFDAD6),
     dark: Color(0xFF2D1517),
   );
 
   // Hero gradients
   static const heroGradientStart = AdaptiveColor(
-    light: Color(0xFF0A1A2F),
-    dark: Color(0xFF051029),
+    light: Color(0xFF091426),
+    dark: Color(0xFF000000),
   );
 
   static const heroGradientEnd = AdaptiveColor(
-    light: Color(0xFF13263F),
-    dark: Color(0xFF0F1B3A),
+    light: Color(0xFF1E293B),
+    dark: Color(0xFF0A0E17),
   );
 
   // =========================================================

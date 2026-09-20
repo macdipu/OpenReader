@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/document_repository_impl.dart';
+import '../../../core/domain/models/document_category.dart';
 import '../../../core/domain/models/document_model.dart';
 import '../../../core/domain/repositories/document_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
@@ -17,6 +18,17 @@ class SearchDocumentsController extends BaseController {
 
   final results = <DocumentModel>[].obs;
   final query = ''.obs;
+  final selectedCategory = Rxn<DocumentCategory>();
+
+  /// Client-side format filter on top of the filename-matched [results]
+  /// (Local Search & Filter - DESIGN_SPEC.md #07).
+  List<DocumentModel> get filteredResults {
+    final category = selectedCategory.value;
+    if (category == null) return results;
+    return results.where((d) => d.category == category).toList();
+  }
+
+  void selectCategory(DocumentCategory? category) => selectedCategory.value = category;
 
   Timer? _debounce;
 
@@ -37,6 +49,7 @@ class SearchDocumentsController extends BaseController {
   void clear() {
     query.value = '';
     results.clear();
+    selectedCategory.value = null;
     status.value = StateStatus.initial;
     _debounce?.cancel();
   }

@@ -4,6 +4,7 @@ import '../../core/presentation/controllers/document_interaction_controller.dart
 import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/files/presentation/files_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
+import '../../features/recents/presentation/recents_controller.dart';
 import '../../features/settings/presentation/settings_controller.dart';
 import 'app_shell_controller.dart';
 
@@ -31,6 +32,9 @@ class AppShellBinding extends Bindings {
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
     Get.lazyPut<FilesController>(() => FilesController(), fenix: true);
     Get.lazyPut<FavoritesController>(() => FavoritesController(), fenix: true);
+    // Favorites & History screen shows both tabs together (DESIGN_SPEC #06),
+    // so History needs to be available as soon as the Favorites tab is.
+    Get.lazyPut<RecentsController>(() => RecentsController(), fenix: true);
     Get.lazyPut<SettingsController>(() => SettingsController(), fenix: true);
   }
 }

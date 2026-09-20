@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'color_schemes.dart';
+import 'text_theme.dart';
 
 extension ThemeExtensions on BuildContext {
   /// Theme shortcuts
@@ -114,6 +115,9 @@ extension ThemeExtensions on BuildContext {
   TextStyle? get labelLarge => textTheme.labelLarge;
   TextStyle? get labelMedium => textTheme.labelMedium;
   TextStyle? get labelSmall => textTheme.labelSmall;
+
+  /// JetBrains Mono style for file sizes, hashes, pagination, timestamps.
+  TextStyle get monoMetadata => AppTextTheme.monoMetadata.copyWith(color: onSurfaceVariant);
 }
 
 /// Extension for custom semantic colors (success, warning, info, divider,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_grid.dart';
@@ -13,6 +14,10 @@ import 'excel_reader_controller.dart';
 /// comment) ships no grid widget, so [CellGrid] - shared with the CSV reader
 /// since `FEATURE-OPENREADER-P4` - is first-party OpenReader UI built directly on
 /// its parsed cell model.
+///
+/// Styled per DESIGN_SPEC.md #05/#15 (Excel Viewer, light + AMOLED): the
+/// XLSX format accent (mint/emerald) marks the active sheet tab and header
+/// chip, matching the "tertiary" role used for spreadsheets across the app.
 class ExcelReaderView extends GetView<ExcelReaderController> {
   const ExcelReaderView({super.key});
 
@@ -25,7 +30,17 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
         if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
         return Column(
           children: [
-            Expanded(child: CellGrid(controller: controller, emptyMessage: 'Empty workbook')),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: context.outlineVariant),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: CellGrid(controller: controller, emptyMessage: 'Empty workbook'),
+              ),
+            ),
             _SheetTabBar(controller: controller),
           ],
         );
@@ -44,26 +59,64 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = DocumentCategory.excel.accentColor(context);
+    final tint = DocumentCategory.excel.tintColor(context);
+
     return AppBar(
       title: Obx(
         () => controller.isSearching.value
             ? TextField(
                 autofocus: true,
                 style: context.titleMedium,
-                decoration: const InputDecoration(hintText: 'Search cells', border: InputBorder.none),
+                decoration: InputDecoration(
+                  hintText: 'Search cells',
+                  border: InputBorder.none,
+                  hintStyle: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
+                ),
                 onChanged: controller.search,
               )
-            : Text(controller.document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    margin: const EdgeInsets.only(right: 10),
+                    decoration: BoxDecoration(
+                      color: tint,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: accent.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      DocumentCategory.excel.shortCode,
+                      style: context.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      controller.document.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
       ),
       actions: [
         Obx(
-          () => controller.isSearching.value
-              ? IconButton(icon: const Icon(Icons.close), onPressed: controller.stopSearching)
-              : IconButton(icon: const Icon(Icons.search), onPressed: controller.startSearching),
+          () => IconButton(
+            icon: Icon(controller.isSearching.value ? Icons.close_rounded : Icons.search_rounded),
+            onPressed: controller.isSearching.value ? controller.stopSearching : controller.startSearching,
+          ),
         ),
         Obx(
           () => IconButton(
-            icon: Icon(controller.isFavorite ? Icons.favorite : Icons.favorite_border),
+            icon: Icon(
+              controller.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: controller.isFavorite ? context.secondary : null,
+            ),
             onPressed: controller.toggleFavorite,
           ),
         ),
@@ -109,17 +162,20 @@ class _SearchStatusBar extends StatelessWidget {
       } else {
         label = '${controller.currentMatchIndex.value + 1} of ${controller.matches.length} result(s)';
       }
-      return Padding(
+      return Container(
+        color: context.surfaceContainerLow,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Row(
           children: [
-            Expanded(child: Text(label, style: context.bodySmall)),
+            Expanded(child: Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant))),
             IconButton(
-              icon: const Icon(Icons.keyboard_arrow_up),
+              icon: const Icon(Icons.keyboard_arrow_up_rounded),
+              color: context.onSurfaceVariant,
               onPressed: controller.matches.isNotEmpty ? controller.goToPrevMatch : null,
             ),
             IconButton(
-              icon: const Icon(Icons.keyboard_arrow_down),
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              color: context.onSurfaceVariant,
               onPressed: controller.matches.isNotEmpty ? controller.goToNextMatch : null,
             ),
           ],
@@ -138,9 +194,13 @@ class _SheetTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (controller.sheetNames.length <= 1) return const SizedBox.shrink();
+      final accent = DocumentCategory.excel.accentColor(context);
       return Container(
-        height: 40,
-        color: context.surfaceContainer,
+        height: 44,
+        decoration: BoxDecoration(
+          color: context.surfaceContainerLowest,
+          border: Border(top: BorderSide(color: context.outlineVariant)),
+        ),
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: controller.sheetNames.length,
@@ -152,11 +212,14 @@ class _SheetTabBar extends StatelessWidget {
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: selected ? context.primary : Colors.transparent, width: 2)),
+                  color: selected ? context.surfaceContainerHigh : null,
+                  border: Border(bottom: BorderSide(color: selected ? accent : Colors.transparent, width: 2)),
                 ),
                 child: Text(
                   controller.sheetNames[index],
-                  style: selected ? context.bodySmall?.copyWith(color: context.primary, fontWeight: FontWeight.bold) : context.bodySmall,
+                  style: selected
+                      ? context.bodySmall?.copyWith(color: accent, fontWeight: FontWeight.bold)
+                      : context.bodySmall?.copyWith(color: context.onSurfaceVariant),
                 ),
               ),
             );
@@ -180,9 +243,13 @@ class _ReaderErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 40),
+            Icon(Icons.error_outline_rounded, size: 40, color: context.error),
             const SizedBox(height: 16),
-            Text(controller.errorMessage.value ?? 'This document may be damaged or incomplete.', textAlign: TextAlign.center),
+            Text(
+              controller.errorMessage.value ?? 'This document may be damaged or incomplete.',
+              textAlign: TextAlign.center,
+              style: context.bodyMedium,
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisSize: MainAxisSize.min,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
@@ -61,16 +62,19 @@ class _TextBodyState extends State<_TextBody> {
     return Obx(() {
       final lines = widget.controller.lines;
       final query = widget.controller.searchQuery.value;
-      return ListView.builder(
-        controller: widget.controller.scrollController,
-        itemCount: lines.length,
-        itemBuilder: (context, index) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-          child: _TextLine(
-            text: lines[index],
-            fontSize: widget.controller.fontSize.value,
-            wrap: widget.controller.lineWrap.value,
-            highlightQuery: query,
+      return Container(
+        color: context.surface,
+        child: ListView.builder(
+          controller: widget.controller.scrollController,
+          itemCount: lines.length,
+          itemBuilder: (context, index) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            child: _TextLine(
+              text: lines[index],
+              fontSize: widget.controller.fontSize.value,
+              wrap: widget.controller.lineWrap.value,
+              highlightQuery: query,
+            ),
           ),
         ),
       );
@@ -88,7 +92,8 @@ class _TextLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(fontSize: fontSize);
+    final style = context.bodyMedium?.copyWith(fontSize: fontSize, color: context.onSurface) ??
+        TextStyle(fontSize: fontSize, color: context.onSurface);
     final content = highlightQuery.isEmpty
         ? Text(text, style: style, softWrap: wrap, overflow: wrap ? TextOverflow.visible : TextOverflow.clip)
         : Text.rich(_highlighted(text, highlightQuery, style, context), softWrap: wrap, overflow: wrap ? TextOverflow.visible : TextOverflow.clip);
@@ -109,7 +114,7 @@ class _TextLine extends StatelessWidget {
       if (index > start) spans.add(TextSpan(text: text.substring(start, index)));
       spans.add(TextSpan(
         text: text.substring(index, index + query.length),
-        style: TextStyle(backgroundColor: Colors.orange.withValues(alpha: 0.5)),
+        style: TextStyle(backgroundColor: context.secondaryContainer, color: context.onSecondaryContainer),
       ));
       start = index + query.length;
     }
@@ -127,26 +132,54 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = DocumentCategory.text.accentColor(context);
+    final tint = DocumentCategory.text.tintColor(context);
+
     return AppBar(
       title: Obx(
         () => controller.isSearching.value
             ? TextField(
                 autofocus: true,
                 style: context.titleMedium,
-                decoration: const InputDecoration(hintText: 'Search in document', border: InputBorder.none),
+                cursorColor: context.secondary,
+                decoration: InputDecoration(
+                  hintText: 'Search in document',
+                  hintStyle: context.titleMedium?.copyWith(color: context.onSurfaceVariant),
+                  border: InputBorder.none,
+                ),
                 onChanged: controller.search,
               )
-            : Text(controller.document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
+            : Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(8)),
+                    child: Text(
+                      DocumentCategory.text.shortCode,
+                      style: context.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(controller.document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ),
       ),
       actions: [
         Obx(
           () => controller.isSearching.value
-              ? IconButton(icon: const Icon(Icons.close), onPressed: controller.stopSearching)
-              : IconButton(icon: const Icon(Icons.search), onPressed: controller.startSearching),
+              ? IconButton(icon: const Icon(Icons.close_rounded), onPressed: controller.stopSearching)
+              : IconButton(icon: const Icon(Icons.search_rounded), onPressed: controller.startSearching),
         ),
         Obx(
           () => IconButton(
-            icon: Icon(controller.isFavorite ? Icons.favorite : Icons.favorite_border),
+            icon: Icon(
+              controller.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: controller.isFavorite ? context.secondary : null,
+            ),
             onPressed: controller.toggleFavorite,
           ),
         ),
@@ -201,17 +234,21 @@ class _SearchStatusBar extends StatelessWidget {
       } else {
         label = '${controller.currentMatchIndex.value + 1} of ${controller.matches.length} result(s)';
       }
-      return Padding(
+      return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: context.surfaceContainerLow,
+          border: Border(top: BorderSide(color: context.outlineVariant)),
+        ),
         child: Row(
           children: [
-            Expanded(child: Text(label, style: context.bodySmall)),
+            Expanded(child: Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant))),
             IconButton(
-              icon: const Icon(Icons.keyboard_arrow_up),
+              icon: Icon(Icons.keyboard_arrow_up_rounded, color: context.onSurfaceVariant),
               onPressed: controller.matches.isNotEmpty ? controller.goToPrevMatch : null,
             ),
             IconButton(
-              icon: const Icon(Icons.keyboard_arrow_down),
+              icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.onSurfaceVariant),
               onPressed: controller.matches.isNotEmpty ? controller.goToNextMatch : null,
             ),
           ],
@@ -234,9 +271,13 @@ class _ReaderErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 40),
+            Icon(Icons.error_outline_rounded, size: 40, color: context.error),
             const SizedBox(height: 16),
-            Text(controller.errorMessage.value ?? 'This document may be damaged or incomplete.', textAlign: TextAlign.center),
+            Text(
+              controller.errorMessage.value ?? 'This document may be damaged or incomplete.',
+              textAlign: TextAlign.center,
+              style: context.bodyMedium,
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisSize: MainAxisSize.min,

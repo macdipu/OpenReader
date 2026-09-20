@@ -72,7 +72,6 @@ dependencies:
   # Weather Pulse - Charts / Animations / Fonts
   fl_chart: ^0.69.0
   lottie: ^3.1.2
-  google_fonts: ^6.2.1
   shimmer: ^3.0.0
 
   # Weather Pulse - Home screen widgets, notifications, background
@@ -115,8 +114,39 @@ flutter:
   assets:
     - assets/svgs/
 
+  # OpenReader is offline-only (BRD - zero network calls), so type is bundled
+  # as local variable-font assets instead of package:google_fonts' default
+  # runtime-download behavior. Each weight below maps onto the same variable
+  # font file; Flutter/Skia renders the matching instance.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+          weight: 400
+        - asset: assets/fonts/Inter.ttf
+          weight: 500
+        - asset: assets/fonts/Inter.ttf
+          weight: 600
+        - asset: assets/fonts/Inter.ttf
+          weight: 700
+        - asset: assets/fonts/Inter.ttf
+          weight: 800
+    - family: Space Grotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk.ttf
+          weight: 500
+        - asset: assets/fonts/SpaceGrotesk.ttf
+          weight: 600
+        - asset: assets/fonts/SpaceGrotesk.ttf
+          weight: 700
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono.ttf
+          weight: 500
+
 flutter_native_splash:
-  color: "#ffffff"
+  color: "#F8FAFC"
+  color_dark: "#000000"
   android: true
   ios: true
 
