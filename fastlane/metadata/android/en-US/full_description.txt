@@ -1,8 +1,11 @@
-TODO: max 4000 chars. Write the Play Store listing description here before
-the first release with a Play secret configured - fastlane supply reads this
-file verbatim.
+OpenReader is your all-in-one document reader for Android. Open, read, search, and organize your PDF, Word, Excel, CSV, and text files - all in a single app.
 
-Suggested starting points from README.md:
-- Privacy-first, fully offline document reader
-- Supports PDF, DOC/DOCX, XLS/XLSX, CSV, TXT
-- No accounts, no cloud upload, no server dependency
+FEATURES
+- Read PDF, DOC/DOCX, XLS/XLSX, CSV, and TXT files
+- On-device document scanner finds files already on your phone
+- Recents and Favorites for quick access
+- Search across your documents
+- Share files, view file info, and open documents from other apps
+- Clean, fast, distraction-free reading experience
+
+No accounts, no setup - just install and start reading. Whether you're reviewing a PDF, checking a spreadsheet, or reading a Word document, OpenReader gives you one simple app for all your documents.
