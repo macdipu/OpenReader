@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import '../../core/domain/models/document_category.dart';
 import '../../core/domain/models/document_model.dart';
 import '../../core/presentation/utils/logger.dart';
@@ -100,8 +102,5 @@ class FileScannerService {
     return path.substring(dot + 1);
   }
 
-  String _nameOf(String path) {
-    final slash = path.lastIndexOf('/');
-    return slash == -1 ? path : path.substring(slash + 1);
-  }
+  String _nameOf(String path) => p.basename(path);
 }
