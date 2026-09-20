@@ -66,11 +66,8 @@ header.site .wrap {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent-strong), #8a6bff);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
+  display: block;
+  object-fit: cover;
 }
 
 nav.site a {

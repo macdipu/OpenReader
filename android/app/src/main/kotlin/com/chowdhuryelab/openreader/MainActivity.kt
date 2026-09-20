@@ -1,4 +1,4 @@
-package com.onkur.customer
+package com.chowdhuryelab.openreader
 
 import io.flutter.embedding.android.FlutterActivity
 

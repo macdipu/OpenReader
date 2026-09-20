@@ -1,0 +1,8 @@
+TODO: max 4000 chars. Write the Play Store listing description here before
+the first release with a Play secret configured - fastlane supply reads this
+file verbatim.
+
+Suggested starting points from README.md:
+- Privacy-first, fully offline document reader
+- Supports PDF, DOC/DOCX, XLS/XLSX, CSV, TXT
+- No accounts, no cloud upload, no server dependency
