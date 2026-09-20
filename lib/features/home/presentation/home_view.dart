@@ -10,7 +10,6 @@ import '../../../core/presentation/utils/relative_time_formatter.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/document/document_load_error_view.dart';
-import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../features/file_information/presentation/file_information_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../res/routes/app_routes.dart';
@@ -18,7 +17,9 @@ import '../../../services/utilities/storage_access_service.dart';
 import 'home_controller.dart';
 
 /// Home Discovery Hub (DESIGN_SPEC.md #08): search + format chips +
-/// continue-reading carousel + recents list + scan FAB.
+/// continue-reading carousel + recents list. Storage is rescanned via
+/// pull-to-refresh (not a separate button) - filesystem discovery only
+/// happens on an explicit scan, since there's no live file-watcher.
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
@@ -41,25 +42,6 @@ class HomeView extends GetView<HomeController> {
           ),
         ],
       ),
-      floatingActionButton: Obx(() {
-        if (controller.status.value.isBusy) return const SizedBox.shrink();
-        if (controller.isScanning.value) {
-          return FloatingActionButton.extended(
-            onPressed: null,
-            icon: const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            ),
-            label: Text('Found ${controller.scanProgress.value}…'),
-          );
-        }
-        return FloatingActionButton.extended(
-          onPressed: controller.refresh,
-          icon: const Icon(Icons.sync_rounded),
-          label: const Text('Scan Storage'),
-        );
-      }),
       body: Obx(() {
         if (!controller.hasAccess.value) {
           return _PermissionBanner(onRequestAccess: () async {
@@ -84,6 +66,9 @@ class HomeView extends GetView<HomeController> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: _SearchBarStub(onTap: () => Get.toNamed(AppRoutes.search)),
               ),
+              Obx(() => controller.isScanning.value
+                  ? _ScanProgressBanner(foundCount: controller.scanProgress.value)
+                  : const SizedBox.shrink()),
               const SizedBox(height: 16),
               _FormatChipRow(
                 // `Map.of(...)` forces this Obx to actually read the RxMap's
@@ -150,9 +135,10 @@ class HomeView extends GetView<HomeController> {
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                       )),
               ] else if (controller.status.value.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 48),
-                  child: CommonEmptyView(message: 'No documents found'),
+                _EmptyState(
+                  icon: Icons.folder_off_outlined,
+                  title: 'No documents found',
+                  subtitle: 'Pull down to scan this device for PDF, Word, Excel, and text files.',
                 )
               else
                 // Files are indexed (chips above show real counts) but
@@ -160,9 +146,12 @@ class HomeView extends GetView<HomeController> {
                 // Recent History" in Settings. Without this branch the body
                 // renders nothing below the chips, which reads as a blank
                 // screen bug rather than an intentional empty state.
-                Padding(
-                  padding: const EdgeInsets.only(top: 48),
-                  child: CommonEmptyView(message: 'No reading history yet. Open a document to see it here.'),
+                _EmptyState(
+                  icon: Icons.history_rounded,
+                  title: 'No reading history yet',
+                  subtitle: 'Documents you open will show up here.',
+                  actionLabel: 'Browse Files',
+                  onAction: controller.openAllFiles,
                 ),
             ],
           ),
@@ -345,6 +334,86 @@ class _ContinueReadingCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Live "found N" feedback while pull-to-refresh is scanning storage
+/// (RefreshIndicator's own spinner shows "working"; this shows progress).
+class _ScanProgressBanner extends StatelessWidget {
+  final int foundCount;
+  const _ScanProgressBanner({required this.foundCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: context.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: context.secondary),
+            ),
+            const SizedBox(width: 10),
+            Text('Scanning storage… found $foundCount', style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shared empty-state look for Home's "no documents" / "no reading history"
+/// branches - icon + title + subtitle, optional action, instead of bare text.
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 56, 32, 24),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: context.surfaceContainerLow, shape: BoxShape.circle),
+            child: Icon(icon, size: 28, color: context.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          Text(title, style: context.titleMedium, textAlign: TextAlign.center),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
+          ),
+          if (actionLabel != null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
       ),
     );
   }
