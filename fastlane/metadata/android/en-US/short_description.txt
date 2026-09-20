@@ -1,1 +1,1 @@
-TODO: max 80 chars. e.g. "Private, offline PDF, Word, Excel & text reader"
+All-in-one PDF, Word, Excel & text document reader
