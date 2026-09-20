@@ -55,3 +55,9 @@ app.*.map.json
 # FVM Version Cache
 .fvm/
 .env
+
+# Release signing (never commit - loss blocks all future app updates)
+/android/key.properties
+/android/keystore/
+*.jks
+*.keystore
