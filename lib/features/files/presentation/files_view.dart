@@ -305,6 +305,11 @@ Future<void> _showFileActionSheet(
 ) {
   return showModalBottomSheet(
     context: context,
+    // Without this, showModalBottomSheet caps height at 9/16 of the screen
+    // by default - this sheet's header + 5 action rows regularly exceeds
+    // that on typical phone heights, overflowing instead of just sizing to
+    // its (short, fixed) content.
+    isScrollControlled: true,
     builder: (sheetContext) {
       final accent = document.category.accentColor(sheetContext);
       final tint = document.category.tintColor(sheetContext);
