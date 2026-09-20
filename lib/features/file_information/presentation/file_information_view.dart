@@ -40,8 +40,12 @@ class FileInformationSheet extends GetView<FileInformationController> {
       ),
       child: SafeArea(
         top: false,
+        // Deliberately NOT `mainAxisSize: min`: this Column mixes a fixed
+        // header with a `Flexible` scrollable body, and `min` starves the
+        // Flexible of bounded space to size against, which is what caused
+        // the body to overflow past the sheet's max-height instead of
+        // scrolling internally.
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 10),
             Container(width: 40, height: 4, decoration: BoxDecoration(color: context.outlineVariant, borderRadius: BorderRadius.circular(999))),
