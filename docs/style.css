@@ -1,0 +1,280 @@
+:root {
+  --bg: #0f1115;
+  --bg-elevated: #161922;
+  --border: #262a35;
+  --text: #eef0f4;
+  --text-muted: #9aa1b0;
+  --accent: #6ea8fe;
+  --accent-strong: #4c8dff;
+  --radius: 14px;
+  --max-width: 960px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.wrap {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+header.site {
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+}
+
+header.site .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.brand .mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent-strong), #8a6bff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+nav.site a {
+  color: var(--text-muted);
+  margin-left: 20px;
+  font-weight: 500;
+}
+
+nav.site a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.hero {
+  padding: 72px 0 48px;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 40px;
+  margin: 0 0 16px;
+}
+
+.hero p.lead {
+  color: var(--text-muted);
+  font-size: 18px;
+  max-width: 640px;
+  margin: 0 auto 28px;
+}
+
+.badges {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+
+.badge {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.cta-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.btn.primary {
+  background: var(--accent-strong);
+  color: #08101f;
+}
+
+.btn.primary:hover {
+  background: var(--accent);
+  text-decoration: none;
+}
+
+.btn.ghost {
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn.ghost:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+section {
+  padding: 48px 0;
+  border-top: 1px solid var(--border);
+}
+
+section h2 {
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+
+section p.section-lead {
+  color: var(--text-muted);
+  margin-top: 0;
+  margin-bottom: 32px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+
+.card .icon {
+  font-size: 24px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.formats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.formats span {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.privacy-highlight {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  text-align: center;
+}
+
+.privacy-highlight h2 {
+  margin-top: 0;
+}
+
+footer.site {
+  border-top: 1px solid var(--border);
+  padding: 28px 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+footer.site .wrap {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+footer.site a {
+  color: var(--text-muted);
+}
+
+footer.site a:hover {
+  color: var(--text);
+}
+
+.doc h1 {
+  font-size: 32px;
+  margin-bottom: 4px;
+}
+
+.doc .updated {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 40px;
+}
+
+.doc h2 {
+  font-size: 21px;
+  margin-top: 40px;
+}
+
+.doc p, .doc li {
+  color: var(--text-muted);
+}
+
+.doc ul {
+  padding-left: 20px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
