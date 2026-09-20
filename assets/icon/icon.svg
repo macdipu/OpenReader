@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgC" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="50%" stop-color="#182234" />
+      <stop offset="100%" stop-color="#080c14" />
+    </linearGradient>
+
+    <!-- Glass Rim Highlight -->
+    <linearGradient id="rimC" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22" />
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.4" />
+    </linearGradient>
+
+    <!-- Left Wing Gradient: Clean Architectural Pure White to Cool Gray -->
+    <linearGradient id="wingLeftC" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+
+    <!-- Right Wing Gradient: Electric Cyan to Rich Cobalt -->
+    <linearGradient id="wingRightC" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <!-- Spine Ribbon Gradient -->
+    <linearGradient id="spineC" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Ambient Glow -->
+    <radialGradient id="glowC" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.32" />
+      <stop offset="65%" stop-color="#0284c7" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- 3D Shadow -->
+    <filter id="shadowC" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="20" stdDeviation="18" flood-color="#000000" flood-opacity="0.65" />
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0284c7" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Base Squircle -->
+  <rect width="512" height="512" rx="116" fill="url(#bgC)" />
+  <rect width="512" height="512" rx="116" fill="none" stroke="url(#rimC)" stroke-width="2.5" />
+
+  <!-- Ambient Glow -->
+  <circle cx="256" cy="256" r="185" fill="url(#glowC)" />
+
+  <!-- Pure Geometric Open Wings (Left Page + Right Page forming dynamic Open Book) -->
+  <g filter="url(#shadowC)">
+    <!-- Left Wing (White Document Page) -->
+    <path d="M 124 168 
+             C 124 154 136 144 150 148 
+             L 246 178 
+             C 252 180 256 186 256 192 
+             L 256 364 
+             C 256 374 246 382 236 378 
+             L 142 344 
+             C 131 340 124 330 124 318 Z" 
+          fill="url(#wingLeftC)" />
+
+    <!-- Right Wing (Luminous Cyan Digital Reader Wing) -->
+    <path d="M 388 168 
+             C 388 154 376 144 362 148 
+             L 266 178 
+             C 260 180 256 186 256 192 
+             L 256 364 
+             C 256 374 266 382 276 378 
+             L 370 344 
+             C 381 340 388 330 388 318 Z" 
+          fill="url(#wingRightC)" />
+
+    <!-- Minimal Modern Spine Notch (Center Vertical Accent) -->
+    <path d="M 252 176 L 260 176 L 260 376 L 252 376 Z" fill="#090d16" opacity="0.35" />
+
+    <!-- Floating Bookmark Ribbon Tip (Top Notch) -->
+    <path d="M 244 136 L 268 136 L 268 184 L 256 174 L 244 184 Z" fill="url(#spineC)" />
+  </g>
+</svg>
