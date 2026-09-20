@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/recent_repository_impl.dart';
+import '../../../core/domain/models/document_category.dart';
 import '../../../core/domain/models/recent_document_model.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
@@ -15,6 +16,7 @@ class RecentsController extends BaseController {
 
   final recents = <RecentDocumentModel>[].obs;
   final searchQuery = ''.obs;
+  final selectedCategory = Rxn<DocumentCategory>();
 
   @override
   void onInit() {
@@ -24,9 +26,24 @@ class RecentsController extends BaseController {
 
   List<RecentDocumentModel> get filtered {
     final query = searchQuery.value.trim().toLowerCase();
-    if (query.isEmpty) return recents;
-    return recents.where((r) => r.document.displayName.toLowerCase().contains(query)).toList();
+    final category = selectedCategory.value;
+    return recents.where((r) {
+      final matchesQuery = query.isEmpty || r.document.displayName.toLowerCase().contains(query);
+      final matchesCategory = category == null || r.document.category == category;
+      return matchesQuery && matchesCategory;
+    }).toList();
   }
+
+  /// Per-format counts among current history (DESIGN_SPEC #06 filter chips).
+  Map<DocumentCategory, int> get categoryCounts {
+    final counts = <DocumentCategory, int>{};
+    for (final recent in recents) {
+      counts[recent.document.category] = (counts[recent.document.category] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  void selectCategory(DocumentCategory? category) => selectedCategory.value = category;
 
   Future<void> load() async {
     status.value = StateStatus.loading;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/document_repository_impl.dart';
@@ -24,6 +26,7 @@ class FilesController extends BaseController {
   final selectedCategory = Rxn<DocumentCategory>();
   final sortMode = DocumentSortMode.nameAsc.obs;
   final searchQuery = ''.obs;
+  final categoryCounts = <DocumentCategory, int>{}.obs;
   bool _retryScan = false;
 
   Future<void> retry() => _retryScan ? refresh() : load();
@@ -58,6 +61,19 @@ class FilesController extends BaseController {
         status.value = list.isEmpty ? StateStatus.empty : StateStatus.success;
       },
     );
+    unawaited(_loadCounts());
+  }
+
+  /// Per-format counts for the filter-chip badges (DESIGN_SPEC #10), kept
+  /// independent of the current filter/search so every chip always shows
+  /// its true total.
+  Future<void> _loadCounts() async {
+    final counts = <DocumentCategory, int>{};
+    for (final category in DocumentCategory.values.where((c) => c != DocumentCategory.unknown)) {
+      final result = await _documentRepository.countByCategory(category);
+      result.fold((_) {}, (count) => counts[category] = count);
+    }
+    categoryCounts.assignAll(counts);
   }
 
   Future<void> refresh() async {
