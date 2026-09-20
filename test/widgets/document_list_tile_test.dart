@@ -51,8 +51,9 @@ void main() {
     expect(find.text('File Information'), findsNothing);
     expect(find.text('Open With'), findsNothing);
     expect(find.text('Remove from Recent'), findsNothing);
-    // Favorite is always offered regardless of the other callbacks.
-    expect(find.text('Add Favorite'), findsOneWidget);
+    // Favorite is a dedicated star icon button (not a menu item) and is
+    // always shown regardless of the other callbacks.
+    expect(find.byIcon(Icons.star_outline_rounded), findsOneWidget);
   });
 
   testWidgets('shows Share only when onShare is provided and invokes it', (tester) async {
