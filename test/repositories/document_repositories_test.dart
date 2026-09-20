@@ -17,7 +17,7 @@ class FixtureScanner implements FileScannerService {
   List<DocumentModel> documents = [];
   bool fail = false;
   @override
-  Future<List<DocumentModel>> scan() async {
+  Future<List<DocumentModel>> scan({void Function(int foundSoFar)? onFound}) async {
     if (fail) throw const FileSystemException('Scan failed');
     return documents;
   }

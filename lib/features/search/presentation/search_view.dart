@@ -9,7 +9,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
-import '../../../res/routes/app_routes.dart';
+import '../../file_information/presentation/file_information_view.dart';
 import 'search_controller.dart';
 
 /// Local Search & Filter (DESIGN_SPEC.md #07): search field, format filter
@@ -73,7 +73,7 @@ class SearchView extends GetView<SearchDocumentsController> {
                           onTap: () => interactions.openDocument(document),
                           onToggleFavorite: (_) => interactions.toggleFavorite(document.id),
                           onShare: () => interactions.shareDocument(document),
-                          onShowInfo: () => Get.toNamed(AppRoutes.fileInformation, arguments: document),
+                          onShowInfo: () => showFileInformationSheet(context, document),
                           onOpenWith: () => interactions.openWithExternalApp(document),
                           trailingLabel:
                               '${formatFileSize(document.sizeBytes)} • ${document.modifiedAt.toLocal().toString().split(' ').first}',

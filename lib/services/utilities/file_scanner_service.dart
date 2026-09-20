@@ -29,14 +29,17 @@ class FileScannerService {
 
   static const _maxDepth = 8;
 
-  Future<List<DocumentModel>> scan() async {
+  /// [onFound] fires with the running count each time a new document is
+  /// added, so callers can show live scan progress (Settings > Rescan /
+  /// Home's "Scan Storage") instead of a silent wait.
+  Future<List<DocumentModel>> scan({void Function(int foundSoFar)? onFound}) async {
     final found = <String, DocumentModel>{};
     final now = DateTime.now();
 
     for (final rootPath in _roots) {
       final root = Directory(rootPath);
       if (!await root.exists()) continue;
-      await _walk(root, depth: 0, now: now, into: found);
+      await _walk(root, depth: 0, now: now, into: found, onFound: onFound);
     }
 
     return found.values.toList();
@@ -47,6 +50,7 @@ class FileScannerService {
     required int depth,
     required DateTime now,
     required Map<String, DocumentModel> into,
+    void Function(int foundSoFar)? onFound,
   }) async {
     if (depth > _maxDepth) return;
 
@@ -60,7 +64,7 @@ class FileScannerService {
 
     for (final entity in entries) {
       if (entity is Directory) {
-        await _walk(entity, depth: depth + 1, now: now, into: into);
+        await _walk(entity, depth: depth + 1, now: now, into: into, onFound: onFound);
         continue;
       }
       if (entity is! File) continue;
@@ -83,6 +87,7 @@ class FileScannerService {
           modifiedAt: stat.modified,
           lastSeenAt: now,
         );
+        onFound?.call(into.length);
       } catch (e) {
         AppLogger.warning('Skipping unreadable file ${entity.path}: $e');
       }

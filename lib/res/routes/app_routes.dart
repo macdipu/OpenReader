@@ -5,7 +5,6 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String search = '/search';
   static const String recents = '/recents';
-  static const String fileInformation = '/file_information';
   static const String pdfReader = '/pdf_reader';
   static const String wordReader = '/word_reader';
   static const String excelReader = '/excel_reader';

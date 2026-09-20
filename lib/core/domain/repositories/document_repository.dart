@@ -6,7 +6,10 @@ abstract class DocumentRepository {
   /// Re-scans local storage, persists the result, and returns the refreshed
   /// index (BRD 7.1 - Local Document Discovery). Files no longer found are
   /// dropped from the index but never touched on disk.
-  ResultFuture<List<DocumentModel>> rescan();
+  ///
+  /// [onProgress] fires with a running found-count during the scan, for
+  /// screens that show live scan progress (Settings / Home "Scan Storage").
+  ResultFuture<List<DocumentModel>> rescan({void Function(int foundSoFar)? onProgress});
 
   /// Inserts or updates a single document (BRD §7.7 "Open From Other Apps" -
   /// indexing a file another app hands to OpenReader via an incoming intent).

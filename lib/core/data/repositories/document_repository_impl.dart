@@ -19,9 +19,9 @@ class DocumentRepositoryImpl implements DocumentRepository {
         _scanner = scanner ?? FileScannerService.instance;
 
   @override
-  ResultFuture<List<DocumentModel>> rescan() {
+  ResultFuture<List<DocumentModel>> rescan({void Function(int foundSoFar)? onProgress}) {
     return runTask(() async {
-      final found = await _scanner.scan();
+      final found = await _scanner.scan(onFound: onProgress);
       final db = await _appDatabase.database;
 
       await db.transaction((txn) async {
