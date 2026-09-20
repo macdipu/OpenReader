@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OpenReader AMOLED - DOCX Flow Reader</title>
+<!-- Google Fonts: Space Grotesk, Inter, JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#004c69",
+            "surface-bright": "#353943",
+            "on-primary-fixed": "#001e2c",
+            "tertiary-fixed": "#68fcbf",
+            "on-background": "#dfe2ef",
+            "surface-tint": "#7bd0ff",
+            "surface": "#0f131c",
+            "surface-dim": "#0f131c",
+            "surface-container": "#1c1f29",
+            "primary-fixed-dim": "#7bd0ff",
+            "secondary-fixed-dim": "#bdc2ff",
+            "on-tertiary": "#003825",
+            "secondary-container": "#2f3aa3",
+            "primary": "#8ed5ff",
+            "outline": "#87929a",
+            "tertiary-fixed-dim": "#45dfa4",
+            "error-container": "#93000a",
+            "on-surface-variant": "#bdc8d1",
+            "on-tertiary-fixed": "#002114",
+            "on-secondary-container": "#a8afff",
+            "on-error": "#690005",
+            "primary-container": "#38bdf8",
+            "surface-variant": "#31353f",
+            "error": "#ffb4ab",
+            "surface-container-highest": "#31353f",
+            "on-primary": "#00354a",
+            "on-secondary": "#131e8c",
+            "primary-fixed": "#c4e7ff",
+            "secondary": "#bdc2ff",
+            "tertiary": "#4ee6aa",
+            "on-tertiary-container": "#004e35",
+            "tertiary-container": "#22c990",
+            "on-surface": "#dfe2ef",
+            "surface-container-lowest": "#0a0e17",
+            "on-error-container": "#ffdad6",
+            "background": "#0f131c",
+            "inverse-surface": "#dfe2ef",
+            "surface-container-high": "#262a34",
+            "inverse-primary": "#00668a",
+            "secondary-fixed": "#e0e0ff",
+            "on-primary-container": "#004965",
+            "inverse-on-surface": "#2c303a",
+            "surface-container-low": "#181b25",
+            "outline-variant": "#3e484f",
+            "on-secondary-fixed-variant": "#2f3aa3",
+            "on-secondary-fixed": "#000767",
+            "on-tertiary-fixed-variant": "#005137"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "margin-mobile": "1rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "gutter-mobile": "0.75rem",
+            "gutter": "1.25rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Space Grotesk"],
+            "body-lg": ["Inter"],
+            "headline-sm": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "label-md": ["JetBrains Mono"],
+            "display-lg": ["Space Grotesk"],
+            "body-sm": ["Inter"],
+            "body-md": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "headline-lg": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-lg": ["1.125rem", { "lineHeight": "1.875rem", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "headline-sm": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "500" }],
+            "headline-md": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "label-md": ["0.8125rem", { "lineHeight": "1.25rem", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "display-lg": ["3.5rem", { "lineHeight": "4rem", "letterSpacing": "-0.03em", "fontWeight": "700" }],
+            "body-sm": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "body-md": ["1rem", { "lineHeight": "1.65rem", "fontWeight": "400" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "1rem", "letterSpacing": "0.05em", "fontWeight": "500" }],
+            "headline-lg": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.02em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #000000;
+      color: #dfe2ef;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .luminescent-glow {
+      box-shadow: 0 0 16px -2px rgba(56, 189, 248, 0.25);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #000000;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 2px;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black text-on-surface antialiased select-none min-h-screen flex flex-col justify-between overflow-x-hidden">
+<!-- TOP APP BAR (Shared Component Anchor) -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-space-md h-14 bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant">
+<div class="flex items-center space-x-space-sm overflow-hidden">
+<button aria-label="Navigate Back" class="p-space-xs text-on-surface-variant hover:text-on-surface transition-colors duration-150 active:scale-95 flex items-center justify-center rounded">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex items-center space-x-space-xs truncate">
+<!-- Exact DOCX blue file indicator badge -->
+<span class="inline-flex items-center px-1.5 py-0.5 rounded font-label-sm text-label-sm bg-primary-container/10 border border-primary-container/30 text-primary font-semibold tracking-wider">DOCX</span>
+<h1 class="font-headline-sm text-headline-sm text-on-surface truncate font-semibold">Quarterly_Research_Report.docx</h1>
+</div>
+</div>
+<!-- Actions Cluster -->
+<div class="flex items-center space-x-space-xs shrink-0">
+<button aria-label="Search Document" class="p-space-xs text-on-surface-variant hover:text-on-surface transition-colors duration-150 active:scale-95 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="search">search</span>
+</button>
+<button aria-label="Reading Controls" class="p-space-xs text-on-surface-variant hover:text-on-surface transition-colors duration-150 active:scale-95 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="format_size">format_size</span>
+</button>
+<button aria-label="Bookmark Page" class="p-space-xs text-on-surface-variant hover:text-primary transition-colors duration-150 active:scale-95 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="bookmark_border">bookmark_border</span>
+</button>
+<button aria-label="More Options" class="p-space-xs text-on-surface-variant hover:text-on-surface transition-colors duration-150 active:scale-95 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- SECONDARY READER TOOLBAR (Quick Reading Adjustments HUD) -->
+<aside class="fixed top-14 left-0 w-full z-40 bg-surface-container-lowest/95 backdrop-blur-lg border-b border-outline-variant px-space-md py-space-xs">
+<div class="flex items-center justify-between gap-space-xs overflow-x-auto no-scrollbar text-on-surface-variant font-label-sm text-label-sm">
+<!-- Typeface Switcher -->
+<div class="flex items-center bg-surface-container-low p-0.5 rounded border border-outline-variant">
+<button class="px-2 py-1 rounded bg-surface-container-high text-primary font-medium transition-all">Sans</button>
+<button class="px-2 py-1 rounded text-on-surface-variant hover:text-on-surface transition-all">Serif</button>
+</div>
+<!-- Size Stepper -->
+<div class="flex items-center bg-surface-container-low p-0.5 rounded border border-outline-variant space-x-1">
+<button aria-label="Decrease Font Size" class="px-2 py-1 text-on-surface hover:text-primary active:scale-90 transition-transform font-bold">A-</button>
+<span class="px-1 text-outline font-label-sm">16</span>
+<button aria-label="Increase Font Size" class="px-2 py-1 text-on-surface hover:text-primary active:scale-90 transition-transform font-bold">A+</button>
+</div>
+<!-- Line Spacing Selection -->
+<div class="flex items-center bg-surface-container-low p-0.5 rounded border border-outline-variant">
+<button class="px-1.5 py-1 text-on-surface-variant hover:text-on-surface transition-colors">1.2</button>
+<button class="px-1.5 py-1 rounded bg-surface-container-high text-primary font-medium">1.5</button>
+<button class="px-1.5 py-1 text-on-surface-variant hover:text-on-surface transition-colors">2.0</button>
+</div>
+<!-- AMOLED Pure Black Active Indicator -->
+<div class="flex items-center space-x-1 px-2 py-1 rounded bg-surface-container-high/60 border border-primary/30 text-primary shrink-0 luminescent-glow">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-sm tracking-wide">OLED Black</span>
+</div>
+</div>
+</aside>
+<!-- BODY READING CONTAINER -->
+<main class="flex-1 w-full max-w-2xl mx-auto px-space-md pt-28 pb-32 custom-scrollbar">
+<article class="bg-[#070a10] border border-outline-variant rounded-lg p-space-lg md:p-space-xl shadow-2xl relative">
+<!-- Meta Information Strip -->
+<div class="flex items-center justify-between border-b border-outline-variant pb-space-sm mb-space-lg text-outline font-label-sm text-label-sm">
+<span class="flex items-center space-x-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span>Updated: Today, 04:15 UTC</span>
+</span>
+<span class="text-primary font-medium tracking-wide">SECTION 2 OF 8</span>
+</div>
+<!-- Subheading: Section Title -->
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-space-md tracking-tight font-semibold">
+        1. Executive Summary &amp; Market Trajectory
+      </h2>
+<!-- Primary Reflow Paragraph -->
+<p class="font-body-md text-body-md text-on-surface leading-relaxed mb-space-md text-[#e2e8f0]">
+        Global distributed infrastructure markets registered sustained capital consolidation across Q3, driven primarily by localized computational demands and accelerated sovereign cloud initiatives. As operational boundaries shift toward edge architectures, data throughput requirements have expanded by 28.4% annualized, establishing new performance benchmarks for low-latency nodes.
+      </p>
+<!-- Precision Callout Box with Accent Luminescence -->
+<div class="my-space-lg p-space-md rounded bg-surface-container-lowest border-l-4 border-[#6366f1] border-t border-r border-b border-outline-variant shadow-[0_0_16px_-4px_rgba(99,102,241,0.2)]">
+<div class="flex items-start space-x-space-sm">
+<span class="material-symbols-outlined text-[#6366f1] shrink-0 text-xl" data-icon="insights">insights</span>
+<div>
+<span class="block font-label-md text-label-md text-[#a8afff] font-semibold mb-space-xs uppercase tracking-wider">Key Strategic Finding</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-normal">
+              Autonomous edge orchestration is expected to capture over 43% of real-time pipeline volume by Q4 2026. Datacenter power efficiency improvements remain directly gated by next-generation cryogenic thermal dispersion deployments.
+            </p>
+</div>
+</div>
+</div>
+<!-- Further Reflowed Text Body -->
+<p class="font-body-md text-body-md text-on-surface leading-relaxed mb-space-lg text-[#e2e8f0]">
+        To sustain high-density compute throughput without surpassing localized power thresholds, tier-one operators are standardizing on decentralized caching tiers. These structural revisions prioritize predictable jitter dissipation over brute synchronous frequency scaling.
+      </p>
+<!-- Clean Tabular Metric Architecture -->
+<div class="my-space-lg rounded border border-outline-variant bg-surface-container-lowest overflow-hidden">
+<div class="px-space-md py-space-sm border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+<span class="font-label-md text-label-md text-on-surface font-medium tracking-wide">Infrastructure Metric Index</span>
+<span class="font-label-sm text-label-sm text-outline">Q3 Audit</span>
+</div>
+<div class="divide-y divide-outline-variant">
+<div class="flex justify-between items-center px-space-md py-space-sm hover:bg-surface-container-low/40 transition-colors">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Aggregate Compute IOPS</span>
+<span class="font-label-md text-label-md text-primary font-semibold">1,480K / sec</span>
+</div>
+<div class="flex justify-between items-center px-space-md py-space-sm hover:bg-surface-container-low/40 transition-colors">
+<span class="font-body-sm text-body-sm text-on-surface-variant">P99 Gateway Latency</span>
+<span class="font-label-md text-label-md text-tertiary font-semibold">4.12 ms</span>
+</div>
+<div class="flex justify-between items-center px-space-md py-space-sm hover:bg-surface-container-low/40 transition-colors">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Sovereign Compliance Index</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">99.8%</span>
+</div>
+</div>
+</div>
+<!-- Secondary Paragraph -->
+<p class="font-body-md text-body-md text-on-surface leading-relaxed text-[#e2e8f0]">
+        Continued geographic deployment across the Asia-Pacific corridor demonstrates that node localization yields up to a 65% reduction in cross-border routing congestion, effectively safeguarding downstream analytical workflows against transient core partition failures.
+      </p>
+</article>
+</main>
+<!-- READING STATUS HUD & PROGRESS BAR -->
+<div class="fixed bottom-16 left-0 w-full z-40 pointer-events-none flex flex-col items-center px-space-md mb-2">
+<div class="pointer-events-auto bg-surface-container-lowest/90 backdrop-blur-md border border-outline-variant rounded-full px-space-md py-1.5 flex items-center space-x-space-md shadow-2xl">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="auto_stories">auto_stories</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">Chapter 2: Regional Performance</span>
+</div>
+<span class="text-outline-variant">|</span>
+<div class="flex items-center space-x-1.5">
+<span class="font-label-sm text-label-sm text-primary font-semibold">42%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">• 12 min read left</span>
+</div>
+</div>
+</div>
+<!-- BOTTOM NAVIGATION BAR (Shared Component Anchor) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex items-center justify-around px-space-md h-16 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant">
+<!-- auto_stories: ACTIVE -->
+<button aria-label="Reading Mode Active" class="flex items-center justify-center bg-surface-container-high dark:bg-surface-container-high text-primary dark:text-primary rounded-full p-2 border border-primary/30 shadow-[0_0_12px_-2px_rgba(56,189,248,0.25)] transition-all duration-150 active:scale-90">
+<span class="material-symbols-outlined" data-icon="auto_stories">auto_stories</span>
+</button>
+<!-- zoom_in -->
+<button aria-label="Zoom View" class="flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-2 hover:bg-surface-container-low dark:hover:bg-surface-container-low hover:text-on-surface dark:hover:text-on-surface transition-all duration-150 active:scale-90">
+<span class="material-symbols-outlined" data-icon="zoom_in">zoom_in</span>
+</button>
+<!-- view_carousel -->
+<button aria-label="Page Thumbnails" class="flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-2 hover:bg-surface-container-low dark:hover:bg-surface-container-low hover:text-on-surface dark:hover:text-on-surface transition-all duration-150 active:scale-90">
+<span class="material-symbols-outlined" data-icon="view_carousel">view_carousel</span>
+</button>
+<!-- format_size -->
+<button aria-label="Typography Adjustments" class="flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-2 hover:bg-surface-container-low dark:hover:bg-surface-container-low hover:text-on-surface dark:hover:text-on-surface transition-all duration-150 active:scale-90">
+<span class="material-symbols-outlined" data-icon="format_size">format_size</span>
+</button>
+<!-- tune -->
+<button aria-label="Advanced Document Settings" class="flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-2 hover:bg-surface-container-low dark:hover:bg-surface-container-low hover:text-on-surface dark:hover:text-on-surface transition-all duration-150 active:scale-90">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+</button>
+</nav>
+</body></html>

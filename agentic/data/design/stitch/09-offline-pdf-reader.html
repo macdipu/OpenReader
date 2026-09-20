@@ -1,0 +1,333 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>OpenReader - PDF Document Viewer</title>
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#002114",
+            "error": "#ba1a1a",
+            "inverse-surface": "#213145",
+            "secondary-fixed-dim": "#b4c5ff",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-bright": "#f8f9ff",
+            "surface": "#f8f9ff",
+            "on-surface": "#0b1c30",
+            "error-container": "#ffdad6",
+            "surface-variant": "#d3e4fe",
+            "on-tertiary-container": "#24a375",
+            "background": "#f8f9ff",
+            "primary": "#091426",
+            "tertiary-fixed-dim": "#68dba9",
+            "on-error-container": "#93000a",
+            "outline": "#75777d",
+            "on-primary-container": "#8590a6",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#00174b",
+            "surface-container-highest": "#d3e4fe",
+            "inverse-primary": "#bcc7de",
+            "secondary-container": "#316bf3",
+            "primary-fixed-dim": "#bcc7de",
+            "on-primary": "#ffffff",
+            "secondary": "#0051d5",
+            "tertiary-container": "#00301f",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary": "#ffffff",
+            "outline-variant": "#c5c6cd",
+            "on-secondary-container": "#fefcff",
+            "primary-fixed": "#d8e3fb",
+            "on-error": "#ffffff",
+            "on-primary-fixed": "#111c2d",
+            "on-primary-fixed-variant": "#3c475a",
+            "on-background": "#0b1c30",
+            "surface-container-high": "#dce9ff",
+            "on-surface-variant": "#45474c",
+            "on-tertiary-fixed-variant": "#005137",
+            "primary-container": "#1e293b",
+            "tertiary": "#00190e",
+            "secondary-fixed": "#dbe1ff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "surface-tint": "#545f73",
+            "surface-container": "#e5eeff",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed": "#85f8c4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            "margin-tablet": "1.5rem",
+            "space-lg": "1rem",
+            "margin": "1rem",
+            "space-sm": "0.5rem",
+            "gutter": "1rem",
+            "gutter-sm": "0.75rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "headline-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-sm": ["Inter"],
+            "mono-metadata": ["JetBrains Mono"],
+            "label-sm": ["Inter"],
+            "label-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-lg-mobile": ["Inter"]
+          },
+          "fontSize": {
+            "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "mono-metadata": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+            "label-lg": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "title-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Hide scrollbar for reader viewport while maintaining clean native gesture scroll */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface antialiased select-none overflow-hidden h-screen w-screen flex flex-col justify-between font-body-md">
+<!-- TOP APP BAR / READER NAVIGATION (Android 64dp + Search Sub-bar) -->
+<header class="w-full bg-surface-container-lowest z-30 shadow-sm flex flex-col transition-all duration-200">
+<!-- Primary Document Bar -->
+<div class="flex items-center justify-between h-14 px-3">
+<!-- Left: Back Navigation -->
+<button aria-label="Go back to library" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container-high active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<!-- Center: Document Title with Local Sandbox Badge -->
+<div class="flex-1 min-w-0 mx-2 flex items-center gap-1.5">
+<span class="text-error text-[18px] material-symbols-outlined shrink-0" style="font-variation-settings: 'FILL' 1;">picture_as_pdf</span>
+<h1 class="font-title-md text-title-md text-on-surface truncate font-semibold">Annual_Financial_Report_2025.pdf</h1>
+
+</div>
+<!-- Right Action Cluster -->
+<div class="flex items-center gap-0.5">
+<button aria-label="Search active" class="w-9 h-9 flex items-center justify-center rounded-full text-secondary bg-surface-container-low hover:bg-surface-container-high active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button aria-label="Bookmark page" class="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">star_border</span>
+</button>
+<button aria-label="Document settings and export" class="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Active Inline Search Toolbar -->
+<div class="px-3 pb-2.5 pt-0.5 flex items-center gap-2">
+<div class="flex-1 bg-surface-container-low rounded-lg h-10 px-3 flex items-center gap-2 ring-1 ring-secondary/30">
+<span class="material-symbols-outlined text-secondary text-[18px]">find_in_page</span>
+<input class="bg-transparent border-none p-0 flex-1 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-0" placeholder="Find in document..." type="text" value="revenue">
+<span class="font-mono-metadata text-mono-metadata text-secondary font-semibold bg-secondary-fixed px-1.5 py-0.5 rounded">3 of 18</span>
+<button aria-label="Clear search" class="text-on-surface-variant hover:text-on-surface p-0.5">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<!-- Stepper Controls -->
+<div class="flex items-center bg-surface-container-low rounded-lg h-10 px-1 border border-outline-variant/30">
+<button aria-label="Previous match" class="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-container active:scale-95">
+<span class="material-symbols-outlined text-[18px]">expand_less</span>
+</button>
+<div class="w-px h-4 bg-outline-variant/40"></div>
+<button aria-label="Next match" class="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-container active:scale-95">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+</div>
+</header>
+<!-- MAIN READING CANVAS -->
+<main class="relative flex-1 bg-surface-container-low overflow-y-auto no-scrollbar flex justify-center items-start p-3 sm:p-6">
+<!-- Rendered PDF Page Canvas (Page 18 of 54) -->
+<article class="w-full max-w-[560px] bg-surface-container-lowest rounded-sm shadow-md border border-outline-variant/30 px-6 py-8 text-on-surface flex flex-col relative transition-transform">
+<!-- PDF Document Header Headerline -->
+<div class="flex justify-between items-end border-b border-outline-variant/40 pb-3 mb-6">
+<div>
+<span class="font-mono-metadata text-mono-metadata text-secondary font-semibold tracking-wider">SECTION 4.2 • AUDITED REPORT</span>
+<h2 class="font-headline-sm text-headline-sm text-primary mt-0.5">Consolidated Statements of Income</h2>
+</div>
+<div class="text-right">
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant block">Q4 / FY-2025</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold bg-surface-container px-1.5 py-0.5 rounded">USD (M)</span>
+</div>
+</div>
+<!-- Financial Data Table Container -->
+<section class="space-y-4 text-left">
+<div class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+          Operating summary reflecting unadjusted non-GAAP earnings across enterprise segments during the fiscal quarter concluded December 31.
+        </div>
+<!-- High-Fidelity Data Matrix -->
+<div class="w-full text-body-sm font-body-sm mt-4 border border-outline-variant/20 rounded overflow-hidden">
+<!-- Row 1: Active Highlight Match -->
+<div class="flex justify-between items-center py-2.5 px-3 bg-amber-100/90 text-on-surface border-l-4 border-amber-600 font-semibold transition-colors">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-amber-700 text-[16px]">arrow_right</span>
+<span class="">Total <mark class="bg-amber-300 text-on-surface px-1 py-0.5 rounded">Revenue</mark> (Gross)</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata text-[13px] font-bold text-amber-900 tracking-tight">$48,240,119</span>
+</div>
+<!-- Row 2 -->
+<div class="flex justify-between items-center py-2 px-3 border-t border-outline-variant/15 hover:bg-surface-container-low">
+<span class="text-on-surface-variant pl-5">Cost of Goods Sold (COGS)</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface">($14,810,400)</span>
+</div>
+<!-- Row 3 -->
+<div class="flex justify-between items-center py-2 px-3 bg-surface-container-low/40 border-t border-outline-variant/15 font-semibold">
+<span class="text-on-surface pl-5">Gross Operating Margin</span>
+<span class="font-mono-metadata text-mono-metadata text-secondary font-bold">$33,429,719</span>
+</div>
+<!-- Row 4 -->
+<div class="flex justify-between items-center py-2 px-3 border-t border-outline-variant/15 hover:bg-surface-container-low">
+<span class="text-on-surface-variant pl-5">Research &amp; Engineering R&amp;D</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface">($8,114,020)</span>
+</div>
+<!-- Row 5 -->
+<div class="flex justify-between items-center py-2 px-3 border-t border-outline-variant/15 hover:bg-surface-container-low">
+<span class="text-on-surface-variant pl-5">Sales, Marketing &amp; Operations</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface">($9,430,100)</span>
+</div>
+<!-- Row 6: Operating Profit -->
+<div class="flex justify-between items-center py-2 px-3 bg-surface-container-high/30 border-t border-outline-variant/30 font-bold">
+<span class="text-primary pl-5">Net Operating Profit</span>
+<span class="font-mono-metadata text-mono-metadata text-primary">$15,885,599</span>
+</div>
+</div>
+<!-- Micro Graphic Vector Mockup -->
+<div class="mt-5 p-3.5 bg-surface-container-low/60 rounded border border-outline-variant/20">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold uppercase tracking-wider">Quarterly Margin Trajectory</span>
+<span class="font-mono-metadata text-mono-metadata text-on-tertiary-container font-semibold">+18.4% YoY</span>
+</div>
+<!-- Bar Graph Representation -->
+<div class="grid grid-cols-4 gap-2 items-end h-16 pt-2">
+<div class="flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-secondary-fixed-dim rounded-t h-[45%]"></div>
+<span class="font-mono-metadata text-[9px] text-on-surface-variant">Q1</span>
+</div>
+<div class="flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-secondary-fixed-dim rounded-t h-[60%]"></div>
+<span class="font-mono-metadata text-[9px] text-on-surface-variant">Q2</span>
+</div>
+<div class="flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-secondary-fixed-dim rounded-t h-[75%]"></div>
+<span class="font-mono-metadata text-[9px] text-on-surface-variant">Q3</span>
+</div>
+<div class="flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-secondary rounded-t h-[95%]"></div>
+<span class="font-mono-metadata text-[9px] text-secondary font-bold">Q4</span>
+</div>
+</div>
+</div>
+<!-- Notes Footnote -->
+<div class="mt-4 pt-3 border-t border-outline-variant/30 flex justify-between items-center text-on-surface-variant">
+
+<span class="font-mono-metadata text-mono-metadata font-semibold text-on-surface">Page 18 of 54</span>
+</div>
+</section>
+</article>
+<!-- RIGHT-SIDE MINI VERTICAL SCROLL PREVIEW THUMB -->
+<aside aria-label="Page navigation scroller" class="absolute right-2 top-8 flex flex-col items-center select-none">
+<div class="w-1.5 h-64 bg-outline-variant/30 rounded-full relative flex justify-center items-center">
+<!-- Active position bar indicator -->
+<div class="absolute top-[33%] w-2 h-7 bg-secondary rounded-full shadow-sm"></div>
+</div>
+<!-- Mini page preview bubble -->
+<div class="mt-2 bg-primary-container text-surface-container-lowest font-mono-metadata text-mono-metadata px-2 py-0.5 rounded-full shadow-md">
+        18
+      </div>
+</aside>
+</main>
+<!-- FLOATING BOTTOM CONTROLS STACK -->
+<footer class="w-full pb-3 px-3 flex flex-col items-center gap-2 pointer-events-none z-40">
+<!-- Scrubbing Progress Bar Slider Bar (Tonal Pill) -->
+<div class="pointer-events-auto w-full max-w-sm bg-surface-container-lowest/95 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-outline-variant/30 flex items-center gap-3">
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant font-bold">1</span>
+<!-- Slider Track -->
+<div class="relative flex-1 h-6 flex items-center cursor-pointer group">
+<!-- Background Track -->
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<!-- Active Fill (18 of 54 = ~33.3%) -->
+<div class="h-full bg-secondary rounded-full" style="width: 33.3%;"></div>
+</div>
+<!-- Thumb Knob -->
+<div class="absolute left-[33.3%] -translate-x-1/2 w-4 h-4 bg-surface-container-lowest rounded-full border-2 border-secondary shadow-md group-hover:scale-110 transition-transform"></div>
+<!-- Floating Tooltip badge -->
+<div class="absolute left-[33.3%] -translate-x-1/2 -top-6 bg-primary text-surface-bright font-mono-metadata text-[10px] px-1.5 py-0.5 rounded shadow">
+          18 / 54
+        </div>
+</div>
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant font-bold">54</span>
+</div>
+<!-- Elevated Multi-tool Reading Capsule (Level 2 Elevation) -->
+<nav class="pointer-events-auto bg-primary-container text-on-primary-container/90 px-3 py-1.5 rounded-full shadow-xl flex items-center gap-1 border border-outline-variant/20">
+<!-- View Mode Toggle: Continuous vs Single Page -->
+<button class="flex items-center gap-1 px-2.5 py-1.5 rounded-full hover:bg-surface-container-high/20 active:scale-95 text-surface-bright text-body-sm transition-all" title="View mode">
+<span class="material-symbols-outlined text-[18px]">view_day</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider font-semibold">Continuous</span>
+</button>
+<div class="w-px h-4 bg-outline-variant/20"></div>
+<!-- Fit Width / Page Toggle -->
+<button class="p-1.5 rounded-full hover:bg-surface-container-high/20 active:scale-95 text-surface-bright transition-transform" title="Fit to width">
+<span class="material-symbols-outlined text-[19px]">fit_screen</span>
+</button>
+<!-- Thumbnail Grid Drawer Toggle -->
+<button class="p-1.5 rounded-full hover:bg-surface-container-high/20 active:scale-95 text-surface-bright transition-transform" title="View document thumbnail grid">
+<span class="material-symbols-outlined text-[19px]">grid_view</span>
+</button>
+<div class="w-px h-4 bg-outline-variant/20"></div>
+<!-- Reading Color Mode Toggle (Light / Sepia / Dark) -->
+<button class="flex items-center gap-1 p-1.5 rounded-full hover:bg-surface-container-high/20 active:scale-95 text-surface-bright transition-transform" title="Reading tone theme">
+<span class="material-symbols-outlined text-[19px]">wb_sunny</span>
+</button>
+</nav>
+<!-- Subtle Privacy / Zero-Telemetry Sovereignty Pill -->
+
+</footer>
+
+
+</body></html>

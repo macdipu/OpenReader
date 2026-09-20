@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>OpenReader PPTX AMOLED</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..900&family=Space+Grotesk:wght@100..900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#004c69",
+            "surface-bright": "#353943",
+            "on-primary-fixed": "#001e2c",
+            "tertiary-fixed": "#68fcbf",
+            "on-background": "#dfe2ef",
+            "surface-tint": "#7bd0ff",
+            "surface": "#0f131c",
+            "surface-dim": "#0f131c",
+            "surface-container": "#1c1f29",
+            "primary-fixed-dim": "#7bd0ff",
+            "secondary-fixed-dim": "#bdc2ff",
+            "on-tertiary": "#003825",
+            "secondary-container": "#2f3aa3",
+            "primary": "#8ed5ff",
+            "outline": "#87929a",
+            "tertiary-fixed-dim": "#45dfa4",
+            "error-container": "#93000a",
+            "on-surface-variant": "#bdc8d1",
+            "on-tertiary-fixed": "#002114",
+            "on-secondary-container": "#a8afff",
+            "on-error": "#690005",
+            "primary-container": "#38bdf8",
+            "surface-variant": "#31353f",
+            "error": "#ffb4ab",
+            "surface-container-highest": "#31353f",
+            "on-primary": "#00354a",
+            "on-secondary": "#131e8c",
+            "primary-fixed": "#c4e7ff",
+            "secondary": "#bdc2ff",
+            "tertiary": "#4ee6aa",
+            "on-tertiary-container": "#004e35",
+            "tertiary-container": "#22c990",
+            "on-surface": "#dfe2ef",
+            "surface-container-lowest": "#0a0e17",
+            "on-error-container": "#ffdad6",
+            "background": "#0f131c",
+            "inverse-surface": "#dfe2ef",
+            "surface-container-high": "#262a34",
+            "inverse-primary": "#00668a",
+            "secondary-fixed": "#e0e0ff",
+            "on-primary-container": "#004965",
+            "inverse-on-surface": "#2c303a",
+            "surface-container-low": "#181b25",
+            "outline-variant": "#3e484f",
+            "on-secondary-fixed-variant": "#2f3aa3",
+            "on-secondary-fixed": "#000767",
+            "on-tertiary-fixed-variant": "#005137"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "margin-mobile": "1rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "gutter-mobile": "0.75rem",
+            "gutter": "1.25rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Space Grotesk"],
+            "body-lg": ["Inter"],
+            "headline-sm": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "label-md": ["JetBrains Mono"],
+            "display-lg": ["Space Grotesk"],
+            "body-sm": ["Inter"],
+            "body-md": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "headline-lg": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-lg": ["1.125rem", { "lineHeight": "1.875rem", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "headline-sm": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "500" }],
+            "headline-md": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "label-md": ["0.8125rem", { "lineHeight": "1.25rem", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "display-lg": ["3.5rem", { "lineHeight": "4rem", "letterSpacing": "-0.03em", "fontWeight": "700" }],
+            "body-sm": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "body-md": ["1rem", { "lineHeight": "1.65rem", "fontWeight": "400" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "1rem", "letterSpacing": "0.05em", "fontWeight": "500" }],
+            "headline-lg": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.02em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      background-color: #000000;
+      color: #dfe2ef;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black text-on-surface antialiased select-none min-h-screen flex flex-col justify-between">
+<!-- Top Navigation App Bar (Shared Components Anchor: TopAppBar) -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-space-md h-14 bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant">
+<div class="flex items-center space-x-space-sm overflow-hidden pr-2">
+<button aria-label="Back" class="flex items-center justify-center w-8 h-8 rounded text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors duration-150 active:scale-95" type="button">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex items-center space-x-2 truncate">
+<!-- Presentation Title & PPTX Indicator -->
+<span class="font-headline-sm text-headline-sm font-semibold text-on-surface truncate">Product_Strategy_2025.pptx</span>
+<span class="inline-flex items-center h-[20px] px-1.5 rounded text-[10px] font-label-sm font-semibold tracking-wider uppercase border border-amber-500/40 bg-amber-500/10 text-amber-400 shrink-0">PPTX</span>
+</div>
+</div>
+<div class="flex items-center space-x-1 shrink-0">
+<button aria-label="Slide Overview Grid" class="flex items-center justify-center w-8 h-8 rounded text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors duration-150 active:scale-95" type="button">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+</button>
+<button aria-label="Present Mode" class="flex items-center justify-center w-8 h-8 rounded text-primary hover:bg-surface-container-low transition-colors duration-150 active:scale-95 shadow-[0_0_12px_-2px_rgba(142,213,255,0.25)]" type="button">
+<span class="material-symbols-outlined" data-icon="present_to_all">present_to_all</span>
+</button>
+<button aria-label="More Options" class="flex items-center justify-center w-8 h-8 rounded text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors duration-150 active:scale-95" type="button">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Presentation Stage Container -->
+<main class="flex-1 flex flex-col items-center justify-center pt-16 pb-4 px-space-sm relative w-full overflow-hidden">
+<!-- Slide Status & Viewport Stage (16:9 Aspect Ratio) -->
+<div class="w-full max-w-lg mx-auto flex flex-col items-center">
+<!-- Top Stage Telemetry Badge -->
+<div class="flex items-center justify-between w-full px-2 mb-2">
+<div class="flex items-center space-x-2">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-outline tracking-wider">LIVE STAGE • 16:9 WIDESCREEN</span>
+</div>
+<div class="bg-surface-container-low px-2 py-0.5 rounded border border-outline-variant/60 font-label-sm text-label-sm text-on-surface-variant">
+          Slide 6 of 28
+        </div>
+</div>
+<!-- Slide Viewport (Deep AMOLED Charcoal Container with Tactile Glow) -->
+<div class="relative w-full aspect-[16/9] rounded-xl bg-[#0c101a] border border-[#1e293b] shadow-[0_0_24px_-4px_rgba(14,165,233,0.15)] flex flex-col justify-between p-4 overflow-hidden group">
+<!-- Architectural Slide Grid Watermark -->
+<div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-30 pointer-events-none"></div>
+<!-- Slide Content: Header -->
+<div class="relative z-10 flex items-start justify-between">
+<div>
+<div class="flex items-center space-x-2">
+<span class="font-label-sm text-label-sm text-amber-400 font-semibold uppercase tracking-widest">ARCHITECTURE ROADMAP</span>
+<span class="text-outline text-[10px]">•</span>
+<span class="font-label-sm text-label-sm text-outline">Q3 EXPANSION</span>
+</div>
+<h1 class="font-headline-sm text-headline-sm font-semibold text-on-surface tracking-tight mt-0.5">
+              AI-Native Mobile Infrastructure
+            </h1>
+</div>
+<span class="font-label-sm text-label-sm text-outline bg-surface-container-lowest/80 px-1.5 py-0.5 rounded border border-outline-variant/40">
+            10:42 AM
+          </span>
+</div>
+<!-- Slide Content: 3 Sleek Bento Grid Tech Cards -->
+<div class="relative z-10 grid grid-cols-3 gap-2 my-auto">
+<!-- Card 1: Edge Quantization -->
+<div class="bg-surface-container-lowest/90 border border-outline-variant/60 rounded-lg p-2.5 flex flex-col justify-between hover:border-primary/50 transition-colors">
+<div class="flex items-center justify-between mb-1.5">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-sky-500/10 border border-sky-500/30 text-sky-400">
+<span class="material-symbols-outlined" data-icon="memory" style="font-size: 14px;">memory</span>
+</div>
+<span class="font-label-sm text-[10px] text-sky-400 font-medium">4-BIT</span>
+</div>
+<div>
+<p class="font-headline-sm text-[11px] font-semibold text-on-surface leading-tight">Neural Engine</p>
+<p class="font-body-sm text-[9px] text-on-surface-variant leading-3 mt-1">Sub-12ms inference pipeline at 1.8W battery ceiling</p>
+</div>
+</div>
+<!-- Card 2: Context Streaming (Highlighted with Amber) -->
+<div class="bg-surface-container-lowest/90 border border-amber-500/40 rounded-lg p-2.5 flex flex-col justify-between shadow-[0_0_12px_-3px_rgba(245,158,11,0.2)]">
+<div class="flex items-center justify-between mb-1.5">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-amber-500/10 border border-amber-500/30 text-amber-400">
+<span class="material-symbols-outlined" data-icon="hub" style="font-size: 14px;">hub</span>
+</div>
+<span class="font-label-sm text-[10px] text-amber-400 font-medium">SYNC</span>
+</div>
+<div>
+<p class="font-headline-sm text-[11px] font-semibold text-on-surface leading-tight">Context Vector</p>
+<p class="font-body-sm text-[9px] text-on-surface-variant leading-3 mt-1">Local SQLite-VEC index mirroring cloud telemetry</p>
+</div>
+</div>
+<!-- Card 3: Zero-RTT Auth -->
+<div class="bg-surface-container-lowest/90 border border-outline-variant/60 rounded-lg p-2.5 flex flex-col justify-between hover:border-tertiary/50 transition-colors">
+<div class="flex items-center justify-between mb-1.5">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+<span class="material-symbols-outlined" data-icon="security" style="font-size: 14px;">security</span>
+</div>
+<span class="font-label-sm text-[10px] text-emerald-400 font-medium">E2EE</span>
+</div>
+<div>
+<p class="font-headline-sm text-[11px] font-semibold text-on-surface leading-tight">Key Enclave</p>
+<p class="font-body-sm text-[9px] text-on-surface-variant leading-3 mt-1">Biometric hardware bounds per session handoff</p>
+</div>
+</div>
+</div>
+<!-- Slide Content: Stage Footer -->
+<div class="relative z-10 flex items-center justify-between border-t border-outline-variant/30 pt-1.5 mt-1">
+<div class="flex items-center space-x-3">
+<span class="font-label-sm text-[9px] text-on-surface-variant flex items-center">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1"></span> PASS: Latency < 20ms
+            </span>
+<span class="font-label-sm text-[9px] text-on-surface-variant flex items-center">
+<span class="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block mr-1"></span> RAM: 240 MB OK
+            </span>
+</div>
+<span class="font-label-sm text-[9px] text-outline tracking-wider">CONFIDENTIAL INTERNAL</span>
+</div>
+<!-- Floating Stage Left / Right Navigation Overlay Controls -->
+<button aria-label="Previous Slide" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur border border-outline-variant/80 text-on-surface flex items-center justify-center shadow-lg active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<button aria-label="Next Slide" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur border border-outline-variant/80 text-on-surface flex items-center justify-center shadow-lg active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+<!-- Quick Presenter Control Micro-Bar -->
+<div class="flex items-center justify-between w-full mt-3 px-1">
+<button class="flex items-center space-x-1.5 bg-surface-container-lowest border border-outline-variant/60 rounded px-2.5 py-1 text-on-surface-variant hover:text-on-surface active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-amber-400" data-icon="sticky_note_2" style="font-size: 16px;">sticky_note_2</span>
+<span class="font-label-md text-label-md">Presenter Notes (2)</span>
+</button>
+<div class="flex items-center space-x-2">
+<!-- Laser Pointer Tool Toggle -->
+<button class="flex items-center space-x-1 bg-surface-container-lowest border border-outline-variant/60 rounded px-2.5 py-1 text-on-surface-variant hover:text-red-400 active:scale-95 transition-all group" type="button">
+<span class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]"></span>
+<span class="font-label-md text-label-md group-hover:text-red-300">Pointer</span>
+</button>
+<!-- Auto Advance Timer -->
+<div class="flex items-center space-x-1 bg-surface-container-lowest border border-outline-variant/60 rounded px-2 py-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-outline" data-icon="timer" style="font-size: 15px;">timer</span>
+<span class="font-label-md text-label-md text-primary">02:14</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Slide Filmstrip Carousel Scrubber -->
+<div class="w-full max-w-lg mt-3">
+<div class="flex items-center justify-between px-1 mb-1.5">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">FILMSTRIP SCRUBBER</span>
+<span class="font-label-sm text-label-sm text-amber-400">Pinch or scrub to jump</span>
+</div>
+<div class="flex items-center space-x-2.5 overflow-x-auto py-1 px-1 custom-scrollbar w-full">
+<!-- Thumbnail Slide 4 -->
+<div class="shrink-0 w-24 aspect-[16/9] rounded bg-surface-container-lowest border border-outline-variant/60 p-1.5 flex flex-col justify-between opacity-60 hover:opacity-100 transition-all cursor-pointer">
+<div class="flex justify-between items-center text-[8px] font-label-sm text-outline">
+<span>#4</span>
+<span class="truncate ml-1">Market TAM</span>
+</div>
+<div class="space-y-0.5">
+<div class="h-1 bg-surface-variant rounded-full w-3/4"></div>
+<div class="h-1 bg-surface-variant rounded-full w-1/2"></div>
+</div>
+</div>
+<!-- Thumbnail Slide 5 -->
+<div class="shrink-0 w-24 aspect-[16/9] rounded bg-surface-container-lowest border border-outline-variant/60 p-1.5 flex flex-col justify-between opacity-60 hover:opacity-100 transition-all cursor-pointer">
+<div class="flex justify-between items-center text-[8px] font-label-sm text-outline">
+<span>#5</span>
+<span class="truncate ml-1">User Growth</span>
+</div>
+<div class="space-y-0.5">
+<div class="h-1 bg-surface-variant rounded-full w-full"></div>
+<div class="h-1 bg-surface-variant rounded-full w-2/3"></div>
+</div>
+</div>
+<!-- Thumbnail Slide 6 (ACTIVE - Amber Glow Border & Badge) -->
+<div class="shrink-0 w-28 aspect-[16/9] rounded bg-surface-container-low border-2 border-amber-500 shadow-[0_0_14px_-2px_rgba(245,158,11,0.35)] p-1.5 flex flex-col justify-between cursor-pointer relative">
+<div class="flex justify-between items-center text-[8px] font-label-sm text-amber-400 font-semibold">
+<span>#6 [ACTIVE]</span>
+<span class="truncate ml-1">AI-Native</span>
+</div>
+<div class="grid grid-cols-3 gap-0.5 my-auto">
+<div class="h-3 bg-sky-500/30 border border-sky-400/40 rounded-sm"></div>
+<div class="h-3 bg-amber-500/40 border border-amber-400/50 rounded-sm"></div>
+<div class="h-3 bg-emerald-500/30 border border-emerald-400/40 rounded-sm"></div>
+</div>
+<div class="h-1 bg-amber-500/50 rounded-full w-full"></div>
+</div>
+<!-- Thumbnail Slide 7 -->
+<div class="shrink-0 w-24 aspect-[16/9] rounded bg-surface-container-lowest border border-outline-variant/60 p-1.5 flex flex-col justify-between opacity-60 hover:opacity-100 transition-all cursor-pointer">
+<div class="flex justify-between items-center text-[8px] font-label-sm text-outline">
+<span>#7</span>
+<span class="truncate ml-1">Benchmarks</span>
+</div>
+<div class="space-y-0.5">
+<div class="h-1 bg-surface-variant rounded-full w-5/6"></div>
+<div class="h-1 bg-surface-variant rounded-full w-1/3"></div>
+</div>
+</div>
+<!-- Thumbnail Slide 8 -->
+<div class="shrink-0 w-24 aspect-[16/9] rounded bg-surface-container-lowest border border-outline-variant/60 p-1.5 flex flex-col justify-between opacity-60 hover:opacity-100 transition-all cursor-pointer">
+<div class="flex justify-between items-center text-[8px] font-label-sm text-outline">
+<span>#8</span>
+<span class="truncate ml-1">Financials</span>
+</div>
+<div class="space-y-0.5">
+<div class="h-1 bg-surface-variant rounded-full w-2/3"></div>
+<div class="h-1 bg-surface-variant rounded-full w-1/2"></div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Reader Bottom Navigation Bar (Shared Components Anchor: BottomNavBar) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex items-center justify-around px-space-md h-16 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant">
+<!-- Item 1: Stories / Reader Mode -->
+<button aria-label="Stories Mode" class="flex items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low hover:text-on-surface transition-all duration-150 active:scale-90" type="button">
+<span class="material-symbols-outlined" data-icon="auto_stories">auto_stories</span>
+</button>
+<!-- Item 2: Zoom Fit -->
+<button aria-label="Zoom Tool" class="flex items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low hover:text-on-surface transition-all duration-150 active:scale-90" type="button">
+<span class="material-symbols-outlined" data-icon="zoom_in">zoom_in</span>
+</button>
+<!-- Item 3: Carousel (Active Slide Presentation State) -->
+<button aria-label="View Carousel Active" class="flex items-center justify-center bg-surface-container-high text-primary rounded-full p-2 border border-primary/30 shadow-[0_0_12px_-2px_rgba(56,189,248,0.25)] transition-all duration-150 active:scale-90" type="button">
+<span class="material-symbols-outlined" data-icon="view_carousel" style="font-variation-settings: 'FILL' 1;">view_carousel</span>
+</button>
+<!-- Item 4: Format Size / Typography Settings -->
+<button aria-label="Format Settings" class="flex items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low hover:text-on-surface transition-all duration-150 active:scale-90" type="button">
+<span class="material-symbols-outlined" data-icon="format_size">format_size</span>
+</button>
+<!-- Item 5: Tone & Display Calibration -->
+<button aria-label="Tune Preferences" class="flex items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low hover:text-on-surface transition-all duration-150 active:scale-90" type="button">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+</button>
+</nav>
+</body></html>

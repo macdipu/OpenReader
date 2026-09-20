@@ -1,0 +1,371 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>OpenReader - Offline Document Reader</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#002114",
+            "surface-dim": "#cbdbf5",
+            "on-primary-fixed-variant": "#3c475a",
+            "inverse-primary": "#bcc7de",
+            "on-background": "#0b1c30",
+            "inverse-surface": "#213145",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#00174b",
+            "surface": "#f8f9ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "primary": "#091426",
+            "surface-variant": "#d3e4fe",
+            "on-tertiary-fixed-variant": "#005137",
+            "surface-container-highest": "#d3e4fe",
+            "outline": "#75777d",
+            "on-error-container": "#93000a",
+            "tertiary": "#00190e",
+            "secondary": "#0051d5",
+            "on-primary-fixed": "#111c2d",
+            "secondary-fixed": "#dbe1ff",
+            "surface-container-low": "#eff4ff",
+            "tertiary-fixed-dim": "#68dba9",
+            "primary-container": "#1e293b",
+            "on-tertiary-container": "#24a375",
+            "on-primary": "#ffffff",
+            "error": "#ba1a1a",
+            "primary-fixed-dim": "#bcc7de",
+            "on-error": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "on-surface": "#0b1c30",
+            "error-container": "#ffdad6",
+            "on-primary-container": "#8590a6",
+            "outline-variant": "#c5c6cd",
+            "primary-fixed": "#d8e3fb",
+            "surface-tint": "#545f73",
+            "tertiary-fixed": "#85f8c4",
+            "tertiary-container": "#00301f",
+            "on-surface-variant": "#45474c",
+            "background": "#f8f9ff",
+            "surface-container": "#e5eeff",
+            "secondary-fixed-dim": "#b4c5ff",
+            "secondary-container": "#316bf3",
+            "inverse-on-surface": "#eaf1ff",
+            "on-secondary-container": "#fefcff",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary": "#ffffff",
+            "surface-bright": "#f8f9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-sm": "0.75rem",
+            "gutter": "1rem",
+            "space-xs": "0.25rem",
+            "space-md": "0.75rem",
+            "space-sm": "0.5rem",
+            "margin": "1rem",
+            "margin-tablet": "1.5rem",
+            "space-lg": "1rem",
+            "space-xl": "1.5rem"
+          },
+          "fontFamily": {
+            "title-md": ["Inter"],
+            "label-md": ["Inter"],
+            "mono-metadata": ["JetBrains Mono"],
+            "body-sm": ["Inter"],
+            "label-lg": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "headline-sm": ["Inter"],
+            "label-sm": ["Inter"],
+            "body-md": ["Inter"]
+          },
+          "fontSize": {
+            "title-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "mono-metadata": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "label-lg": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-symbols-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Hide scrollbars cleanly for immersive reading */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- Mobile Reader Container (Simulated Screen Wrapper, fluid edge-to-edge max-w-md for mobile focus) -->
+<div class="w-full max-w-md min-h-screen flex flex-col bg-surface relative shadow-2xl">
+<!-- 1. Top App Bar (Task-focused Reader Shell: back action departures suppress the global bottom nav) -->
+<header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-md px-margin py-2 flex items-center justify-between h-16 transition-colors duration-200">
+<!-- Leading: Back Arrow -->
+<div class="flex items-center space-x-2 min-w-0">
+<button aria-label="Back to document catalog" class="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<!-- Document Title & Format Badge -->
+<div class="flex items-center space-x-2 min-w-0">
+<div class="w-7 h-7 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container flex-shrink-0 shadow-sm">
+<span class="font-mono-metadata text-label-sm font-bold tracking-tight">DOC</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h1 class="font-title-md text-title-md text-on-surface truncate leading-tight">
+              Project_Proposal_v3.docx
+            </h1>
+<div class="flex items-center space-x-1.5 text-on-surface-variant">
+<span class="font-mono-metadata text-[10px] text-on-tertiary-container font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px] material-symbols-fill">verified_user</span>
+                SANDBOXED
+              </span>
+<span class="text-[8px]">•</span>
+<span class="font-mono-metadata text-[10px]">1.8 MB</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Trailing Action Icons -->
+<div class="flex items-center space-x-0.5 flex-shrink-0">
+<button aria-label="Search within document" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[22px]">search</span>
+</button>
+<button aria-label="Star document" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[22px]">star</span>
+</button>
+<button aria-label="Document settings and actions" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[22px]">more_vert</span>
+</button>
+</div>
+</header>
+<!-- 2. Top Format & Reading Controls Bar -->
+<section aria-label="Reading Controls" class="bg-surface-container-low px-margin py-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+<!-- Font Family & Size Quick Toggles -->
+<div class="flex items-center bg-surface-container-lowest rounded-lg p-0.5 shadow-sm">
+<button aria-label="Decrease text size" class="h-8 px-2.5 flex items-center justify-center text-on-surface hover:bg-surface-container rounded transition-colors text-label-md font-label-md" type="button">
+          A<span class="text-[9px] -mt-1 font-bold">−</span>
+</button>
+<div class="w-[1px] h-4 bg-outline-variant/30"></div>
+<button aria-label="Increase text size" class="h-8 px-2.5 flex items-center justify-center text-on-surface hover:bg-surface-container rounded transition-colors text-label-md font-label-md" type="button">
+          A<span class="text-[9px] -mt-1 font-bold">+</span>
+</button>
+</div>
+<!-- Typography Choice Pill -->
+<div class="flex items-center bg-surface-container-lowest rounded-lg p-0.5 shadow-sm text-label-md font-label-md">
+<button class="h-8 px-3 rounded bg-primary text-on-primary font-semibold flex items-center space-x-1 transition-all" type="button">
+<span>Sans</span>
+</button>
+<button class="h-8 px-3 rounded text-on-surface-variant hover:text-on-surface transition-colors" type="button">
+<span>Serif</span>
+</button>
+</div>
+<!-- Margin / Reading Width Toggle -->
+<button aria-label="Adjust margins" class="h-8 px-2.5 bg-surface-container-lowest rounded-lg text-on-surface-variant hover:text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">format_align_justify</span>
+</button>
+<!-- Reading Progress Status Badge -->
+<div class="flex-shrink-0 bg-secondary-fixed/60 text-secondary px-3 py-1 rounded-full font-mono-metadata text-label-sm font-semibold tracking-tight">
+        Page 4 of 12 • 34%
+      </div>
+</section>
+<!-- 3. Main Document Canvas (Paper-like aesthetic with crisp elevation) -->
+<main class="flex-1 p-margin pb-32">
+<!-- Book/Paper Document Canvas Frame -->
+<article class="bg-surface-container-lowest rounded-xl p-6 shadow-sm ring-1 ring-outline-variant/25 min-h-[750px] relative">
+<!-- Document Header / Metadata Section -->
+<header class="border-b border-outline-variant/30 pb-5 mb-6">
+<div class="flex items-center justify-between mb-2">
+<span class="font-mono-metadata text-[10px] uppercase tracking-wider text-secondary font-bold">DOCX v2.4 • Confidential</span>
+<span class="font-mono-metadata text-[10px] text-on-surface-variant/80">Secured Local File</span>
+</div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight mb-2">
+            Enterprise Cloud Migration Strategy
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">
+            Architectural blueprints and zero-downtime transition protocols for mission-critical core workloads.
+          </p>
+<!-- Author & Metadata Pill row -->
+<div class="flex flex-wrap items-center gap-3 pt-1 text-on-surface-variant font-mono-metadata text-body-sm">
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">person</span>
+<span class="text-on-surface font-medium">Elena Rostova</span>
+</div>
+<span class="text-outline-variant/60">•</span>
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span>Oct 24, 2024</span>
+</div>
+<span class="text-outline-variant/60">•</span>
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-[16px]">history</span>
+<span>Rev 3.2</span>
+</div>
+</div>
+</header>
+<!-- Document Section 1 -->
+<section class="space-y-4">
+<h3 class="font-headline-sm text-headline-sm text-primary flex items-center space-x-2">
+<span>1. Executive Overview &amp; Scope</span>
+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            The purpose of this framework is to establish an immutable, zero-trust cloud landing zone across multi-region deployments. Initial workload profiling has demonstrated that 72% of legacy transactional services can be converted to containerized microservices without refactoring core schema definitions.
+          </p>
+<!-- Formatted Callout / Quote Box -->
+<aside class="my-5 p-4 rounded-lg bg-surface-container-low border-l-4 border-secondary shadow-sm">
+<div class="flex items-start space-x-3">
+<span class="material-symbols-outlined text-secondary text-[22px] mt-0.5 flex-shrink-0">flag</span>
+<div>
+<h4 class="font-title-md text-title-md text-on-surface mb-0.5">Critical Delivery Objective</h4>
+<p class="font-body-md text-body-md text-on-surface-variant leading-snug">
+                  Key Milestone: Complete Phase 1 cutover within Q3 with zero customer downtime and 100% deterministic latency compliance.
+                </p>
+</div>
+</div>
+</aside>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            All data storage mechanisms prioritize physical locality and end-to-end cryptographic verifiability. Read replicates will be maintained across isolated nodes to prevent split-brain conditions during regional failovers.
+          </p>
+<!-- Data Table Rendering -->
+<div class="my-6">
+<h4 class="font-label-lg text-label-lg text-on-surface mb-2.5 flex items-center justify-between">
+<span>Implementation Matrix</span>
+<span class="font-mono-metadata text-[10px] text-on-surface-variant">Table 1.1</span>
+</h4>
+<div class="rounded-lg overflow-hidden border border-outline-variant/30">
+<table class="w-full text-left text-body-sm font-body-sm">
+<thead class="bg-surface-container-high text-on-surface font-label-md text-label-md uppercase tracking-wider">
+<tr>
+<th class="py-2.5 px-3" scope="col">Phase</th>
+<th class="py-2.5 px-3" scope="col">Timeline</th>
+<th class="py-2.5 px-3" scope="col">Deliverable</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20">
+<tr class="bg-surface-container-lowest">
+<td class="py-2.5 px-3 font-medium text-on-surface">Phase 01</td>
+<td class="py-2.5 px-3 font-mono-metadata text-on-surface-variant">Q1 – Q2</td>
+<td class="py-2.5 px-3 text-on-surface">VPC Landing Zones &amp; IAM</td>
+</tr>
+<tr class="bg-surface-container-low/60">
+<td class="py-2.5 px-3 font-medium text-on-surface">Phase 02</td>
+<td class="py-2.5 px-3 font-mono-metadata text-on-surface-variant">Q2 – Q3</td>
+<td class="py-2.5 px-3 text-on-surface">Database Sync &amp; Canary Tests</td>
+</tr>
+<tr class="bg-surface-container-lowest">
+<td class="py-2.5 px-3 font-medium text-on-surface">Phase 03</td>
+<td class="py-2.5 px-3 font-mono-metadata text-on-surface-variant">Q3 Final</td>
+<td class="py-2.5 px-3 text-on-surface">DNS Cutover &amp; Legacy Sunset</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Bulleted Checklist with Styled Checkmarks -->
+<div class="mt-5 space-y-2.5">
+<h4 class="font-label-lg text-label-lg text-on-surface">Prerequisite Readiness Criteria</h4>
+<ul class="space-y-2">
+<li class="flex items-center space-x-2.5">
+<div class="w-5 h-5 rounded-md bg-secondary-container flex items-center justify-center text-on-secondary-container flex-shrink-0">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface">SOC-2 Type II audit logs ingested and verified locally</span>
+</li>
+<li class="flex items-center space-x-2.5">
+<div class="w-5 h-5 rounded-md bg-secondary-container flex items-center justify-center text-on-secondary-container flex-shrink-0">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Synthetic load simulations maintained at 45,000 req/sec</span>
+</li>
+<li class="flex items-center space-x-2.5">
+<div class="w-5 h-5 rounded-md bg-surface-container-high border border-outline-variant/50 flex items-center justify-center text-transparent flex-shrink-0">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface-variant">Automated roll-back test on secondary standby cluster</span>
+</li>
+</ul>
+</div>
+</section>
+<!-- Subtle Document Page Footing -->
+<footer class="mt-8 pt-4 border-t border-outline-variant/20 flex items-center justify-between text-on-surface-variant/70 font-mono-metadata text-[10px]">
+<span>OpenReader Native Engine</span>
+<span>Doc ID: #OPR-DOCX-9941</span>
+<span>Page 4</span>
+</footer>
+</article>
+</main>
+<!-- 4. Floating Reader Bottom Toolbar (Level 2 Elevation with Capsule Pill) -->
+<div class="fixed bottom-6 inset-x-0 mx-auto w-[92%] max-w-sm z-50 pointer-events-none">
+<nav aria-label="Reader Navigation" class="pointer-events-auto h-[54px] bg-surface-container-lowest/95 backdrop-blur-md rounded-full shadow-lg border border-outline-variant/40 px-3 flex items-center justify-between">
+<!-- Table of Contents / Outline -->
+<button aria-label="Table of Contents" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all" title="Table of Contents" type="button">
+<span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+</button>
+<!-- Interactive Page Scrub Slider Container -->
+<div class="flex-1 px-3 flex items-center space-x-2.5">
+<button aria-label="Previous Page" class="text-on-surface-variant hover:text-on-surface" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<!-- Scrub Track & Thumb -->
+<div class="flex-1 relative flex items-center py-2 cursor-pointer group">
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[34%] rounded-full"></div>
+</div>
+<!-- Thumb -->
+<div class="absolute left-[34%] -ml-2 w-4 h-4 bg-surface-container-lowest border-2 border-secondary rounded-full shadow-sm"></div>
+</div>
+<button aria-label="Next Page" class="text-on-surface-variant hover:text-on-surface" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+<!-- Quick Jump Indicator -->
+<span class="font-mono-metadata text-label-sm text-on-surface font-semibold select-none">
+            4/12
+          </span>
+</div>
+<!-- Quick Font Scale Popover Trigger -->
+<button aria-label="Adjust Display Font" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all" title="Display Preferences" type="button">
+<span class="material-symbols-outlined text-[20px]">text_fields</span>
+</button>
+<!-- Fullscreen Reader Mode Toggle -->
+<button aria-label="Toggle Fullscreen" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all" title="Fullscreen" type="button">
+<span class="material-symbols-outlined text-[20px]">fullscreen</span>
+</button>
+</nav>
+</div>
+</div>
+</body></html>

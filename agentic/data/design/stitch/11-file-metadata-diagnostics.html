@@ -1,0 +1,321 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>OpenReader - File Metadata &amp; Diagnostics</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary": "#091426",
+            "on-primary-fixed-variant": "#3c475a",
+            "on-error": "#ffffff",
+            "surface": "#f8f9ff",
+            "on-secondary-fixed": "#00174b",
+            "outline-variant": "#c5c6cd",
+            "secondary-fixed": "#dbe1ff",
+            "on-secondary": "#ffffff",
+            "on-surface-variant": "#45474c",
+            "on-tertiary-fixed-variant": "#005137",
+            "primary-fixed-dim": "#bcc7de",
+            "on-primary-fixed": "#111c2d",
+            "on-tertiary": "#ffffff",
+            "background": "#f8f9ff",
+            "error-container": "#ffdad6",
+            "on-background": "#0b1c30",
+            "surface-container-low": "#eff4ff",
+            "secondary-container": "#316bf3",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed-dim": "#68dba9",
+            "on-secondary-container": "#fefcff",
+            "surface-container": "#e5eeff",
+            "on-tertiary-container": "#24a375",
+            "secondary": "#0051d5",
+            "outline": "#75777d",
+            "on-surface": "#0b1c30",
+            "inverse-surface": "#213145",
+            "on-tertiary-fixed": "#002114",
+            "on-primary-container": "#8590a6",
+            "inverse-on-surface": "#eaf1ff",
+            "primary-fixed": "#d8e3fb",
+            "surface-bright": "#f8f9ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "on-primary": "#ffffff",
+            "surface-container-highest": "#d3e4fe",
+            "tertiary-fixed": "#85f8c4",
+            "surface-tint": "#545f73",
+            "surface-variant": "#d3e4fe",
+            "secondary-fixed-dim": "#b4c5ff",
+            "inverse-primary": "#bcc7de",
+            "on-error-container": "#93000a",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "tertiary": "#00190e",
+            "primary-container": "#1e293b",
+            "error": "#ba1a1a",
+            "tertiary-container": "#00301f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "1rem",
+            "margin": "1rem",
+            "space-xs": "0.25rem",
+            "gutter-sm": "0.75rem",
+            "space-lg": "1rem",
+            "space-sm": "0.5rem",
+            "margin-tablet": "1.5rem",
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem"
+          },
+          "fontFamily": {
+            "label-lg": ["Inter"],
+            "mono-metadata": ["JetBrains Mono"],
+            "headline-lg": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "label-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-md": ["Inter"]
+          },
+          "fontSize": {
+            "label-lg": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "mono-metadata": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "title-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.015em", "fontWeight": "600" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col justify-end md:justify-center items-center p-0 md:p-6 select-none">
+<!-- Android Backdrop Scrim for Modal/Sheet context -->
+<div class="fixed inset-0 bg-primary/40 backdrop-blur-sm z-0"></div>
+<!-- Android Bottom Sheet / Dialog Container (Level 3 Elevation) -->
+<main class="relative z-10 w-full max-w-2xl bg-surface-container-lowest rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] md:max-h-[88vh] overflow-hidden border border-outline-variant/30">
+<!-- Top Drag Handle (Mobile Android Drawer affordance) -->
+<div class="flex justify-center pt-3 pb-1 md:hidden">
+<div class="w-10 h-1 rounded-full bg-outline-variant/60"></div>
+</div>
+<!-- Header: Task-focused Modal App Bar -->
+<header class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20 bg-surface-container-lowest">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-title-md" data-icon="description">description</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md text-on-surface tracking-tight">File Information &amp; Diagnostics</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sandboxed Local Document Inspector</p>
+</div>
+</div>
+<!-- Close Action (Task focused sub-page suppresses main shell nav) -->
+<button aria-label="Close dialog" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all focus:outline-none">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</header>
+<!-- Scrollable Content Canvas -->
+<div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+<!-- Top Document Badge and Title Card (Level 1 Elevation) -->
+<section class="bg-surface rounded-2xl p-5 border border-outline-variant/30 shadow-sm flex items-start gap-4">
+<!-- PPTX Semantic Marker -->
+<div class="w-14 h-14 rounded-xl bg-amber-50 border border-amber-200 flex flex-col items-center justify-center shrink-0">
+<span class="font-label-sm text-label-sm text-amber-700 tracking-wider">PPTX</span>
+<span class="material-symbols-outlined text-amber-600 text-headline-sm mt-0.5" data-icon="slideshow">slideshow</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<h2 class="font-title-md text-title-md text-on-surface truncate" title="Q4_Board_Deck_Final.pptx">Q4_Board_Deck_Final.pptx</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-tertiary-fixed text-on-tertiary-fixed-variant">
+<span class="material-symbols-outlined text-[12px] mr-1" data-icon="verified_user">verified_user</span>
+              Local Only
+            </span>
+</div>
+<div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 font-body-sm text-body-sm text-on-surface-variant">
+<span>14.8 MB</span>
+<span>•</span>
+<span>28 slides</span>
+<span>•</span>
+<span>Modified 2:15 PM</span>
+</div>
+</div>
+</section>
+<!-- Detailed Metadata Bento Grid Section -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">System Attributes</h3>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary-fixed/50 px-2 py-0.5 rounded">
+            POSIX Compliant
+          </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+<!-- Storage Path Card (Full row on mobile) -->
+<div class="md:col-span-2 bg-surface-container-low rounded-xl p-3.5 border border-outline-variant/20">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px]" data-icon="folder_open">folder_open</span>
+                Storage Location
+              </span>
+<button class="font-label-sm text-label-sm text-secondary hover:underline inline-flex items-center gap-0.5 active:scale-95 transition-transform" onclick="navigator.clipboard?.writeText('/storage/emulated/0/Documents/Presentations/Q4_Board_Deck_Final.pptx')">
+<span class="material-symbols-outlined text-[13px]" data-icon="content_copy">content_copy</span>
+                Copy Path
+              </button>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-primary break-all bg-surface-container-lowest p-2 rounded-lg border border-outline-variant/20 select-all">
+              /storage/emulated/0/Documents/Presentations/Q4_Board_Deck_Final.pptx
+            </p>
+</div>
+<!-- MIME Type -->
+<div class="bg-surface rounded-xl p-3.5 border border-outline-variant/20 flex flex-col justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5 mb-1.5">
+<span class="material-symbols-outlined text-[15px]" data-icon="category">category</span>
+              MIME Type
+            </span>
+<p class="font-mono-metadata text-mono-metadata text-on-surface break-all bg-surface-container-low/70 p-2 rounded-lg">
+              application/vnd.openxmlformats-officedocument.presentationml.presentation
+            </p>
+</div>
+<!-- File Size -->
+<div class="bg-surface rounded-xl p-3.5 border border-outline-variant/20 flex flex-col justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5 mb-1.5">
+<span class="material-symbols-outlined text-[15px]" data-icon="data_object">data_object</span>
+              Physical Size
+            </span>
+<div class="bg-surface-container-low/70 p-2 rounded-lg">
+<p class="font-title-md text-title-md text-on-surface">14,842,918 bytes</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Exact allocation (14.8 MB on disk)</p>
+</div>
+</div>
+<!-- Access Permissions -->
+<div class="bg-surface rounded-xl p-3.5 border border-outline-variant/20">
+<span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5 mb-1.5">
+<span class="material-symbols-outlined text-[15px]" data-icon="lock_open">lock_open</span>
+              Access Permissions
+            </span>
+<div class="flex items-center gap-2 p-2 rounded-lg bg-surface-container-low/70">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="shield">shield</span>
+<p class="font-body-sm text-body-sm text-on-surface">Scoped Read-Only <span class="text-on-surface-variant">(Granted via System Picker)</span></p>
+</div>
+</div>
+<!-- Last Modified -->
+<div class="bg-surface rounded-xl p-3.5 border border-outline-variant/20">
+<span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5 mb-1.5">
+<span class="material-symbols-outlined text-[15px]" data-icon="schedule">schedule</span>
+              Timestamp
+            </span>
+<div class="p-2 rounded-lg bg-surface-container-low/70">
+<p class="font-body-md text-body-md text-on-surface font-semibold">Today at 2:15 PM</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Last localized modification</p>
+</div>
+</div>
+<!-- Checksum Card (Full row on mobile & tablet) -->
+<div class="md:col-span-2 bg-surface rounded-xl p-3.5 border border-outline-variant/20">
+<div class="flex items-center justify-between mb-1.5">
+<span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px]" data-icon="fingerprint">fingerprint</span>
+                Integrity Checksum (SHA-256)
+              </span>
+<span class="font-label-sm text-label-sm text-on-tertiary-container bg-tertiary-fixed/60 px-1.5 py-0.5 rounded">
+                Match Verified
+              </span>
+</div>
+<div class="bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/30 flex items-center justify-between gap-2">
+<p class="font-mono-metadata text-mono-metadata text-on-surface select-all break-all leading-tight">
+                e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+              </p>
+<button aria-label="Copy Checksum" class="shrink-0 p-1.5 text-on-surface-variant hover:text-primary rounded hover:bg-surface-container active:scale-95 transition-all" title="Copy Checksum">
+<span class="material-symbols-outlined text-[16px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Diagnostics & Non-blocking Error State Section -->
+<section class="space-y-3">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="troubleshoot">troubleshoot</span>
+          Engine Diagnostics &amp; Handled States
+        </h3>
+<!-- Inline Alert Banner: Sandboxed Privacy Integrity -->
+<div class="p-3.5 rounded-xl bg-tertiary-fixed/30 border border-tertiary-fixed-dim/50 flex items-start gap-3">
+<span class="material-symbols-outlined text-on-tertiary-fixed-variant mt-0.5 shrink-0" data-icon="gpp_good">gpp_good</span>
+<div class="flex-1">
+<h4 class="font-label-lg text-label-lg text-on-tertiary-fixed-variant">Offline Document Integrity Verified</h4>
+<p class="font-body-sm text-body-sm text-on-tertiary-fixed-variant/90 mt-0.5 leading-snug">
+              Zero network calls made. File parsed and rendered entirely inside isolated local device memory with strict hardware isolation.
+            </p>
+</div>
+</div>
+<!-- Handled Warning Badge: Non-blocking Font Fallback -->
+<div class="p-3.5 rounded-xl bg-surface-container border border-outline-variant/30 flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary mt-0.5 shrink-0" data-icon="info">info</span>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<h4 class="font-label-lg text-label-lg text-on-surface">Handled Font Warning</h4>
+<span class="font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant px-1.5 py-0.2 rounded font-mono">
+                NON-BLOCKING
+              </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-snug">
+              Font Fallback Applied: Custom enterprise font substituted with Roboto without altering slide bounding boxes or presentation layout.
+            </p>
+</div>
+</div>
+</section>
+</div>
+<!-- Actions Footer Bar -->
+<footer class="p-4 md:p-6 bg-surface-container-low/60 border-t border-outline-variant/20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+<!-- Destructive Index Removal Action -->
+<button class="order-3 sm:order-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-error hover:bg-error-container/50 active:scale-95 transition-all font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[18px]" data-icon="delete_outline">delete_outline</span>
+        Remove from Index
+      </button>
+<!-- Primary & Outlined Button Cluster -->
+<div class="order-1 sm:order-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+<!-- Share Copy via System Sheet -->
+<button class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant text-on-surface bg-surface-container-lowest hover:bg-surface-container active:scale-95 transition-all font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[18px]" data-icon="share">share</span>
+          Share Copy via System Sheet
+        </button>
+<!-- Primary Filled Action -->
+<button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-on-secondary hover:bg-secondary-container active:scale-95 transition-all shadow-md font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[18px]" data-icon="slideshow">slideshow</span>
+          Open in Slide Viewer
+        </button>
+</div>
+</footer>
+</main>
+</body></html>

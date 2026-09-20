@@ -1,0 +1,382 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>OpenReader - Document Hub</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#002114",
+            "error": "#ba1a1a",
+            "inverse-surface": "#213145",
+            "secondary-fixed-dim": "#b4c5ff",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-bright": "#f8f9ff",
+            "surface": "#f8f9ff",
+            "on-surface": "#0b1c30",
+            "error-container": "#ffdad6",
+            "surface-variant": "#d3e4fe",
+            "on-tertiary-container": "#24a375",
+            "background": "#f8f9ff",
+            "primary": "#091426",
+            "tertiary-fixed-dim": "#68dba9",
+            "on-error-container": "#93000a",
+            "outline": "#75777d",
+            "on-primary-container": "#8590a6",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#00174b",
+            "surface-container-highest": "#d3e4fe",
+            "inverse-primary": "#bcc7de",
+            "secondary-container": "#316bf3",
+            "primary-fixed-dim": "#bcc7de",
+            "on-primary": "#ffffff",
+            "secondary": "#0051d5",
+            "tertiary-container": "#00301f",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary": "#ffffff",
+            "outline-variant": "#c5c6cd",
+            "on-secondary-container": "#fefcff",
+            "primary-fixed": "#d8e3fb",
+            "on-error": "#ffffff",
+            "on-primary-fixed": "#111c2d",
+            "on-primary-fixed-variant": "#3c475a",
+            "on-background": "#0b1c30",
+            "surface-container-high": "#dce9ff",
+            "on-surface-variant": "#45474c",
+            "on-tertiary-fixed-variant": "#005137",
+            "primary-container": "#1e293b",
+            "tertiary": "#00190e",
+            "secondary-fixed": "#dbe1ff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "surface-tint": "#545f73",
+            "surface-container": "#e5eeff",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed": "#85f8c4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            "margin-tablet": "1.5rem",
+            "space-lg": "1rem",
+            "margin": "1rem",
+            "space-sm": "0.5rem",
+            "gutter": "1rem",
+            "gutter-sm": "0.75rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "headline-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-sm": ["Inter"],
+            "mono-metadata": ["JetBrains Mono"],
+            "label-sm": ["Inter"],
+            "label-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-lg-mobile": ["Inter"]
+          },
+          "fontSize": {
+            "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "mono-metadata": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+            "label-lg": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "title-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-md select-none">
+<!-- Top App Bar (Shared Components Rule: exact structure and style commands) -->
+<header class="bg-surface dark:bg-primary docked full-width top-0 sticky z-40 flex justify-between items-center h-16 w-full px-4 max-w-full shadow-sm">
+<div class="flex items-center gap-3">
+<button aria-label="Open Navigation Drawer" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-primary dark:text-inverse-primary" data-icon="menu">menu</span>
+</button>
+<div class="flex items-center gap-2">
+<span class="text-headline-md font-headline-md font-bold text-on-surface dark:text-inverse-on-surface tracking-tight">OpenReader</span>
+<!-- Local Sovereignty Micro-Badge -->
+
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Search" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button aria-label="Settings and options" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas Container -->
+<main class="flex-1 w-full max-w-2xl mx-auto px-4 pt-3 pb-28 space-y-6">
+<!-- Search Input Bar -->
+<section class="relative">
+<div class="flex items-center w-full h-12 px-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-sm focus-within:border-secondary transition-all">
+<span class="material-symbols-outlined text-outline mr-2 text-xl" data-icon="search">search</span>
+<input class="w-full bg-transparent border-none p-0 text-on-surface font-body-md text-body-md placeholder-outline focus:ring-0 focus:outline-none" placeholder="Search documents by name..." type="text">
+<div class="flex items-center gap-1 pl-1">
+<button aria-label="Filter documents" class="flex items-center justify-center w-8 h-8 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container active:scale-95 transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="tune">tune</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Quick Format Categories Carousel -->
+<section class="space-y-2">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md uppercase tracking-wider text-outline">Formats</span>
+<span class="text-label-sm font-mono-metadata text-outline">48 files indexed</span>
+</div>
+<div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 -mx-4 px-4">
+<!-- Active Chip (All) -->
+<button class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-primary text-on-primary font-label-lg text-label-lg active:scale-95 transition-transform flex-shrink-0 shadow-sm">
+<span class="">All</span>
+<span class="inline-flex items-center justify-center px-1.5 py-0.2 rounded-full bg-primary-container text-mono-metadata font-mono-metadata text-inverse-on-surface">48</span>
+</button>
+<!-- PDF Chip -->
+<button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-surface-container-lowest border border-outline-variant/40 text-on-surface font-label-lg text-label-lg hover:bg-surface-container active:scale-95 transition-transform flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span class="">PDF</span>
+<span class="text-mono-metadata font-mono-metadata text-outline">18</span>
+</button>
+<!-- Word Chip -->
+<button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-surface-container-lowest border border-outline-variant/40 text-on-surface font-label-lg text-label-lg hover:bg-surface-container active:scale-95 transition-transform flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="">Word</span>
+<span class="text-mono-metadata font-mono-metadata text-outline">12</span>
+</button>
+<!-- Excel Chip -->
+<button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-surface-container-lowest border border-outline-variant/40 text-on-surface font-label-lg text-label-lg hover:bg-surface-container active:scale-95 transition-transform flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-on-tertiary-container"></span>
+<span class="">Excel</span>
+<span class="text-mono-metadata font-mono-metadata text-outline">8</span>
+</button>
+<!-- PowerPoint Chip -->
+<button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-surface-container-lowest border border-outline-variant/40 text-on-surface font-label-lg text-label-lg hover:bg-surface-container active:scale-95 transition-transform flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-amber-500"></span>
+<span class="">PowerPoint</span>
+<span class="text-mono-metadata font-mono-metadata text-outline">6</span>
+</button>
+<!-- Text Chip -->
+<button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-surface-container-lowest border border-outline-variant/40 text-on-surface font-label-lg text-label-lg hover:bg-surface-container active:scale-95 transition-transform flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="">Text</span>
+<span class="text-mono-metadata font-mono-metadata text-outline">4</span>
+</button>
+</div>
+</section>
+<!-- Continue Reading Section (Bento / Horizontal Swipeable Cards) -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-sm font-headline-sm text-on-surface">Continue Reading</h2>
+<button class="text-secondary font-label-lg text-label-lg hover:underline">View History</button>
+</div>
+<div class="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1 snap-x snap-mandatory">
+<!-- Active Card 1: Annual Financial Report -->
+<article class="snap-start flex-shrink-0 w-[290px] bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-4 shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute top-0 left-0 right-0 h-1 bg-surface-container">
+<div class="h-full bg-secondary w-1/3 rounded-r-full"></div>
+</div>
+<div class="flex items-start gap-3 mt-1">
+<div class="w-10 h-10 rounded-lg bg-error-container/40 flex items-center justify-center flex-shrink-0 border border-error/20">
+<span class="text-error font-label-sm text-label-sm">PDF</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-title-md text-title-md text-on-surface truncate">Annual_Financial_Report_2025.pdf</p>
+<div class="flex items-center gap-1.5 text-mono-metadata font-mono-metadata text-outline mt-0.5">
+<span class="">p. 18 / 54</span>
+<span class="">•</span>
+<span class="">33%</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container flex items-center justify-between">
+<span class="text-body-sm font-body-sm text-outline">10m ago</span>
+<button class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-md text-label-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-base" data-icon="play_arrow" data-weight="fill">play_arrow</span>
+              Resume
+            </button>
+</div>
+</article>
+<!-- Active Card 2: Product Strategy Q3 -->
+<article class="snap-start flex-shrink-0 w-[290px] bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-4 shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute top-0 left-0 right-0 h-1 bg-surface-container">
+<div class="h-full bg-secondary-container w-[65%] rounded-r-full"></div>
+</div>
+<div class="flex items-start gap-3 mt-1">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center flex-shrink-0 border border-secondary/20">
+<span class="text-secondary font-label-sm text-label-sm">DOCX</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-title-md text-title-md text-on-surface truncate">Product_Strategy_Q3.docx</p>
+<div class="flex items-center gap-1.5 text-mono-metadata font-mono-metadata text-outline mt-0.5">
+<span class="">65% scroll</span>
+<span class="">•</span>
+<span class="">Section 4</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container flex items-center justify-between">
+<span class="text-body-sm font-body-sm text-outline">2h ago</span>
+<button class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-base" data-icon="play_arrow">play_arrow</span>
+              Open
+            </button>
+</div>
+</article>
+</div>
+</section>
+<!-- Recent Documents Section -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-sm font-headline-sm text-on-surface">Recent Documents</h2>
+<div class="flex items-center gap-2">
+<button aria-label="Sort Order" class="p-1 rounded-md text-outline hover:text-on-surface">
+<span class="material-symbols-outlined text-lg" data-icon="swap_vert">swap_vert</span>
+</button>
+</div>
+</div>
+<div class="space-y-2.5">
+<!-- Item 1: Excel -->
+<div class="flex items-center justify-between p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/40 hover:border-outline transition-colors group">
+<div class="flex items-center gap-3.5 min-w-0">
+<div class="w-11 h-11 rounded-lg bg-tertiary-fixed/30 flex items-center justify-center flex-shrink-0 border border-tertiary-fixed-dim">
+<span class="text-on-tertiary-container font-label-sm text-label-sm">XLSX</span>
+</div>
+<div class="min-w-0">
+<p class="font-title-md text-title-md text-on-surface truncate">Q3_Operations_Budget.xlsx</p>
+<p class="font-mono-metadata text-mono-metadata text-outline mt-0.5">1.4 MB • Today, 2:15 PM • Excel</p>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Quick options" class="w-9 h-9 flex items-center justify-center rounded-full text-outline hover:text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Item 2: PowerPoint (Favorited) -->
+<div class="flex items-center justify-between p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/40 hover:border-outline transition-colors group">
+<div class="flex items-center gap-3.5 min-w-0">
+<div class="w-11 h-11 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0 border border-amber-200">
+<span class="text-amber-700 font-label-sm text-label-sm">PPTX</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<p class="font-title-md text-title-md text-on-surface truncate">Biology_Lecture_Slides_Week4.pptx</p>
+<span class="material-symbols-outlined text-amber-500 text-sm flex-shrink-0" data-icon="star" data-weight="fill">star</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-outline mt-0.5">8.2 MB • Yesterday • PowerPoint</p>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Quick options" class="w-9 h-9 flex items-center justify-center rounded-full text-outline hover:text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Item 3: PDF -->
+<div class="flex items-center justify-between p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/40 hover:border-outline transition-colors group">
+<div class="flex items-center gap-3.5 min-w-0">
+<div class="w-11 h-11 rounded-lg bg-error-container/30 flex items-center justify-center flex-shrink-0 border border-error/20">
+<span class="text-error font-label-sm text-label-sm">PDF</span>
+</div>
+<div class="min-w-0">
+<p class="font-title-md text-title-md text-on-surface truncate">Employee_Handbook_v2.pdf</p>
+<p class="font-mono-metadata text-mono-metadata text-outline mt-0.5">3.1 MB • Oct 12 • PDF</p>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Quick options" class="w-9 h-9 flex items-center justify-center rounded-full text-outline hover:text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Item 4: TXT -->
+<div class="flex items-center justify-between p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/40 hover:border-outline transition-colors group">
+<div class="flex items-center gap-3.5 min-w-0">
+<div class="w-11 h-11 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 border border-outline-variant/60">
+<span class="text-on-surface-variant font-label-sm text-label-sm">TXT</span>
+</div>
+<div class="min-w-0">
+<p class="font-title-md text-title-md text-on-surface truncate">Server_Configuration_Log.txt</p>
+<p class="font-mono-metadata text-mono-metadata text-outline mt-0.5">42 KB • Oct 10 • Plaintext</p>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Quick options" class="w-9 h-9 flex items-center justify-center rounded-full text-outline hover:text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Quick Scan/Sync Action Indicator -->
+<aside class="fixed bottom-24 right-4 z-40">
+<button aria-label="Quick Import or Scan" class="flex items-center gap-2 h-13 px-4 py-3 rounded-full bg-primary text-on-primary shadow-lg hover:bg-primary-container active:scale-95 transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="sync">sync</span>
+<span class="font-label-lg text-label-lg">Scan Storage</span>
+</button>
+</aside>
+<!-- Bottom Navigation Bar (Shared Components Rule: exact structure and styling) -->
+<nav class="bg-surface-container-lowest dark:bg-primary docked full-width bottom-0 fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-2 pb-safe shadow-md">
+<!-- Home (Active Tab) -->
+<a class="flex flex-col items-center justify-center bg-secondary-fixed/50 dark:bg-secondary-container text-secondary dark:text-on-secondary-container rounded-full px-5 py-1 active:scale-95 transition-transform duration-150" href="#home">
+<span class="material-symbols-outlined text-2xl" data-icon="home" data-weight="fill">home</span>
+<span class="text-label-md font-label-md mt-0.5">Home</span>
+</a>
+<!-- Files -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150" href="#files">
+<span class="material-symbols-outlined text-2xl" data-icon="folder">folder</span>
+<span class="text-label-md font-label-md mt-0.5">Files</span>
+</a>
+<!-- Favorites -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150" href="#favorites">
+<span class="material-symbols-outlined text-2xl" data-icon="star">star</span>
+<span class="text-label-md font-label-md mt-0.5">Favorites</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150" href="#settings">
+<span class="material-symbols-outlined text-2xl" data-icon="settings">settings</span>
+<span class="text-label-md font-label-md mt-0.5">Settings</span>
+</a>
+</nav>
+
+
+</body></html>

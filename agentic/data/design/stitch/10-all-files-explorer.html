@@ -1,0 +1,548 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>OpenReader - All Files</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#002114",
+            "error": "#ba1a1a",
+            "inverse-surface": "#213145",
+            "secondary-fixed-dim": "#b4c5ff",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-bright": "#f8f9ff",
+            "surface": "#f8f9ff",
+            "on-surface": "#0b1c30",
+            "error-container": "#ffdad6",
+            "surface-variant": "#d3e4fe",
+            "on-tertiary-container": "#24a375",
+            "background": "#f8f9ff",
+            "primary": "#091426",
+            "tertiary-fixed-dim": "#68dba9",
+            "on-error-container": "#93000a",
+            "outline": "#75777d",
+            "on-primary-container": "#8590a6",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#00174b",
+            "surface-container-highest": "#d3e4fe",
+            "inverse-primary": "#bcc7de",
+            "secondary-container": "#316bf3",
+            "primary-fixed-dim": "#bcc7de",
+            "on-primary": "#ffffff",
+            "secondary": "#0051d5",
+            "tertiary-container": "#00301f",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary": "#ffffff",
+            "outline-variant": "#c5c6cd",
+            "on-secondary-container": "#fefcff",
+            "primary-fixed": "#d8e3fb",
+            "on-error": "#ffffff",
+            "on-primary-fixed": "#111c2d",
+            "on-primary-fixed-variant": "#3c475a",
+            "on-background": "#0b1c30",
+            "surface-container-high": "#dce9ff",
+            "on-surface-variant": "#45474c",
+            "on-tertiary-fixed-variant": "#005137",
+            "primary-container": "#1e293b",
+            "tertiary": "#00190e",
+            "secondary-fixed": "#dbe1ff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "surface-tint": "#545f73",
+            "surface-container": "#e5eeff",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed": "#85f8c4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            "margin-tablet": "1.5rem",
+            "space-lg": "1rem",
+            "margin": "1rem",
+            "space-sm": "0.5rem",
+            "gutter": "1rem",
+            "gutter-sm": "0.75rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "headline-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-sm": ["Inter"],
+            "mono-metadata": ["JetBrains Mono"],
+            "label-sm": ["Inter"],
+            "label-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-lg-mobile": ["Inter"]
+          },
+          "fontSize": {
+            "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "mono-metadata": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+            "label-lg": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "title-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex justify-center selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- Mobile Canvas Frame (390-440px wide typical Android flagship view) -->
+<div class="w-full max-w-md bg-surface flex flex-col min-h-screen relative shadow-2xl pb-24">
+<!-- Top App Bar (Shared Components Blueprint: 64dp Android Standard) -->
+<header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-md px-margin h-16 flex items-center justify-between border-b border-outline-variant/30 transition-colors">
+<div class="flex items-center gap-space-md">
+<button aria-label="Open navigation drawer" class="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container-high active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[24px]">menu</span>
+</button>
+<div class="flex items-center gap-space-xs">
+<h1 class="text-headline-md font-headline-md text-on-surface font-bold tracking-tight">All Files</h1>
+<span class="inline-flex items-center text-on-tertiary-container bg-tertiary-fixed/40 px-1.5 py-0.5 rounded text-[10px] font-mono-metadata tracking-wider font-semibold ml-1">
+            LOCAL
+          </span>
+</div>
+</div>
+<!-- Action Cluster -->
+<div class="flex items-center gap-1 text-on-surface-variant">
+<button aria-label="Search" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-high active:scale-95 transition-transform" title="Search documents">
+<span class="material-symbols-outlined text-[22px]">search</span>
+</button>
+<button aria-label="Folder view" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-high active:scale-95 transition-transform" title="Switch to Folder View">
+<span class="material-symbols-outlined text-[22px]">folder_open</span>
+</button>
+<button aria-label="Sort" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-high active:scale-95 transition-transform" title="Sort options">
+<span class="material-symbols-outlined text-[22px]">sort</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col px-margin pt-space-md gap-space-md">
+<!-- Format Filter Tabs (Horizontal Scrollable Pills) -->
+<nav aria-label="File format filters" class="flex items-center gap-2 overflow-x-auto custom-scrollbar -mx-margin px-margin py-0.5">
+<button class="h-9 px-4 rounded-full bg-primary text-on-primary text-label-md font-label-md flex items-center gap-1.5 shadow-sm shrink-0 active:scale-95 transition-all">
+<span>All</span>
+<span class="bg-primary-container text-on-primary-container text-label-sm font-label-sm px-1.5 py-0.2 rounded-full">48</span>
+</button>
+<button class="h-9 px-3.5 rounded-full bg-surface-container-low text-on-surface-variant text-label-md font-label-md flex items-center gap-1.5 hover:bg-surface-container-high shrink-0 active:scale-95 transition-all">
+<span>PDF</span>
+<span class="bg-surface-container text-on-surface-variant text-label-sm font-label-sm px-1.5 py-0.2 rounded-full">19</span>
+</button>
+<button class="h-9 px-3.5 rounded-full bg-surface-container-low text-on-surface-variant text-label-md font-label-md flex items-center gap-1.5 hover:bg-surface-container-high shrink-0 active:scale-95 transition-all">
+<span>Word</span>
+<span class="bg-surface-container text-on-surface-variant text-label-sm font-label-sm px-1.5 py-0.2 rounded-full">12</span>
+</button>
+<button class="h-9 px-3.5 rounded-full bg-surface-container-low text-on-surface-variant text-label-md font-label-md flex items-center gap-1.5 hover:bg-surface-container-high shrink-0 active:scale-95 transition-all">
+<span>Excel</span>
+<span class="bg-surface-container text-on-surface-variant text-label-sm font-label-sm px-1.5 py-0.2 rounded-full">8</span>
+</button>
+<button class="h-9 px-3.5 rounded-full bg-surface-container-low text-on-surface-variant text-label-md font-label-md flex items-center gap-1.5 hover:bg-surface-container-high shrink-0 active:scale-95 transition-all">
+<span>PPT</span>
+<span class="bg-surface-container text-on-surface-variant text-label-sm font-label-sm px-1.5 py-0.2 rounded-full">5</span>
+</button>
+<button class="h-9 px-3.5 rounded-full bg-surface-container-low text-on-surface-variant text-label-md font-label-md flex items-center gap-1.5 hover:bg-surface-container-high shrink-0 active:scale-95 transition-all">
+<span>Text/CSV</span>
+<span class="bg-surface-container text-on-surface-variant text-label-sm font-label-sm px-1.5 py-0.2 rounded-full">4</span>
+</button>
+</nav>
+<!-- Storage & Privacy Summary Micro-Banner -->
+<section class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-3 flex items-center justify-between shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+</div>
+<div>
+<div class="text-title-md font-title-md text-on-surface text-[13px] font-semibold leading-tight">
+              48 documents in Local Storage
+            </div>
+<div class="text-body-sm font-body-sm text-on-surface-variant text-[11px] font-mono-metadata tracking-tight">
+              124.6 MB total • Zero network sync
+            </div>
+</div>
+</div>
+<span class="inline-flex items-center text-on-tertiary-container text-[11px] font-mono-metadata font-medium bg-tertiary-fixed/30 px-2 py-0.5 rounded-full">
+          Sandboxed
+        </span>
+</section>
+<!-- Sort & View Controls Sub-Bar -->
+<div class="flex items-center justify-between pt-1 pb-1">
+<div class="flex items-center gap-1.5">
+<button class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface text-label-md font-label-md hover:bg-surface-container-high active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[16px]">swap_vert</span>
+<span>Date modified ↓</span>
+</button>
+<span class="text-body-sm font-body-sm text-outline text-[12px]">Newest first</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<button aria-label="List view" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-high active:scale-95 text-secondary" title="List View Active">
+<span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+</button>
+<button aria-label="Grid view" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-high active:scale-95" title="Grid View">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</button>
+<button aria-label="Multi-select" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-container-high active:scale-95" title="Select multiple">
+<span class="material-symbols-outlined text-[20px]">checklist</span>
+</button>
+</div>
+</div>
+<!-- File Explorer List (6 Rich Items specified in prompt) -->
+<div class="flex flex-col gap-2.5">
+<!-- Item 1: PPTX Board Deck (Favorited) -->
+<article class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-3 flex items-center justify-between hover:border-secondary transition-colors cursor-pointer active:scale-[0.99] group shadow-[0_1px_3px_rgba(15,23,42,0.03)]" onclick="openModal()">
+<div class="flex items-center gap-3 min-w-0">
+<!-- Format Badge: PPTX Amber -->
+<div class="w-11 h-11 rounded-lg bg-amber-50 border border-amber-200 flex flex-col items-center justify-center shrink-0">
+<span class="text-[10px] font-bold text-amber-700 font-mono-metadata tracking-wider">PPTX</span>
+<span class="material-symbols-outlined text-[16px] text-amber-600 -mt-0.5">slideshow</span>
+</div>
+<!-- Metadata -->
+<div class="min-w-0">
+<div class="text-title-md font-title-md text-on-surface truncate font-semibold group-hover:text-secondary transition-colors">
+                Q4_Board_Deck_Final.pptx
+              </div>
+<div class="flex items-center gap-1.5 text-body-sm font-body-sm text-on-surface-variant font-mono-metadata text-[11px] mt-0.5">
+<span>14.8 MB</span>
+<span>•</span>
+<span>24 slides</span>
+<span>•</span>
+<span>1h ago</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center gap-1 shrink-0 ml-2">
+<button aria-label="Favorited" class="w-8 h-8 rounded-full flex items-center justify-center text-amber-500 hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="File options" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</article>
+<!-- Item 2: PDF Contract (Secure Lock) -->
+<article class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-3 flex items-center justify-between hover:border-secondary transition-colors cursor-pointer active:scale-[0.99] group shadow-[0_1px_3px_rgba(15,23,42,0.03)]" onclick="openModal()">
+<div class="flex items-center gap-3 min-w-0">
+<!-- Format Badge: PDF Red -->
+<div class="w-11 h-11 rounded-lg bg-red-50 border border-red-200 flex flex-col items-center justify-center shrink-0">
+<span class="text-[10px] font-bold text-red-700 font-mono-metadata tracking-wider">PDF</span>
+<span class="material-symbols-outlined text-[16px] text-red-600 -mt-0.5">picture_as_pdf</span>
+</div>
+<!-- Metadata -->
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="text-title-md font-title-md text-on-surface truncate font-semibold group-hover:text-secondary transition-colors">
+                  Client_Contract_Signed.pdf
+                </span>
+<span class="material-symbols-outlined text-[14px] text-on-tertiary-container shrink-0" title="Locally sandboxed and encrypted">lock</span>
+</div>
+<div class="flex items-center gap-1.5 text-body-sm font-body-sm text-on-surface-variant font-mono-metadata text-[11px] mt-0.5">
+<span>2.8 MB</span>
+<span>•</span>
+<span>8 pages</span>
+<span>•</span>
+<span>Yesterday</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center gap-1 shrink-0 ml-2">
+<button aria-label="Add to favorites" class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-amber-500 hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">star</span>
+</button>
+<button aria-label="File options" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</article>
+<!-- Item 3: Excel Audit -->
+<article class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-3 flex items-center justify-between hover:border-secondary transition-colors cursor-pointer active:scale-[0.99] group shadow-[0_1px_3px_rgba(15,23,42,0.03)]" onclick="openModal()">
+<div class="flex items-center gap-3 min-w-0">
+<!-- Format Badge: XLSX Green -->
+<div class="w-11 h-11 rounded-lg bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center shrink-0">
+<span class="text-[10px] font-bold text-emerald-700 font-mono-metadata tracking-wider">XLSX</span>
+<span class="material-symbols-outlined text-[16px] text-emerald-600 -mt-0.5">table_chart</span>
+</div>
+<!-- Metadata -->
+<div class="min-w-0">
+<div class="text-title-md font-title-md text-on-surface truncate font-semibold group-hover:text-secondary transition-colors">
+                Inventory_Audit_Oct.xlsx
+              </div>
+<div class="flex items-center gap-1.5 text-body-sm font-body-sm text-on-surface-variant font-mono-metadata text-[11px] mt-0.5">
+<span>4.1 MB</span>
+<span>•</span>
+<span>6 sheets</span>
+<span>•</span>
+<span>Oct 14</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center gap-1 shrink-0 ml-2">
+<button aria-label="Add to favorites" class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-amber-500 hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">star</span>
+</button>
+<button aria-label="File options" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</article>
+<!-- Item 4: Word Architecture Notes -->
+<article class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-3 flex items-center justify-between hover:border-secondary transition-colors cursor-pointer active:scale-[0.99] group shadow-[0_1px_3px_rgba(15,23,42,0.03)]" onclick="openModal()">
+<div class="flex items-center gap-3 min-w-0">
+<!-- Format Badge: DOCX Blue -->
+<div class="w-11 h-11 rounded-lg bg-blue-50 border border-blue-200 flex flex-col items-center justify-center shrink-0">
+<span class="text-[10px] font-bold text-blue-700 font-mono-metadata tracking-wider">DOCX</span>
+<span class="material-symbols-outlined text-[16px] text-blue-600 -mt-0.5">description</span>
+</div>
+<!-- Metadata -->
+<div class="min-w-0">
+<div class="text-title-md font-title-md text-on-surface truncate font-semibold group-hover:text-secondary transition-colors">
+                Meeting_Notes_Architecture.docx
+              </div>
+<div class="flex items-center gap-1.5 text-body-sm font-body-sm text-on-surface-variant font-mono-metadata text-[11px] mt-0.5">
+<span>840 KB</span>
+<span>•</span>
+<span>Oct 12</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center gap-1 shrink-0 ml-2">
+<button aria-label="Add to favorites" class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-amber-500 hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">star</span>
+</button>
+<button aria-label="File options" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</article>
+<!-- Item 5: CSV Export -->
+<article class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-3 flex items-center justify-between hover:border-secondary transition-colors cursor-pointer active:scale-[0.99] group shadow-[0_1px_3px_rgba(15,23,42,0.03)]" onclick="openModal()">
+<div class="flex items-center gap-3 min-w-0">
+<!-- Format Badge: CSV Teal -->
+<div class="w-11 h-11 rounded-lg bg-teal-50 border border-teal-200 flex flex-col items-center justify-center shrink-0">
+<span class="text-[10px] font-bold text-teal-700 font-mono-metadata tracking-wider">CSV</span>
+<span class="material-symbols-outlined text-[16px] text-teal-600 -mt-0.5">dataset</span>
+</div>
+<!-- Metadata -->
+<div class="min-w-0">
+<div class="text-title-md font-title-md text-on-surface truncate font-semibold group-hover:text-secondary transition-colors">
+                Transactions_Export_2025.csv
+              </div>
+<div class="flex items-center gap-1.5 text-body-sm font-body-sm text-on-surface-variant font-mono-metadata text-[11px] mt-0.5">
+<span>3.2 MB</span>
+<span>•</span>
+<span>12,400 rows</span>
+<span>•</span>
+<span>Oct 9</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center gap-1 shrink-0 ml-2">
+<button aria-label="Add to favorites" class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-amber-500 hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">star</span>
+</button>
+<button aria-label="File options" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</article>
+<!-- Item 6: TXT Log -->
+<article class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-3 flex items-center justify-between hover:border-secondary transition-colors cursor-pointer active:scale-[0.99] group shadow-[0_1px_3px_rgba(15,23,42,0.03)]" onclick="openModal()">
+<div class="flex items-center gap-3 min-w-0">
+<!-- Format Badge: TXT Slate -->
+<div class="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center shrink-0">
+<span class="text-[10px] font-bold text-slate-700 font-mono-metadata tracking-wider">TXT</span>
+<span class="material-symbols-outlined text-[16px] text-slate-600 -mt-0.5">article</span>
+</div>
+<!-- Metadata -->
+<div class="min-w-0">
+<div class="text-title-md font-title-md text-on-surface truncate font-semibold group-hover:text-secondary transition-colors">
+                app_debug_log.txt
+              </div>
+<div class="flex items-center gap-1.5 text-body-sm font-body-sm text-on-surface-variant font-mono-metadata text-[11px] mt-0.5">
+<span>180 KB</span>
+<span>•</span>
+<span>Oct 8</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center gap-1 shrink-0 ml-2">
+<button aria-label="Add to favorites" class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-amber-500 hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">star</span>
+</button>
+<button aria-label="File options" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</article>
+</div>
+</main>
+<!-- Bottom Action Sheet Modal Preview (Context Actions for Selected File) -->
+<div class="fixed inset-0 bg-primary/40 backdrop-blur-sm z-50 flex flex-col justify-end transition-opacity duration-200" id="file-modal-backdrop" onclick="closeModal(event)">
+<div class="bg-surface-container-lowest rounded-t-3xl border-t border-outline-variant/30 shadow-[0_16px_32px_-8px_rgba(15,23,42,0.14)] p-space-lg pb-8 flex flex-col max-w-md w-full mx-auto transform transition-transform duration-300" id="file-modal-sheet" onclick="event.stopPropagation()">
+<!-- Sheet Drag Handle -->
+<div class="w-10 h-1 bg-outline-variant/60 rounded-full mx-auto mb-4 cursor-pointer" onclick="closeModal()"></div>
+<!-- Selected Document Header in Sheet -->
+<div class="flex items-center gap-3 pb-3 border-b border-outline-variant/30 mb-2">
+<div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex flex-col items-center justify-center shrink-0">
+<span class="text-[11px] font-bold text-amber-700 font-mono-metadata tracking-wider">PPTX</span>
+<span class="material-symbols-outlined text-[18px] text-amber-600 -mt-0.5">slideshow</span>
+</div>
+<div class="min-w-0 flex-1">
+<h2 class="text-title-md font-title-md text-on-surface truncate font-bold">Q4_Board_Deck_Final.pptx</h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant font-mono-metadata text-[11px]">14.8 MB • 24 slides • Modified 1h ago</p>
+</div>
+<button aria-label="Close sheet" class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:bg-surface-container active:scale-90" onclick="closeModal()">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Action Commands List -->
+<div class="flex flex-col py-1">
+<!-- Action 1: Open in Reader (Primary) -->
+<button class="flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-surface-container active:bg-secondary-fixed/50 text-left group transition-colors">
+<div class="w-9 h-9 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[20px]">menu_book</span>
+</div>
+<div class="flex-1">
+<span class="text-title-md font-title-md text-on-surface font-semibold block">Open in Reader</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[11px] block">View offline with instant page-cache</span>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">chevron_right</span>
+</button>
+<!-- Action 2: Add to Favorites -->
+<button class="flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-surface-container active:bg-secondary-fixed/50 text-left group transition-colors">
+<div class="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<div class="flex-1">
+<span class="text-title-md font-title-md text-on-surface font-semibold block">Add to Favorites</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[11px] block">Pin to quick-access library drawer</span>
+</div>
+</button>
+<!-- Action 3: Share File -->
+<button class="flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-surface-container active:bg-secondary-fixed/50 text-left group transition-colors">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</div>
+<div class="flex-1">
+<span class="text-title-md font-title-md text-on-surface font-semibold block">Share File</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[11px] block">Send file copy via Android sharesheet</span>
+</div>
+</button>
+<!-- Action 4: File Information -->
+<button class="flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-surface-container active:bg-secondary-fixed/50 text-left group transition-colors">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</div>
+<div class="flex-1">
+<span class="text-title-md font-title-md text-on-surface font-semibold block">File Information</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[11px] block">Checksum, sandbox location, permissions</span>
+</div>
+</button>
+<!-- Action 5: Open With (External App) -->
+<button class="flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-surface-container active:bg-secondary-fixed/50 text-left group transition-colors">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</div>
+<div class="flex-1">
+<span class="text-title-md font-title-md text-on-surface font-semibold block">Open With (External App)</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[11px] block">Delegate to Office or system handler</span>
+</div>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Bar (Shared Components Blueprint with 'Files' Active) -->
+<!-- Shell Border Ban: no border-t/border-b, using background shift & subtle shadow as required -->
+<nav class="fixed bottom-0 left-0 w-full z-40 flex justify-center pointer-events-none">
+<div class="w-full max-w-md bg-surface-container-lowest/95 backdrop-blur-md flex justify-around items-center h-20 px-2 pb-safe pointer-events-auto shadow-[0_-4px_16px_rgba(15,23,42,0.06)]">
+<!-- Destination 1: Home -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-2xl px-4 py-1.5 active:scale-95 transition-transform" href="#home">
+<span class="material-symbols-outlined text-[22px]">home</span>
+<span class="text-label-md font-label-md mt-1">Home</span>
+</a>
+<!-- Destination 2: Files (ACTIVE STATE MANDATE) -->
+<a class="flex flex-col items-center justify-center bg-secondary-fixed/50 text-secondary rounded-full px-5 py-1.5 active:scale-95 transition-transform font-semibold" href="#files">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">folder</span>
+<span class="text-label-md font-label-md mt-0.5">Files</span>
+</a>
+<!-- Destination 3: Favorites -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-2xl px-4 py-1.5 active:scale-95 transition-transform" href="#favorites">
+<span class="material-symbols-outlined text-[22px]">star</span>
+<span class="text-label-md font-label-md mt-1">Favorites</span>
+</a>
+<!-- Destination 4: Settings -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-2xl px-4 py-1.5 active:scale-95 transition-transform" href="#settings">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<span class="text-label-md font-label-md mt-1">Settings</span>
+</a>
+</div>
+</nav>
+</div>
+<!-- Interactive script for Sheet Toggle Demo -->
+<script>
+    const modalBackdrop = document.getElementById('file-modal-backdrop');
+    
+    function openModal() {
+      modalBackdrop.classList.remove('hidden');
+      modalBackdrop.classList.add('flex');
+    }
+
+    function closeModal(e) {
+      if (e) e.stopPropagation();
+      modalBackdrop.classList.add('hidden');
+      modalBackdrop.classList.remove('flex');
+    }
+
+    // Initialize with modal visible to fulfill prompt preview criteria
+    document.addEventListener('DOMContentLoaded', () => {
+      // Keep modal in natural state ready to be triggered, or open by default
+      // User requested "Bottom action sheet modal preview trigger showing context actions..."
+    });
+  </script>
+</body></html>
