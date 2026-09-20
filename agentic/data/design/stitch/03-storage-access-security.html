@@ -1,0 +1,369 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>OpenReader - Storage Access &amp; Security</title>
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS via CDN with form plugin -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#002114",
+            "error": "#ba1a1a",
+            "inverse-surface": "#213145",
+            "secondary-fixed-dim": "#b4c5ff",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-bright": "#f8f9ff",
+            "surface": "#f8f9ff",
+            "on-surface": "#0b1c30",
+            "error-container": "#ffdad6",
+            "surface-variant": "#d3e4fe",
+            "on-tertiary-container": "#24a375",
+            "background": "#f8f9ff",
+            "primary": "#091426",
+            "tertiary-fixed-dim": "#68dba9",
+            "on-error-container": "#93000a",
+            "outline": "#75777d",
+            "on-primary-container": "#8590a6",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#00174b",
+            "surface-container-highest": "#d3e4fe",
+            "inverse-primary": "#bcc7de",
+            "secondary-container": "#316bf3",
+            "primary-fixed-dim": "#bcc7de",
+            "on-primary": "#ffffff",
+            "secondary": "#0051d5",
+            "tertiary-container": "#00301f",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary": "#ffffff",
+            "outline-variant": "#c5c6cd",
+            "on-secondary-container": "#fefcff",
+            "primary-fixed": "#d8e3fb",
+            "on-error": "#ffffff",
+            "on-primary-fixed": "#111c2d",
+            "on-primary-fixed-variant": "#3c475a",
+            "on-background": "#0b1c30",
+            "surface-container-high": "#dce9ff",
+            "on-surface-variant": "#45474c",
+            "on-tertiary-fixed-variant": "#005137",
+            "primary-container": "#1e293b",
+            "tertiary": "#00190e",
+            "secondary-fixed": "#dbe1ff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "surface-tint": "#545f73",
+            "surface-container": "#e5eeff",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed": "#85f8c4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            "margin-tablet": "1.5rem",
+            "space-lg": "1rem",
+            "margin": "1rem",
+            "space-sm": "0.5rem",
+            "gutter": "1rem",
+            "gutter-sm": "0.75rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "headline-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-sm": ["Inter"],
+            "mono-metadata": ["JetBrains Mono"],
+            "label-sm": ["Inter"],
+            "label-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-lg-mobile": ["Inter"]
+          },
+          "fontSize": {
+            "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "mono-metadata": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+            "label-lg": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "title-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-md text-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- Top App Bar (Shared Component Contract strictly aligned, Navigation Shell suppressed on onboarding per Shell Relevance Filter) -->
+<header class="bg-surface text-primary border-b border-outline-variant/30 flex justify-between items-center h-16 w-full px-4 max-w-full sticky top-0 z-40 bg-surface/90 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<button aria-label="Navigation Menu" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high text-on-surface active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[24px]">menu</span>
+</button>
+<span class="text-headline-md font-headline-md font-bold text-on-surface tracking-tight">OpenReader</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-low border border-outline-variant/40">
+<span class="material-symbols-outlined text-[16px] text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface font-medium">100% OFFLINE</span>
+</div>
+<button aria-label="Search" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high text-on-surface active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[22px]">search</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col items-center justify-center">
+<!-- Bento Grid Container for Onboarding & Security Demonstration -->
+<div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- Left Column: Core Privacy Onboarding & Value Proposition (7 cols) -->
+<section class="lg:col-span-7 bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-6 md:p-8 flex flex-col justify-between relative overflow-hidden">
+<!-- Background Architectural Accent -->
+<div class="absolute -right-16 -top-16 w-64 h-64 bg-surface-container-high/40 rounded-full blur-3xl pointer-events-none"></div>
+<div>
+<!-- Local Security Shield Badge -->
+<div class="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/30 mb-6">
+<span class="material-symbols-outlined text-secondary text-[20px]" style="font-variation-settings: 'FILL' 1;">security</span>
+<span class="font-label-md text-label-md text-secondary">Zero-Telemetry Sandboxed Engine</span>
+</div>
+<!-- Hero Graphic Illustration: Local Device Shield -->
+<div class="w-full flex justify-center my-4 py-4">
+<div class="relative flex items-center justify-center">
+<!-- Outer concentric rings -->
+<div class="w-32 h-32 rounded-full border border-secondary/20 flex items-center justify-center bg-secondary-fixed/20 animate-pulse">
+<div class="w-24 h-24 rounded-full border border-secondary/30 flex items-center justify-center bg-surface-container-lowest shadow-sm">
+<div class="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center text-on-secondary shadow-md transform rotate-3 hover:rotate-0 transition-transform duration-300">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+</div>
+</div>
+<!-- Floating satellite nodes signifying device-locked data -->
+<div class="absolute -top-1 -right-2 bg-surface-container-lowest border border-outline-variant/50 px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-secondary text-[14px]">lock</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface">LOCAL_ONLY</span>
+</div>
+<div class="absolute -bottom-2 -left-2 bg-surface-container-lowest border border-outline-variant/50 px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-error text-[14px]">cloud_off</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface">NO_CLOUD</span>
+</div>
+</div>
+</div>
+<!-- Headline & Subtitle -->
+<div class="text-center md:text-left mt-2">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface font-bold tracking-tight">
+              Your Documents, Completely Private &amp; Offline
+            </h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-3 leading-relaxed">
+              OpenReader scans and renders documents stored locally on your Android device. No accounts, zero analytics, and no internet access required.
+            </p>
+</div>
+<!-- Value Prop Checklist Cards -->
+<div class="mt-6 space-y-3">
+<div class="flex items-start gap-3.5 p-3.5 rounded-lg bg-surface-container-low border border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-secondary-fixed flex items-center justify-center flex-shrink-0 mt-0.5 text-secondary">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+<div>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold">Scoped Storage Access</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Only reads files in folders you choose via Android system picker.</p>
+</div>
+</div>
+<div class="flex items-start gap-3.5 p-3.5 rounded-lg bg-surface-container-low border border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-secondary-fixed flex items-center justify-center flex-shrink-0 mt-0.5 text-secondary">
+<span class="material-symbols-outlined text-red text-[16px] font-bold">check</span>
+</div>
+<div>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold">Zero Cloud Sync</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Documents never leave this device. Network permissions are blocked in manifest.</p>
+</div>
+</div>
+<div class="flex items-start gap-3.5 p-3.5 rounded-lg bg-surface-container-low border border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-secondary-fixed flex items-center justify-center flex-shrink-0 mt-0.5 text-secondary">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+<div>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold">Multi-Format Engine</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Blazing fast offline PDF, Office, and text readers compiled directly for ARM/x86.</p>
+</div>
+</div>
+</div>
+<!-- Supported Format Pills Row -->
+<div class="mt-6 pt-5 border-t border-outline-variant/20">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider block mb-2.5">Native Decoders Built-In</span>
+<div class="flex flex-wrap gap-2">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-high rounded-md border border-outline-variant/30">
+<span class="font-mono-metadata text-mono-metadata font-bold text-error">PDF</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-high rounded-md border border-outline-variant/30">
+<span class="font-mono-metadata text-mono-metadata font-bold text-secondary">DOCX</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-high rounded-md border border-outline-variant/30">
+<span class="font-mono-metadata text-mono-metadata font-bold text-on-tertiary-container">XLSX</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-high rounded-md border border-outline-variant/30">
+<span class="font-mono-metadata text-mono-metadata font-bold text-secondary-container">PPTX</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-high rounded-md border border-outline-variant/30">
+<span class="font-mono-metadata text-mono-metadata font-bold text-on-surface-variant">TXT</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-high rounded-md border border-outline-variant/30">
+<span class="font-mono-metadata text-mono-metadata font-bold text-outline">CSV</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Trigger Buttons -->
+<div class="mt-8 pt-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+<button class="flex-1 bg-secondary hover:bg-secondary/90 active:scale-[0.98] text-on-secondary font-label-lg text-label-lg py-3.5 px-6 rounded-lg shadow-sm flex items-center justify-center gap-2 transition duration-150" type="button">
+<span class="material-symbols-outlined text-[20px]">folder_open</span>
+<span>Grant Local Storage Access</span>
+</button>
+<button class="bg-surface-container-low hover:bg-surface-container-high active:scale-[0.98] text-on-surface font-label-lg text-label-lg py-3.5 px-5 rounded-lg border border-outline-variant/40 flex items-center justify-center gap-2 transition duration-150" type="button">
+<span>Select Specific Folder Only</span>
+</button>
+</div>
+</section>
+<!-- Right Column: Interactive Demonstration / Inset Security Modal Overlay (5 cols) -->
+<section class="lg:col-span-5 flex flex-col gap-4">
+<!-- Contextual Header for the Inset Card -->
+<div class="px-1 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]">verified</span>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Security Verification Dialog</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant">SECURE_ENCLAVE</span>
+</div>
+<!-- Inset Overlay / Dialog Card showing Android Scoped Storage & Protected Doc Unlock -->
+<div class="bg-surface-container-lowest border border-outline-variant/40 rounded-xl p-6 shadow-sm relative">
+<!-- Android Dialog Header -->
+<div class="flex items-start gap-3.5 pb-4 border-b border-outline-variant/30">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high border border-outline-variant/40 flex items-center justify-center flex-shrink-0 text-primary">
+<span class="material-symbols-outlined text-[22px]">key</span>
+</div>
+<div class="flex-1 min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold truncate">Password Protected Document</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Hardware-accelerated AES decryption</p>
+</div>
+</div>
+<!-- Document Target Metadata Strip -->
+<div class="mt-4 p-3 rounded-lg bg-surface-container-low border border-outline-variant/30 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-error-container/40 border border-error/20 flex flex-col items-center justify-center flex-shrink-0">
+<span class="font-mono-metadata text-mono-metadata text-error font-bold leading-none">PDF</span>
+</div>
+<div class="flex-1 min-w-0">
+<span class="font-title-md text-title-md text-on-surface block truncate font-medium">Confidential_Tax_Return_2024.pdf</span>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant">3.8 MB</span>
+<span class="text-on-surface-variant">•</span>
+<span class="font-mono-metadata text-mono-metadata text-on-tertiary-container flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">lock</span> Encrypted
+                </span>
+</div>
+</div>
+</div>
+<!-- Password Form Field -->
+<div class="mt-5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold mb-1.5" for="doc-password">
+              Enter Document Password
+            </label>
+<div class="relative flex items-center">
+<input class="w-full h-12 px-3.5 pr-11 rounded-lg bg-surface-container-low border border-outline-variant/40 focus:border-secondary focus:bg-surface-container-lowest focus:ring-0 font-body-md text-body-md text-on-surface transition duration-150" id="doc-password" placeholder="Password" type="password" value="••••••••••••">
+<button aria-label="Toggle password visibility" class="absolute right-2.5 w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition" id="toggle-pwd-btn" type="button">
+<span class="material-symbols-outlined text-[20px]" id="pwd-icon">visibility</span>
+</button>
+</div>
+<!-- Helper Note with memory-only badge -->
+<div class="flex items-center gap-1.5 mt-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-[16px]">memory</span>
+<span class="font-body-sm text-body-sm">Decryption happens in local device memory only.</span>
+</div>
+</div>
+<!-- Sandbox Execution Parameters -->
+<div class="mt-5 p-3 rounded-lg bg-surface-container-high/40 border border-outline-variant/20 space-y-1.5">
+<div class="flex justify-between items-center text-on-surface-variant font-mono-metadata text-mono-metadata">
+<span>Cipher:</span>
+<span class="text-on-surface font-semibold">AES-256-CBC</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant font-mono-metadata text-mono-metadata">
+<span>Key Derivation:</span>
+<span class="text-on-surface font-semibold">PBKDF2 (100,000 iter)</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant font-mono-metadata text-mono-metadata">
+<span>Network Access:</span>
+<span class="text-error font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">block</span> Disabled
+              </span>
+</div>
+</div>
+<!-- Dialog Actions (Android Material 3 standards) -->
+<div class="mt-6 pt-4 border-t border-outline-variant/30 flex items-center justify-end gap-2">
+<button class="px-4 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-high active:scale-95 transition font-label-lg text-label-lg" type="button">
+              Cancel
+            </button>
+<button class="px-5 py-2.5 rounded-lg bg-secondary text-on-secondary hover:bg-secondary/90 active:scale-95 transition font-label-lg text-label-lg shadow-sm flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px]">lock_open</span>
+<span>Unlock &amp; Read</span>
+</button>
+</div>
+</div>
+<!-- Privacy Assurance Footnote -->
+<div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-[20px] mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Passwords and decrypted contents are purged from RAM immediately upon closing the document viewer or backgrounding OpenReader.
+          </p>
+</div>
+</section>
+</div>
+</main>
+<!-- Interactive script for password toggle and micro-actions -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleBtn = document.getElementById('toggle-pwd-btn');
+      const pwdInput = document.getElementById('doc-password');
+      const pwdIcon = document.getElementById('pwd-icon');
+
+      if (toggleBtn && pwdInput && pwdIcon) {
+        toggleBtn.addEventListener('click', () => {
+          if (pwdInput.type === 'password') {
+            pwdInput.type = 'text';
+            pwdIcon.textContent = 'visibility_off';
+          } else {
+            pwdInput.type = 'password';
+            pwdIcon.textContent = 'visibility';
+          }
+        });
+      }
+    });
+  </script>
+</body></html>

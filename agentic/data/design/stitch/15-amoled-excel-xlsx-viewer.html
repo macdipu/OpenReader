@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>OpenReader AMOLED - Excel Matrix Viewer</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#004c69",
+            "surface-bright": "#353943",
+            "on-primary-fixed": "#001e2c",
+            "tertiary-fixed": "#68fcbf",
+            "on-background": "#dfe2ef",
+            "surface-tint": "#7bd0ff",
+            "surface": "#0f131c",
+            "surface-dim": "#0f131c",
+            "surface-container": "#1c1f29",
+            "primary-fixed-dim": "#7bd0ff",
+            "secondary-fixed-dim": "#bdc2ff",
+            "on-tertiary": "#003825",
+            "secondary-container": "#2f3aa3",
+            "primary": "#8ed5ff",
+            "outline": "#87929a",
+            "tertiary-fixed-dim": "#45dfa4",
+            "error-container": "#93000a",
+            "on-surface-variant": "#bdc8d1",
+            "on-tertiary-fixed": "#002114",
+            "on-secondary-container": "#a8afff",
+            "on-error": "#690005",
+            "primary-container": "#38bdf8",
+            "surface-variant": "#31353f",
+            "error": "#ffb4ab",
+            "surface-container-highest": "#31353f",
+            "on-primary": "#00354a",
+            "on-secondary": "#131e8c",
+            "primary-fixed": "#c4e7ff",
+            "secondary": "#bdc2ff",
+            "tertiary": "#4ee6aa",
+            "on-tertiary-container": "#004e35",
+            "tertiary-container": "#22c990",
+            "on-surface": "#dfe2ef",
+            "surface-container-lowest": "#0a0e17",
+            "on-error-container": "#ffdad6",
+            "background": "#0f131c",
+            "inverse-surface": "#dfe2ef",
+            "surface-container-high": "#262a34",
+            "inverse-primary": "#00668a",
+            "secondary-fixed": "#e0e0ff",
+            "on-primary-container": "#004965",
+            "inverse-on-surface": "#2c303a",
+            "surface-container-low": "#181b25",
+            "outline-variant": "#3e484f",
+            "on-secondary-fixed-variant": "#2f3aa3",
+            "on-secondary-fixed": "#000767",
+            "on-tertiary-fixed-variant": "#005137"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "margin-mobile": "1rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "gutter-mobile": "0.75rem",
+            "gutter": "1.25rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Space Grotesk"],
+            "body-lg": ["Inter"],
+            "headline-sm": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "label-md": ["JetBrains Mono"],
+            "display-lg": ["Space Grotesk"],
+            "body-sm": ["Inter"],
+            "body-md": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "headline-lg": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-lg": ["1.125rem", { "lineHeight": "1.875rem", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "headline-sm": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "500" }],
+            "headline-md": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "label-md": ["0.8125rem", { "lineHeight": "1.25rem", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "display-lg": ["3.5rem", { "lineHeight": "4rem", "letterSpacing": "-0.03em", "fontWeight": "700" }],
+            "body-sm": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }],
+            "body-md": ["1rem", { "lineHeight": "1.65rem", "fontWeight": "400" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "1rem", "letterSpacing": "0.05em", "fontWeight": "500" }],
+            "headline-lg": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.02em", "fontWeight": "600" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #000000;
+      color: #dfe2ef;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .cell-glow {
+      box-shadow: 0 0 16px -2px rgba(78, 230, 170, 0.4), inset 0 0 8px 0 rgba(78, 230, 170, 0.15);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black text-on-surface flex flex-col h-screen overflow-hidden select-none">
+<!-- Top Status Bar Simulation for Android Workstation feel -->
+<div class="h-6 w-full bg-black flex items-center justify-between px-space-md text-on-surface-variant font-label-sm text-label-sm border-b border-outline-variant/30 shrink-0 z-50">
+<div class="flex items-center gap-1 font-label-md text-label-md tracking-wider">
+<span>09:41</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-tertiary font-medium">AMOLED HDR</span>
+<span class="material-symbols-outlined text-[14px]">wifi</span>
+<span class="material-symbols-outlined text-[14px]">battery_charging_full</span>
+</div>
+</div>
+<!-- Shared Component TopAppBar (Mapped from JSON Blueprint) -->
+<header class="fixed top-6 left-0 w-full z-40 flex items-center justify-between px-space-md h-14 bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant">
+<!-- Leading Control & File Identity -->
+<div class="flex items-center gap-space-sm min-w-0 flex-1 mr-2">
+<button aria-label="Go back" class="p-1 rounded text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors duration-150 active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<div class="flex items-center gap-2 min-w-0">
+<!-- Excel emerald green badge -->
+<span class="h-[22px] px-2 flex items-center justify-center font-label-sm text-label-sm font-semibold rounded bg-tertiary/10 border border-tertiary/30 text-tertiary tracking-wide shrink-0">
+          XLSX
+        </span>
+<h1 class="font-headline-sm text-headline-sm font-semibold text-on-surface truncate tracking-tight text-[15px] leading-tight">
+          Q3_Global_Financial_Model.xlsx
+        </h1>
+</div>
+</div>
+<!-- Trailing Actions Cluster -->
+<div class="flex items-center gap-space-xs shrink-0">
+<button class="w-9 h-9 flex items-center justify-center rounded text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors duration-150 active:scale-95" title="Find in cells">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors duration-150 active:scale-95" title="Filter matrix">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors duration-150 active:scale-95" title="Export spreadsheet">
+<span class="material-symbols-outlined text-[20px]">ios_share</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors duration-150 active:scale-95" title="More options">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Formula & Active Coordinate Toolbar -->
+<div class="mt-20 px-space-md py-space-xs bg-[#0d131f] border-b border-outline-variant/60 flex items-center justify-between gap-2 shrink-0 z-30">
+<div class="flex items-center gap-2 flex-1 min-w-0">
+<!-- fx indicator -->
+<div class="w-7 h-7 rounded bg-surface-container-low border border-outline-variant flex items-center justify-center font-label-md text-label-md text-tertiary font-bold italic select-none">
+        ƒx
+      </div>
+<!-- Cell address -->
+<div class="px-2 py-0.5 rounded bg-surface-container-high border border-outline-variant/80 font-label-md text-label-md text-primary font-semibold">
+        D8
+      </div>
+<!-- Formula string with syntax clarity -->
+<div class="flex items-center font-label-md text-label-md text-on-surface truncate min-w-0 gap-1 bg-surface-container-lowest px-2 py-1 rounded border border-outline-variant/50 flex-1">
+<span class="text-tertiary font-semibold">=SUM</span>
+<span class="text-outline">(</span>
+<span class="text-primary font-medium">D2:D7</span>
+<span class="text-outline">)</span>
+</div>
+</div>
+<!-- Computed Result Pill -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-tertiary/10 border border-tertiary/30 shrink-0">
+<span class="font-label-sm text-label-sm text-tertiary font-semibold uppercase tracking-wider">RES:</span>
+<span class="font-label-md text-label-md text-tertiary font-bold tracking-tight">$1,482,900</span>
+</div>
+</div>
+<!-- Spreadsheet Matrix Grid Viewport -->
+<main class="flex-1 overflow-auto relative bg-black hide-scrollbar pb-32">
+<table class="w-full border-collapse text-left border-spacing-0">
+<!-- Table Header (Row 1: Sticky Top) -->
+<thead class="sticky top-0 z-20 bg-[#0a0e17] shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+<tr class="border-b border-outline-variant">
+<!-- Top Left Origin Header Corner -->
+<th class="sticky left-0 z-30 bg-[#0a0e17] w-12 min-w-[48px] h-9 border-r border-outline-variant text-center font-label-sm text-label-sm text-outline p-0" scope="col">
+<span class="material-symbols-outlined text-[15px] align-middle text-outline-variant">grid_view</span>
+</th>
+<!-- Header Column Names -->
+<th class="min-w-[130px] px-3 h-9 font-headline-sm text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider border-r border-outline-variant" scope="col">
+            A • Category
+          </th>
+<th class="min-w-[85px] px-3 h-9 font-headline-sm text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider border-r border-outline-variant text-right" scope="col">
+            B • Units
+          </th>
+<th class="min-w-[95px] px-3 h-9 font-headline-sm text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider border-r border-outline-variant text-right" scope="col">
+            C • Price
+          </th>
+<th class="min-w-[120px] px-3 h-9 font-headline-sm text-[12px] font-semibold text-tertiary uppercase tracking-wider border-r border-outline-variant text-right bg-tertiary/5" scope="col">
+            D • Q3 Total
+          </th>
+<th class="min-w-[90px] px-3 h-9 font-headline-sm text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider border-r border-outline-variant text-right" scope="col">
+            E • Margin
+          </th>
+</tr>
+</thead>
+<!-- Matrix Body Rows -->
+<tbody class="divide-y divide-outline-variant/40">
+<!-- Row 2 -->
+<tr class="bg-[#090d16] hover:bg-[#0e1422] transition-colors group">
+<th class="sticky left-0 z-10 bg-[#090d16] group-hover:bg-[#0e1422] text-center font-label-sm text-label-sm text-outline font-semibold border-r border-outline-variant h-10 w-12" scope="row">
+            2
+          </th>
+<td class="px-3 py-2 font-body-sm text-body-sm text-on-surface font-medium border-r border-outline-variant/40 truncate">
+            Enterprise Cloud
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            1,240
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            $350.00
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface font-semibold text-right border-r border-outline-variant/40 bg-surface-container-lowest/30">
+            $434,000
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-tertiary text-right border-r border-outline-variant/40">
+            68.4%
+          </td>
+</tr>
+<!-- Row 3 -->
+<tr class="bg-[#0e1422] hover:bg-[#121824] transition-colors group">
+<th class="sticky left-0 z-10 bg-[#0e1422] group-hover:bg-[#121824] text-center font-label-sm text-label-sm text-outline font-semibold border-r border-outline-variant h-10 w-12" scope="row">
+            3
+          </th>
+<td class="px-3 py-2 font-body-sm text-body-sm text-on-surface font-medium border-r border-outline-variant/40 truncate">
+            Edge Compute API
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            4,890
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            $48.50
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface font-semibold text-right border-r border-outline-variant/40 bg-surface-container-lowest/30">
+            $237,165
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-tertiary text-right border-r border-outline-variant/40">
+            82.1%
+          </td>
+</tr>
+<!-- Row 4 -->
+<tr class="bg-[#090d16] hover:bg-[#0e1422] transition-colors group">
+<th class="sticky left-0 z-10 bg-[#090d16] group-hover:bg-[#0e1422] text-center font-label-sm text-label-sm text-outline font-semibold border-r border-outline-variant h-10 w-12" scope="row">
+            4
+          </th>
+<td class="px-3 py-2 font-body-sm text-body-sm text-on-surface font-medium border-r border-outline-variant/40 truncate">
+            Dedicated Quantum
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            38
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            $8,200.00
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface font-semibold text-right border-r border-outline-variant/40 bg-surface-container-lowest/30">
+            $311,600
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-tertiary text-right border-r border-outline-variant/40">
+            54.0%
+          </td>
+</tr>
+<!-- Row 5 -->
+<tr class="bg-[#0e1422] hover:bg-[#121824] transition-colors group">
+<th class="sticky left-0 z-10 bg-[#0e1422] group-hover:bg-[#121824] text-center font-label-sm text-label-sm text-outline font-semibold border-r border-outline-variant h-10 w-12" scope="row">
+            5
+          </th>
+<td class="px-3 py-2 font-body-sm text-body-sm text-on-surface font-medium border-r border-outline-variant/40 truncate">
+            SaaS Workspaces
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            9,120
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            $24.00
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface font-semibold text-right border-r border-outline-variant/40 bg-surface-container-lowest/30">
+            $218,880
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-tertiary text-right border-r border-outline-variant/40">
+            91.5%
+          </td>
+</tr>
+<!-- Row 6 -->
+<tr class="bg-[#090d16] hover:bg-[#0e1422] transition-colors group">
+<th class="sticky left-0 z-10 bg-[#090d16] group-hover:bg-[#0e1422] text-center font-label-sm text-label-sm text-outline font-semibold border-r border-outline-variant h-10 w-12" scope="row">
+            6
+          </th>
+<td class="px-3 py-2 font-body-sm text-body-sm text-on-surface font-medium border-r border-outline-variant/40 truncate">
+            Security Mesh Node
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            512
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            $310.00
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface font-semibold text-right border-r border-outline-variant/40 bg-surface-container-lowest/30">
+            $158,720
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-tertiary text-right border-r border-outline-variant/40">
+            73.2%
+          </td>
+</tr>
+<!-- Row 7 -->
+<tr class="bg-[#0e1422] hover:bg-[#121824] transition-colors group">
+<th class="sticky left-0 z-10 bg-[#0e1422] group-hover:bg-[#121824] text-center font-label-sm text-label-sm text-outline font-semibold border-r border-outline-variant h-10 w-12" scope="row">
+            7
+          </th>
+<td class="px-3 py-2 font-body-sm text-body-sm text-on-surface font-medium border-r border-outline-variant/40 truncate">
+            Cold Storage S3
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            10,210
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            $12.00
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface font-semibold text-right border-r border-outline-variant/40 bg-surface-container-lowest/30">
+            $122,535
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-tertiary text-right border-r border-outline-variant/40">
+            61.0%
+          </td>
+</tr>
+<!-- Row 8 (ACTIVE TARGET ROW WITH GLOWING SELECTION ON D8) -->
+<tr class="bg-[#090d16] font-semibold">
+<th class="sticky left-0 z-10 bg-[#121824] text-center font-label-sm text-label-sm text-tertiary font-bold border-r border-tertiary/40 h-11 w-12" scope="row">
+            8
+          </th>
+<td class="px-3 py-2 font-headline-sm text-[13px] font-bold text-on-surface border-r border-outline-variant/40 uppercase tracking-wide">
+            Subtotal (Q3)
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            26,010
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-outline text-right border-r border-outline-variant/40">
+            —
+          </td>
+<!-- ACTIVE SELECTION CELL: D8 -->
+<td class="relative px-3 py-2 font-label-md text-label-md text-tertiary font-bold text-right border-r border-outline-variant/40 bg-[#0d221c] cell-glow">
+<!-- Glowing Outline Frame -->
+<div class="absolute inset-0 border-2 border-tertiary pointer-events-none z-10"></div>
+<!-- Tactile corner handle -->
+<div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-tertiary border border-black z-20 translate-x-1 translate-y-1 shadow-[0_0_8px_#4ee6aa]"></div>
+<span class="relative z-0 tracking-tight">$1,482,900</span>
+</td>
+<td class="px-3 py-2 font-label-md text-label-md text-tertiary font-bold text-right border-r border-outline-variant/40">
+            71.8%
+          </td>
+</tr>
+<!-- Row 9 -->
+<tr class="bg-[#0e1422] hover:bg-[#121824] transition-colors group">
+<th class="sticky left-0 z-10 bg-[#0e1422] group-hover:bg-[#121824] text-center font-label-sm text-label-sm text-outline font-semibold border-r border-outline-variant h-10 w-12" scope="row">
+            9
+          </th>
+<td class="px-3 py-2 font-body-sm text-body-sm text-on-surface font-medium border-r border-outline-variant/40 truncate">
+            Tax Provision (15%)
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            —
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            —
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-error text-right border-r border-outline-variant/40 bg-surface-container-lowest/30">
+            ($222,435)
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-outline text-right border-r border-outline-variant/40">
+            —
+          </td>
+</tr>
+<!-- Row 10 -->
+<tr class="bg-[#090d16] hover:bg-[#0e1422] transition-colors group">
+<th class="sticky left-0 z-10 bg-[#090d16] group-hover:bg-[#0e1422] text-center font-label-sm text-label-sm text-outline font-semibold border-r border-outline-variant h-10 w-12" scope="row">
+            10
+          </th>
+<td class="px-3 py-2 font-headline-sm text-[13px] font-bold text-on-surface border-r border-outline-variant/40 uppercase tracking-wide">
+            Net Realized
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-on-surface-variant text-right border-r border-outline-variant/40">
+            26,010
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-outline text-right border-r border-outline-variant/40">
+            —
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-primary font-bold text-right border-r border-outline-variant/40 bg-primary/5">
+            $1,260,465
+          </td>
+<td class="px-3 py-2 font-label-md text-label-md text-primary text-right border-r border-outline-variant/40">
+            61.0%
+          </td>
+</tr>
+</tbody>
+</table>
+</main>
+<!-- Sheet Navigation Bar (Docked bottom workbook controller) -->
+<footer class="fixed bottom-16 left-0 w-full z-40 bg-[#0a0e17] border-t border-outline-variant/70 px-space-sm h-11 flex items-center justify-between shadow-[0_-4px_16px_rgba(0,0,0,0.8)]">
+<!-- Sheet Tabs Scroll Area -->
+<div class="flex items-center gap-1.5 overflow-x-auto hide-scrollbar flex-1 mr-2 py-1">
+<!-- Active Sheet Tab -->
+<button class="flex items-center gap-1.5 px-3 py-1 rounded bg-surface-container-high border border-tertiary/40 text-tertiary font-label-sm text-label-sm font-semibold tracking-wide shrink-0 shadow-[0_0_8px_-1px_rgba(78,230,170,0.25)]">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+<span>Revenue_Summary</span>
+</button>
+<!-- Inactive Sheet 2 -->
+<button class="px-2.5 py-1 rounded hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm border border-transparent hover:border-outline-variant transition-colors shrink-0">
+        Cost_Breakdown
+      </button>
+<!-- Inactive Sheet 3 -->
+<button class="px-2.5 py-1 rounded hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm border border-transparent hover:border-outline-variant transition-colors shrink-0">
+        Tax_Matrix
+      </button>
+<!-- Add New Sheet Button -->
+<button class="w-7 h-7 flex items-center justify-center rounded bg-surface-container-low border border-outline-variant text-on-surface-variant hover:text-on-surface transition-colors shrink-0" title="Create new sheet view">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<!-- Row/Col Metrology Dimension Badge -->
+<div class="px-2 py-0.5 rounded bg-surface-container-lowest border border-outline-variant/70 text-outline font-label-sm text-[10px] shrink-0 uppercase tracking-wider font-semibold">
+      68 Rows • 12 Cols
+    </div>
+</footer>
+<!-- Shared Component BottomNavBar (Exact JSON Specification with 5 destination icons) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex items-center justify-around px-space-md h-16 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant">
+<!-- Destination 1: Auto Stories (Inactive) -->
+<button aria-label="Reading View" class="flex items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low hover:text-on-surface transition-all duration-150 active:scale-90 rounded">
+<span class="material-symbols-outlined text-[24px]">auto_stories</span>
+</button>
+<!-- Destination 2: Zoom In (Inactive) -->
+<button aria-label="Magnifier Zoom" class="flex items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low hover:text-on-surface transition-all duration-150 active:scale-90 rounded">
+<span class="material-symbols-outlined text-[24px]">zoom_in</span>
+</button>
+<!-- Destination 3: View Carousel (ACTIVE: Matrix / Multi-sheet viewport destination) -->
+<button aria-label="Spreadsheet Matrix Carousel" class="flex items-center justify-center bg-surface-container-high text-primary rounded-full p-2 border border-primary/30 shadow-[0_0_12px_-2px_rgba(56,189,248,0.25)] transition-all duration-150 active:scale-90">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">view_carousel</span>
+</button>
+<!-- Destination 4: Format Size (Inactive) -->
+<button aria-label="Text Formatting" class="flex items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low hover:text-on-surface transition-all duration-150 active:scale-90 rounded">
+<span class="material-symbols-outlined text-[24px]">format_size</span>
+</button>
+<!-- Destination 5: Tune (Inactive) -->
+<button aria-label="Matrix &amp; Calculation Settings" class="flex items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low hover:text-on-surface transition-all duration-150 active:scale-90 rounded">
+<span class="material-symbols-outlined text-[24px]">tune</span>
+</button>
+</nav>
+</body></html>

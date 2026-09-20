@@ -1,0 +1,450 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>OpenReader - Favorites &amp; Library</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary": "#091426",
+            "on-primary-fixed-variant": "#3c475a",
+            "on-error": "#ffffff",
+            "surface": "#f8f9ff",
+            "on-secondary-fixed": "#00174b",
+            "outline-variant": "#c5c6cd",
+            "secondary-fixed": "#dbe1ff",
+            "on-secondary": "#ffffff",
+            "on-surface-variant": "#45474c",
+            "on-tertiary-fixed-variant": "#005137",
+            "primary-fixed-dim": "#bcc7de",
+            "on-primary-fixed": "#111c2d",
+            "on-tertiary": "#ffffff",
+            "background": "#f8f9ff",
+            "error-container": "#ffdad6",
+            "on-background": "#0b1c30",
+            "surface-container-low": "#eff4ff",
+            "secondary-container": "#316bf3",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed-dim": "#68dba9",
+            "on-secondary-container": "#fefcff",
+            "surface-container": "#e5eeff",
+            "on-tertiary-container": "#24a375",
+            "secondary": "#0051d5",
+            "outline": "#75777d",
+            "on-surface": "#0b1c30",
+            "inverse-surface": "#213145",
+            "on-tertiary-fixed": "#002114",
+            "on-primary-container": "#8590a6",
+            "inverse-on-surface": "#eaf1ff",
+            "primary-fixed": "#d8e3fb",
+            "surface-bright": "#f8f9ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "on-primary": "#ffffff",
+            "surface-container-highest": "#d3e4fe",
+            "tertiary-fixed": "#85f8c4",
+            "surface-tint": "#545f73",
+            "surface-variant": "#d3e4fe",
+            "secondary-fixed-dim": "#b4c5ff",
+            "inverse-primary": "#bcc7de",
+            "on-error-container": "#93000a",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "tertiary": "#00190e",
+            "primary-container": "#1e293b",
+            "error": "#ba1a1a",
+            "tertiary-container": "#00301f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "1rem",
+            "margin": "1rem",
+            "space-xs": "0.25rem",
+            "gutter-sm": "0.75rem",
+            "space-lg": "1rem",
+            "space-sm": "0.5rem",
+            "margin-tablet": "1.5rem",
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem"
+          },
+          "fontFamily": {
+            "label-lg": ["Inter"],
+            "mono-metadata": ["JetBrains Mono"],
+            "headline-lg": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "label-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-md": ["Inter"]
+          },
+          "fontSize": {
+            "label-lg": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "mono-metadata": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "title-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.015em", "fontWeight": "600" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Hide native scrollbar for horizontal chips */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface antialiased selection:bg-secondary-fixed selection:text-on-secondary-fixed min-h-screen pb-28">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-outline-variant/30 transition-colors">
+<div class="flex justify-between items-center h-16 w-full px-4 max-w-4xl mx-auto">
+<div class="flex items-center space-x-3">
+<button aria-label="Open Navigation Drawer" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-container-high text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div>
+<h1 class="text-headline-md font-headline-md font-bold text-on-surface tracking-tight">OpenReader</h1>
+</div>
+</div>
+<!-- Right Action Cluster with Offline Shield Indicator -->
+<div class="flex items-center space-x-1">
+<!-- Local Privacy Shield Badge -->
+<div class="hidden sm:flex items-center space-x-1 px-2.5 py-1 bg-surface-container-lowest border border-outline-variant/40 rounded-full mr-1" title="100% On-Device Offline Storage">
+<span class="material-symbols-outlined text-[16px] text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">shield</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant font-medium">Sandboxed</span>
+</div>
+<button aria-label="Search Library" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button aria-label="Sort Options" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined">sort</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Responsive Container -->
+<main class="max-w-4xl mx-auto px-4 pt-3 space-y-4">
+<!-- Segmented Tabs (Material 3 Surface Switcher) -->
+<div class="bg-surface-container-low p-1 rounded-xl flex items-center border border-outline-variant/30">
+<button class="flex-1 flex items-center justify-center space-x-2 py-2.5 px-3 rounded-lg bg-surface-container-lowest shadow-sm text-primary font-title-md text-title-md transition-all">
+<span class="material-symbols-outlined text-[18px] text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>Favorites</span>
+<span class="bg-secondary-fixed text-on-secondary-fixed text-label-sm font-label-sm px-2 py-0.5 rounded-full">12</span>
+</button>
+<button class="flex-1 flex items-center justify-center space-x-2 py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/40 font-title-md text-title-md transition-all">
+<span class="material-symbols-outlined text-[18px]">history</span>
+<span>Reading History</span>
+<span class="bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm px-2 py-0.5 rounded-full">24</span>
+</button>
+</div>
+<!-- Quick Management Action Row -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center space-x-2">
+<button class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/40 hover:bg-surface-container-low text-primary text-label-lg font-label-lg transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[16px] text-secondary">bookmark_add</span>
+<span>Create Collection</span>
+</button>
+<button class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/40 hover:bg-surface-container-low text-on-surface-variant text-label-lg font-label-lg transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span>Organize</span>
+</button>
+</div>
+<!-- Quick Filter Action / Clear Toggle -->
+<button class="inline-flex items-center space-x-1 text-on-surface-variant hover:text-error text-label-md font-label-md px-2 py-1 rounded transition-colors" title="Manage History Cache">
+<span class="material-symbols-outlined text-[16px]">cleaning_services</span>
+<span class="hidden sm:inline">Clear History</span>
+</button>
+</div>
+<!-- Format Filter Chips (Horizontal Scrollable Strip) -->
+<div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1">
+<!-- Active Chip -->
+<button class="flex-none flex items-center space-x-1.5 h-9 px-3.5 rounded-full bg-primary text-on-primary font-label-lg text-label-lg shadow-sm">
+<span>All</span>
+<span class="w-5 h-5 rounded-full bg-primary-container text-on-primary text-label-sm font-label-sm flex items-center justify-center">12</span>
+</button>
+<!-- PDF Chip -->
+<button class="flex-none flex items-center space-x-1.5 h-9 px-3 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg border border-outline-variant/20 transition-colors">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+<span>PDF</span>
+<span class="w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm flex items-center justify-center">6</span>
+</button>
+<!-- Word Chip -->
+<button class="flex-none flex items-center space-x-1.5 h-9 px-3 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg border border-outline-variant/20 transition-colors">
+<span class="w-2 h-2 rounded-full bg-blue-600"></span>
+<span>Word</span>
+<span class="w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm flex items-center justify-center">3</span>
+</button>
+<!-- Excel Chip -->
+<button class="flex-none flex items-center space-x-1.5 h-9 px-3 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg border border-outline-variant/20 transition-colors">
+<span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+<span>Excel</span>
+<span class="w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm flex items-center justify-center">2</span>
+</button>
+<!-- PPTX Chip -->
+<button class="flex-none flex items-center space-x-1.5 h-9 px-3 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg border border-outline-variant/20 transition-colors">
+<span class="w-2 h-2 rounded-full bg-amber-500"></span>
+<span>PPTX</span>
+<span class="w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm flex items-center justify-center">1</span>
+</button>
+</div>
+<!-- Document Items Section -->
+<div class="space-y-2.5 pt-1">
+<!-- Item 1: PDF Document -->
+<div class="group relative bg-surface-container-lowest rounded-xl border border-outline-variant/30 hover:border-secondary/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-all">
+<div class="flex items-start space-x-3.5 flex-1 min-w-0">
+<!-- Format Marker: PDF (Soft Red) -->
+<div class="w-11 h-11 flex-shrink-0 rounded-lg bg-red-50 border border-red-200/60 flex flex-col items-center justify-center text-red-600 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+<span class="leading-none mt-0.5 font-bold">PDF</span>
+</div>
+<!-- Metadata & Title -->
+<div class="min-w-0 flex-1">
+<div class="flex items-center space-x-2">
+<h2 class="font-title-md text-title-md text-on-surface truncate group-hover:text-secondary transition-colors">
+                System_Architecture_Specifications_v4.2.pdf
+              </h2>
+</div>
+<div class="flex items-center space-x-2 text-body-sm font-body-sm text-on-surface-variant mt-0.5">
+<span>8.4 MB</span>
+<span>•</span>
+<span>Opened 12m ago</span>
+<span>•</span>
+<span class="font-mono-metadata text-mono-metadata text-secondary font-medium">Page 18 of 54 (33%)</span>
+</div>
+<!-- Page Reading Progress Scrub Bar -->
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full transition-all duration-300" style="width: 33%"></div>
+</div>
+</div>
+</div>
+<!-- Trailing Actions: Star and Menu -->
+<div class="flex items-center justify-end space-x-1 sm:self-center pt-1 sm:pt-0 border-t sm:border-t-0 border-outline-variant/20">
+<button aria-label="Unfavorite document" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-amber-500 active:scale-90 transition-transform" title="Starred Favorite">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="More actions" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Item 2: DOCX Document -->
+<div class="group relative bg-surface-container-lowest rounded-xl border border-outline-variant/30 hover:border-secondary/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-all">
+<div class="flex items-start space-x-3.5 flex-1 min-w-0">
+<!-- Format Marker: DOCX (Royal Blue) -->
+<div class="w-11 h-11 flex-shrink-0 rounded-lg bg-blue-50 border border-blue-200/60 flex flex-col items-center justify-center text-blue-600 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[20px]">description</span>
+<span class="leading-none mt-0.5 font-bold">DOCX</span>
+</div>
+<!-- Metadata & Title -->
+<div class="min-w-0 flex-1">
+<h2 class="font-title-md text-title-md text-on-surface truncate group-hover:text-secondary transition-colors">
+              Q3_Engineering_Roadmap_Draft.docx
+            </h2>
+<div class="flex items-center space-x-2 text-body-sm font-body-sm text-on-surface-variant mt-0.5">
+<span>1.2 MB</span>
+<span>•</span>
+<span>Opened 2h ago</span>
+<span>•</span>
+<span class="font-mono-metadata text-mono-metadata text-secondary font-medium">Page 7 of 12 (58%)</span>
+</div>
+<!-- Page Reading Progress Scrub Bar -->
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full transition-all duration-300" style="width: 58%"></div>
+</div>
+</div>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center justify-end space-x-1 sm:self-center pt-1 sm:pt-0 border-t sm:border-t-0 border-outline-variant/20">
+<button aria-label="Unfavorite document" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-amber-500 active:scale-90 transition-transform" title="Starred Favorite">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="More actions" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Item 3: XLSX Document -->
+<div class="group relative bg-surface-container-lowest rounded-xl border border-outline-variant/30 hover:border-secondary/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-all">
+<div class="flex items-start space-x-3.5 flex-1 min-w-0">
+<!-- Format Marker: XLSX (Emerald Green) -->
+<div class="w-11 h-11 flex-shrink-0 rounded-lg bg-emerald-50 border border-emerald-200/60 flex flex-col items-center justify-center text-emerald-700 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[20px]">table_chart</span>
+<span class="leading-none mt-0.5 font-bold">XLSX</span>
+</div>
+<!-- Metadata & Title -->
+<div class="min-w-0 flex-1">
+<h2 class="font-title-md text-title-md text-on-surface truncate group-hover:text-secondary transition-colors">
+              FY2025_Fiscal_Model_v3.xlsx
+            </h2>
+<div class="flex items-center space-x-2 text-body-sm font-body-sm text-on-surface-variant mt-0.5">
+<span>3.7 MB</span>
+<span>•</span>
+<span>Opened Yesterday</span>
+<span>•</span>
+<span class="font-mono-metadata text-mono-metadata text-secondary font-medium">Sheet 2 of 6 (82%)</span>
+</div>
+<!-- Page Reading Progress Scrub Bar -->
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full transition-all duration-300" style="width: 82%"></div>
+</div>
+</div>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center justify-end space-x-1 sm:self-center pt-1 sm:pt-0 border-t sm:border-t-0 border-outline-variant/20">
+<button aria-label="Unfavorite document" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-amber-500 active:scale-90 transition-transform" title="Starred Favorite">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="More actions" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Item 4: PPTX Document -->
+<div class="group relative bg-surface-container-lowest rounded-xl border border-outline-variant/30 hover:border-secondary/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-all">
+<div class="flex items-start space-x-3.5 flex-1 min-w-0">
+<!-- Format Marker: PPTX (Warm Amber) -->
+<div class="w-11 h-11 flex-shrink-0 rounded-lg bg-amber-50 border border-amber-200/60 flex flex-col items-center justify-center text-amber-600 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[20px]">slideshow</span>
+<span class="leading-none mt-0.5 font-bold">PPTX</span>
+</div>
+<!-- Metadata & Title -->
+<div class="min-w-0 flex-1">
+<h2 class="font-title-md text-title-md text-on-surface truncate group-hover:text-secondary transition-colors">
+              All-Hands_Keynote_Deck_May.pptx
+            </h2>
+<div class="flex items-center space-x-2 text-body-sm font-body-sm text-on-surface-variant mt-0.5">
+<span>19.4 MB</span>
+<span>•</span>
+<span>Opened 3d ago</span>
+<span>•</span>
+<span class="font-mono-metadata text-mono-metadata text-secondary font-medium">Slide 42 of 60 (70%)</span>
+</div>
+<!-- Page Reading Progress Scrub Bar -->
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full transition-all duration-300" style="width: 70%"></div>
+</div>
+</div>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center justify-end space-x-1 sm:self-center pt-1 sm:pt-0 border-t sm:border-t-0 border-outline-variant/20">
+<button aria-label="Unfavorite document" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-amber-500 active:scale-90 transition-transform" title="Starred Favorite">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="More actions" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Item 5: PDF Research Paper -->
+<div class="group relative bg-surface-container-lowest rounded-xl border border-outline-variant/30 hover:border-secondary/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-all">
+<div class="flex items-start space-x-3.5 flex-1 min-w-0">
+<!-- Format Marker: PDF -->
+<div class="w-11 h-11 flex-shrink-0 rounded-lg bg-red-50 border border-red-200/60 flex flex-col items-center justify-center text-red-600 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+<span class="leading-none mt-0.5 font-bold">PDF</span>
+</div>
+<!-- Metadata & Title -->
+<div class="min-w-0 flex-1">
+<h2 class="font-title-md text-title-md text-on-surface truncate group-hover:text-secondary transition-colors">
+              Attention_Mechanism_Optimizations_Whitepaper.pdf
+            </h2>
+<div class="flex items-center space-x-2 text-body-sm font-body-sm text-on-surface-variant mt-0.5">
+<span>2.8 MB</span>
+<span>•</span>
+<span>Opened May 14</span>
+<span>•</span>
+<span class="font-mono-metadata text-mono-metadata text-secondary font-medium">Page 4 of 28 (14%)</span>
+</div>
+<!-- Page Reading Progress Scrub Bar -->
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full transition-all duration-300" style="width: 14%"></div>
+</div>
+</div>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center justify-end space-x-1 sm:self-center pt-1 sm:pt-0 border-t sm:border-t-0 border-outline-variant/20">
+<button aria-label="Unfavorite document" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-amber-500 active:scale-90 transition-transform" title="Starred Favorite">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="More actions" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Storage Telemetry Banner (Swiss Minimal Style) -->
+<div class="rounded-xl p-3.5 bg-surface-container-low border border-outline-variant/30 flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-secondary text-[18px]">verified_user</span>
+<span>Local Encrypted Vault • 0 telemetry sent</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata font-semibold text-primary">35.5 MB Total</span>
+</div>
+</main>
+<!-- BottomNavBar (Shared Component Anchor) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-2 pb-safe bg-surface-container-lowest border-t border-outline-variant/30 dark:border-outline-variant/10">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high active:scale-95 transition-transform duration-150 rounded-full" href="#home">
+<span class="material-symbols-outlined">home</span>
+<span class="text-label-md font-label-md">Home</span>
+</a>
+<!-- Files -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high active:scale-95 transition-transform duration-150 rounded-full" href="#files">
+<span class="material-symbols-outlined">folder</span>
+<span class="text-label-md font-label-md">Files</span>
+</a>
+<!-- Favorites (Active Destination as per context) -->
+<a class="flex flex-col items-center justify-center bg-secondary-fixed/50 dark:bg-secondary-container text-secondary dark:text-on-secondary-container rounded-full px-5 py-1 active:scale-95 transition-transform duration-150" href="#favorites">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-label-md font-label-md">Favorites</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high active:scale-95 transition-transform duration-150 rounded-full" href="#settings">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md font-label-md">Settings</span>
+</a>
+</nav>
+</body></html>

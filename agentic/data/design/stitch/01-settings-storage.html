@@ -1,0 +1,400 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>OpenReader Settings</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary": "#091426",
+            "on-primary-fixed-variant": "#3c475a",
+            "on-error": "#ffffff",
+            "surface": "#f8f9ff",
+            "on-secondary-fixed": "#00174b",
+            "outline-variant": "#c5c6cd",
+            "secondary-fixed": "#dbe1ff",
+            "on-secondary": "#ffffff",
+            "on-surface-variant": "#45474c",
+            "on-tertiary-fixed-variant": "#005137",
+            "primary-fixed-dim": "#bcc7de",
+            "on-primary-fixed": "#111c2d",
+            "on-tertiary": "#ffffff",
+            "background": "#f8f9ff",
+            "error-container": "#ffdad6",
+            "on-background": "#0b1c30",
+            "surface-container-low": "#eff4ff",
+            "secondary-container": "#316bf3",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed-dim": "#68dba9",
+            "on-secondary-container": "#fefcff",
+            "surface-container": "#e5eeff",
+            "on-tertiary-container": "#24a375",
+            "secondary": "#0051d5",
+            "outline": "#75777d",
+            "on-surface": "#0b1c30",
+            "inverse-surface": "#213145",
+            "on-tertiary-fixed": "#002114",
+            "on-primary-container": "#8590a6",
+            "inverse-on-surface": "#eaf1ff",
+            "primary-fixed": "#d8e3fb",
+            "surface-bright": "#f8f9ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "on-primary": "#ffffff",
+            "surface-container-highest": "#d3e4fe",
+            "tertiary-fixed": "#85f8c4",
+            "surface-tint": "#545f73",
+            "surface-variant": "#d3e4fe",
+            "secondary-fixed-dim": "#b4c5ff",
+            "inverse-primary": "#bcc7de",
+            "on-error-container": "#93000a",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "tertiary": "#00190e",
+            "primary-container": "#1e293b",
+            "error": "#ba1a1a",
+            "tertiary-container": "#00301f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "1rem",
+            "margin": "1rem",
+            "space-xs": "0.25rem",
+            "gutter-sm": "0.75rem",
+            "space-lg": "1rem",
+            "space-sm": "0.5rem",
+            "margin-tablet": "1.5rem",
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem"
+          },
+          "fontFamily": {
+            "label-lg": ["Inter"],
+            "mono-metadata": ["JetBrains Mono"],
+            "headline-lg": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "label-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-md": ["Inter"]
+          },
+          "fontSize": {
+            "label-lg": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "mono-metadata": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "title-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.015em", "fontWeight": "600" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-md text-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- TopAppBar Component (from Shared Components JSON and Style Guidance) -->
+<header class="sticky top-0 z-40 bg-surface dark:bg-primary shadow-none">
+<div class="flex justify-between items-center h-16 w-full px-4 max-w-full">
+<div class="flex items-center gap-3">
+<button aria-label="Navigate Back" class="w-12 h-12 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container-high dark:hover:bg-primary-container active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<span class="text-headline-md font-headline-md font-bold text-on-surface dark:text-inverse-on-surface">Settings</span>
+</div>
+<div class="flex items-center gap-1">
+<!-- Local-first sovereignty status indicator pill -->
+<div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-lowest rounded-full shadow-sm border border-outline-variant/30">
+<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="font-mono-metadata text-mono-metadata text-secondary font-semibold">SANDBOXED</span>
+</div>
+<button aria-label="Search Settings" class="w-12 h-12 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container-high dark:hover:bg-primary-container active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Settings Canvas -->
+<main class="flex-1 max-w-3xl w-full mx-auto px-4 pt-4 pb-28 space-y-6">
+<!-- Privacy & Local Sovereignty Banner -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-start gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" data-icon="shield" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<h1 class="font-headline-sm text-headline-sm text-on-surface">Offline-First Document Environment</h1>
+<span class="bg-surface-container-high text-secondary px-2 py-0.5 rounded-full font-mono-metadata text-mono-metadata font-semibold">100% Offline</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          OpenReader operates completely air-gapped on this device. No network daemon, zero telemetry pings, and documents remain strictly in local storage.
+        </p>
+</div>
+</div>
+<!-- Section 1: General Appearance -->
+<section class="space-y-3">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-label-lg text-label-lg text-on-surface-variant tracking-wider uppercase">General Appearance</h2>
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant">THEME_CONFIG</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30 shadow-[0_1px_3px_rgba(15,23,42,0.04)] space-y-4">
+<div>
+<label class="block font-title-md text-title-md text-on-surface mb-1">Color Palette &amp; Display Mode</label>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">Adjust UI tone to match system night mode or maintain high-contrast document reading.</p>
+<!-- Segmented Buttons / Chips for Theme Selection -->
+<div class="grid grid-cols-3 gap-2 p-1 bg-surface-container-low rounded-xl">
+<button aria-pressed="true" class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-surface-container-lowest text-primary shadow-sm font-label-lg text-label-lg transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="light_mode" style="font-variation-settings: 'FILL' 1;">light_mode</span>
+<span>Light</span>
+</button>
+<button aria-pressed="false" class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-on-surface-variant hover:text-on-surface font-label-lg text-label-lg transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="dark_mode">dark_mode</span>
+<span>Dark</span>
+</button>
+<button aria-pressed="false" class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-on-surface-variant hover:text-on-surface font-label-lg text-label-lg transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings_brightness">settings_brightness</span>
+<span>System</span>
+</button>
+</div>
+</div>
+<div class="pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+<div class="pr-4">
+<span class="block font-title-md text-title-md text-on-surface">Pure Black Amoled Contrast</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Turns background to #000000 in dark mode to preserve battery life</span>
+</div>
+<button aria-checked="false" class="w-12 h-6 bg-surface-container-high rounded-full relative p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-secondary" role="switch" type="button">
+<div class="w-5 h-5 rounded-full bg-surface-container-lowest shadow-sm transform transition-transform"></div>
+</button>
+</div>
+</div>
+</section>
+<!-- Section 2: Reading Preferences -->
+<section class="space-y-3">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-label-lg text-label-lg text-on-surface-variant tracking-wider uppercase">Reading Engine Preferences</h2>
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant">VIEWER_RENDER</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl divide-y divide-outline-variant/20 border border-outline-variant/30 shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden">
+<!-- Default Reader Mode -->
+<div class="p-4 space-y-3">
+<div>
+<span class="block font-title-md text-title-md text-on-surface">Default Reader Mode</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Choose your standard document layout presentation</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<div class="flex items-center gap-3 p-3 rounded-lg border-2 border-secondary bg-surface-container-low cursor-pointer">
+<span class="material-symbols-outlined text-secondary" data-icon="swap_vert" style="font-variation-settings: 'FILL' 1;">swap_vert</span>
+<div>
+<span class="block font-label-lg text-label-lg text-on-surface">Continuous Scroll</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Smooth vertical canvas</span>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-lg border border-outline-variant/40 bg-surface-container-lowest hover:bg-surface-container-low cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="auto_stories">auto_stories</span>
+<div>
+<span class="block font-label-lg text-label-lg text-on-surface">Page by Page Flip</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Horizontal carousel</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Keep Screen On Toggle -->
+<div class="p-4 flex items-center justify-between">
+<div class="pr-4">
+<span class="block font-title-md text-title-md text-on-surface">Keep Screen Awake</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Prevents Android screen lock timeout while actively viewing a document</span>
+</div>
+<!-- Material Switch Toggle (Active) -->
+<button aria-checked="true" class="w-12 h-6 bg-secondary rounded-full relative p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-secondary cursor-pointer" role="switch" type="button">
+<div class="w-5 h-5 rounded-full bg-on-secondary shadow-sm transform translate-x-6 transition-transform"></div>
+</button>
+</div>
+<!-- Default Zoom Level -->
+<div class="p-4 space-y-3">
+<div class="flex items-center justify-between">
+<div>
+<span class="block font-title-md text-title-md text-on-surface">Default Scale Preset</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Initial optical zoom ratio upon document launch</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata bg-surface-container px-2 py-0.5 rounded text-secondary font-bold">Fit Width</span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2 px-3 rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg text-center transition-transform active:scale-95">
+              Fit Width
+            </button>
+<button class="flex-1 py-2 px-3 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-lg text-label-lg text-center transition-transform active:scale-95">
+              100% Actual
+            </button>
+<button class="flex-1 py-2 px-3 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-lg text-label-lg text-center transition-transform active:scale-95">
+              Fit Page
+            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Storage & Cache Manager (Bento Grid) -->
+<section class="space-y-3">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-label-lg text-label-lg text-on-surface-variant tracking-wider uppercase">Storage &amp; Cache Manager</h2>
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant">STORAGE_ENGINE</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+<!-- Scanned Documents Counter Card -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
+<div class="flex items-center justify-between mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-low text-primary flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="folder">folder</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata bg-secondary-fixed/50 text-on-secondary-fixed px-2 py-0.5 rounded-full font-bold">INDEXED</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg font-bold text-on-surface">48</span>
+<span class="font-body-md text-body-md text-on-surface-variant">indexed documents</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Found across scoped directories (PDF, EPUB, MOBI)</p>
+</div>
+<div class="mt-4 pt-3 border-t border-outline-variant/20">
+<button class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface font-label-lg text-label-lg transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[18px]" data-icon="sync">sync</span>
+<span>Rescan Local Storage</span>
+</button>
+</div>
+</div>
+<!-- Render Cache Card -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
+<div class="flex items-center justify-between mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-low text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="memory">memory</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant">RENDER_POOL</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg font-bold text-on-surface">14.2 MB</span>
+<span class="font-body-md text-body-md text-on-surface-variant">cached render tiles</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Clears cached rendering tiles. Original documents on device are untouched.</p>
+</div>
+<div class="mt-4 pt-3 border-t border-outline-variant/20">
+<button class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-error/30 text-error hover:bg-error-container/40 font-label-lg text-label-lg transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[18px]" data-icon="delete_sweep">delete_sweep</span>
+<span>Clear Render Cache</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Privacy & App Info -->
+<section class="space-y-3">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-label-lg text-label-lg text-on-surface-variant tracking-wider uppercase">Privacy &amp; System Integrity</h2>
+<span class="font-mono-metadata text-mono-metadata text-on-surface-variant">ABOUT_INFO</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl divide-y divide-outline-variant/20 border border-outline-variant/30 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<!-- Sandboxed Storage Status -->
+<div class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="lock">lock</span>
+</div>
+<div>
+<span class="block font-title-md text-title-md text-on-surface">Scoped Storage Sandbox</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Read-only Scoped Storage boundary strictly enforced</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-[20px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<!-- Open Source Licenses -->
+<button class="w-full p-4 flex items-center justify-between text-left hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="code">code</span>
+</div>
+<div>
+<span class="block font-title-md text-title-md text-on-surface">Open-source licenses</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Apache 2.0 &amp; MIT software disclosures</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- App Version -->
+<div class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="info">info</span>
+</div>
+<div>
+<span class="block font-title-md text-title-md text-on-surface">Application Version</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">Production Flutter native build</span>
+</div>
+</div>
+<span class="font-mono-metadata text-mono-metadata bg-surface-container-high text-on-surface px-2.5 py-1 rounded font-bold">v1.0.4</span>
+</div>
+</div>
+</section>
+<!-- Bottom Padding Element -->
+<div class="h-6"></div>
+</main>
+<!-- BottomNavBar Shared Component (From JSON & Style Specs) -->
+<!-- Contextual State: Settings screen, therefore Settings tab is ACTIVE with exact classes from JSON -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-2 pb-safe bg-surface-container-lowest dark:bg-primary shadow-[0_-4px_16px_rgba(15,23,42,0.04)]">
+<!-- Home (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150" href="#home">
+<span class="material-symbols-outlined text-[24px]" data-icon="home">home</span>
+<span class="text-label-md font-label-md mt-0.5">Home</span>
+</a>
+<!-- Files (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150" href="#files">
+<span class="material-symbols-outlined text-[24px]" data-icon="folder">folder</span>
+<span class="text-label-md font-label-md mt-0.5">Files</span>
+</a>
+<!-- Favorites (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/60 px-5 py-1 hover:bg-surface-container-high dark:hover:bg-primary-container text-on-surface dark:text-inverse-on-surface active:scale-95 transition-transform duration-150" href="#favorites">
+<span class="material-symbols-outlined text-[24px]" data-icon="star">star</span>
+<span class="text-label-md font-label-md mt-0.5">Favorites</span>
+</a>
+<!-- Settings (ACTIVE - styled strictly via JSON style_active_navigation and exact labels) -->
+<a class="flex flex-col items-center justify-center bg-secondary-fixed/50 dark:bg-secondary-container text-secondary dark:text-on-secondary-container rounded-full px-5 py-1 hover:bg-surface-container-high dark:hover:bg-primary-container active:scale-95 transition-transform duration-150" href="#settings">
+<span class="material-symbols-outlined text-[24px]" data-icon="settings" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="text-label-md font-label-md mt-0.5 font-bold">Settings</span>
+</a>
+</nav>
+</body></html>
