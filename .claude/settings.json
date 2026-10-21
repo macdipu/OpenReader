@@ -4,10 +4,7 @@
       {
         "matcher": "Bash|Write|Edit|NotebookEdit",
         "hooks": [
-          {
-            "type": "command",
-            "command": "python3 agentic/kit/runtime/hooks/pretooluse_gate.py"
-          }
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/agentic/kit/runtime/hooks/pretooluse_gate.py" }
         ]
       }
     ],
@@ -15,10 +12,7 @@
       {
         "matcher": "*",
         "hooks": [
-          {
-            "type": "command",
-            "command": "python3 agentic/kit/runtime/hooks/session_start_check.py"
-          }
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/agentic/kit/runtime/hooks/session_start_check.py" }
         ]
       }
     ],
@@ -26,10 +20,7 @@
       {
         "matcher": "*",
         "hooks": [
-          {
-            "type": "command",
-            "command": "python3 agentic/kit/runtime/hooks/precompact_checkpoint.py"
-          }
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/agentic/kit/runtime/hooks/precompact_checkpoint.py" }
         ]
       }
     ]

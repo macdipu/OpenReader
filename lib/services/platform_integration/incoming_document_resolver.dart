@@ -59,9 +59,7 @@ class IncomingDocumentResolver {
   /// `<prefix>_<time>.null`), mapped to the extension they stand for.
   static const _extensionByMimeType = {
     'application/pdf': 'pdf',
-    'application/msword': 'doc',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-    'application/vnd.ms-excel': 'xls',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
     'text/plain': 'txt',
     'text/markdown': 'md',

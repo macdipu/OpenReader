@@ -110,7 +110,7 @@ class _FavoritesTab extends StatelessWidget {
             )),
         Expanded(
           child: Obx(() {
-            if (controller.status.value.isBusy) return const LoadingView();
+            if (controller.status.value.isLoading) return const LoadingView();
             final items = controller.filtered;
             if (items.isEmpty) return const CommonEmptyView(message: 'No favorite documents yet.');
 
@@ -165,7 +165,7 @@ class _HistoryTab extends StatelessWidget {
             )),
         Expanded(
           child: Obx(() {
-            if (controller.status.value.isBusy) return const LoadingView();
+            if (controller.status.value.isLoading) return const LoadingView();
             final items = controller.filtered;
             if (items.isEmpty) return const CommonEmptyView(message: 'No history yet.');
 

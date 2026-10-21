@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/document_repository_impl.dart';
@@ -18,6 +19,10 @@ class SearchDocumentsController extends BaseController {
 
   final results = <DocumentModel>[].obs;
   final query = ''.obs;
+
+  /// Owned here (not by the view) so [clear] can empty the visible field -
+  /// resetting [query] alone left the typed text on screen.
+  final queryController = TextEditingController();
   final selectedCategory = Rxn<DocumentCategory>();
 
   /// Client-side format filter on top of the filename-matched [results]
@@ -49,6 +54,7 @@ class SearchDocumentsController extends BaseController {
   void removeResult(String documentId) => results.removeWhere((d) => d.id == documentId);
 
   void clear() {
+    queryController.clear();
     query.value = '';
     results.clear();
     selectedCategory.value = null;
@@ -57,7 +63,7 @@ class SearchDocumentsController extends BaseController {
   }
 
   Future<void> _search(String term) async {
-    status.value = StateStatus.loading;
+    beginLoad();
     final result = await _documentRepository.getDocuments(query: term);
     result.fold(
       (failure) => handleFailure(failure),
@@ -71,6 +77,7 @@ class SearchDocumentsController extends BaseController {
   @override
   void onClose() {
     _debounce?.cancel();
+    queryController.dispose();
     super.onClose();
   }
 }

@@ -49,7 +49,7 @@ class FavoritesController extends BaseController {
   void selectCategory(DocumentCategory? category) => selectedCategory.value = category;
 
   Future<void> load() async {
-    status.value = StateStatus.loading;
+    beginLoad();
     final result = await _favoriteRepository.getFavorites();
     result.fold(
       (failure) => handleFailure(failure),

@@ -23,8 +23,10 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _ReaderAppBar(controller: controller),
+    // Scaffold reads appBar.preferredSize only when it builds, so it is rebuilt
+    // on search toggle to let the bar collapse back to toolbar height.
+    return Obx(() => Scaffold(
+      appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
       body: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
         if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
@@ -46,17 +48,20 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
           ],
         );
       }),
-    );
+    ));
   }
 }
 
 class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   final ExcelReaderController controller;
 
-  const _ReaderAppBar({required this.controller});
+  /// Whether the search field (and its result bar below) is showing.
+  final bool searching;
+
+  const _ReaderAppBar({required this.controller, required this.searching});
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 40);
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + (searching ? 40 : 0));
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +134,9 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           ],
         ),
       ],
-      bottom: PreferredSize(preferredSize: const Size.fromHeight(40), child: _SearchStatusBar(controller: controller)),
+      bottom: searching
+          ? PreferredSize(preferredSize: const Size.fromHeight(40), child: _SearchStatusBar(controller: controller))
+          : null,
     );
   }
 
@@ -158,8 +165,9 @@ class _SearchStatusBar extends StatelessWidget {
       if (controller.searchQuery.value.isEmpty) {
         label = '';
       } else if (controller.matches.isEmpty) {
-        // BRD §13.
-        label = 'No searchable text found.';
+        // Zero matches in readable text. BRD's 'No searchable text found'
+        // is reserved for text-less (scanned) PDFs.
+        label = 'No matches';
       } else {
         label = '${controller.currentMatchIndex.value + 1} of ${controller.matches.length} result(s)';
       }

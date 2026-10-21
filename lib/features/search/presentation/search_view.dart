@@ -25,6 +25,7 @@ class SearchView extends GetView<SearchDocumentsController> {
     return Scaffold(
       appBar: AppBar(
         title: TextField(
+          controller: controller.queryController,
           autofocus: true,
           onChanged: controller.onQueryChanged,
           style: context.bodyLarge,
@@ -44,7 +45,7 @@ class SearchView extends GetView<SearchDocumentsController> {
         if (controller.status.value.isInitial) {
           return const CommonEmptyView(message: 'Search documents by filename.');
         }
-        if (controller.status.value.isBusy) return const LoadingView();
+        if (controller.status.value.isLoading) return const LoadingView();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

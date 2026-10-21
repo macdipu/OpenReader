@@ -49,7 +49,7 @@ class HomeView extends GetView<HomeController> {
             if (granted) await controller.load();
           });
         }
-        if (controller.status.value.isBusy) return const LoadingView();
+        if (controller.status.value.isLoading) return const LoadingView();
         if (controller.status.value.isError) {
           return DocumentLoadErrorView(
             message: controller.errorMessage.value ?? 'Unable to load documents.',
@@ -137,7 +137,10 @@ class HomeView extends GetView<HomeController> {
                           },
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                       )),
-              ] else if (controller.status.value.isEmpty)
+              ] else if (controller.categoryCounts.values.every((count) => count == 0))
+                // Decided from the data, not `status.isEmpty`: a reload keeps
+                // this screen mounted in `refreshing`, and an empty index must
+                // not read as "no history" while a first scan is running.
                 _EmptyState(
                   icon: Icons.folder_off_outlined,
                   title: 'No documents found',

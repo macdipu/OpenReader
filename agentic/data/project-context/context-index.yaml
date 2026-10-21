@@ -31,6 +31,10 @@ features:
     status: IN_PROGRESS         # Text/CSV implemented 2026-09-18 (TASK-012); device verification and large-file corpus still outstanding
     path: agentic/data/project-context/features/FEATURE-OPENREADER-P4
     last_indexed_revision: null
+  CR-OPENREADER-UX:
+    status: TECHNICAL_READY     # UX audit remediation (34 gaps, 3 phases). Phase 1 run RUN-634FD576573D433995F3E16CB7BE4B57 at TECHNICAL, awaiting technical approval + UX-06 option (2026-10-21)
+    path: agentic/data/project-context/features/CR-OPENREADER-UX
+    last_indexed_revision: 3a13d40
   FEATURE-OPENREADER-P5:
     status: TECHNICAL_READY     # Hardening scoping confirmed 2026-09-19 (all 4 SRS Unresolved Questions resolved, incl. ODF-P5-02 storage-access channel decision); task breakdown not yet done; no new dependency expected, no ADR planned
     path: agentic/data/project-context/features/FEATURE-OPENREADER-P5

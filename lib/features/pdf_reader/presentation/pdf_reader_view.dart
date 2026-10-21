@@ -17,8 +17,10 @@ class PdfReaderView extends GetView<PdfReaderController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _ReaderAppBar(controller: controller),
+    // Scaffold reads appBar.preferredSize only when it builds, so it is rebuilt
+    // on search toggle to let the bar collapse back to toolbar height.
+    return Obx(() => Scaffold(
+      appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
       body: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
         return Stack(
@@ -40,7 +42,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
           ],
         );
       }),
-    );
+    ));
   }
 
   Widget _buildViewer(BuildContext context) {
@@ -76,10 +78,13 @@ class PdfReaderView extends GetView<PdfReaderController> {
 class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   final PdfReaderController controller;
 
-  const _ReaderAppBar({required this.controller});
+  /// Whether the search field (and its result bar below) is showing.
+  final bool searching;
+
+  const _ReaderAppBar({required this.controller, required this.searching});
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 40);
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + (searching ? 40 : 0));
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +158,9 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           ],
         ),
       ],
-      bottom: PreferredSize(preferredSize: const Size.fromHeight(40), child: _SearchStatusBar(controller: controller)),
+      bottom: searching
+          ? PreferredSize(preferredSize: const Size.fromHeight(40), child: _SearchStatusBar(controller: controller))
+          : null,
     );
   }
 

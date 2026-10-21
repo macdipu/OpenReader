@@ -47,7 +47,7 @@ class RecentsView extends GetView<RecentsController> {
           ),
           Expanded(
             child: Obx(() {
-              if (controller.status.value.isBusy) return const LoadingView();
+              if (controller.status.value.isLoading) return const LoadingView();
               final items = controller.filtered;
               if (items.isEmpty) return const CommonEmptyView(message: 'No history yet.');
 

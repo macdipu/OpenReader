@@ -1,8 +1,9 @@
 # Engineering Task — TASK-008
 
 ## Status
-IMPLEMENTED — 33 automated tests pass; static analysis has zero errors/warnings.
-Technical scope approved by the user on 2026-09-17; release/UAT approval remains unrecorded.
+SUPERSEDED (2026-10-21) — never formally reviewed. Run RUN-CCCD371EE90E4AEBBE44AC088A869CDE was reopened for re-verification, then cancelled by the user's decision to move on to the UX audit work. Its tests were carried forward and extended by P2–P5.
+Re-verification on 2026-10-21 (scope revision 1): 140/140 tests pass, including all 33 TASK-008 tests; `flutter analyze` regressed to exit 1 (warnings outside TASK-008 tests); the T008-01 depth-limit criterion is out of date (no depth limit since commit 3a13d40). See [re-verification baseline](../validation/TASK-008-reverify-baseline.md).
+Original (2026-09-17): IMPLEMENTED — 33 tests passed, analysis clean; technical scope approved by the user. No release/UAT approval was ever recorded.
 
 ## Story
 Phase 1 Automated Test Coverage
