@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
 import 'package:openreader/core/domain/repositories/favorite_repository.dart';
@@ -63,7 +64,10 @@ void main() {
 
   Future<WordReaderController> loaded(WordReaderController c) async {
     c.onInit();
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+    // Poll instead of a fixed delay: real file I/O latency varies under load.
+    for (var i = 0; i < 100 && c.status.value.isBusy; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
     return c;
   }
 

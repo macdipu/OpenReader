@@ -2,39 +2,119 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/presentation/theme/theme_extensions.dart';
+import '../../core/presentation/utils/screen_utils.dart';
+import '../../res/routes/app_routes.dart';
 import '../../features/favorites/presentation/favorites_view.dart';
 import '../../features/files/presentation/files_view.dart';
 import '../../features/home/presentation/home_view.dart';
 import 'app_shell_controller.dart';
 
-/// Bottom-nav shell: Home / Files / Favorites (BRD 9.3). Settings moved out
-/// of the tab bar to a pushed route (AppRoutes.settings), reached via the
-/// gear icon in Home's app bar - it's a one-off destination, not a place
-/// people live in, so it doesn't need a permanent tab slot.
+/// Adaptive shell: Home / Files / Favorites (BRD 9.3). Phones get the bottom
+/// navigation bar; wider windows (tablets, desktop) get a side navigation rail
+/// with Open file / Rescan / Settings actions, and the page content is capped
+/// to a readable width. Settings is a pushed route (AppRoutes.settings), not a
+/// tab - on phones it is reached via the gear icon in Home's app bar.
 ///
-/// Nav bar follows DESIGN_SPEC.md "BottomNavBar": 80dp, hairline top border,
-/// active destination gets a pill-shaped highlight behind icon+label.
+/// Bottom bar follows DESIGN_SPEC.md "BottomNavBar": 80dp, hairline top
+/// border, active destination gets a pill-shaped highlight behind icon+label.
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AppShellController>();
+    final wide = !context.isCompactScreen;
+
+    final pages = Obx(() => IndexedStack(
+          index: controller.currentIndex.value,
+          children: const [
+            HomeView(),
+            FilesView(),
+            FavoritesView(),
+          ],
+        ));
 
     return Scaffold(
-      body: Obx(() => IndexedStack(
-            index: controller.currentIndex.value,
-            children: const [
-              HomeView(),
-              FilesView(),
-              FavoritesView(),
-            ],
-          )),
-      bottomNavigationBar: Obx(() => _AppNavBar(
-            currentIndex: controller.currentIndex.value,
-            onTap: controller.changeTab,
-          )),
+      body: wide
+          ? Row(
+              children: [
+                _AppNavRail(controller: controller, extended: context.isExpandedScreen),
+                VerticalDivider(width: 1, color: context.outlineVariant),
+                Expanded(child: ContentConstraint(child: pages)),
+              ],
+            )
+          : pages,
+      bottomNavigationBar: wide
+          ? null
+          : Obx(() => _AppNavBar(
+                currentIndex: controller.currentIndex.value,
+                onTap: controller.changeTab,
+              )),
     );
+  }
+}
+
+class _AppNavRail extends StatelessWidget {
+  final AppShellController controller;
+  final bool extended;
+
+  const _AppNavRail({required this.controller, required this.extended});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() => NavigationRail(
+          extended: extended,
+          backgroundColor: context.surfaceContainerLowest,
+          selectedIndex: controller.currentIndex.value,
+          onDestinationSelected: controller.changeTab,
+          labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+          indicatorColor: context.secondaryContainer,
+          leading: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: extended
+                ? FilledButton.icon(
+                    onPressed: controller.pickAndOpenFile,
+                    icon: const Icon(Icons.file_open_outlined),
+                    label: const Text('Open file'),
+                  )
+                : IconButton.filledTonal(
+                    tooltip: 'Open file',
+                    onPressed: controller.pickAndOpenFile,
+                    icon: const Icon(Icons.file_open_outlined),
+                  ),
+          ),
+          trailing: Expanded(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Rescan storage',
+                      icon: const Icon(Icons.refresh_rounded),
+                      onPressed: controller.rescan,
+                    ),
+                    IconButton(
+                      tooltip: 'Settings',
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () => Get.toNamed(AppRoutes.settings),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          destinations: [
+            for (final item in _AppNavBar._items)
+              NavigationRailDestination(
+                icon: Icon(item.icon),
+                selectedIcon: Icon(item.activeIcon),
+                label: Text(item.label),
+              ),
+          ],
+        ));
   }
 }
 

@@ -20,6 +20,8 @@ enum DocumentCategory {
     'ppt': DocumentCategory.powerpoint,
     'pptx': DocumentCategory.powerpoint,
     'txt': DocumentCategory.text,
+    'md': DocumentCategory.text,
+    'markdown': DocumentCategory.text,
     'csv': DocumentCategory.csv,
   };
 

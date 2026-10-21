@@ -131,6 +131,9 @@ class _FavoritesTab extends StatelessWidget {
                       onShare: () => interactions.shareDocument(document),
                       onShowInfo: () => showFileInformationSheet(context, document),
                       onOpenWith: () => interactions.openWithExternalApp(document),
+                      onDelete: () async {
+                            if (await interactions.confirmAndDelete(document)) controller.load();
+                          },
                     ));
               },
             );
@@ -183,6 +186,9 @@ class _HistoryTab extends StatelessWidget {
                       onShare: () => interactions.shareDocument(recent.document),
                       onShowInfo: () => showFileInformationSheet(context, recent.document),
                       onOpenWith: () => interactions.openWithExternalApp(recent.document),
+                      onDelete: () async {
+                            if (await interactions.confirmAndDelete(recent.document)) controller.load();
+                          },
                       onRemoveFromRecent: () => controller.removeOne(recent.document.id),
                       trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                     ));

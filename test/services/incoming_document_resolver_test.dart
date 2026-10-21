@@ -53,6 +53,26 @@ void main() {
     expect(repository.indexed?.path, file.path);
   });
 
+  test('falls back to the MIME type when the filename has no usable extension', () async {
+    final file = File(p.join(root.path, 'file_1700000000000.null'));
+    await file.writeAsBytes([1, 2]);
+
+    final resolution = await resolver.resolve(file.path, mimeType: 'text/markdown');
+
+    expect(resolution.outcome, IncomingDocumentOutcome.success);
+    expect(resolution.document?.category, DocumentCategory.text);
+    expect(resolution.document?.extension, 'md');
+  });
+
+  test('an unknown extension with an unknown MIME type is unsupported', () async {
+    final file = File(p.join(root.path, 'blob.bin'));
+    await file.writeAsBytes([1]);
+
+    final resolution = await resolver.resolve(file.path, mimeType: 'application/octet-stream');
+
+    expect(resolution.outcome, IncomingDocumentOutcome.unsupported);
+  });
+
   test('extension matching is case-insensitive', () async {
     final file = File(p.join(root.path, 'SHARED.XLSX'));
     await file.writeAsBytes([1]);

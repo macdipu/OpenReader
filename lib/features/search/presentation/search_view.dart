@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
@@ -38,7 +39,8 @@ class SearchView extends GetView<SearchDocumentsController> {
               : IconButton(icon: const Icon(Icons.clear_rounded), onPressed: controller.clear)),
         ],
       ),
-      body: Obx(() {
+      body: ContentConstraint(
+        child: Obx(() {
         if (controller.status.value.isInitial) {
           return const CommonEmptyView(message: 'Search documents by filename.');
         }
@@ -75,6 +77,9 @@ class SearchView extends GetView<SearchDocumentsController> {
                           onShare: () => interactions.shareDocument(document),
                           onShowInfo: () => showFileInformationSheet(context, document),
                           onOpenWith: () => interactions.openWithExternalApp(document),
+                          onDelete: () async {
+                            if (await interactions.confirmAndDelete(document)) controller.removeResult(document.id);
+                          },
                           trailingLabel:
                               '${formatFileSize(document.sizeBytes)} • ${document.modifiedAt.toLocal().toString().split(' ').first}',
                         ));
@@ -84,7 +89,8 @@ class SearchView extends GetView<SearchDocumentsController> {
             ),
           ],
         );
-      }),
+        }),
+      ),
     );
   }
 }

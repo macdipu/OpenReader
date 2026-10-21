@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../data/repositories/document_repository_impl.dart';
 import '../../data/repositories/favorite_repository_impl.dart';
 import '../../data/repositories/recent_repository_impl.dart';
 import '../../domain/models/document_model.dart';
+import '../../domain/repositories/document_repository.dart';
 import '../../domain/repositories/favorite_repository.dart';
 import '../../domain/repositories/recent_repository.dart';
 import '../widgets/snackbar/custom_snackbar.dart';
@@ -23,14 +26,17 @@ import '../../../res/routes/app_routes.dart';
 class DocumentInteractionController extends GetxController {
   final FavoriteRepository _favoriteRepository;
   final RecentRepository _recentRepository;
+  final DocumentRepository _documentRepository;
   final StorageAccessService _storageAccess;
 
   DocumentInteractionController({
     FavoriteRepository? favoriteRepository,
     RecentRepository? recentRepository,
+    DocumentRepository? documentRepository,
     StorageAccessService? storageAccess,
   })  : _favoriteRepository = favoriteRepository ?? FavoriteRepositoryImpl(),
         _recentRepository = recentRepository ?? RecentRepositoryImpl(),
+        _documentRepository = documentRepository ?? DocumentRepositoryImpl(),
         _storageAccess = storageAccess ?? StorageAccessService.instance;
 
   final favoriteIds = <String>{}.obs;
@@ -82,8 +88,12 @@ class DocumentInteractionController extends GetxController {
   /// does not call it for them - a bare `markOpened(id)` here would reset an
   /// existing reading position back to `{}`, since it defaults to an empty
   /// map and replaces the whole row.
-  Future<void> openDocument(DocumentModel document) async {
-    if (!await _verifyStillAccessible(document)) return;
+  ///
+  /// [fromOtherApp] is for a file another app handed to OpenReader (BRD §7.7):
+  /// it is a copy in OpenReader's own cache, readable without the storage
+  /// permission, so that permission check is skipped for it.
+  Future<void> openDocument(DocumentModel document, {bool fromOtherApp = false}) async {
+    if (!await _verifyStillAccessible(document, skipAccessCheck: fromOtherApp)) return;
     switch (document.category) {
       case DocumentCategory.pdf:
         unawaited(Get.toNamed(AppRoutes.pdfReader, arguments: document));
@@ -130,7 +140,7 @@ class DocumentInteractionController extends GetxController {
   /// ODF-021/023: shared BRD §13 guard for a document whose file may have
   /// been deleted, or whose storage permission may have been revoked, since
   /// it was indexed. Called before open/share/open-with proceed.
-  Future<bool> _verifyStillAccessible(DocumentModel document) async {
+  Future<bool> _verifyStillAccessible(DocumentModel document, {bool skipAccessCheck = false}) async {
     if (!File(document.path).existsSync()) {
       CustomSnackbar.error(
         'This file may have been moved or deleted.',
@@ -140,7 +150,7 @@ class DocumentInteractionController extends GetxController {
       );
       return false;
     }
-    if (!await _storageAccess.hasAccess()) {
+    if (!skipAccessCheck && !await _storageAccess.hasAccess()) {
       CustomSnackbar.error(
         'OpenReader no longer has access to this file.',
         title: document.displayName,
@@ -153,4 +163,46 @@ class DocumentInteractionController extends GetxController {
   }
 
   Future<void> removeFromRecent(String documentId) => _recentRepository.remove(documentId);
+
+  /// Asks for confirmation, then permanently deletes the file from device
+  /// storage. Returns true if it was deleted, so the calling screen can
+  /// reload its list.
+  Future<bool> confirmAndDelete(DocumentModel document) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Delete file?'),
+        content: Text('"${document.displayName}" will be permanently deleted from your device. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Get.back(result: false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Get.back(result: true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true) return false;
+    return deleteDocument(document);
+  }
+
+  Future<bool> deleteDocument(DocumentModel document) async {
+    if (!await _storageAccess.hasAccess()) {
+      CustomSnackbar.error(
+        'OpenReader no longer has access to this file.',
+        title: document.displayName,
+        actionLabel: 'Grant Access',
+        onAction: () => _storageAccess.requestAccess(),
+      );
+      return false;
+    }
+    final result = await _documentRepository.deleteDocument(document);
+    return result.fold(
+      (failure) {
+        CustomSnackbar.error(failure.message, title: document.displayName);
+        return false;
+      },
+      (_) {
+        favoriteIds.remove(document.id);
+        CustomSnackbar.info('File deleted.', title: document.displayName);
+        return true;
+      },
+    );
+  }
 }

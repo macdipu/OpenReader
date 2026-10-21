@@ -69,16 +69,16 @@ void main() {
     expect(result.map((d) => d.path), [file.path]);
   });
 
-  test('includes depth eight but not depth nine', () async {
+  test('scans nested directories with no depth limit', () async {
     var directory = root;
-    for (var depth = 1; depth <= 9; depth++) {
+    for (var depth = 1; depth <= 12; depth++) {
       directory = await Directory(p.join(directory.path, '$depth')).create();
-      await File(p.join(directory.path, '$depth.txt')).writeAsString('text');
+      await File(p.join(directory.path, '$depth.md')).writeAsString('# heading');
     }
     final result = await FileScannerService(roots: [root.path]).scan();
-    expect(result, hasLength(8));
-    expect(result.map((d) => d.displayName), contains('8.txt'));
-    expect(result.map((d) => d.displayName), isNot(contains('9.txt')));
+    expect(result, hasLength(12));
+    expect(result.map((d) => d.displayName), contains('12.md'));
+    expect(result.every((d) => d.category == DocumentCategory.text), isTrue);
   });
 
   test('skips an unreadable root and still scans subsequent roots', () async {

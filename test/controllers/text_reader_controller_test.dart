@@ -64,7 +64,10 @@ void main() {
 
   Future<TextReaderController> loaded(TextReaderController c) async {
     c.onInit();
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+    // Poll instead of a fixed delay: real file I/O latency varies under load.
+    for (var i = 0; i < 100 && c.status.value.isBusy; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
     return c;
   }
 

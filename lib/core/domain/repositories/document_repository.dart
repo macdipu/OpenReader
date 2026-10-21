@@ -25,4 +25,9 @@ abstract class DocumentRepository {
   ResultFuture<DocumentModel?> getById(String id);
 
   ResultFuture<int> countByCategory(DocumentCategory category);
+
+  /// Permanently deletes the file from device storage, then drops its index
+  /// row (favorite/recent metadata cascades with it). A file that is already
+  /// gone still has its row removed.
+  ResultFuture<void> deleteDocument(DocumentModel document);
 }

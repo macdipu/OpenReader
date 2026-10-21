@@ -23,6 +23,7 @@ class DocumentListTile extends StatelessWidget {
   final VoidCallback? onShowInfo;
   final VoidCallback? onOpenWith;
   final VoidCallback? onRemoveFromRecent;
+  final VoidCallback? onDelete;
   final String? trailingLabel;
 
   /// 0-1 reading progress. When set, a thin fill bar renders under the
@@ -43,6 +44,7 @@ class DocumentListTile extends StatelessWidget {
     this.onShowInfo,
     this.onOpenWith,
     this.onRemoveFromRecent,
+    this.onDelete,
     this.trailingLabel,
     this.progress,
     this.dense = false,
@@ -118,6 +120,7 @@ class DocumentListTile extends StatelessWidget {
                   const PopupMenuItem(value: _DocumentAction.openWith, child: Text('Open With')),
                 if (onRemoveFromRecent != null)
                   const PopupMenuItem(value: _DocumentAction.removeFromRecent, child: Text('Remove from Recent')),
+                if (onDelete != null) const PopupMenuItem(value: _DocumentAction.delete, child: Text('Delete')),
               ],
             ),
           ],
@@ -140,11 +143,14 @@ class DocumentListTile extends StatelessWidget {
       case _DocumentAction.removeFromRecent:
         onRemoveFromRecent?.call();
         break;
+      case _DocumentAction.delete:
+        onDelete?.call();
+        break;
     }
   }
 }
 
-enum _DocumentAction { share, info, openWith, removeFromRecent }
+enum _DocumentAction { share, info, openWith, removeFromRecent, delete }
 
 /// PDF first-page preview with the format icon stacked on its corner, per
 /// PdfThumbnailService; every other format (no renderer available - see

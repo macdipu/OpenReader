@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
 import 'settings_controller.dart';
@@ -36,7 +37,7 @@ class SettingsView extends GetView<SettingsController> {
           ),
         ],
       ),
-      body: ListView(
+      body: ContentConstraint(child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           _PrivacyBanner(),
@@ -183,7 +184,7 @@ class SettingsView extends GetView<SettingsController> {
                 )),
           ),
         ],
-      ),
+      )),
     );
   }
 }

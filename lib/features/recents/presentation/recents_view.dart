@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/relative_time_formatter.dart';
@@ -29,7 +30,7 @@ class RecentsView extends GetView<RecentsController> {
           ),
         ],
       ),
-      body: Column(
+      body: ContentConstraint(child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -62,6 +63,9 @@ class RecentsView extends GetView<RecentsController> {
                         onShare: () => interactions.shareDocument(recent.document),
                         onShowInfo: () => showFileInformationSheet(context, recent.document),
                         onOpenWith: () => interactions.openWithExternalApp(recent.document),
+                        onDelete: () async {
+                            if (await interactions.confirmAndDelete(recent.document)) controller.load();
+                          },
                         onRemoveFromRecent: () => controller.removeOne(recent.document.id),
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                       ));
@@ -70,7 +74,7 @@ class RecentsView extends GetView<RecentsController> {
             }),
           ),
         ],
-      ),
+      )),
     );
   }
 

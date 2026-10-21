@@ -1,8 +1,8 @@
 # OpenReader
 
-A privacy-first, fully offline Android document reader built with Flutter. OpenReader lets users discover, open, read, search, and navigate documents stored locally on their device — no accounts, no cloud upload, no server dependency.
+A privacy-first, fully offline document reader built with Flutter for Android, Windows, macOS and Linux. OpenReader lets users discover, open, read, search, and navigate documents stored locally on their device — no accounts, no cloud upload, no server dependency.
 
-**Supported formats:** PDF, DOC/DOCX, XLS/XLSX, CSV, TXT. (PPT/PPTX has no reader yet — blocked on an open product decision, see `agentic/data/project-context/features/FEATURE-OPENREADER-P3`.)
+**Supported formats:** PDF, DOC/DOCX, XLS/XLSX, CSV, TXT, MD. (PPT/PPTX has no reader yet — blocked on an open product decision, see `agentic/data/project-context/features/FEATURE-OPENREADER-P3`.)
 
 ---
 
@@ -14,6 +14,21 @@ A privacy-first, fully offline Android document reader built with Flutter. OpenR
 - **Offline-first:** all reading happens on-device; local SQLite index for recents/favorites
 
 Reference: `lib/features/` (`pdf_reader`, `word_reader`, `excel_reader`, `csv_reader`, `text_reader`, `files`, `recents`, `favorites`, `search`, `settings`, `onboarding`, `home`).
+
+---
+
+## Platforms and release builds
+
+The layout adapts to window size (`lib/core/presentation/utils/screen_utils.dart`): phones get a bottom navigation bar, tablets and desktop windows get a side rail, an "Open file" button, and width-capped content. On desktop the scanner indexes Documents, Downloads and Desktop; any other file opens through "Open file" or as a command-line argument (`openreader file.pdf`).
+
+```bash
+flutter build apk --release --split-per-abi   # Android
+flutter build windows --release               # run on Windows
+flutter build macos --release                 # run on macOS
+flutter build linux --release                 # run on Linux (needs libgtk-3-dev, libsecret-1-dev, ninja-build)
+```
+
+Each desktop target must be built on its own OS. `.github/workflows/release.yml` builds all four on a version tag and attaches the artifacts to the GitHub release. Desktop builds are unsigned.
 
 ---
 

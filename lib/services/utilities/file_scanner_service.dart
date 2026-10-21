@@ -6,30 +6,56 @@ import '../../core/domain/models/document_category.dart';
 import '../../core/domain/models/document_model.dart';
 import '../../core/presentation/utils/logger.dart';
 
-/// Walks accessible local storage for supported document files (BRD 7.1).
-///
-/// Scoped to the shared/public roots most user documents land in, rather
-/// than a full-device walk: that keeps a rescan fast and avoids wandering
-/// into Android/data sandboxed app directories the OS hides anyway.
+/// Walks every accessible local storage volume for supported document files
+/// (BRD 7.1): on Android the primary shared storage plus any SD card / USB
+/// volume mounted under `/storage`, on desktop the user's document folders,
+/// with no depth cap. Directories the OS refuses to
+/// list (e.g. Android/data on Android 11+) are skipped and logged.
 ///
 /// Named `FileScannerService` (not `DocumentScannerService`) to leave that
 /// name free for a future camera-based document scanner feature.
 class FileScannerService {
-  FileScannerService({Iterable<String> roots = _rootCandidates})
-      : _roots = List.unmodifiable(roots);
+  FileScannerService({Iterable<String>? roots})
+      : _roots = roots == null ? null : List.unmodifiable(roots);
 
   static final FileScannerService instance = FileScannerService();
-  final List<String> _roots;
 
-  static const _rootCandidates = [
-    '/storage/emulated/0/Download',
-    '/storage/emulated/0/Documents',
-    '/storage/emulated/0/DCIM',
-    '/storage/emulated/0/WhatsApp/Media/WhatsApp Documents',
-    '/storage/emulated/0',
-  ];
+  /// Explicit roots (tests); null means discover all volumes at scan time.
+  final List<String>? _roots;
 
-  static const _maxDepth = 8;
+  List<String> _desktopRoots() {
+    final env = Platform.environment;
+    final home = Platform.isWindows ? env['USERPROFILE'] : env['HOME'];
+    if (home == null || home.isEmpty) return const [];
+    return [for (final folder in const ['Documents', 'Downloads', 'Desktop']) p.join(home, folder)];
+  }
+
+  static const _storageRoot = '/storage';
+  static const _primaryVolume = '/storage/emulated/0';
+
+  /// Android: primary storage first, then every other mounted volume.
+  /// `/storage/self` and `/storage/emulated` are aliases of the primary
+  /// volume and skipped so nothing is walked twice.
+  ///
+  /// Windows/macOS/Linux: the user's Documents, Downloads and Desktop
+  /// folders. A whole-disk walk of a desktop machine would crawl system and
+  /// cache directories for minutes, so anything elsewhere is opened with the
+  /// "Open file" picker instead.
+  Future<List<String>> _discoverRoots() async {
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) return _desktopRoots();
+    if (!Platform.isAndroid) return const [];
+    final roots = <String>[_primaryVolume];
+    try {
+      await for (final entity in Directory(_storageRoot).list(followLinks: false)) {
+        final name = p.basename(entity.path);
+        if (name == 'self' || name == 'emulated') continue;
+        if (entity is Directory) roots.add(entity.path);
+      }
+    } catch (e) {
+      AppLogger.warning('Could not list $_storageRoot: $e');
+    }
+    return roots;
+  }
 
   /// [onFound] fires with the running count each time a new document is
   /// added, so callers can show live scan progress (Settings > Rescan /
@@ -38,10 +64,10 @@ class FileScannerService {
     final found = <String, DocumentModel>{};
     final now = DateTime.now();
 
-    for (final rootPath in _roots) {
+    for (final rootPath in _roots ?? await _discoverRoots()) {
       final root = Directory(rootPath);
       if (!await root.exists()) continue;
-      await _walk(root, depth: 0, now: now, into: found, onFound: onFound);
+      await _walk(root, now: now, into: found, onFound: onFound);
     }
 
     return found.values.toList();
@@ -49,13 +75,10 @@ class FileScannerService {
 
   Future<void> _walk(
     Directory directory, {
-    required int depth,
     required DateTime now,
     required Map<String, DocumentModel> into,
     void Function(int foundSoFar)? onFound,
   }) async {
-    if (depth > _maxDepth) return;
-
     List<FileSystemEntity> entries;
     try {
       entries = await directory.list(followLinks: false).toList();
@@ -66,7 +89,7 @@ class FileScannerService {
 
     for (final entity in entries) {
       if (entity is Directory) {
-        await _walk(entity, depth: depth + 1, now: now, into: into, onFound: onFound);
+        await _walk(entity, now: now, into: into, onFound: onFound);
         continue;
       }
       if (entity is! File) continue;

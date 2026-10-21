@@ -1,6 +1,7 @@
 import 'package:openreader/res/strings/string_enum.dart';
 import 'package:openreader/services/navigation/navigation_history_observer.dart';
 import 'package:openreader/services/navigation/navigation_service.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -40,6 +41,7 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: NavigationService.navigatorKey,
       navigatorObservers: [NavigationHistoryObserver()],
 
+      scrollBehavior: const _AppScrollBehavior(),
       debugShowCheckedModeBanner: false,
 
       localizationsDelegates: const [
@@ -49,4 +51,18 @@ class _MyAppState extends State<MyApp> {
       ],
     );
   }
+}
+
+/// Lets a mouse or trackpad drag-scroll lists (Flutter's default only allows
+/// touch), so pull-to-refresh and swipe gestures also work on desktop.
+class _AppScrollBehavior extends MaterialScrollBehavior {
+  const _AppScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
 }
