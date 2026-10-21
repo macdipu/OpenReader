@@ -46,6 +46,8 @@ class SearchDocumentsController extends BaseController {
     _debounce = Timer(const Duration(milliseconds: 250), () => _search(trimmed));
   }
 
+  void removeResult(String documentId) => results.removeWhere((d) => d.id == documentId);
+
   void clear() {
     query.value = '';
     results.clear();

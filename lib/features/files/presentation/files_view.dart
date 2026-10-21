@@ -99,6 +99,9 @@ class FilesView extends GetView<FilesController> {
                           onShare: () => interactions.shareDocument(document),
                           onShowInfo: () => showFileInformationSheet(context, document),
                           onOpenWith: () => interactions.openWithExternalApp(document),
+                          onDelete: () async {
+                            if (await interactions.confirmAndDelete(document)) controller.load();
+                          },
                         ));
                   },
                 ),
@@ -401,6 +404,14 @@ Future<void> _showFileActionSheet(
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 interactions.openWithExternalApp(document);
+              },
+            ),
+            _SheetAction(
+              icon: Icons.delete_outline_rounded,
+              title: 'Delete',
+              onTap: () async {
+                Navigator.of(sheetContext).pop();
+                if (await interactions.confirmAndDelete(document)) Get.find<FilesController>().load();
               },
             ),
             const SizedBox(height: 8),

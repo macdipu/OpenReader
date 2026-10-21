@@ -6,6 +6,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import '../../core/presentation/controllers/document_interaction_controller.dart';
+import '../../core/presentation/utils/platform_info.dart';
 import '../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import 'incoming_document_resolver.dart';
 
@@ -34,7 +35,14 @@ class IncomingIntentService {
 
   IncomingIntentService({IncomingDocumentResolver? resolver}) : _resolver = resolver ?? IncomingDocumentResolver();
 
+  /// Opens a file by path - used for desktop command-line arguments and the
+  /// "Open file" picker, which have no [SharedMediaFile] wrapper.
+  Future<void> handlePath(String path) => handle([SharedMediaFile(path: path, type: SharedMediaType.file)]);
+
   Future<void> init() async {
+    // receive_sharing_intent only exists on Android/iOS; calling it on
+    // Windows/macOS/Linux throws MissingPluginException.
+    if (!PlatformInfo.isMobile) return;
     final initial = await ReceiveSharingIntent.instance.getInitialMedia();
     if (initial.isNotEmpty) {
       unawaited(handle(initial));
@@ -58,10 +66,10 @@ class IncomingIntentService {
     if (files.isEmpty) return;
     final path = files.first.path;
 
-    final resolution = await _resolver.resolve(path);
+    final resolution = await _resolver.resolve(path, mimeType: files.first.mimeType);
     switch (resolution.outcome) {
       case IncomingDocumentOutcome.success:
-        unawaited(Get.find<DocumentInteractionController>().openDocument(resolution.document!));
+        unawaited(Get.find<DocumentInteractionController>().openDocument(resolution.document!, fromOtherApp: true));
       case IncomingDocumentOutcome.unsupported:
         // BRD §13 "Unsupported format".
         CustomSnackbar.error(

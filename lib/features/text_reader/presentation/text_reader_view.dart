@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
@@ -15,11 +16,14 @@ class TextReaderView extends GetView<TextReaderController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _ReaderAppBar(controller: controller),
-      body: Obx(() {
-        if (controller.status.value.isBusy) return const LoadingView();
-        if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
-        return _TextBody(controller: controller);
-      }),
+      body: ContentConstraint(
+        maxWidth: ScreenUtils.maxReaderWidth,
+        child: Obx(() {
+          if (controller.status.value.isBusy) return const LoadingView();
+          if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
+          return _TextBody(controller: controller);
+        }),
+      ),
     );
   }
 }

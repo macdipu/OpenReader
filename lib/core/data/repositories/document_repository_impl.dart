@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../../domain/models/document_category.dart';
@@ -123,6 +125,16 @@ class DocumentRepositoryImpl implements DocumentRepository {
         [category.name],
       );
       return Sqflite.firstIntValue(result) ?? 0;
+    });
+  }
+
+  @override
+  ResultFuture<void> deleteDocument(DocumentModel document) {
+    return runTask(() async {
+      final file = File(document.path);
+      if (await file.exists()) await file.delete();
+      final db = await _appDatabase.database;
+      await db.delete('documents', where: 'id = ?', whereArgs: [document.id]);
     });
   }
 

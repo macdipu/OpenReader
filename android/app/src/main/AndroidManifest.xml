@@ -53,6 +53,8 @@
                 <data android:scheme="content" android:mimeType="application/vnd.ms-excel"/>
                 <data android:scheme="content" android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
                 <data android:scheme="content" android:mimeType="text/plain"/>
+                <data android:scheme="content" android:mimeType="text/markdown"/>
+                <data android:scheme="content" android:mimeType="text/x-markdown"/>
                 <data android:scheme="content" android:mimeType="text/csv"/>
                 <data android:scheme="content" android:mimeType="text/comma-separated-values"/>
             </intent-filter>
@@ -65,6 +67,8 @@
                 <data android:scheme="file" android:mimeType="application/vnd.ms-excel"/>
                 <data android:scheme="file" android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
                 <data android:scheme="file" android:mimeType="text/plain"/>
+                <data android:scheme="file" android:mimeType="text/markdown"/>
+                <data android:scheme="file" android:mimeType="text/x-markdown"/>
                 <data android:scheme="file" android:mimeType="text/csv"/>
                 <data android:scheme="file" android:mimeType="text/comma-separated-values"/>
             </intent-filter>
@@ -80,6 +84,8 @@
                 <data android:mimeType="application/vnd.ms-excel"/>
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
                 <data android:mimeType="text/plain"/>
+                <data android:mimeType="text/markdown"/>
+                <data android:mimeType="text/x-markdown"/>
                 <data android:mimeType="text/csv"/>
                 <data android:mimeType="text/comma-separated-values"/>
             </intent-filter>

@@ -54,9 +54,32 @@ class IncomingDocumentResolver {
 
   IncomingDocumentResolver({DocumentRepository? documentRepository}) : _documentRepository = documentRepository ?? DocumentRepositoryImpl();
 
-  Future<IncomingDocumentResolution> resolve(String path) async {
-    final extension = p.extension(path).replaceFirst('.', '').toLowerCase();
-    final category = DocumentCategory.fromExtension(extension);
+  /// MIME types an incoming file may carry when its cached filename has no
+  /// usable extension (the sharing plugin names some `content://` copies
+  /// `<prefix>_<time>.null`), mapped to the extension they stand for.
+  static const _extensionByMimeType = {
+    'application/pdf': 'pdf',
+    'application/msword': 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.ms-excel': 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+    'text/plain': 'txt',
+    'text/markdown': 'md',
+    'text/x-markdown': 'md',
+    'text/csv': 'csv',
+    'text/comma-separated-values': 'csv',
+  };
+
+  Future<IncomingDocumentResolution> resolve(String path, {String? mimeType}) async {
+    var extension = p.extension(path).replaceFirst('.', '').toLowerCase();
+    var category = DocumentCategory.fromExtension(extension);
+    if (category == DocumentCategory.unknown && mimeType != null) {
+      final fromMime = _extensionByMimeType[mimeType.toLowerCase()];
+      if (fromMime != null) {
+        extension = fromMime;
+        category = DocumentCategory.fromExtension(fromMime);
+      }
+    }
 
     if (category == DocumentCategory.unknown || category == DocumentCategory.powerpoint) {
       return const IncomingDocumentResolution.unsupported();

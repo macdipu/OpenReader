@@ -1,12 +1,15 @@
 import 'dart:async';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 
 import '../../core/domain/models/document_category.dart';
 import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/files/presentation/files_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
+import '../../res/routes/app_routes.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
+import '../../services/platform_integration/launch_arguments.dart';
 
 class AppShellController extends GetxController {
   static const homeIndex = 0;
@@ -26,7 +29,27 @@ class AppShellController extends GetxController {
     // access has already been resolved, so it's safe to start listening for
     // an incoming file here.
     unawaited(_incomingIntentService.init());
+    _openLaunchFiles();
   }
+
+  /// Desktop: a file passed on the command line when the app was launched.
+  void _openLaunchFiles() {
+    final files = LaunchArguments.take();
+    if (files.isNotEmpty) unawaited(_incomingIntentService.handlePath(files.first));
+  }
+
+  /// "Open file" - lets desktop users read a document outside the scanned
+  /// folders (and phones one outside shared storage).
+  Future<void> pickAndOpenFile() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: DocumentCategory.supportedExtensions,
+    );
+    final path = result?.files.single.path;
+    if (path != null) await _incomingIntentService.handlePath(path);
+  }
+
+  Future<void> rescan() => Get.find<HomeController>().refresh();
 
   @override
   void onClose() {

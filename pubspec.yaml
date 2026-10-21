@@ -30,6 +30,10 @@ dependencies:
   shared_preferences: ^2.5.4
   flutter_secure_storage: ^10.0.0
   sqflite: ^2.4.1
+  # Desktop (Windows/macOS/Linux): sqflite has no desktop implementation, so
+  # the FFI factory is installed at startup (see lib/app/flavours/app_flavour.dart).
+  # The native SQLite library is bundled by the sqlite3 package's build hook.
+  sqflite_common_ffi: ">=2.3.6 <2.4.0"
   path: ^1.9.0
 
   # Logging / Utilities
@@ -91,7 +95,6 @@ dependencies:
   font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
-  sqflite_common_ffi: ">=2.3.6 <2.4.0"
   flutter_test:
     sdk: flutter
 

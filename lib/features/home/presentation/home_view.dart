@@ -132,6 +132,9 @@ class HomeView extends GetView<HomeController> {
                         onShare: () => interactions.shareDocument(recent.document),
                         onShowInfo: () => showFileInformationSheet(context, recent.document),
                         onOpenWith: () => interactions.openWithExternalApp(recent.document),
+                        onDelete: () async {
+                            if (await interactions.confirmAndDelete(recent.document)) controller.load();
+                          },
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                       )),
               ] else if (controller.status.value.isEmpty)
