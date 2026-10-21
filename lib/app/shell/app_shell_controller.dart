@@ -7,7 +7,6 @@ import '../../core/domain/models/document_category.dart';
 import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/files/presentation/files_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
-import '../../res/routes/app_routes.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
 

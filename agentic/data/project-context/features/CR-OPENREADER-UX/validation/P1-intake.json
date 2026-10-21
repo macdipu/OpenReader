@@ -1,0 +1,25 @@
+{
+  "status": "READY",
+  "evidence": [
+    "agentic/data/work-items/CR-OPENREADER-UX.md#in-scope-this-run-phase-1",
+    "agentic/data/work-items/CR-OPENREADER-UX.md#acceptance-criteria",
+    "In-session UX audit 2026-10-21 (code read of lib/, no device run)"
+  ],
+  "blocking_issues": [],
+  "open_questions": [
+    "UX-07 PowerPoint handling is a product decision (FEATURE-OPENREADER-P3 SRS Unresolved Question 1); excluded from Phase 1 scope, does not block it.",
+    "UX-06 approach (unsupported-format flow vs. stop indexing .doc/.xls) to be confirmed at technical approval."
+  ],
+  "recommended_next_step": "CONTEXT: fingerprint Phase 1 affected files and baseline flutter test/analyze.",
+  "outputs": {
+    "verdict": "INTAKE_READY",
+    "work_item": "CR-OPENREADER-UX",
+    "input_mode": "prompt-first",
+    "classification": "CR_TASKS",
+    "planning": "NO_REPLAN",
+    "phase": 1,
+    "scope_ids": ["UX-01", "UX-02", "UX-03", "UX-04", "UX-05", "UX-06", "UX-26"],
+    "actual_work_window": "2026-10-21T15:21Z-15:30Z (submitted via cli result; harness duration reflects submission only)",
+    "approval_state": "No technical or release approval recorded."
+  }
+}

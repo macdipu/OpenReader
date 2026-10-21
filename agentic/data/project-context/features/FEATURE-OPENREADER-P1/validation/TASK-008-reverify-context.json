@@ -1,0 +1,26 @@
+{
+  "status": "READY",
+  "evidence": [
+    "agentic/data/project-context/features/FEATURE-OPENREADER-P1/validation/TASK-008-reverify-baseline.md#observed-results",
+    "flutter test --reporter expanded: 140 passed, 0 failed (includes all 33 TASK-008 tests)",
+    "flutter analyze --no-fatal-infos: exit 1, 149 issues (warnings outside TASK-008 test scope)"
+  ],
+  "blocking_issues": [],
+  "open_questions": [
+    "Analyzer exit regressed from 0 to 1 since 2026-09-17 (unused import in app_shell_controller.dart, unused params in settings_view.dart); truncated output leaves error-severity count unverified. Does not block re-establishing the baseline; to be addressed or accepted at IMPLEMENTATION/REVIEW.",
+    "T008-01 acceptance text cites a depth 8/9 limit; current intended behavior (commit 3a13d40) is no depth limit. Criterion needs updating, which requires the user's confirmation."
+  ],
+  "recommended_next_step": "Obtain the user's technical approval for the re-verified scope (approvals were revoked by reopen), then IMPLEMENTATION: refresh TASK-008 evidence and resolve or accept the analyzer warnings, then REVIEW.",
+  "outputs": {
+    "verdict": "CONTEXT_READY",
+    "classification": "TASK_ONLY",
+    "planning": "NO_REPLAN",
+    "scope_revision": 1,
+    "source_revision": "3a13d40",
+    "tests_passed": 140,
+    "tests_failed": 0,
+    "analysis_exit_code": 1,
+    "analysis_issues": 149,
+    "approval_state": "No technical, release or UAT approval recorded; all revoked by reopen."
+  }
+}

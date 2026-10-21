@@ -8,6 +8,18 @@ abstract class BaseController extends GetxController {
   final errorMessage = Rxn<String>();
   final isLoading = false.obs;
 
+  /// Enters the busy state at the start of a (re)load. Only a screen with
+  /// nothing on it yet (initial/error) goes to `loading`, which views render
+  /// as a full-screen spinner; one already showing content goes to
+  /// `refreshing`, so reloads on tab select, filter, sort, or rescan keep
+  /// the current content mounted instead of blanking it.
+  void beginLoad() {
+    final current = status.value;
+    status.value = current.isSuccess || current.isEmpty || current.isRefreshing
+        ? StateStatus.refreshing
+        : StateStatus.loading;
+  }
+
   void handleFailure(Failure failure) {
     status.value = StateStatus.error;
     isLoading.value = false;

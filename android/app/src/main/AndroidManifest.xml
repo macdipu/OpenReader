@@ -41,16 +41,15 @@
             <!-- BRD §7.7 / TASK-009: "Open with OpenReader" from a file manager or
                  similar app (a `content://` or, on some older/rooted-device
                  tools, a `file://` URI). Deliberately excludes PowerPoint's MIME
-                 types - PPTX has no reader yet (FEATURE-OPENREADER-P3), and
+                 types - PPTX has no reader yet (FEATURE-OPENREADER-P3) - and legacy
+                 .doc/.xls (no binary-format engine, CR-OPENREADER-UX UX-06), and
                  offering OpenReader as a handler it would then refuse is worse UX
                  than not appearing as a candidate at all. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:scheme="content" android:mimeType="application/pdf"/>
-                <data android:scheme="content" android:mimeType="application/msword"/>
                 <data android:scheme="content" android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
-                <data android:scheme="content" android:mimeType="application/vnd.ms-excel"/>
                 <data android:scheme="content" android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
                 <data android:scheme="content" android:mimeType="text/plain"/>
                 <data android:scheme="content" android:mimeType="text/markdown"/>
@@ -62,9 +61,7 @@
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:scheme="file" android:mimeType="application/pdf"/>
-                <data android:scheme="file" android:mimeType="application/msword"/>
                 <data android:scheme="file" android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
-                <data android:scheme="file" android:mimeType="application/vnd.ms-excel"/>
                 <data android:scheme="file" android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
                 <data android:scheme="file" android:mimeType="text/plain"/>
                 <data android:scheme="file" android:mimeType="text/markdown"/>
@@ -79,9 +76,7 @@
                 <action android:name="android.intent.action.SEND"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="application/pdf"/>
-                <data android:mimeType="application/msword"/>
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
-                <data android:mimeType="application/vnd.ms-excel"/>
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
                 <data android:mimeType="text/plain"/>
                 <data android:mimeType="text/markdown"/>

@@ -38,7 +38,12 @@ class FixtureDocuments implements DocumentRepository {
   bool failLoad = false;
   bool failScan = false;
   int loadCalls = 0;
+  int queryCalls = 0;
   int scanCalls = 0;
+
+  /// When set, list/count queries wait on it, so a test can observe the
+  /// screen mid-reload.
+  Completer<void>? hold;
   DocumentCategory? category;
   String? query;
   DocumentSortMode? sort;
@@ -47,7 +52,9 @@ class FixtureDocuments implements DocumentRepository {
       {DocumentCategory? category,
       String? query,
       DocumentSortMode sort = DocumentSortMode.nameAsc}) async {
+    await hold?.future;
     loadCalls++;
+    queryCalls++;
     this.category = category;
     this.query = query;
     this.sort = sort;
@@ -58,6 +65,7 @@ class FixtureDocuments implements DocumentRepository {
 
   @override
   ResultFuture<int> countByCategory(DocumentCategory category) async {
+    await hold?.future;
     loadCalls++;
     return failLoad
         ? const Left(ServerFailure('Could not load documents'))
@@ -180,6 +188,28 @@ void main() {
       expect(find.text('No documents found'), findsNothing);
     });
 
+    testWidgets('$screen keeps content mounted while reloading (UX1-AC1/AC2)',
+        (tester) async {
+      final f = ScreenFixture();
+      f.documents.items = [sample];
+      f.recents.items = [RecentDocumentModel(document: sample, lastOpenedAt: DateTime(2026))];
+      await f.mount(tester, home);
+      await f.complete(tester);
+      expect(f.controller.status.value, StateStatus.success);
+
+      f.documents.hold = Completer<void>();
+      final reload = home ? (f.controller as HomeController).load() : (f.controller as FilesController).load();
+      await tester.pump();
+      expect(f.controller.status.value, StateStatus.refreshing);
+      expect(find.byType(LoadingView), findsNothing);
+      expect(find.text('report.pdf'), findsWidgets);
+
+      f.documents.hold!.complete();
+      await reload;
+      await tester.pumpAndSettle();
+      expect(f.controller.status.value, StateStatus.success);
+    });
+
     testWidgets('$screen denies access without querying documents',
         (tester) async {
       final f = ScreenFixture();
@@ -256,12 +286,30 @@ void main() {
     expect(find.text('No documents found'), findsNothing);
   });
 
+  testWidgets('All Files debounces a typing burst into one query (UX1-AC3)',
+      (tester) async {
+    final f = ScreenFixture();
+    await f.mount(tester, false);
+    await f.complete(tester);
+    final before = f.documents.queryCalls;
+    for (final text in ['r', 're', 'rep', 'repo']) {
+      await tester.enterText(find.byType(TextField), text);
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(f.documents.queryCalls, before);
+    await tester.pump(FilesController.searchDebounce);
+    await tester.pumpAndSettle();
+    expect(f.documents.queryCalls, before + 1);
+    expect(f.documents.query, 'repo');
+  });
+
   testWidgets('All Files forwards user search, category and sort choices',
       (tester) async {
     final f = ScreenFixture();
     await f.mount(tester, false);
     await f.complete(tester);
     await tester.enterText(find.byType(TextField), 'report');
+    await tester.pump(FilesController.searchDebounce);
     await tester.pumpAndSettle();
     expect(f.documents.query, 'report');
     // The category filter is a custom pill chip (files_view.dart's `_Pill`),

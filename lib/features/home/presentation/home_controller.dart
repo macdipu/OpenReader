@@ -56,7 +56,7 @@ class HomeController extends BaseController {
   Future<void> load() async {
     _retryScan = false;
     errorMessage.value = null;
-    status.value = StateStatus.loading;
+    beginLoad();
     hasAccess.value = await _storageAccess.hasAccess();
     if (!hasAccess.value) {
       status.value = StateStatus.empty;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 import 'package:get/get.dart';
 
@@ -42,7 +44,7 @@ class FilesController extends BaseController {
   Future<void> load() async {
     _retryScan = false;
     errorMessage.value = null;
-    status.value = StateStatus.loading;
+    beginLoad();
     hasAccess.value = await _storageAccess.hasAccess();
     if (!hasAccess.value) {
       status.value = StateStatus.empty;
@@ -102,8 +104,20 @@ class FilesController extends BaseController {
     load();
   }
 
+  /// Debounced like `SearchDocumentsController.onQueryChanged`, so a burst of
+  /// keystrokes issues one query instead of a reload per character.
+  static const searchDebounce = Duration(milliseconds: 250);
+  Timer? _searchDebounce;
+
   void setSearchQuery(String query) {
     searchQuery.value = query;
-    load();
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(searchDebounce, load);
+  }
+
+  @override
+  void onClose() {
+    _searchDebounce?.cancel();
+    super.onClose();
   }
 }

@@ -66,20 +66,26 @@ class FilesView extends GetView<FilesController> {
               child: Obx(() => _SortChip(mode: controller.sortMode.value, onSelected: controller.setSort)),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
+          // Reloads (filter/sort/search/rescan) keep the list mounted; this
+          // thin bar is the only busy signal for them - see `beginLoad`.
+          Obx(() => SizedBox(
+                height: 2,
+                child: controller.status.value.isRefreshing ? const LinearProgressIndicator(minHeight: 2) : null,
+              )),
           Expanded(
             child: Obx(() {
               if (!controller.hasAccess.value) {
                 return const CommonEmptyView(message: 'Storage access is required to list files.');
               }
-              if (controller.status.value.isBusy) return const LoadingView();
+              if (controller.status.value.isLoading) return const LoadingView();
               if (controller.status.value.isError) {
                 return DocumentLoadErrorView(
                   message: controller.errorMessage.value ?? 'Unable to load documents.',
                   onRetry: controller.retry,
                 );
               }
-              if (controller.status.value.isEmpty) {
+              if (controller.status.value.isEmpty || controller.documents.isEmpty) {
                 return const CommonEmptyView(message: 'No documents found');
               }
               return RefreshIndicator(

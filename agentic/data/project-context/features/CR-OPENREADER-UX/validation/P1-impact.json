@@ -1,0 +1,27 @@
+{
+  "status": "READY",
+  "evidence": [
+    "agentic/data/project-context/features/CR-OPENREADER-UX/TECH-SPEC-P1.md#impact"
+  ],
+  "blocking_issues": [],
+  "open_questions": [
+    "UX-06 option A (stop indexing, BRD lines 175/1609) vs B (unsupported-format dialog) requires user decision; A cascade-deletes existing .doc/.xls favorites/recents on rescan."
+  ],
+  "recommended_next_step": "TECHNICAL: present design and obtain technical approval.",
+  "outputs": {
+    "verdict": "IMPACT_ASSESSED",
+    "risk": "LOW_MEDIUM",
+    "schema_change": false,
+    "new_dependencies": false,
+    "modules": [
+      "core/presentation",
+      "features/home",
+      "features/files",
+      "features/favorites",
+      "features/recents",
+      "features/search",
+      "features/*_reader",
+      "app/shell"
+    ]
+  }
+}
