@@ -187,22 +187,20 @@ class _SearchStatusBar extends StatelessWidget {
       if (!controller.isSearching.value) return const SizedBox.shrink();
       final searcher = controller.textSearcher.value;
       if (searcher == null) return const SizedBox.shrink();
+      // Read here, not in the ListenableBuilder, so this Obx tracks it.
+      final hasTextLayer = controller.hasTextLayer.value;
       return Container(
         color: context.surfaceContainerLow,
         child: ListenableBuilder(
           listenable: searcher,
           builder: (context, _) {
-            final String label;
-            if (searcher.pattern == null) {
-              label = '';
-            } else if (searcher.isSearching) {
-              label = 'Searching…';
-            } else if (searcher.matches.isEmpty) {
-              // BRD §13.
-              label = 'No searchable text found.';
-            } else {
-              label = '${(searcher.currentIndex ?? 0) + 1} of ${searcher.matches.length} result(s)';
-            }
+            final label = pdfSearchStatusLabel(
+              hasPattern: searcher.pattern != null,
+              isSearching: searcher.isSearching,
+              matchCount: searcher.matches.length,
+              currentIndex: searcher.currentIndex,
+              hasTextLayer: hasTextLayer,
+            );
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(

@@ -1,6 +1,6 @@
 # CR-OPENREADER-UX Phase 1: technical spec
 
-Status: PROPOSED (awaiting technical approval). Source revision `3a13d40`. Run `RUN-634FD576573D433995F3E16CB7BE4B57`.
+Status: APPROVED (revision 0: UX-06 option A, released in `4b9f42b`). Revision 1 (PDF text-layer probe) approved 2026-10-22. Source revision `3a13d40`; revision 1 base `4b9f42b`. Run `RUN-634FD576573D433995F3E16CB7BE4B57`.
 
 ## Baseline (2026-10-21)
 - `flutter test`: 140/140 pass.
@@ -48,4 +48,48 @@ The BRD requires these "if rendering engine supports acceptable fidelity" (lines
 - AC8: full `flutter test` and `flutter analyze --no-fatal-infos`.
 
 ## Out of scope
-UX-07 PowerPoint (product decision pending, `FEATURE-OPENREADER-P3` UQ1), the PDF text-layer probe, and all P1/P2 items.
+UX-07 PowerPoint (product decision pending, `FEATURE-OPENREADER-P3` UQ1) and all P1/P2 items.
+
+## Revision 1 (2026-10-22): PDF text-layer probe
+Closes the UX-26 PDF gap left open in revision 0. The baseline at `4b9f42b` is 146/146 tests passing, 0 errors and 2 pre-existing warnings.
+
+### Design
+- When a PDF search finishes with zero matches, `PdfReaderController` probes the document's text. Each page's text comes from `PdfTextSearcher.loadText`, which is already cached because the search has just loaded every page. The probe stops at the first page with non-blank text.
+- `hasTextLayer` (`RxnBool`) is set once per document:
+  - `true` if any page has non-blank text.
+  - `false` only if every page loaded and every page was blank.
+  - It stays `null` if any page was not loaded yet (progressive loading), and the probe runs again on the next zero-match search.
+- Label: `false` gives BRD line 1087's "No searchable text found."; `true` or `null` gives "No matches", like the other four readers.
+- Two pure top-level helpers, `probePdfTextLayer(pageCount, loadPageText)` and `pdfSearchStatusLabel(...)`, carry the logic so it can be tested without PDFium. `PdfTextSearcher` can't be built in tests; see the header of `pdf_reader_controller_test.dart`.
+
+### Impact
+`features/pdf_reader` only (controller and view). There is no schema, dependency or platform change, and risk is low. The cost is one extra pass over cached page text after a zero-match search, and a scanned PDF's text is empty.
+
+### Tests
+New `test/controllers/pdf_text_layer_test.dart`, covering:
+- Probe: text found, all pages blank, an unloaded page, and early stop.
+- Label: every state.
+
+## Revision 2 (2026-10-22): review fixes
+The run was reopened after the independent review (`validation/P1r1-review.md`). Technical approval was re-recorded in-session for the design below.
+
+### Design
+- **PDF probe (F1).** Read raw `PdfPage.loadText()` through `useDocument`, not the searcher's cache. An unloaded page returns null, so the answer stays unknown and the label shows "No matches".
+- **F3, empty state during reload.**
+  - Home and Files `refresh()` call `beginLoad()` instead of forcing `refreshing`. A Retry from an error screen, which has nothing on it, shows the spinner again.
+  - While `isScanning` is set, Home hides "No documents found". During the first-run auto-scan, only the scan banner shows.
+- **F4, upgrade migration.** The DB goes from version 1 to 2. `onUpgrade` deletes `documents` rows where `lower(extension) IN ('doc','xls')`. The FK cascade removes their recents and favorites, just as a manual rescan already does.
+- **F5, stale Search results.** `_search` drops its result if `query` changed or was cleared while it ran.
+- **F6, out-of-order Files loads.** `FilesController.load()` gets a session counter, and a superseded load discards its result.
+
+### Impact
+The change touches `core/data/local`, `features/home`, `features/files`, `features/search` and `features/pdf_reader`. Risk is low.
+- The schema itself doesn't change; only the version number and a data-only migration do.
+- Fresh installs are unaffected.
+
+### Tests
+- The DB upgrade test: a v1 DB with a `.doc` row plus a favorite is opened with v2, and both are gone.
+- Search: clearing during an in-flight search.
+- Files: loads finishing out of order.
+- Files: Retry from error shows the spinner.
+- Home: "No documents found" is hidden while scanning.

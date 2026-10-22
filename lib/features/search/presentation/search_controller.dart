@@ -65,6 +65,8 @@ class SearchDocumentsController extends BaseController {
   Future<void> _search(String term) async {
     beginLoad();
     final result = await _documentRepository.getDocuments(query: term);
+    // The field was cleared or retyped while this ran; its result is stale.
+    if (query.value.trim() != term) return;
     result.fold(
       (failure) => handleFailure(failure),
       (list) {

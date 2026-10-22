@@ -44,6 +44,9 @@ class FixtureDocuments implements DocumentRepository {
   /// When set, list/count queries wait on it, so a test can observe the
   /// screen mid-reload.
   Completer<void>? hold;
+
+  /// Same, for [rescan].
+  Completer<void>? holdScan;
   DocumentCategory? category;
   String? query;
   DocumentSortMode? sort;
@@ -75,6 +78,7 @@ class FixtureDocuments implements DocumentRepository {
   @override
   ResultFuture<List<DocumentModel>> rescan({void Function(int foundSoFar)? onProgress}) async {
     scanCalls++;
+    await holdScan?.future;
     return failScan
         ? const Left(ServerFailure('Could not scan documents'))
         : Right(items);
@@ -262,7 +266,82 @@ void main() {
       await tester.pump(const Duration(seconds: 4));
       await tester.pumpAndSettle();
     });
+
+    testWidgets('$screen Retry after a scan failure shows the spinner, not an empty index (review F3)',
+        (tester) async {
+      final f = ScreenFixture();
+      await f.mount(tester, home);
+      await f.complete(tester);
+      f.documents.failScan = true;
+      await f.refresh();
+      await tester.pumpAndSettle();
+      expect(f.controller.status.value, StateStatus.error);
+
+      f.documents.failScan = false;
+      f.documents.holdScan = Completer<void>();
+      await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
+      await tester.pump();
+      expect(f.controller.status.value, StateStatus.loading);
+      expect(find.byType(LoadingView), findsOneWidget);
+      expect(find.text('No documents found'), findsNothing);
+
+      f.documents.holdScan!.complete();
+      await tester.pumpAndSettle();
+      expect(f.controller.status.value, StateStatus.empty);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+    });
   }
+
+  testWidgets('Home shows only the scan banner, not "No documents found", while scanning an empty index (review F3)',
+      (tester) async {
+    final f = ScreenFixture();
+    await f.mount(tester, true);
+    await f.complete(tester);
+    expect(find.text('No documents found'), findsOneWidget);
+
+    f.documents.holdScan = Completer<void>();
+    // Not awaited: the reload after the scan stops at the first-run
+    // auto-scan check, whose SharedPreferences call never completes here.
+    unawaited(f.refresh());
+    await tester.pump();
+    expect(f.controller.status.value, StateStatus.refreshing);
+    expect((f.controller as HomeController).isScanning.value, isTrue);
+    expect(find.byType(LoadingView), findsNothing);
+    expect(find.text('No documents found'), findsNothing);
+
+    f.documents.holdScan!.complete();
+    await tester.pumpAndSettle();
+    expect((f.controller as HomeController).isScanning.value, isFalse);
+    expect(find.text('No documents found'), findsOneWidget);
+  });
+
+  testWidgets('All Files discards a load superseded by a newer filter (review F6)', (tester) async {
+    final f = ScreenFixture();
+    f.documents.items = [sample];
+    await f.mount(tester, false);
+    await f.complete(tester);
+    final files = f.controller as FilesController;
+
+    final gate = Completer<void>();
+    f.documents.hold = gate;
+    final stale = files.load();
+    await tester.pump();
+    // The newer load (e.g. a filter tap) runs unblocked and finds nothing.
+    f.documents.hold = null;
+    f.documents.items = [];
+    files.selectCategory(DocumentCategory.text);
+    await tester.pumpAndSettle();
+    expect(files.status.value, StateStatus.empty);
+
+    // The older load finishes last, seeing the fixture's items again.
+    f.documents.items = [sample];
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(files.documents, isEmpty);
+    expect(files.status.value, StateStatus.empty);
+    await stale;
+  });
 
   testWidgets('Home surfaces history failure even when category counts succeed',
       (tester) async {

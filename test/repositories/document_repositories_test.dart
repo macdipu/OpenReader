@@ -220,4 +220,33 @@ void main() {
     expect((await favorites.getFavorites()).isLeft(), isTrue);
     expect((await recents.getRecents()).isLeft(), isTrue);
   });
+
+  test('upgrading from v1 prunes legacy .doc/.xls rows and their favorites/recents (UX-06)', () async {
+    // Rows a v1 install indexed before .doc/.xls were dropped; inserted
+    // directly because the scanner no longer categorizes them.
+    final db = await database.database;
+    for (final name in ['old.doc', 'sheet.XLS']) {
+      await db.insert('documents', {
+        'id': '/fixtures/$name',
+        'path': '/fixtures/$name',
+        'display_name': name,
+        'extension': p.extension(name).substring(1),
+        'category': 'word',
+        'size_bytes': 1,
+        'modified_at': 1,
+        'last_seen_at': 1,
+      });
+    }
+    await success(favorites.toggle('/fixtures/old.doc'));
+    await success(recents.markOpened('/fixtures/sheet.XLS'));
+    await success(favorites.toggle(a.id));
+    await db.execute('PRAGMA user_version = 1');
+    await database.close();
+
+    expect(await success(documents.getById('/fixtures/old.doc')), isNull);
+    expect(await success(documents.getById('/fixtures/sheet.XLS')), isNull);
+    expect((await success(documents.getDocuments())).map((d) => d.id), unorderedEquals([a.id, b.id, c.id]));
+    expect((await success(favorites.getFavorites())).map((d) => d.id), [a.id]);
+    expect(await success(recents.getRecents()), isEmpty);
+  });
 }

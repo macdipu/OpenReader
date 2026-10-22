@@ -100,4 +100,22 @@ These problems make the app feel broken (screen flicker, dead progress UI) and e
 - UX-34: desktop lacks keyboard shortcuts, drag-and-drop and right-click menus; phones have no "Open file".
 
 ## Status
-INTAKE. Phase 1 has no technical approval yet.
+Phase 1 (`RUN-634FD576573D433995F3E16CB7BE4B57`): **COMPLETED** 2026-10-22, scope revision 2. Release approved by the user; released as version 1.0.3+5 (local commit, not pushed).
+- **Revision 0** (UX-01…06, UX-26 for Word/Excel/Text/CSV): committed as `4b9f42b` (version 1.0.2+4).
+- **Revisions 1-2** (2026-10-22, committed as version 1.0.3+5):
+  - PDF zero-match label from a text-layer probe.
+  - Independent-review fixes F1 and F3-F6:
+    - F3: no misleading empty state while scanning or on Retry.
+    - F4: DB v2 prunes legacy `.doc`/`.xls` on upgrade.
+    - F5: stale Search results are dropped.
+    - F6: superseded Files loads are discarded.
+- **Evidence:** in `features/CR-OPENREADER-UX/validation/`: `P1r1-review.md`, `P1r2-review.md`, `P1r2-qa.md`.
+  - 162/162 tests pass.
+  - The analyzer shows 0 errors and 2 pre-existing warnings.
+  - All 9 emulator checks pass.
+- **Deferred to Phase 2:**
+  - F6a: Files `refresh()` isn't covered by the load-session guard, so a filter tap mid-rescan hides the refresh indicator early.
+  - F6b: a rescan failure after a newer successful load replaces it with the error screen, and Retry won't rescan.
+  - Home has no load-session guard.
+  - Home's recents don't update on returning from a reader.
+- **Not started:** UX-07 is waiting on a product decision. Phases 2 and 3 have not started.

@@ -17,7 +17,9 @@ class AppDatabase {
 
   static const _fileName = 'openreader.db';
   static const _legacyFileName = 'opendocs.db';
-  static const _version = 1;
+  /// 2: legacy `.doc`/`.xls` are no longer indexed (CR-OPENREADER-UX UX-06),
+  /// so rows an older install indexed are pruned on upgrade - see [_onUpgrade].
+  static const _version = 2;
 
   Database? _database;
 
@@ -83,8 +85,19 @@ class AppDatabase {
           )
         ''');
         },
+        onUpgrade: _onUpgrade,
       ),
     );
+  }
+
+  /// Version 1 indexed `.doc`/`.xls` as Word/Excel, which the readers can't
+  /// open. A rescan prunes them too; this does it at once, so an upgraded
+  /// install doesn't list them until the user happens to rescan. Their
+  /// recents/favorites go with them via `ON DELETE CASCADE`.
+  static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.delete('documents', where: "lower(extension) IN ('doc', 'xls')");
+    }
   }
 
   /// Test/debug hook; not wired to any UI action in Phase 1.
