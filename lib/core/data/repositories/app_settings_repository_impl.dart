@@ -16,6 +16,8 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   static const String _onboardingCompleteKey = 'app_settings:onboarding_complete';
   static const String _autoScannedKey = 'app_settings:auto_scanned';
   static const String _defaultContinuousScrollKey = 'app_settings:default_continuous_scroll';
+  static const String _textReaderFontSizeKey = 'app_settings:text_reader_font_size';
+  static const String _textReaderLineWrapKey = 'app_settings:text_reader_line_wrap';
 
   @override
   Future<AppThemeMode> getThemeMode() async {
@@ -74,6 +76,30 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   }
 
   @override
+  Future<double?> getTextReaderFontSize() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_textReaderFontSizeKey);
+  }
+
+  @override
+  Future<void> setTextReaderFontSize(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_textReaderFontSizeKey, value);
+  }
+
+  @override
+  Future<bool?> getTextReaderLineWrap() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_textReaderLineWrapKey);
+  }
+
+  @override
+  Future<void> setTextReaderLineWrap(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_textReaderLineWrapKey, value);
+  }
+
+  @override
   Future<bool> getDefaultContinuousScroll() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_defaultContinuousScrollKey) ?? true;
@@ -93,6 +119,8 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
     await prefs.remove(_onboardingCompleteKey);
     await prefs.remove(_autoScannedKey);
     await prefs.remove(_defaultContinuousScrollKey);
+    await prefs.remove(_textReaderFontSizeKey);
+    await prefs.remove(_textReaderLineWrapKey);
   }
 }
 

@@ -9,7 +9,6 @@ import '../../../core/presentation/utils/file_size_formatter.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/document/document_load_error_view.dart';
-import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import 'files_controller.dart';
@@ -76,7 +75,12 @@ class FilesView extends GetView<FilesController> {
           Expanded(
             child: Obx(() {
               if (!controller.hasAccess.value) {
-                return const CommonEmptyView(message: 'Storage access is required to list files.');
+                return _FilesMessage(
+                  icon: Icons.folder_off_outlined,
+                  message: 'Storage access is required to list files.',
+                  actionLabel: 'Grant Access',
+                  onAction: controller.requestAccess,
+                );
               }
               if (controller.status.value.isLoading) return const LoadingView();
               if (controller.status.value.isError) {
@@ -86,7 +90,17 @@ class FilesView extends GetView<FilesController> {
                 );
               }
               if (controller.status.value.isEmpty || controller.documents.isEmpty) {
-                return const CommonEmptyView(message: 'No documents found');
+                // Scrollable so pull-to-refresh reaches an empty list too.
+                final filtered = controller.hasActiveFilter;
+                return RefreshIndicator(
+                  onRefresh: controller.refresh,
+                  child: _FilesMessage(
+                    icon: filtered ? Icons.search_off_rounded : Icons.folder_open_outlined,
+                    message: filtered ? 'No matching documents' : 'No documents found',
+                    actionLabel: filtered ? null : 'Scan storage',
+                    onAction: filtered ? null : controller.refresh,
+                  ),
+                );
               }
               return RefreshIndicator(
                 onRefresh: controller.refresh,
@@ -100,7 +114,8 @@ class FilesView extends GetView<FilesController> {
                           document: document,
                           dense: true,
                           isFavorite: interactions.isFavorite(document.id),
-                          onTap: () => _showFileActionSheet(context, document, interactions),
+                          onTap: () => interactions.openDocument(document),
+                          onLongPress: () => _showFileActionSheet(context, document, interactions),
                           onToggleFavorite: (_) => interactions.toggleFavorite(document.id),
                           onShare: () => interactions.shareDocument(document),
                           onShowInfo: () => showFileInformationSheet(context, document),
@@ -116,6 +131,35 @@ class FilesView extends GetView<FilesController> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Files' no-access/empty states: a message plus the action that gets the
+/// user out of it (UX-17). Always scrollable, so a surrounding
+/// [RefreshIndicator] can be pulled.
+class _FilesMessage extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final String? actionLabel;
+  final Future<void> Function()? onAction;
+
+  const _FilesMessage({required this.icon, required this.message, this.actionLabel, this.onAction});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+      children: [
+        Icon(icon, size: 56, color: context.onSurfaceVariant),
+        const SizedBox(height: 16),
+        Text(message, textAlign: TextAlign.center, style: context.titleMedium),
+        if (actionLabel != null && onAction != null) ...[
+          const SizedBox(height: 16),
+          Center(child: FilledButton(onPressed: onAction, child: Text(actionLabel!))),
+        ],
+      ],
     );
   }
 }
@@ -415,6 +459,7 @@ Future<void> _showFileActionSheet(
             _SheetAction(
               icon: Icons.delete_outline_rounded,
               title: 'Delete',
+              destructive: true,
               onTap: () async {
                 Navigator.of(sheetContext).pop();
                 if (await interactions.confirmAndDelete(document)) Get.find<FilesController>().load();
@@ -433,13 +478,17 @@ class _SheetAction extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
 
-  const _SheetAction({required this.icon, required this.title, required this.onTap});
+  /// Error-coloured, for an action that can't be undone (UX-15).
+  final bool destructive;
+
+  const _SheetAction({required this.icon, required this.title, required this.onTap, this.destructive = false});
 
   @override
   Widget build(BuildContext context) {
+    final color = destructive ? Theme.of(context).colorScheme.error : null;
     return ListTile(
-      leading: Icon(icon, color: context.onSurfaceVariant),
-      title: Text(title, style: context.bodyLarge),
+      leading: Icon(icon, color: color ?? context.onSurfaceVariant),
+      title: Text(title, style: context.bodyLarge?.copyWith(color: color)),
       onTap: onTap,
     );
   }

@@ -32,16 +32,28 @@ class WordReaderView extends GetView<WordReaderController> {
             ),
             clipBehavior: Clip.antiAlias,
             child: NotificationListener<ScrollNotification>(
+              // Only the document's own vertical scroll: wide tables scroll
+              // horizontally inside it and used to overwrite the saved offset.
               onNotification: (notification) {
-                controller.onScrollOffsetChanged(notification.metrics.pixels);
+                if (notification.depth == 0 && notification.metrics.axis == Axis.vertical) {
+                  controller.onScrollOffsetChanged(notification.metrics.pixels);
+                }
                 return false;
               },
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: DocxView(
-                  bytes: controller.validatedBytes!,
-                  searchController: controller.searchController,
-                  onError: controller.onLoadError,
+              // DocxView's scroll view has no controller of its own, so it
+              // adopts this one - on every platform, not only mobile -
+              // which is how the reading position is restored (UX-22).
+              child: PrimaryScrollController(
+                controller: controller.scrollController,
+                automaticallyInheritForPlatforms: TargetPlatform.values.toSet(),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: DocxView(
+                    bytes: controller.validatedBytes!,
+                    searchController: controller.searchController,
+                    onLoaded: controller.onDocumentLoaded,
+                    onError: controller.onLoadError,
+                  ),
                 ),
               ),
             ),

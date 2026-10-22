@@ -10,6 +10,7 @@ import '../../../core/domain/models/document_model.dart';
 import '../../../core/domain/repositories/document_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
+import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/utilities/storage_access_service.dart';
 
 /// All Files screen with category filter, search-within, and sort
@@ -91,15 +92,38 @@ class FilesController extends BaseController {
   }
 
   Future<void> refresh() async {
-    _retryScan = true;
+    // Takes a load session too: a filter/sort/search load started while the
+    // scan runs is newer, so a scan failure must not replace its results
+    // with the error screen (it's reported as a snackbar instead).
+    final session = ++_loadSession;
     // A Retry from the error screen has nothing to keep mounted, so that
     // case still gets the full-screen spinner.
     beginLoad();
     final rescanResult = await _documentRepository.rescan();
     await rescanResult.fold<Future<void>>(
-      (failure) async => handleFailure(failure),
+      (failure) async {
+        if (session != _loadSession) {
+          CustomSnackbar.error(failure.message);
+          return;
+        }
+        handleFailure(failure);
+        // Set after the failure, not before the scan: an interleaved load()
+        // resets it, which made Retry reload instead of rescanning.
+        _retryScan = true;
+      },
+      // Even if a newer load finished meanwhile, it saw the pre-scan index.
       (_) => load(),
     );
+  }
+
+  /// Whether a filter or search narrows the list, so an empty result means
+  /// "nothing matches" rather than "nothing indexed".
+  bool get hasActiveFilter => selectedCategory.value != null || searchQuery.value.trim().isNotEmpty;
+
+  /// Files' "Grant Access" (UX-17). Falls back to system settings once the
+  /// OS stops prompting (UX-18).
+  Future<void> requestAccess() async {
+    if (await _storageAccess.requestOrOpenSettings()) await load();
   }
 
   /// Invoked from Home when a category card is tapped (BRD 9.3).

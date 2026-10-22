@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
+import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
 import 'package:openreader/core/domain/repositories/favorite_repository.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
@@ -43,11 +44,29 @@ class FixtureRecents implements RecentRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// In-memory text reader preferences (UX-20).
+class FixtureSettings implements AppSettingsRepository {
+  double? fontSize;
+  bool? lineWrap;
+
+  @override
+  Future<double?> getTextReaderFontSize() async => fontSize;
+  @override
+  Future<void> setTextReaderFontSize(double value) async => fontSize = value;
+  @override
+  Future<bool?> getTextReaderLineWrap() async => lineWrap;
+  @override
+  Future<void> setTextReaderLineWrap(bool value) async => lineWrap = value;
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late Directory root;
   late DocumentModel document;
   late DocumentModel missingDocument;
   late FixtureRecents recents;
+  late FixtureSettings settings;
   late DocumentInteractionController interactions;
   late TextReaderController controller;
 
@@ -81,8 +100,9 @@ void main() {
     missingDocument = makeDocument(p.join(root.path, 'missing.txt'));
 
     recents = FixtureRecents();
+    settings = FixtureSettings();
     interactions = DocumentInteractionController(favoriteRepository: FixtureFavorites(), recentRepository: recents);
-    controller = TextReaderController(document: document, recentRepository: recents, interactions: interactions);
+    controller = TextReaderController(document: document, recentRepository: recents, interactions: interactions, settingsRepository: settings);
   });
 
   tearDown(() async {
@@ -102,7 +122,7 @@ void main() {
       // 0xE9 is not valid standalone UTF-8 but decodes as 'é' under Latin-1.
       await file.writeAsBytes([0x63, 0x61, 0x66, 0xE9]);
       final latin1Document = makeDocument(file.path, sizeBytes: 4);
-      final latin1Controller = TextReaderController(document: latin1Document, recentRepository: recents, interactions: interactions);
+      final latin1Controller = TextReaderController(document: latin1Document, recentRepository: recents, interactions: interactions, settingsRepository: settings);
       await loaded(latin1Controller);
       expect(latin1Controller.status.value, StateStatus.success);
       expect(latin1Controller.lines.single, 'café');
@@ -112,7 +132,7 @@ void main() {
       final file = File(p.join(root.path, 'binary.txt'));
       await file.writeAsBytes(List<int>.generate(2000, (i) => i % 2 == 0 ? 0x00 : 0x01));
       final binaryDocument = makeDocument(file.path, sizeBytes: 2000);
-      final binaryController = TextReaderController(document: binaryDocument, recentRepository: recents, interactions: interactions);
+      final binaryController = TextReaderController(document: binaryDocument, recentRepository: recents, interactions: interactions, settingsRepository: settings);
       await loaded(binaryController);
       expect(binaryController.status.value, StateStatus.error);
       expect(binaryController.errorMessage.value, 'This document may be damaged or incomplete.');
@@ -123,7 +143,7 @@ void main() {
       // 'A' repeated - plain, valid UTF-8 text; only its size matters here.
       await file.writeAsBytes(List<int>.filled(TextReaderController.maxBytes + 1, 0x41));
       final hugeDocument = makeDocument(file.path, sizeBytes: TextReaderController.maxBytes + 1);
-      final hugeController = TextReaderController(document: hugeDocument, recentRepository: recents, interactions: interactions);
+      final hugeController = TextReaderController(document: hugeDocument, recentRepository: recents, interactions: interactions, settingsRepository: settings);
       await loaded(hugeController);
       expect(hugeController.status.value, StateStatus.error);
       expect(hugeController.errorMessage.value, 'This document is too large to render safely on this device.');
@@ -206,6 +226,34 @@ void main() {
       controller.toggleLineWrap();
       expect(controller.lineWrap.value, isFalse);
     });
+
+    test('font size and wrap changes are saved (UX-20)', () async {
+      controller.increaseFontSize();
+      controller.toggleLineWrap();
+      await Future<void>.delayed(Duration.zero);
+      expect(settings.fontSize, 16.0);
+      expect(settings.lineWrap, isFalse);
+    });
+
+    test('a new reader opens with the saved font size and wrap (UX-20)', () async {
+      settings
+        ..fontSize = 22
+        ..lineWrap = false;
+      final reopened = TextReaderController(document: document, recentRepository: recents, interactions: interactions, settingsRepository: settings);
+      reopened.onInit();
+      await Future<void>.delayed(Duration.zero);
+      expect(reopened.fontSize.value, 22.0);
+      expect(reopened.lineWrap.value, isFalse);
+    });
+
+    test('a change made before the saved preferences load is kept (UX-20)', () async {
+      settings.fontSize = 22;
+      final reopened = TextReaderController(document: document, recentRepository: recents, interactions: interactions, settingsRepository: settings);
+      reopened.onInit();
+      reopened.decreaseFontSize();
+      await Future<void>.delayed(Duration.zero);
+      expect(reopened.fontSize.value, 12.0);
+    });
   });
 
   group('delegation to DocumentInteractionController', () {
@@ -217,7 +265,7 @@ void main() {
 
     testWidgets('share blocks on a missing file before reaching the share sheet', (tester) async {
       await tester.pumpWidget(const GetMaterialApp(home: Scaffold(body: SizedBox())));
-      final missingController = TextReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
+      final missingController = TextReaderController(document: missingDocument, recentRepository: recents, interactions: interactions, settingsRepository: settings);
       await missingController.share();
       await tester.pump();
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
@@ -226,7 +274,7 @@ void main() {
 
     testWidgets('openWith blocks on a missing file before reaching the chooser', (tester) async {
       await tester.pumpWidget(const GetMaterialApp(home: Scaffold(body: SizedBox())));
-      final missingController = TextReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
+      final missingController = TextReaderController(document: missingDocument, recentRepository: recents, interactions: interactions, settingsRepository: settings);
       await missingController.openWith();
       await tester.pump();
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);

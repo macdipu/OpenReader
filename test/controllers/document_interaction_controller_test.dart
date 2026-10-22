@@ -57,6 +57,9 @@ class FixtureAccess implements StorageAccessService {
   }
 
   @override
+  Future<bool> requestOrOpenSettings() => requestAccess();
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

@@ -18,6 +18,9 @@ class DocumentListTile extends StatelessWidget {
   final DocumentModel document;
   final bool isFavorite;
   final VoidCallback onTap;
+
+  /// Secondary action on long-press - All Files' action sheet (UX-08).
+  final VoidCallback? onLongPress;
   final ValueChanged<bool> onToggleFavorite;
   final VoidCallback? onShare;
   final VoidCallback? onShowInfo;
@@ -39,6 +42,7 @@ class DocumentListTile extends StatelessWidget {
     required this.document,
     required this.isFavorite,
     required this.onTap,
+    this.onLongPress,
     required this.onToggleFavorite,
     this.onShare,
     this.onShowInfo,
@@ -58,6 +62,7 @@ class DocumentListTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: dense ? 10 : 14),
@@ -120,7 +125,12 @@ class DocumentListTile extends StatelessWidget {
                   const PopupMenuItem(value: _DocumentAction.openWith, child: Text('Open With')),
                 if (onRemoveFromRecent != null)
                   const PopupMenuItem(value: _DocumentAction.removeFromRecent, child: Text('Remove from Recent')),
-                if (onDelete != null) const PopupMenuItem(value: _DocumentAction.delete, child: Text('Delete')),
+                // Permanent file deletion, so styled as destructive (UX-15).
+                if (onDelete != null)
+                  PopupMenuItem(
+                    value: _DocumentAction.delete,
+                    child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  ),
               ],
             ),
           ],

@@ -107,8 +107,15 @@ class FixtureFavorites implements FavoriteRepository {
 
 class FixtureAccess implements StorageAccessService {
   final response = Completer<bool>();
+  bool grantOnRequest = false;
+  int requestCalls = 0;
   @override
-  Future<bool> hasAccess() => response.future;
+  Future<bool> hasAccess() async => await response.future || (requestCalls > 0 && grantOnRequest);
+  @override
+  Future<bool> requestOrOpenSettings() async {
+    requestCalls++;
+    return grantOnRequest;
+  }
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -403,5 +410,224 @@ void main() {
     await tester.tap(find.text(DocumentSortMode.largestFirst.label));
     await tester.pumpAndSettle();
     expect(f.documents.sort, DocumentSortMode.largestFirst);
+  });
+
+  group('Phase 2 (CR-OPENREADER-UX)', () {
+    testWidgets('All Files: tap opens the document, long-press shows the action sheet (UX-08)', (tester) async {
+      final f = ScreenFixture();
+      f.documents.items = [sample];
+      await f.mount(tester, false);
+      await f.complete(tester);
+
+      await tester.tap(find.text('report.pdf'));
+      await tester.pumpAndSettle();
+      expect(find.text('Open in Reader'), findsNothing);
+      // (The fixture file doesn't exist, so the open itself stops at the
+      // missing-file guard; let its snackbar run out.)
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.text('report.pdf'));
+      await tester.pumpAndSettle();
+      expect(find.text('Open in Reader'), findsOneWidget);
+    });
+
+    testWidgets('All Files empty index offers Scan storage and pull-to-refresh (UX-17)', (tester) async {
+      final f = ScreenFixture();
+      await f.mount(tester, false);
+      await f.complete(tester);
+      expect(find.text('No documents found'), findsOneWidget);
+      expect(find.byType(RefreshIndicator), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Scan storage'));
+      await tester.pumpAndSettle();
+      expect(f.documents.scanCalls, 1);
+    });
+
+    testWidgets('All Files empty search result says no match, without a scan button (UX-17)', (tester) async {
+      final f = ScreenFixture();
+      await f.mount(tester, false);
+      await f.complete(tester);
+      await tester.enterText(find.byType(TextField), 'zzz');
+      await tester.pump(FilesController.searchDebounce);
+      await tester.pumpAndSettle();
+      expect(find.text('No matching documents'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Scan storage'), findsNothing);
+    });
+
+    testWidgets('All Files without access offers Grant Access, then loads (UX-17/18)', (tester) async {
+      final f = ScreenFixture();
+      await f.mount(tester, false);
+      await f.complete(tester, allowed: false);
+      expect(find.widgetWithText(FilledButton, 'Grant Access'), findsOneWidget);
+
+      f.access.grantOnRequest = true;
+      await tester.tap(find.widgetWithText(FilledButton, 'Grant Access'));
+      await tester.pumpAndSettle();
+      expect(f.access.requestCalls, 1);
+      expect(find.text('No documents found'), findsOneWidget);
+    });
+
+    for (final home in [true, false]) {
+      final screen = home ? 'Home' : 'All Files';
+      testWidgets('$screen keeps a newer load\'s results when a rescan then fails (F6a)', (tester) async {
+        final f = ScreenFixture();
+        f.documents.items = [sample];
+        f.recents.items = [RecentDocumentModel(document: sample, lastOpenedAt: DateTime(2026))];
+        await f.mount(tester, home);
+        await f.complete(tester);
+
+        f.documents
+          ..holdScan = Completer<void>()
+          ..failScan = true;
+        unawaited(f.refresh());
+        await tester.pump();
+        // A tab tap / filter change while the scan runs.
+        unawaited(home ? (f.controller as HomeController).load() : (f.controller as FilesController).load());
+        // Not pumpAndSettle: Home's scan banner spins until the scan ends.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(f.controller.status.value, StateStatus.success);
+
+        f.documents.holdScan!.complete();
+        await tester.pumpAndSettle();
+        expect(f.controller.status.value, StateStatus.success);
+        expect(find.text('report.pdf'), findsWidgets);
+        expect(find.widgetWithText(FilledButton, 'Retry'), findsNothing);
+        await tester.pump(const Duration(seconds: 4));
+        await tester.pumpAndSettle();
+      });
+
+      testWidgets('$screen Retry rescans after a rescan failure, even if an older load landed mid-scan (F6b)',
+          (tester) async {
+        final f = ScreenFixture();
+        f.documents.items = [sample];
+        await f.mount(tester, home);
+        await f.complete(tester);
+
+        final gate = Completer<void>();
+        f.documents.hold = gate;
+        unawaited(home ? (f.controller as HomeController).load() : (f.controller as FilesController).load());
+        await tester.pump();
+        f.documents
+          ..holdScan = Completer<void>()
+          ..failScan = true;
+        unawaited(f.refresh());
+        await tester.pump();
+        f.documents.hold = null;
+        gate.complete(); // the older load finishes during the scan
+        await tester.pump();
+        f.documents.holdScan!.complete();
+        await tester.pumpAndSettle();
+        expect(f.controller.status.value, StateStatus.error);
+
+        f.documents
+          ..holdScan = null
+          ..failScan = false;
+        await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
+        await tester.pumpAndSettle();
+        expect(f.documents.scanCalls, 2);
+        await tester.pump(const Duration(seconds: 4));
+        await tester.pumpAndSettle();
+      });
+    }
+
+    testWidgets('Home splits recents: 3 Continue Reading cards, the rest as rows, no duplicates (UX-12)',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final f = ScreenFixture();
+      final docs = [
+        for (var i = 0; i < 5; i++)
+          DocumentModel(
+            id: '/fixtures/doc$i.txt',
+            path: '/fixtures/doc$i.txt',
+            displayName: 'doc$i.txt',
+            extension: 'txt',
+            category: DocumentCategory.text,
+            sizeBytes: 1,
+            modifiedAt: DateTime(2026),
+            lastSeenAt: DateTime(2026),
+          ),
+      ];
+      f.documents.items = docs;
+      f.recents.items = [for (final d in docs) RecentDocumentModel(document: d, lastOpenedAt: DateTime(2026))];
+      await f.mount(tester, true);
+      await f.complete(tester);
+      for (final d in docs) {
+        expect(find.text(d.displayName), findsOneWidget, reason: d.displayName);
+      }
+      expect(find.text('Continue Reading'), findsOneWidget);
+      expect(find.text('Recent Documents'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'See All'), findsOneWidget);
+      // UX-11 / UX-14: no chip reads as selected; the dead tune icon is gone.
+      expect(find.byIcon(Icons.tune_rounded), findsNothing);
+    });
+
+    testWidgets('Home hides Recent Documents when every recent is a card (UX-12)', (tester) async {
+      final f = ScreenFixture();
+      f.documents.items = [sample];
+      f.recents.items = [RecentDocumentModel(document: sample, lastOpenedAt: DateTime(2026))];
+      await f.mount(tester, true);
+      await f.complete(tester);
+      expect(find.text('report.pdf'), findsOneWidget);
+      expect(find.text('Recent Documents'), findsNothing);
+    });
+
+    testWidgets('Home shows PDF reading progress on its card (UX-13)', (tester) async {
+      final f = ScreenFixture();
+      f.documents.items = [sample];
+      f.recents.items = [
+        RecentDocumentModel(
+          document: sample,
+          lastOpenedAt: DateTime(2026),
+          readingPosition: const {'page_number': 5, 'page_count': 20},
+        ),
+      ];
+      await f.mount(tester, true);
+      await f.complete(tester);
+      expect(
+        find.byWidgetPredicate((w) => w is LinearProgressIndicator && w.value == 0.25),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Home keeps the scan banner until the last overlapping rescan ends', (tester) async {
+      final f = ScreenFixture();
+      await f.mount(tester, true);
+      await f.complete(tester);
+      final home = f.controller as HomeController;
+
+      final first = Completer<void>();
+      final second = Completer<void>();
+      f.documents.holdScan = first;
+      unawaited(home.refresh());
+      await tester.pump();
+      f.documents.holdScan = second;
+      unawaited(home.refresh());
+      await tester.pump();
+
+      first.complete();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(home.isScanning.value, isTrue);
+
+      second.complete();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(home.isScanning.value, isFalse);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Home reloads when a reader closes (HOME-RECENTS)', (tester) async {
+      final f = ScreenFixture();
+      await f.mount(tester, true);
+      await f.complete(tester);
+      final calls = f.documents.loadCalls;
+      Get.find<DocumentInteractionController>().readerClosed.value++;
+      await tester.pumpAndSettle();
+      expect(f.documents.loadCalls, greaterThan(calls));
+    });
   });
 }

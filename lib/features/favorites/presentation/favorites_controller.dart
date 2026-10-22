@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/favorite_repository_impl.dart';
@@ -8,8 +9,9 @@ import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
 
-/// Favorites screen (BRD 9.8).
-class FavoritesController extends BaseController {
+/// Library tab: Favorites (BRD 9.8) and reading History, the app's only
+/// history screen (UX-09).
+class FavoritesController extends BaseController with GetSingleTickerProviderStateMixin {
   final FavoriteRepository _favoriteRepository;
 
   FavoritesController({FavoriteRepository? favoriteRepository})
@@ -18,6 +20,19 @@ class FavoritesController extends BaseController {
   final favorites = <DocumentModel>[].obs;
   final searchQuery = ''.obs;
   final selectedCategory = Rxn<DocumentCategory>();
+
+  static const favoritesTab = 0;
+  static const historyTab = 1;
+
+  /// Owned here rather than by a `DefaultTabController` so Home's "See All"
+  /// can switch to History ([showHistory]).
+  late final TabController tabController = TabController(length: 2, vsync: this)
+    ..addListener(() => isHistoryTab.value = tabController.index == historyTab);
+
+  /// Clear History applies to the History tab only (UX-10).
+  final isHistoryTab = false.obs;
+
+  void showHistory() => tabController.animateTo(historyTab);
 
   @override
   void onInit() {
@@ -61,4 +76,10 @@ class FavoritesController extends BaseController {
   }
 
   void setSearchQuery(String query) => searchQuery.value = query;
+
+  @override
+  void onClose() {
+    tabController.dispose();
+    super.onClose();
+  }
 }

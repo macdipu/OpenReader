@@ -5,8 +5,10 @@ import 'dart:typed_data';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
+import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
 import '../../../core/domain/models/document_model.dart';
+import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
@@ -30,22 +32,23 @@ class TextReaderController extends BaseController {
   /// constant.
   static const int maxBytes = 20 * 1024 * 1024;
 
-  /// Rough single-line height estimate used only to approximate a jump-to-
-  /// match scroll offset (`goToNextMatch`/`goToPrevMatch`) - wrapped long
-  /// lines make an exact offset impractical without per-line layout
-  /// measurement. A documented simplification, not pixel-perfect.
+  /// Fallback line height for jump-to-match when no [lineOffsetResolver] is
+  /// attached (the view sets one that measures real lines - UX-21).
   static const double _approxLineHeight = 20;
 
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;
+  final AppSettingsRepository _settingsRepository;
 
   TextReaderController({
     required this.document,
     RecentRepository? recentRepository,
     DocumentInteractionController? interactions,
+    AppSettingsRepository? settingsRepository,
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
-        _interactions = interactions ?? Get.find<DocumentInteractionController>();
+        _interactions = interactions ?? Get.find<DocumentInteractionController>(),
+        _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl();
 
   List<String> _lines = const [];
   List<String> get lines => _lines;
@@ -60,15 +63,37 @@ class TextReaderController extends BaseController {
 
   final scrollController = ScrollController();
 
+  /// Scroll offset of a line's top, measured by the view against the real
+  /// font, width and wrap (UX-21). Null until the view lays out.
+  double Function(int lineIndex)? lineOffsetResolver;
+
   double _initialScrollOffset = 0;
   double get initialScrollOffset => _initialScrollOffset;
 
   Timer? _positionSaveDebounce;
 
+  /// Set once the user changes font size or wrap, so the saved preference
+  /// read in [_loadPreferences] can't override that change.
+  bool _fontSizeChosen = false;
+  bool _lineWrapChosen = false;
+
   @override
   void onInit() {
     super.onInit();
+    _loadPreferences();
     _load();
+  }
+
+  /// Font size and wrap are remembered across files and launches (UX-20).
+  Future<void> _loadPreferences() async {
+    try {
+      final size = await _settingsRepository.getTextReaderFontSize();
+      if (size != null && !_fontSizeChosen) fontSize.value = size.clamp(minFontSize, maxFontSize);
+      final wrap = await _settingsRepository.getTextReaderLineWrap();
+      if (wrap != null && !_lineWrapChosen) lineWrap.value = wrap;
+    } catch (_) {
+      // Preferences are a convenience; the reader works with the defaults.
+    }
   }
 
   Future<void> _load() async {
@@ -132,9 +157,23 @@ class TextReaderController extends BaseController {
 
   Future<void> _savePosition(double offset) => _recentRepository.markOpened(document.id, readingPosition: {'scroll_offset': offset});
 
-  void increaseFontSize() => fontSize.value = (fontSize.value + 2).clamp(10, 32);
-  void decreaseFontSize() => fontSize.value = (fontSize.value - 2).clamp(10, 32);
-  void toggleLineWrap() => lineWrap.value = !lineWrap.value;
+  static const double minFontSize = 10;
+  static const double maxFontSize = 32;
+
+  void increaseFontSize() => _setFontSize(fontSize.value + 2);
+  void decreaseFontSize() => _setFontSize(fontSize.value - 2);
+
+  void _setFontSize(double value) {
+    _fontSizeChosen = true;
+    fontSize.value = value.clamp(minFontSize, maxFontSize);
+    unawaited(_settingsRepository.setTextReaderFontSize(fontSize.value));
+  }
+
+  void toggleLineWrap() {
+    _lineWrapChosen = true;
+    lineWrap.value = !lineWrap.value;
+    unawaited(_settingsRepository.setTextReaderLineWrap(lineWrap.value));
+  }
 
   void startSearching() => isSearching.value = true;
 
@@ -176,7 +215,8 @@ class TextReaderController extends BaseController {
 
   void _jumpToLine(int lineIndex) {
     if (!scrollController.hasClients) return;
-    final target = (lineIndex * _approxLineHeight).clamp(0.0, scrollController.position.maxScrollExtent);
+    final offset = lineOffsetResolver?.call(lineIndex) ?? lineIndex * _approxLineHeight;
+    final target = offset.clamp(0.0, scrollController.position.maxScrollExtent);
     scrollController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
   }
 
@@ -188,9 +228,8 @@ class TextReaderController extends BaseController {
   @override
   void onClose() {
     _positionSaveDebounce?.cancel();
-    if (scrollController.hasClients && scrollController.offset > 0) {
-      unawaited(_savePosition(scrollController.offset));
-    }
+    final offset = scrollController.hasClients ? scrollController.offset : 0.0;
+    _interactions.readerClosedAfter(offset > 0 ? _savePosition(offset) : null);
     scrollController.dispose();
     super.onClose();
   }

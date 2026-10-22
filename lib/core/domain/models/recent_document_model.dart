@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'document_category.dart';
 import 'document_model.dart';
 
 /// A document paired with its reading-history metadata (BRD 7.5, 16).
@@ -17,6 +18,17 @@ class RecentDocumentModel extends Equatable {
     required this.lastOpenedAt,
     this.readingPosition = const {},
   });
+
+  /// 0-1 reading progress, or null when the format has no meaningful
+  /// denominator. Only the PDF reader saves one (`page_count`, since
+  /// CR-OPENREADER-UX UX-13); positions saved before that have none.
+  double? get progress {
+    if (document.category != DocumentCategory.pdf) return null;
+    final page = readingPosition['page_number'];
+    final count = readingPosition['page_count'];
+    if (page is! int || count is! int || page < 1 || count < 1) return null;
+    return (page / count).clamp(0, 1).toDouble();
+  }
 
   @override
   List<Object?> get props => [document, lastOpenedAt, readingPosition];

@@ -19,7 +19,7 @@ Stable IDs reused from the BRD Requirement Traceability Matrix (§28) rather tha
 | ODF-003 | Filter by document category | **DONE** | `FilesController.selectCategory`, Home category cards |
 | ODF-004 | Sort files | **DONE** | `DocumentSortMode` (6 modes), `FilesView` sort menu |
 | ODF-005 | Open document from another app (Android intent) | **NOT DONE** | No intent-filter wired; BRD assigns this to Phase 4 (§30) |
-| ODF-006 | Maintain Recents | **DONE** | `recent_documents` table, `RecentRepositoryImpl`, Recents screen (BRD 9.9) |
+| ODF-006 | Maintain Recents | **DONE** | `recent_documents` table, `RecentRepositoryImpl`, Recents screen (BRD 9.9). Pending in CR-OPENREADER-UX Phase 2 (`RUN-F6F654BCBB3742D6A8EF78225881E923`, released in v1.0.4; run still at REVIEW): the standalone Recents screen is removed, and history lives only in Library's History tab (UX-09). |
 | ODF-007 | Maintain Favorites | **DONE** | `favorite_documents` table, `FavoriteRepositoryImpl`, Favorites tab, shared `DocumentInteractionController` |
 | ODF-008 | Restore reading position | **PARTIAL** | Schema has `reading_position` JSON column and `markOpened()` accepts it; nothing writes a real position yet because no reader exists to produce one |
 | ODF-009 | Share original document | **DONE** (2026-09-18) | `DocumentInteractionController.shareDocument()` wired to `share_plus` from all five screens using `DocumentListTile`; guard-tested, real share-sheet opening left to device verification (TASK-007) |

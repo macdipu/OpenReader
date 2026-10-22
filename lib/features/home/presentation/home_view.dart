@@ -45,7 +45,7 @@ class HomeView extends GetView<HomeController> {
       body: Obx(() {
         if (!controller.hasAccess.value) {
           return _PermissionBanner(onRequestAccess: () async {
-            final granted = await StorageAccessService.instance.requestAccess();
+            final granted = await StorageAccessService.instance.requestOrOpenSettings();
             if (granted) await controller.load();
           });
         }
@@ -89,7 +89,13 @@ class HomeView extends GetView<HomeController> {
               if (controller.recentDocuments.isNotEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-                  child: Text('Continue Reading', style: context.headlineSmall),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Continue Reading', style: context.headlineSmall),
+                      TextButton(onPressed: controller.openHistory, child: const Text('See All')),
+                    ],
+                  ),
                 ),
                 SizedBox(
                   // Tall enough for Nocturne's Space Grotesk/JetBrains Mono
@@ -98,7 +104,7 @@ class HomeView extends GetView<HomeController> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: controller.recentDocuments.length,
+                    itemCount: controller.recentDocuments.take(HomeController.continueReadingCount).length,
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       final recent = controller.recentDocuments[index];
@@ -109,20 +115,14 @@ class HomeView extends GetView<HomeController> {
                     },
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Recent Documents', style: context.headlineSmall),
-                      TextButton(
-                        onPressed: () => Get.toNamed(AppRoutes.recents),
-                        child: const Text('See All'),
-                      ),
-                    ],
+                // The rest of the preview - never a document already shown as
+                // a card above (UX-12).
+                if (controller.recentDocuments.length > HomeController.continueReadingCount)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
+                    child: Text('Recent Documents', style: context.headlineSmall),
                   ),
-                ),
-                for (final recent in controller.recentDocuments)
+                for (final recent in controller.recentDocuments.skip(HomeController.continueReadingCount))
                   Obx(() => DocumentListTile(
                         document: recent.document,
                         dense: true,
@@ -136,6 +136,7 @@ class HomeView extends GetView<HomeController> {
                             if (await interactions.confirmAndDelete(recent.document)) controller.load();
                           },
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
+                        progress: recent.progress,
                       )),
               ] else if (controller.categoryCounts.values.every((count) => count == 0)) ...[
                 // Decided from the data, not `status.isEmpty`: a reload keeps
@@ -195,7 +196,6 @@ class _SearchBarStub extends StatelessWidget {
             Expanded(
               child: Text('Search documents', style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
             ),
-            Icon(Icons.tune_rounded, color: context.onSurfaceVariant, size: 20),
           ],
         ),
       ),
@@ -219,7 +219,9 @@ class _FormatChipRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          _FormatChip(label: 'All', count: total, selected: true, onTap: () => onSelected(null)),
+          // Shortcuts into All Files, not a filter on Home - so none of
+          // them, "All" included, is shown as selected (UX-11).
+          _FormatChip(label: 'All', count: total, onTap: () => onSelected(null)),
           for (final category in categories)
             Padding(
               padding: const EdgeInsets.only(left: 8),
@@ -240,14 +242,12 @@ class _FormatChip extends StatelessWidget {
   final String label;
   final int count;
   final Color? accent;
-  final bool selected;
   final VoidCallback onTap;
 
   const _FormatChip({
     required this.label,
     required this.count,
     this.accent,
-    this.selected = false,
     required this.onTap,
   });
 
@@ -259,15 +259,14 @@ class _FormatChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? context.primary : context.surfaceContainerLow,
+          color: context.surfaceContainerLow,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: selected ? context.primary : context.outlineVariant),
+          border: Border.all(color: context.outlineVariant),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (!selected)
-              Container(
+            Container(
                 width: 8,
                 height: 8,
                 margin: const EdgeInsets.only(right: 8),
@@ -275,13 +274,13 @@ class _FormatChip extends StatelessWidget {
               ),
             Text(
               label,
-              style: context.labelMedium?.copyWith(color: selected ? context.onPrimary : context.onSurface),
+              style: context.labelMedium?.copyWith(color: context.onSurface),
             ),
             const SizedBox(width: 6),
             Text(
               '$count',
               style: context.labelSmall?.copyWith(
-                color: selected ? context.onPrimary.withValues(alpha: 0.7) : context.onSurfaceVariant,
+                color: context.onSurfaceVariant,
               ),
             ),
           ],
@@ -334,6 +333,18 @@ class _ContinueReadingCard extends StatelessWidget {
               style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
             ),
             const Spacer(),
+            if (recent.progress case final progress?) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 3,
+                  backgroundColor: context.surfaceContainerHigh,
+                  valueColor: AlwaysStoppedAnimation(context.secondary),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

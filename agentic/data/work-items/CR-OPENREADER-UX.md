@@ -66,6 +66,74 @@ These problems make the app feel broken (screen flicker, dead progress UI) and e
 1. **UX-07 (PowerPoint), needs a product decision:** keep PowerPoint indexed with an "Open with another app" shortcut, or hide PowerPoint from the chips and onboarding until a reader exists? This is not decided here. It remains blocked on `FEATURE-OPENREADER-P3` Unresolved Question 1.
 2. **UX-06 approach:** route `.doc`/`.xls` to the unsupported-format flow (recommended), or stop indexing them? The proposal is to keep indexing them so users can still find and share those files. This needs confirmation at technical approval.
 
+## Phase 2 (`RUN-F6F654BCBB3742D6A8EF78225881E923`): intake 2026-10-22
+Verified against HEAD `08fe4b5` by a code read; no device run.
+
+### Scope
+- UX-08…UX-22.
+- Phase 1 follow-ups:
+  - **F6a/F6b:** Files `refresh()` is outside the load-session guard. A rescan failure after a newer successful load replaces it with the error screen, and Retry no longer rescans.
+  - **HOME-GUARD:** `HomeController.load()`/`refresh()` have no session guard. Home tab taps and deletes race a running scan.
+  - **HOME-RECENTS:** `openDocument` doesn't await the reader route, so Home's Continue Reading and Recent lists stay stale after returning from a reader.
+
+### Status at intake
+- All items are still present except two:
+  - **UX-19** is partly present. No per-document mode is ever stored; the global default applies on every open, and a toggle made before the settings read completes is overwritten.
+  - **UX-22** is partly present. `docx_file_viewer` has no scroll API, but its scroll view inherits `PrimaryScrollController`, so position restore is feasible. Separately, horizontal table scrolls are saved as the vertical offset.
+- **UX-21 constraint:** the proper fix (`scrollable_positioned_list`) would be a new dependency. Without one, the jump has to estimate wrapped line heights, using `TextPainter` measurement with the reader's font and width.
+
+### Product decisions needed before technical approval
+UX-08, UX-09, UX-10 (title), UX-12, UX-13, UX-15 (undo) and UX-19.
+
+### Release (2026-10-22): v1.0.4+6, by explicit user decision
+- **Released** with the revision 1 code. The user chose "Release Phase 2 now as v1.0.4" after being told about the two confirmed review issues.
+- **Outside the harness gates.** The run stays BLOCKED at REVIEW with no release approval recorded, because a passing review was not faked to satisfy the gates.
+- **Known issues shipped in v1.0.4** (`validation/P2r1-review.md`):
+  - Jump-to-match drifts when the system Bold Text setting is on.
+  - The text reader loses the last ~2s of scrolling on close.
+  - Excel/CSV can overwrite the saved position with 0 on close.
+  - (Plausible) The PowerPoint stub doesn't refresh Home; onboarding flickers on resume.
+- **Not verified on the emulator before release:** UX-22 Word restore, UX-19/13 PDF mode and progress, UX-09/10 Library, UX-16 Settings confirm, UX-18 resume.
+- **Tag:** local `v1.0.4`, not pushed. Pushing it runs `.github/workflows/release.yml`.
+
+### Status (2026-10-22): paused by the user at REVIEW
+- **Revision 1** is implemented in the uncommitted working tree on top of `08fe4b5`.
+  - 192/192 tests pass.
+  - The analyzer shows 0 errors and 1 pre-existing warning.
+- **The second independent review** (`validation/P2r1-review.md`) found:
+  - 2 confirmed issues: bold-text measurement, and the reader close-save happening after the scroll view detaches (a pre-existing bug, reproduced on the emulator);
+  - 2 plausible issues: the PowerPoint stub refresh, and the onboarding flicker.
+  - Proposed fixes for all four, as revision 2, were offered; the user chose "Stop here".
+- **To resume:**
+  - Decide on revision 2.
+  - Reopen the run (this voids the technical approval), fix, re-review.
+  - Finish emulator QA: UX-22, UX-19/13, UX-09/10, UX-16, UX-18.
+  - Release approval and the commit.
+
+### Product decisions (user, in-session, 2026-10-22)
+- **UX-08:** a row tap opens the reader on every screen. The actions stay in the ⋮ menu, and the Files action sheet moves to long-press.
+- **UX-09/UX-10:** keep the History tab and delete the Recents route.
+  - "See All" switches to the Favorites tab with History selected.
+  - The tab is titled "Library".
+  - Clear History shows only on the History tab.
+- **UX-12/UX-13:** split Home's recents.
+  - Continue Reading shows the 1-3 most recent documents, with a progress bar for PDFs (page/pages). Other formats get no bar.
+  - The Recent rows show the next documents, with no duplicates.
+- **UX-15:** no undo; delete stays permanent with "cannot be undone". Add destructive styling.
+- **UX-19:** the PDF view mode is remembered per document. The Settings default applies only to PDFs that were never toggled.
+
+### Obvious-default items
+These have a clear fix, but the design still goes through technical approval:
+- UX-11: Home chips are not shown as selected.
+- UX-14: remove the dead tune icon.
+- UX-15: destructive styling for delete.
+- UX-16: confirm before Clear Recent History.
+- UX-17: Files empty and no-access states get actions.
+- UX-18: an Open Settings fallback, plus a re-check on resume.
+- UX-20: persist text reader font and wrap globally.
+- UX-22: restore the Word reader's position.
+- F6a/F6b, HOME-GUARD, HOME-RECENTS.
+
 ## Full gap inventory (all phases)
 **P0 (Phase 1):** UX-01…UX-07 and UX-26, as above.
 

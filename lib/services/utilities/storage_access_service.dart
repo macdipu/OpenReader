@@ -40,4 +40,14 @@ class StorageAccessService {
   }
 
   Future<bool> openSettings() => openAppSettings();
+
+  /// [requestAccess], falling back to the app's system settings page when
+  /// the OS will no longer show a prompt (permanently denied), so a "Grant
+  /// Access" button is never a dead end. Returns whether access is granted
+  /// now; a grant made in settings is picked up by the app-resume re-check.
+  Future<bool> requestOrOpenSettings() async {
+    if (await requestAccess()) return true;
+    if (await isPermanentlyDenied()) await openSettings();
+    return false;
+  }
 }

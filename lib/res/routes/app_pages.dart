@@ -10,8 +10,6 @@ import '../../features/onboarding/presentation/onboarding_binding.dart';
 import '../../features/onboarding/presentation/onboarding_view.dart';
 import '../../features/pdf_reader/presentation/pdf_reader_binding.dart';
 import '../../features/pdf_reader/presentation/pdf_reader_view.dart';
-import '../../features/recents/presentation/recents_binding.dart';
-import '../../features/recents/presentation/recents_view.dart';
 import '../../features/search/presentation/search_binding.dart';
 import '../../features/search/presentation/search_view.dart';
 import '../../features/settings/presentation/settings_binding.dart';
@@ -52,11 +50,6 @@ class AppPages {
       name: AppRoutes.search,
       page: () => const SearchView(),
       bindings: [SearchBinding()],
-    ),
-    GetPage(
-      name: AppRoutes.recents,
-      page: () => const RecentsView(),
-      bindings: [RecentsBinding()],
     ),
     GetPage(
       name: AppRoutes.pdfReader,

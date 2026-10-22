@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:docx_file_viewer/docx_file_viewer.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/recent_repository_impl.dart';
@@ -15,15 +16,12 @@ import '../../../core/presentation/utils/zip_safety_guard.dart';
 
 /// Drives the Word reader (BRD §9.11, ODF-013/014, ODF-008 for Word).
 ///
-/// `docx_file_viewer` 1.0.4's `DocxView` owns its scrolling internally and
-/// exposes no `ScrollController`/initial-offset hook (confirmed by reading
-/// its source, not assumed from the README) - so reading position can be
-/// **saved** here (via a `NotificationListener<ScrollNotification>` in the
-/// view, which observes the widget's internal scroll notifications bubbling
-/// up) but not **restored**: there is no API to jump the internal scroll view
-/// to a saved offset on open. Documented as a real gap (`TASK` doc), not
-/// silently dropped - `_initialScrollOffset` is read back and exposed only so
-/// a future library version (or a fork) has somewhere to plug it in.
+/// `docx_file_viewer` 1.0.4's `DocxView` exposes no `ScrollController` or
+/// initial-offset parameter, but its vertical `SingleChildScrollView` has no
+/// controller of its own, so it adopts the nearest [PrimaryScrollController].
+/// The view provides [scrollController] that way, which lets the reading
+/// position be restored ([onDocumentLoaded], CR-OPENREADER-UX UX-22) as well
+/// as saved (from the view's `NotificationListener`).
 ///
 /// Favorite/Share/Open With are delegated to the same shared
 /// [DocumentInteractionController] every other reader uses, exactly like
@@ -67,6 +65,21 @@ class WordReaderController extends BaseController {
   double get initialScrollOffset => _initialScrollOffset;
 
   double _lastKnownScrollOffset = 0;
+
+  /// Adopted by `DocxView`'s scroll view through the view's
+  /// [PrimaryScrollController].
+  final scrollController = ScrollController();
+
+  /// `DocxView.onLoaded`: the content is built, so after one layout pass the
+  /// saved offset can be applied (clamped - the document may have changed).
+  void onDocumentLoaded() {
+    if (_initialScrollOffset <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed || !scrollController.hasClients) return;
+      final position = scrollController.position;
+      scrollController.jumpTo(_initialScrollOffset.clamp(0.0, position.maxScrollExtent));
+    });
+  }
   Timer? _positionSaveDebounce;
 
   @override
@@ -136,10 +149,9 @@ class WordReaderController extends BaseController {
   @override
   void onClose() {
     _positionSaveDebounce?.cancel();
-    if (_lastKnownScrollOffset > 0) {
-      unawaited(_savePosition(_lastKnownScrollOffset));
-    }
+    _interactions.readerClosedAfter(_lastKnownScrollOffset > 0 ? _savePosition(_lastKnownScrollOffset) : null);
     searchController.dispose();
+    scrollController.dispose();
     super.onClose();
   }
 }
