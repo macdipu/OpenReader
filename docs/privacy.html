@@ -23,11 +23,12 @@
     <div class="wrap doc">
       <a class="back-link" href="index.html">&larr; Back to OpenReader</a>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: September 20, 2026</p>
+      <p class="updated">Last updated: October 22, 2026</p>
 
       <p>
-        OpenReader ("the app") is a fully offline Android document reader. This policy explains
-        what happens (and, more importantly, what does not happen) to your data when you use it.
+        OpenReader ("the app") is a fully offline document reader for Android, Windows, macOS
+        and Linux. This policy explains what happens (and, more importantly, what does not
+        happen) to your data when you use it.
       </p>
 
       <h2>No data collection</h2>
@@ -41,24 +42,35 @@
 
       <h2>What stays on your device</h2>
       <p>
-        To provide features like Recents, Favorites, and Search, OpenReader keeps a local index
-        of documents you open, stored in an on-device SQLite database and local app preferences.
-        This index never leaves your device and is not accessible to the app developer or any
-        third party.
+        To provide features like browsing, Search, History and Favorites, OpenReader keeps a
+        local index of the documents it finds on your device's storage (file name, location,
+        size, type and dates), plus your reading history, reading positions and favorites. This
+        is stored in an on-device SQLite database and local app preferences. It never leaves your
+        device and is not accessible to the app developer or any third party.
       </p>
 
       <h2>File and storage access</h2>
       <p>
-        OpenReader requests storage/file permissions solely to discover and open documents you
-        choose to read, and to support "Open With" and "Open From Other Apps" integrations. Files
-        are read and rendered locally; they are never sent anywhere.
+        On Android, OpenReader asks for the "All files access" permission
+        (<code>MANAGE_EXTERNAL_STORAGE</code>). It uses it only to find supported documents
+        (PDF, Word, Excel, CSV and text files) anywhere on your device's storage and to open them,
+        because your documents can be in any folder, not just Downloads or Documents. You can
+        decline it and still open files shared from other apps, and you can revoke it at any time
+        in Android's settings.
+      </p>
+      <p>
+        On Windows, macOS and Linux, OpenReader reads documents from the folders it scans and from
+        files you open or drop onto it.
+      </p>
+      <p>
+        Files are read and rendered locally and are never sent anywhere. OpenReader changes a file
+        only when you explicitly delete it from within the app, after confirming.
       </p>
 
-      <h2>Push notifications</h2>
+      <h2>No network access</h2>
       <p>
-        The app includes Firebase Cloud Messaging integration for potential future push
-        notifications; this is currently disabled and not active in released builds. This policy
-        will be updated if and when that feature is enabled.
+        OpenReader makes no network calls. It contains no push-notification, crash-reporting or
+        other online service.
       </p>
 
       <h2>Children's privacy</h2>

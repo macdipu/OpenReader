@@ -69,6 +69,13 @@ class FixtureRecents implements RecentRepository {
 
 class FixtureSettings implements AppSettingsRepository {
   bool continuous = true;
+  bool? nightMode;
+
+  @override
+  Future<bool?> getPdfNightMode() async => nightMode;
+
+  @override
+  Future<void> setPdfNightMode(bool value) async => nightMode = value;
 
   @override
   Future<bool> getDefaultContinuousScroll() async => continuous;
@@ -78,6 +85,7 @@ class FixtureSettings implements AppSettingsRepository {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory root;
   late DocumentModel document;
   late DocumentModel missingDocument;
@@ -224,6 +232,47 @@ void main() {
       final before = interactions.readerClosed.value;
       controller.onClose();
       expect(interactions.readerClosed.value, before + 1);
+    });
+  });
+
+  group('night mode and fullscreen (UX-33)', () {
+    test('night mode starts from the saved preference and is saved when toggled', () async {
+      settings.nightMode = true;
+      controller.onInit();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.nightMode.value, isTrue);
+      controller.toggleNightMode();
+      expect(controller.nightMode.value, isFalse);
+      expect(settings.nightMode, isFalse);
+    });
+
+    test('fullscreen hides the thumbnails and is left on close', () {
+      controller.showThumbnails.value = true;
+      controller.toggleFullscreen();
+      expect(controller.isFullscreen.value, isTrue);
+      expect(controller.showThumbnails.value, isFalse);
+      controller.onClose();
+      expect(controller.isFullscreen.value, isFalse);
+    });
+
+    test('Esc leaves fullscreen first, then search; Ctrl+F leaves fullscreen to search (P3-review)', () {
+      controller.toggleFullscreen();
+      controller.escape();
+      expect(controller.isFullscreen.value, isFalse);
+
+      controller.toggleFullscreen();
+      controller.searchFromShortcut();
+      expect(controller.isFullscreen.value, isFalse);
+      expect(controller.isSearching.value, isTrue);
+      controller.escape();
+      expect(controller.isSearching.value, isFalse);
+    });
+
+    test('zoom and fit are safe before the viewer is ready', () async {
+      await controller.zoomIn();
+      await controller.zoomOut();
+      await controller.fitWidth();
     });
   });
 

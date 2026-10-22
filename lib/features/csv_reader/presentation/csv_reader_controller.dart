@@ -44,7 +44,7 @@ export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellM
 /// (`FEATURE-OPENREADER-P3/TASK-011`, extracted to be shared in this phase) -
 /// CSV has one implicit sheet, so there is no sheet-tab bar, but the row/
 /// column grid itself is identical.
-class CsvReaderController extends BaseController implements CellGridController {
+class CsvReaderController extends BaseController with CellGridZoom implements CellGridController {
   /// Same posture as `TextReaderController.maxBytes`: a first-pass,
   /// adjustable ceiling, not a BRD-specified number.
   static const int maxBytes = 20 * 1024 * 1024;
@@ -147,10 +147,11 @@ class CsvReaderController extends BaseController implements CellGridController {
     return _recentRepository.markOpened(
       document.id,
       readingPosition: {
-        'row': (_lastVerticalOffset / CellGridController.cellHeight).floor(),
-        'column': (_lastHorizontalOffset / CellGridController.cellWidth).floor(),
-        'vertical_offset': _lastVerticalOffset,
-        'horizontal_offset': _lastHorizontalOffset,
+        // Stored at 1x zoom (UX-32), so a position survives a zoom change.
+        'row': (_lastVerticalOffset / (CellGridController.cellHeight * zoom.value)).floor(),
+        'column': (_lastHorizontalOffset / (CellGridController.cellWidth * zoom.value)).floor(),
+        'vertical_offset': _lastVerticalOffset / zoom.value,
+        'horizontal_offset': _lastHorizontalOffset / zoom.value,
       },
     );
   }
@@ -205,11 +206,11 @@ class CsvReaderController extends BaseController implements CellGridController {
 
   void jumpToCell(CellMatch cell) {
     if (verticalController.hasClients) {
-      final target = (cell.row * CellGridController.cellHeight).clamp(0.0, verticalController.position.maxScrollExtent);
+      final target = (cell.row * CellGridController.cellHeight * zoom.value).clamp(0.0, verticalController.position.maxScrollExtent);
       verticalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
     }
     if (horizontalController.hasClients) {
-      final target = (cell.column * CellGridController.cellWidth).clamp(0.0, horizontalController.position.maxScrollExtent);
+      final target = (cell.column * CellGridController.cellWidth * zoom.value).clamp(0.0, horizontalController.position.maxScrollExtent);
       horizontalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
     }
   }

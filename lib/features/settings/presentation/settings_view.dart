@@ -5,6 +5,8 @@ import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
 import 'settings_controller.dart';
+import '../../../core/presentation/widgets/offline_pill.dart';
+import '../../../core/presentation/utils/platform_info.dart';
 
 /// Settings & Storage (DESIGN_SPEC.md #01): privacy banner, segmented
 /// appearance control, reading preferences, storage bento grid, privacy
@@ -18,23 +20,7 @@ class SettingsView extends GetView<SettingsController> {
       appBar: AppBar(
         title: const Text('Settings'),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: context.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: context.outlineVariant),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.verified_user_outlined, size: 12, color: context.secondary),
-                const SizedBox(width: 4),
-                Text('SANDBOXED', style: context.monoMetadata),
-              ],
-            ),
-          ),
+          const Padding(padding: EdgeInsets.only(right: 16), child: Center(child: OfflinePill())),
         ],
       ),
       body: ContentConstraint(child: ListView(
@@ -161,11 +147,17 @@ class SettingsView extends GetView<SettingsController> {
                       'OpenReader has no server and no analytics.',
                 ),
                 Divider(height: 1, color: context.outlineVariant),
-                const _InfoRow(
-                  icon: Icons.shield_outlined,
-                  title: 'Scoped storage sandbox',
-                  subtitle: 'Access is limited to what Android granted - your own folder plus '
-                      'any folder you explicitly picked. No broader filesystem access.',
+                _InfoRow(
+                  icon: Icons.folder_outlined,
+                  title: 'Storage access',
+                  // UX-23: states the access OpenReader really has (All Files
+                  // Access on Android) instead of the former "sandbox" claim.
+                  subtitle: PlatformInfo.isAndroid
+                      ? 'With Android\'s All Files Access, OpenReader finds and opens documents anywhere '
+                          'on this device, and deletes one only when you choose Delete. The index stays on '
+                          'the device.'
+                      : 'OpenReader reads documents from the folders it scans on this computer. '
+                          'The index stays on this computer.',
                 ),
                 Divider(height: 1, color: context.outlineVariant),
                 _ActionRow(
@@ -241,7 +233,7 @@ class _ThemeSegmented extends StatelessWidget {
     const options = [
       (mode: ThemeMode.light, label: 'Light', icon: Icons.light_mode_outlined),
       (mode: ThemeMode.dark, label: 'Dark', icon: Icons.dark_mode_outlined),
-      (mode: ThemeMode.system, label: 'System', icon: Icons.smartphone_outlined),
+      (mode: ThemeMode.system, label: 'System', icon: Icons.brightness_auto_outlined),
     ];
     return Row(
       children: [
@@ -249,7 +241,7 @@ class _ThemeSegmented extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: InkWell(
+              child: Semantics(button: true, selected: mode == option.mode, child: InkWell(
                 onTap: () => onChanged(option.mode),
                 borderRadius: BorderRadius.circular(10),
                 child: AnimatedContainer(
@@ -276,7 +268,7 @@ class _ThemeSegmented extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
+              )),
             ),
           ),
       ],
@@ -295,7 +287,7 @@ class _ModeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Semantics(button: true, selected: selected, child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
@@ -317,7 +309,7 @@ class _ModeTile extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 

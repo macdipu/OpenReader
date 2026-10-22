@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../../domain/extensions/extension_export.dart';
 import '../../../domain/models/document_category.dart';
 import '../../../domain/models/document_model.dart';
 import '../../../../services/utilities/pdf_thumbnail_service.dart';
 import '../../theme/theme_extensions.dart';
 import '../../utils/file_size_formatter.dart';
+import '../../utils/document_date_formatter.dart';
 
 /// Shared file row used by All Files, Search, Recents, and Favorites
 /// (BRD 9.4 - File Row Information / Overflow Actions).
@@ -28,6 +28,10 @@ class DocumentListTile extends StatelessWidget {
   final VoidCallback? onRemoveFromRecent;
   final VoidCallback? onDelete;
   final String? trailingLabel;
+
+  /// Search text to mark in the title (case-insensitive), so a result shows
+  /// why it matched (UX-25). Empty or null renders the plain title.
+  final String? highlight;
 
   /// 0-1 reading progress. When set, a thin fill bar renders under the
   /// metadata line (Favorites & History / Home "Continue Reading" rows).
@@ -50,6 +54,7 @@ class DocumentListTile extends StatelessWidget {
     this.onRemoveFromRecent,
     this.onDelete,
     this.trailingLabel,
+    this.highlight,
     this.progress,
     this.dense = false,
   });
@@ -63,6 +68,7 @@ class DocumentListTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
+      onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: dense ? 10 : 14),
@@ -76,16 +82,20 @@ class DocumentListTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    document.displayName,
+                  Text.rich(
+                    highlightMatches(
+                      document.displayName,
+                      highlight ?? '',
+                      context.titleMedium,
+                      TextStyle(backgroundColor: context.secondaryContainer, color: context.onSecondaryContainer),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: context.titleMedium,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     trailingLabel ??
-                        '${formatFileSize(document.sizeBytes)} • ${document.modifiedAt.toDMYString()} • ${document.category.label}',
+                        '${formatFileSize(document.sizeBytes)} • ${formatDocumentDate(document.modifiedAt)} • ${document.category.label}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
@@ -107,6 +117,7 @@ class DocumentListTile extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             IconButton(
+              tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
               visualDensity: VisualDensity.compact,
               icon: Icon(
                 isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
@@ -115,28 +126,40 @@ class DocumentListTile extends StatelessWidget {
               onPressed: () => onToggleFavorite(!isFavorite),
             ),
             PopupMenuButton<_DocumentAction>(
+              tooltip: 'More actions',
               icon: Icon(Icons.more_vert, color: context.onSurfaceVariant),
               onSelected: (action) => _handle(action),
-              itemBuilder: (context) => [
-                if (onShare != null) const PopupMenuItem(value: _DocumentAction.share, child: Text('Share')),
-                if (onShowInfo != null)
-                  const PopupMenuItem(value: _DocumentAction.info, child: Text('File Information')),
-                if (onOpenWith != null)
-                  const PopupMenuItem(value: _DocumentAction.openWith, child: Text('Open With')),
-                if (onRemoveFromRecent != null)
-                  const PopupMenuItem(value: _DocumentAction.removeFromRecent, child: Text('Remove from Recent')),
-                // Permanent file deletion, so styled as destructive (UX-15).
-                if (onDelete != null)
-                  PopupMenuItem(
-                    value: _DocumentAction.delete,
-                    child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                  ),
-              ],
+              itemBuilder: _menuItems,
             ),
           ],
         ),
       ),
     );
+  }
+
+  List<PopupMenuEntry<_DocumentAction>> _menuItems(BuildContext context) => [
+        if (onShare != null) const PopupMenuItem(value: _DocumentAction.share, child: Text('Share')),
+        if (onShowInfo != null) const PopupMenuItem(value: _DocumentAction.info, child: Text('File Information')),
+        if (onOpenWith != null) const PopupMenuItem(value: _DocumentAction.openWith, child: Text('Open With')),
+        if (onRemoveFromRecent != null)
+          const PopupMenuItem(value: _DocumentAction.removeFromRecent, child: Text('Remove from Recent')),
+        // Permanent file deletion, so styled as destructive (UX-15).
+        if (onDelete != null)
+          PopupMenuItem(
+            value: _DocumentAction.delete,
+            child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ),
+      ];
+
+  /// Right-click (desktop) shows the ⋮ menu's actions at the pointer (UX-34).
+  Future<void> _showContextMenu(BuildContext context, Offset position) async {
+    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final action = await showMenu<_DocumentAction>(
+      context: context,
+      position: RelativeRect.fromRect(position & const Size(1, 1), Offset.zero & overlay.size),
+      items: _menuItems(context),
+    );
+    if (action != null) _handle(action);
   }
 
   void _handle(_DocumentAction action) {
@@ -237,4 +260,25 @@ class _DocumentThumbnail extends StatelessWidget {
       ),
     );
   }
+}
+
+/// [text] as spans with each case-insensitive occurrence of [query] styled
+/// with [matchStyle] over [style]. A blank query yields one plain span.
+TextSpan highlightMatches(String text, String query, TextStyle? style, TextStyle matchStyle) {
+  final needle = query.trim().toLowerCase();
+  if (needle.isEmpty) return TextSpan(text: text, style: style);
+  final haystack = text.toLowerCase();
+  final spans = <TextSpan>[];
+  var start = 0;
+  while (true) {
+    final index = haystack.indexOf(needle, start);
+    if (index < 0) {
+      if (start < text.length) spans.add(TextSpan(text: text.substring(start)));
+      break;
+    }
+    if (index > start) spans.add(TextSpan(text: text.substring(start, index)));
+    spans.add(TextSpan(text: text.substring(index, index + needle.length), style: matchStyle));
+    start = index + needle.length;
+  }
+  return TextSpan(style: style, children: spans);
 }

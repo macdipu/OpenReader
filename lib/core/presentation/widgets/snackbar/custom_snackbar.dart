@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:openreader/core/presentation/theme/color_schemes.dart';
+import 'package:openreader/core/presentation/utils/screen_utils.dart';
+import 'package:openreader/res/routes/app_routes.dart';
 import 'package:openreader/res/routes/global_navigator.dart';
 import 'package:get/get.dart';
 
@@ -18,8 +20,14 @@ class CustomSnackbar {
 
   static Color _pick(AdaptiveColor c) => _isDark ? c.dark : c.light;
 
+  /// Height of the shell's compact bottom navigation bar (app_shell.dart),
+  /// which a bottom snackbar must clear rather than cover (UX-28).
+  static const double _bottomNavHeight = 64;
+
+  /// [title] is optional: it's shown only when it says something the message
+  /// doesn't (e.g. the file name) - never a generic "Success"/"Error" (UX-28).
   static void show({
-    required String title,
+    String? title,
     required String message,
     required SnackbarType type,
     Duration duration = const Duration(seconds: 3),
@@ -33,23 +41,28 @@ class CustomSnackbar {
       SnackbarType.info => (_pick(AppColors.info), _pick(AppColors.onInfo), Icons.info_outline),
     };
 
+    final context = rootContext;
+    final overNav = context != null && Get.currentRoute == AppRoutes.appShell && ScreenUtils.of(context).isCompact;
+
     Get.snackbar(
-      title,
+      title ?? '',
       message,
+      titleText: title == null ? const SizedBox.shrink() : null,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: backgroundColor,
       colorText: textColor,
       icon: Icon(icon, color: textColor),
       duration: duration,
-      margin: const EdgeInsets.all(16),
+      // The nav bar grows with text size (scaledExtent), so must the gap.
+      margin: EdgeInsets.fromLTRB(16, 16, 16, 16 + (overNav ? context.scaledExtent(_bottomNavHeight) : 0)),
       borderRadius: 12,
       isDismissible: true,
       dismissDirection: DismissDirection.horizontal,
       forwardAnimationCurve: Curves.easeOutBack,
       reverseAnimationCurve: Curves.easeInBack,
       animationDuration: const Duration(milliseconds: 300),
-      overlayBlur: 0.5,
-      overlayColor: _pick(AppColors.scrim).withValues(alpha: 0.1),
+      // No blur/dim: a status message shouldn't obscure the screen (UX-28).
+      overlayBlur: 0,
       mainButton: onAction == null
           ? null
           : TextButton(
@@ -67,7 +80,7 @@ class CustomSnackbar {
     );
   }
 
-  static void success(String message, {String title = 'Success'}) {
+  static void success(String message, {String? title}) {
     show(
       title: title,
       message: message,
@@ -75,7 +88,7 @@ class CustomSnackbar {
     );
   }
 
-  static void error(String message, {String title = 'Error', String? actionLabel, VoidCallback? onAction}) {
+  static void error(String message, {String? title, String? actionLabel, VoidCallback? onAction}) {
     show(
       title: title,
       message: message,
@@ -85,7 +98,7 @@ class CustomSnackbar {
     );
   }
 
-  static void warning(String message, {String title = 'Warning'}) {
+  static void warning(String message, {String? title}) {
     show(
       title: title,
       message: message,
@@ -93,7 +106,7 @@ class CustomSnackbar {
     );
   }
 
-  static void info(String message, {String title = 'Info'}) {
+  static void info(String message, {String? title}) {
     show(
       title: title,
       message: message,

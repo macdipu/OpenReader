@@ -31,4 +31,29 @@ abstract class CellGridController {
   /// Called whenever either scroll controller moves, so the controller can
   /// debounce a reading-position save.
   void onScrolled();
+
+  /// Grid zoom factor; cells, headers and text scale with it (UX-32).
+  /// [CellGridZoom] implements these.
+  RxDouble get zoom;
+  bool get canZoomIn;
+  bool get canZoomOut;
+  void zoomIn();
+  void zoomOut();
+}
+
+/// −/+ zoom for a [CellGridController] (CR-OPENREADER-UX UX-32): one factor
+/// for cell size and text, kept for the reader session. Saved scroll
+/// positions are stored at 1x, so they don't depend on it.
+mixin CellGridZoom {
+  static const double minZoom = 0.75;
+  static const double maxZoom = 2.0;
+  static const double step = 0.25;
+
+  final zoom = 1.0.obs;
+
+  bool get canZoomIn => zoom.value < maxZoom;
+  bool get canZoomOut => zoom.value > minZoom;
+
+  void zoomIn() => zoom.value = (zoom.value + step).clamp(minZoom, maxZoom);
+  void zoomOut() => zoom.value = (zoom.value - step).clamp(minZoom, maxZoom);
 }

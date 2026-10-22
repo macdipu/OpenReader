@@ -63,6 +63,13 @@ extension ScreenUtilsContext on BuildContext {
   bool get isCompactScreen => screenSize.isCompact;
   bool get isExpandedScreen => screenSize.isExpanded;
   Size get screenDimensions => MediaQuery.sizeOf(this);
+
+  /// [base] grown with the system text size (clamped to 2x), for fixed-size
+  /// boxes that hold text - so large text doesn't clip (UX-31).
+  double scaledExtent(double base) {
+    final factor = MediaQuery.textScalerOf(this).scale(14) / 14;
+    return base * factor.clamp(1.0, 2.0);
+  }
 }
 
 /// Centers [child] and caps its width at [maxWidth] on large windows; a no-op

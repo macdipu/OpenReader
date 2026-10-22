@@ -1,4 +1,4 @@
-import '../../domain/extensions/extension_export.dart';
+import 'document_date_formatter.dart';
 
 /// Formats a timestamp as "Just now" / "Xm ago" / "Xh ago" / "Xd ago",
 /// falling back to a plain date past a week (Home "Continue Reading" /
@@ -9,5 +9,5 @@ String formatRelativeTime(DateTime time) {
   if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
   if (diff.inHours < 24) return '${diff.inHours}h ago';
   if (diff.inDays < 7) return '${diff.inDays}d ago';
-  return time.toDMYString();
+  return formatDocumentDate(time);
 }

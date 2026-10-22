@@ -13,6 +13,8 @@ import '../../../core/presentation/controllers/document_interaction_controller.d
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/show_dialog/show_dialog.dart';
 import 'pdf_password_dialog.dart';
+import 'package:flutter/services.dart';
+import '../../../core/presentation/utils/platform_info.dart';
 
 /// BRD 9.10 lists "Single-page mode," "Continuous vertical mode," and
 /// "Horizontal page mode" as three distinct view modes. This reader ships
@@ -96,6 +98,14 @@ class PdfReaderController extends BaseController {
   final showThumbnails = false.obs;
   final isSearching = false.obs;
 
+  /// Hides the app bar, toolbar and thumbnails (and Android's system bars) so
+  /// the page fills the screen (UX-33). A tap on the page brings them back.
+  final isFullscreen = false.obs;
+
+  /// Inverted page colours for reading in the dark (UX-33); remembered for
+  /// all PDFs.
+  final nightMode = false.obs;
+
   /// `null` until a zero-match search has probed the text (see
   /// [probePdfTextLayer]); fixed for the document once known.
   final hasTextLayer = RxnBool();
@@ -116,6 +126,64 @@ class PdfReaderController extends BaseController {
   void onInit() {
     super.onInit();
     _loadInitialPosition().then((_) => _loadDefaultViewMode());
+    _loadNightMode();
+  }
+
+  Future<void> _loadNightMode() async {
+    try {
+      nightMode.value = await _settingsRepository.getPdfNightMode() ?? false;
+    } catch (_) {
+      // A preference, not a requirement - the reader works without it.
+    }
+  }
+
+  void toggleNightMode() {
+    nightMode.value = !nightMode.value;
+    unawaited(_settingsRepository.setPdfNightMode(nightMode.value));
+  }
+
+  void toggleFullscreen() => _setFullscreen(!isFullscreen.value);
+
+  void _setFullscreen(bool value) {
+    isFullscreen.value = value;
+    if (value) showThumbnails.value = false;
+    // System bars exist only on Android; desktop embedders don't implement
+    // this call and would throw.
+    if (!PlatformInfo.isAndroid) return;
+    unawaited(SystemChrome.setEnabledSystemUIMode(value ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge));
+  }
+
+  /// Ctrl/Cmd+F: search needs the app bar, so fullscreen ends first.
+  void searchFromShortcut() {
+    if (isFullscreen.value) _setFullscreen(false);
+    startSearching();
+  }
+
+  /// Esc: leave fullscreen, then close search, then the reader.
+  void escape() {
+    if (isFullscreen.value) {
+      _setFullscreen(false);
+    } else if (isSearching.value) {
+      stopSearching();
+    } else {
+      Get.back();
+    }
+  }
+
+  /// Toolbar zoom (UX-33), alongside pinch-to-zoom.
+  Future<void> zoomIn() async {
+    if (pdfController.isReady) await pdfController.zoomUp();
+  }
+
+  Future<void> zoomOut() async {
+    if (pdfController.isReady) await pdfController.zoomDown();
+  }
+
+  /// Back to the page-width zoom the viewer opens at.
+  Future<void> fitWidth() async {
+    if (!pdfController.isReady) return;
+    final centre = pdfController.value.calcPosition(pdfController.viewSize);
+    await pdfController.setZoom(centre, pdfController.coverScale);
   }
 
   /// Applies the Settings > Reading Engine Preferences default (BRD 9.18)
@@ -245,6 +313,7 @@ class PdfReaderController extends BaseController {
 
   @override
   void onClose() {
+    if (isFullscreen.value) _setFullscreen(false);
     _positionSaveDebounce?.cancel();
     _interactions.readerClosedAfter(pageCount.value > 0 ? _savePosition(currentPage.value) : null);
     textSearcher.value?.dispose();

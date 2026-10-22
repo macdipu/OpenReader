@@ -15,6 +15,8 @@ import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../res/routes/app_routes.dart';
 import '../../../services/utilities/storage_access_service.dart';
 import 'home_controller.dart';
+import '../../../core/presentation/utils/screen_utils.dart';
+import '../../../app/shell/app_shell_controller.dart';
 
 /// Home Discovery Hub (DESIGN_SPEC.md #08): search + format chips +
 /// continue-reading carousel + recents list. Storage is rescanned via
@@ -32,6 +34,7 @@ class HomeView extends GetView<HomeController> {
         title: const Text('OpenReader'),
         actions: [
           IconButton(
+            tooltip: 'Search documents',
             icon: const Icon(Icons.search_rounded),
             onPressed: () => Get.toNamed(AppRoutes.search),
           ),
@@ -40,6 +43,23 @@ class HomeView extends GetView<HomeController> {
             tooltip: 'Settings',
             onPressed: () => Get.toNamed(AppRoutes.settings),
           ),
+          // Phones have no navigation rail, which is where "Open file" lives
+          // on wider screens (UX-34).
+          if (context.isCompactScreen)
+            PopupMenuButton<int>(
+              tooltip: 'More',
+              onSelected: (_) => Get.find<AppShellController>().pickAndOpenFile(),
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 0,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.file_open_outlined),
+                    title: Text('Open file'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
       body: Obx(() {
@@ -92,7 +112,8 @@ class HomeView extends GetView<HomeController> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Continue Reading', style: context.headlineSmall),
+                      // Wraps rather than pushing "See All" off-screen at large text (UX-31).
+                      Expanded(child: Text('Continue Reading', style: context.headlineSmall)),
                       TextButton(onPressed: controller.openHistory, child: const Text('See All')),
                     ],
                   ),
@@ -100,7 +121,7 @@ class HomeView extends GetView<HomeController> {
                 SizedBox(
                   // Tall enough for Nocturne's Space Grotesk/JetBrains Mono
                   // line heights, which run taller than Inter (light).
-                  height: 156,
+                  height: context.scaledExtent(156),
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -183,7 +204,7 @@ class _SearchBarStub extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        height: 48,
+        height: context.scaledExtent(48),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: context.surfaceContainerLow,
@@ -214,7 +235,7 @@ class _FormatChipRow extends StatelessWidget {
     final categories = DocumentCategory.values.where((c) => c != DocumentCategory.unknown).toList();
     final total = categoryCounts.values.fold<int>(0, (a, b) => a + b);
     return SizedBox(
-      height: 40,
+      height: context.scaledExtent(40),
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -306,7 +327,7 @@ class _ContinueReadingCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        width: 220,
+        width: context.scaledExtent(220),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: context.surfaceContainerLowest,

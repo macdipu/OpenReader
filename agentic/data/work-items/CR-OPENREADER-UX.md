@@ -153,6 +153,62 @@ These have a clear fix, but the design still goes through technical approval:
 - UX-22: restore the Word reader's position.
 - F6a/F6b, HOME-GUARD, HOME-RECENTS.
 
+## Phase 3 (`RUN-1553CD5CD2D048B3931641A98B32908F`): intake 2026-10-22
+Verified against `v1.0.5` by a read-only code sweep; no device run.
+
+### Scope and status
+- UX-23, UX-24, UX-25 and UX-27…UX-34 are all still present. UX-28 is partly present: some call sites already pass the document name as the title.
+- UX-26 was done in Phase 1.
+
+### Key findings
+- **UX-23 (priority).** The privacy copy contradicts the decided Play Store special-access declaration (ODF-P5-02 / ADR-OPENREADER-storage-access mitigations 1 and 3):
+  - Settings says "Scoped storage sandbox … No broader filesystem access".
+  - The "SANDBOXED" pills (Settings, Library, Files Info) and File Information say "sandboxed storage scope".
+  - `docs/privacy.html` is stale: Android-only, "documents you open", generic permission wording, and Firebase Cloud Messaging, which was removed.
+- **UX-30/UX-31 are ODF-P5-08 (accessibility).** The decided approach:
+  - Flutter `Semantics` only, plus tooltips, with no third-party package.
+  - Additive changes only.
+  - Verified with `flutter test` semantics matchers.
+- **UX-34 drag-and-drop** needs a new dependency (`desktop_drop` or `super_drag_and_drop`), which conflicts with the phase-wide "no new dependency, no ADR" rule.
+- **Side note:** onboarding lists PowerPoint as supported, but UX-07 is still undecided.
+
+### Phase 3 COMPLETED (2026-10-22): v1.0.6+8
+- **Run:** `RUN-1553CD5CD2D048B3931641A98B32908F` is COMPLETED, with release approval recorded in-session.
+- **Shipped:** all 11 items (UX-23…UX-34), plus revision 1 fixes from the independent review (`validation/P3-review.md`).
+- **New dependency:** `desktop_drop`, per `adr/ADR-OPENREADER-desktop-drop.md`.
+- **Checks:**
+  - 220/220 tests pass, and the analyzer shows 0 errors.
+  - Android emulator QA passed 8/8 (`validation/P3-qa.md`).
+  - The macOS build compiles and launches. Desktop interactions are verified by widget tests only; screen capture wasn't available.
+- **Tag:** local `v1.0.6`, not pushed.
+- **Logged follow-ups:**
+  - Android 15+ may ignore immersive fullscreen.
+  - The grid zoom pill can cover the last cells.
+  - A drop while a reader is open opens on top.
+  - Unused network-capable packages remain in `pubspec`.
+  - Word page-break clipping.
+  - The UX-07 decision.
+
+### Product decisions (user, in-session, 2026-10-22)
+- **UX-23:** the pills say "OFFLINE". The Settings and File Information copy is rewritten to name All Files Access and the full-device index, and to say nothing is uploaded. `privacy.html` is updated, including removing Firebase.
+- **UX-24:** the two placeholder rows are hidden. The badge becomes "Read on-device — OpenReader makes no network calls", with no "verified".
+- **UX-25:** absolute dates are locale-aware (`DateFormat.yMMMd`, e.g. "Oct 22, 2026"); history keeps relative times. Search and Files highlight matches.
+- **UX-27:** desktop gets a welcome variant without the permission paragraph and with a single "Get started" button. Other Android-only copy becomes platform-neutral.
+- **UX-28:** snackbars keep the GetX style but drop the blur and dim, sit above the bottom nav, and show a title only when it's meaningful.
+- **UX-32:** tapping a cell shows its full value with Copy; −/+ zoom buttons; theme-coloured highlights, with all matches lightly marked.
+- **UX-33:** zoom and fit-width buttons; the thumbnail strip follows the current page and the toolbar no longer covers content; fullscreen; a night-mode toggle.
+- **UX-34:** a phone "Open file" item in Home's ⋮ menu; Ctrl/Cmd+O, Ctrl/Cmd+F and Esc shortcuts; right-click row menus; drag-and-drop with a **new dependency**, which needs an ADR and technical approval.
+
+### Product decisions needed
+- UX-23: pill wording.
+- UX-24: the File Information placeholder rows.
+- UX-25: the date format.
+- UX-27: desktop onboarding.
+- UX-28: snackbar style.
+- UX-32: grid zoom.
+- UX-33: whether fullscreen and night mode are in scope.
+- UX-34: where the phone "Open file" entry goes, and drag-and-drop with its dependency.
+
 ## Full gap inventory (all phases)
 **P0 (Phase 1):** UX-01…UX-07 and UX-26, as above.
 

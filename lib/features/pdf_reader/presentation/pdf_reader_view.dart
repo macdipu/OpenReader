@@ -10,6 +10,7 @@ import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'pdf_reader_controller.dart';
+import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.10 PDF Reader Screen (DESIGN_SPEC.md #09 / #14 - light + AMOLED).
 class PdfReaderView extends GetView<PdfReaderController> {
@@ -19,31 +20,70 @@ class PdfReaderView extends GetView<PdfReaderController> {
   Widget build(BuildContext context) {
     // Scaffold reads appBar.preferredSize only when it builds, so it is rebuilt
     // on search toggle to let the bar collapse back to toolbar height.
-    return Obx(() => Scaffold(
-      appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
+    return AppShortcuts(
+      // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
+      onSearch: controller.searchFromShortcut,
+      onEscape: controller.escape,
+      child: Obx(() => Scaffold(
+      appBar: controller.isFullscreen.value
+          ? null
+          : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
       body: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
         return Stack(
           children: [
-            Obx(() => _buildViewer(context)),
-            Obx(() => controller.showThumbnails.value
-                ? Align(
+            // Night mode inverts the pages and thumbnails (UX-33). Always the
+            // same ColorFiltered (identity when off), so toggling it doesn't
+            // rebuild the viewer and lose the reading position.
+            Obx(() => ColorFiltered(
+                  colorFilter: controller.nightMode.value ? _invert : _identity,
+                  child: Stack(
+                    children: [
+                      // Clearance below the last page for the toolbar (and the
+                      // strip when open), in screen pixels so it holds at any zoom.
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom: controller.isFullscreen.value ? 0 : 76 + (controller.showThumbnails.value ? 128 : 0),
+                        ),
+                        child: _buildViewer(context),
+                      ),
+                      if (controller.showThumbnails.value && !controller.isFullscreen.value)
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 84),
+                            child: _ThumbnailStrip(controller: controller),
+                          ),
+                        ),
+                    ],
+                  ),
+                )),
+            Obx(() => controller.isFullscreen.value
+                ? const SizedBox.shrink()
+                : Align(
                     alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 84),
-                      child: _ThumbnailStrip(controller: controller),
-                    ),
-                  )
-                : const SizedBox.shrink()),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: _FloatingToolbar(controller: controller),
-            ),
+                    child: _FloatingToolbar(controller: controller),
+                  )),
           ],
         );
       }),
-    ));
+    )),
+    );
   }
+
+  static const _identity = ColorFilter.matrix(<double>[
+    1, 0, 0, 0, 0, //
+    0, 1, 0, 0, 0, //
+    0, 0, 1, 0, 0, //
+    0, 0, 0, 1, 0, //
+  ]);
+
+  static const _invert = ColorFilter.matrix(<double>[
+    -1, 0, 0, 0, 255, //
+    0, -1, 0, 0, 255, //
+    0, 0, -1, 0, 255, //
+    0, 0, 0, 1, 0, //
+  ]);
 
   Widget _buildViewer(BuildContext context) {
     final searcher = controller.textSearcher.value;
@@ -58,6 +98,12 @@ class PdfReaderView extends GetView<PdfReaderController> {
         onPageChanged: controller.onPageChanged,
         pagePaintCallbacks: searcher == null ? null : [searcher.pageTextMatchPaintCallback],
         layoutPages: controller.viewMode.value == PdfReaderViewMode.horizontal ? _horizontalLayout : null,
+        // In fullscreen, a tap on the page brings the controls back.
+        onGeneralTap: (context, viewerController, details) {
+          if (!controller.isFullscreen.value) return false;
+          controller.toggleFullscreen();
+          return true;
+        },
         errorBannerBuilder: (context, error, stackTrace, documentRef) => _ReaderErrorView(controller: controller, error: error),
       ),
     );
@@ -133,8 +179,9 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         Obx(
           () => controller.isSearching.value
-              ? IconButton(icon: const Icon(Icons.close_rounded), onPressed: controller.stopSearching)
+              ? IconButton(tooltip: 'Close search', icon: const Icon(Icons.close_rounded), onPressed: controller.stopSearching)
               : IconButton(
+                tooltip: 'Search in document',
                   icon: const Icon(Icons.search_rounded),
                   // Text search needs a live document (see textSearcher's doc
                   // comment); disabled until onViewerReady supplies one.
@@ -143,6 +190,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         Obx(
           () => IconButton(
+            tooltip: controller.isFavorite ? 'Remove from favorites' : 'Add to favorites',
             icon: Icon(
               controller.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
               color: controller.isFavorite ? context.secondary : null,
@@ -152,9 +200,15 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         PopupMenuButton<_ReaderAction>(
           onSelected: (action) => _handle(action),
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
-            PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+          tooltip: 'More actions',
+          itemBuilder: (context) => [
+            CheckedPopupMenuItem(
+              value: _ReaderAction.nightMode,
+              checked: controller.nightMode.value,
+              child: const Text('Night mode'),
+            ),
+            const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
+            const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
           ],
         ),
       ],
@@ -170,11 +224,13 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.nightMode:
+        controller.toggleNightMode();
     }
   }
 }
 
-enum _ReaderAction { share, openWith }
+enum _ReaderAction { nightMode, share, openWith }
 
 class _SearchStatusBar extends StatelessWidget {
   final PdfReaderController controller;
@@ -207,11 +263,13 @@ class _SearchStatusBar extends StatelessWidget {
                 children: [
                   Expanded(child: Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant))),
                   IconButton(
+                    tooltip: 'Previous match',
                     icon: const Icon(Icons.keyboard_arrow_up_rounded),
                     color: context.onSurfaceVariant,
                     onPressed: searcher.hasMatches ? controller.goToPrevMatch : null,
                   ),
                   IconButton(
+                    tooltip: 'Next match',
                     icon: const Icon(Icons.keyboard_arrow_down_rounded),
                     color: context.onSurfaceVariant,
                     onPressed: searcher.hasMatches ? controller.goToNextMatch : null,
@@ -251,10 +309,14 @@ class _FloatingToolbar extends StatelessWidget {
                 ? null
                 : [BoxShadow(color: context.shadow.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 4))],
           ),
-          child: Row(
+          // Scales down rather than overflowing on narrow phones (UX-31/33).
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
+                tooltip: 'Page thumbnails',
                 visualDensity: VisualDensity.compact,
                 icon: Icon(Icons.grid_view_rounded, color: context.onSurfaceVariant, size: 20),
                 onPressed: controller.toggleThumbnails,
@@ -267,6 +329,31 @@ class _FloatingToolbar extends StatelessWidget {
                 ),
               ),
               IconButton(
+                tooltip: 'Zoom out',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.zoom_out_rounded, color: context.onSurfaceVariant, size: 20),
+                onPressed: controller.zoomOut,
+              ),
+              IconButton(
+                tooltip: 'Zoom in',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.zoom_in_rounded, color: context.onSurfaceVariant, size: 20),
+                onPressed: controller.zoomIn,
+              ),
+              IconButton(
+                tooltip: 'Fit width',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.fit_screen_outlined, color: context.onSurfaceVariant, size: 20),
+                onPressed: controller.fitWidth,
+              ),
+              IconButton(
+                tooltip: 'Full screen',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.fullscreen_rounded, color: context.onSurfaceVariant, size: 20),
+                onPressed: controller.toggleFullscreen,
+              ),
+              IconButton(
+                tooltip: 'Switch page layout',
                 visualDensity: VisualDensity.compact,
                 icon: Icon(
                   controller.viewMode.value == PdfReaderViewMode.horizontal
@@ -278,6 +365,7 @@ class _FloatingToolbar extends StatelessWidget {
                 onPressed: controller.toggleViewMode,
               ),
             ],
+          ),
           ),
         ),
       );
@@ -309,10 +397,50 @@ class _FloatingToolbar extends StatelessWidget {
   }
 }
 
-class _ThumbnailStrip extends StatelessWidget {
+class _ThumbnailStrip extends StatefulWidget {
   final PdfReaderController controller;
 
   const _ThumbnailStrip({required this.controller});
+
+  @override
+  State<_ThumbnailStrip> createState() => _ThumbnailStripState();
+}
+
+/// Keeps the current page's thumbnail centred as pages change (UX-33).
+class _ThumbnailStripState extends State<_ThumbnailStrip> {
+  /// One thumbnail: 70 wide plus 4 padding each side.
+  static const _itemExtent = 78.0;
+
+  final _scrollController = ScrollController();
+  Worker? _pageWorker;
+
+  PdfReaderController get controller => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageWorker = ever(controller.currentPage, (_) => _centreCurrentPage(animate: true));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _centreCurrentPage(animate: false));
+  }
+
+  void _centreCurrentPage({required bool animate}) {
+    if (!mounted || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final target = (8 + (controller.currentPage.value - 1) * _itemExtent + _itemExtent / 2 - position.viewportDimension / 2)
+        .clamp(0.0, position.maxScrollExtent);
+    if (animate) {
+      _scrollController.animateTo(target, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+    } else {
+      _scrollController.jumpTo(target);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageWorker?.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -328,6 +456,7 @@ class _ThumbnailStrip extends StatelessWidget {
       child: PdfDocumentViewBuilder(
         documentRef: controller.pdfController.documentRef,
         builder: (context, document) => ListView.builder(
+          controller: _scrollController,
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.all(8),
           itemCount: document?.pages.length ?? 0,
@@ -335,7 +464,7 @@ class _ThumbnailStrip extends StatelessWidget {
             final pageNumber = index + 1;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: GestureDetector(
+              child: Obx(() => Semantics(button: true, selected: controller.currentPage.value == pageNumber, label: 'Page $pageNumber', child: GestureDetector(
                 onTap: () => controller.jumpToPage(pageNumber),
                 child: Obx(
                   () => Container(
@@ -356,7 +485,7 @@ class _ThumbnailStrip extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
+              ))),
             );
           },
         ),

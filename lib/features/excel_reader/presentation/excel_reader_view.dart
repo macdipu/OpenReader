@@ -7,6 +7,8 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_grid.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'excel_reader_controller.dart';
+import '../../../core/presentation/utils/screen_utils.dart';
+import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.12 Excel Reader Screen.
 ///
@@ -25,7 +27,11 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
   Widget build(BuildContext context) {
     // Scaffold reads appBar.preferredSize only when it builds, so it is rebuilt
     // on search toggle to let the bar collapse back to toolbar height.
-    return Obx(() => Scaffold(
+    return AppShortcuts(
+      // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
+      onSearch: controller.startSearching,
+      onEscape: () => controller.isSearching.value ? controller.stopSearching() : Get.back(),
+      child: Obx(() => Scaffold(
       appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
       body: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
@@ -48,7 +54,8 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
           ],
         );
       }),
-    ));
+    )),
+    );
   }
 }
 
@@ -113,12 +120,14 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         Obx(
           () => IconButton(
+            tooltip: controller.isSearching.value ? 'Close search' : 'Search in workbook',
             icon: Icon(controller.isSearching.value ? Icons.close_rounded : Icons.search_rounded),
             onPressed: controller.isSearching.value ? controller.stopSearching : controller.startSearching,
           ),
         ),
         Obx(
           () => IconButton(
+            tooltip: controller.isFavorite ? 'Remove from favorites' : 'Add to favorites',
             icon: Icon(
               controller.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
               color: controller.isFavorite ? context.secondary : null,
@@ -178,11 +187,13 @@ class _SearchStatusBar extends StatelessWidget {
           children: [
             Expanded(child: Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant))),
             IconButton(
+              tooltip: 'Previous match',
               icon: const Icon(Icons.keyboard_arrow_up_rounded),
               color: context.onSurfaceVariant,
               onPressed: controller.matches.isNotEmpty ? controller.goToPrevMatch : null,
             ),
             IconButton(
+              tooltip: 'Next match',
               icon: const Icon(Icons.keyboard_arrow_down_rounded),
               color: context.onSurfaceVariant,
               onPressed: controller.matches.isNotEmpty ? controller.goToNextMatch : null,
@@ -205,7 +216,7 @@ class _SheetTabBar extends StatelessWidget {
       if (controller.sheetNames.length <= 1) return const SizedBox.shrink();
       final accent = DocumentCategory.excel.accentColor(context);
       return Container(
-        height: 44,
+        height: context.scaledExtent(44),
         decoration: BoxDecoration(
           color: context.surfaceContainerLowest,
           border: Border(top: BorderSide(color: context.outlineVariant)),

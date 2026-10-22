@@ -14,6 +14,9 @@ import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import '../../recents/presentation/recents_controller.dart';
 import 'favorites_controller.dart';
+import '../../../core/presentation/widgets/offline_pill.dart';
+import '../../../app/shell/app_shell_controller.dart';
+import '../../../core/presentation/utils/screen_utils.dart';
 
 /// Favorites & History (DESIGN_SPEC.md #06): segmented tabs for starred
 /// documents vs. reading history.
@@ -27,24 +30,12 @@ class FavoritesView extends GetView<FavoritesController> {
 
     return Scaffold(
         appBar: AppBar(
-          title: Row(
+          title: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Library'),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: context.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: context.outlineVariant),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.verified_user_outlined, size: 12, color: context.secondary),
-                  const SizedBox(width: 4),
-                  Text('SANDBOXED', style: context.monoMetadata),
-                ]),
-              ),
+              Text('Library'),
+              SizedBox(width: 8),
+              OfflinePill(),
             ],
           ),
           bottom: TabBar(
@@ -110,7 +101,15 @@ class _FavoritesTab extends StatelessWidget {
           child: Obx(() {
             if (controller.status.value.isLoading) return const LoadingView();
             final items = controller.filtered;
-            if (items.isEmpty) return const CommonEmptyView(message: 'No favorite documents yet.');
+            if (items.isEmpty) {
+              return CommonEmptyView(
+                icon: Icons.star_outline_rounded,
+                message: 'No favorite documents yet.',
+                subtitle: 'Tap the star on any document to keep it here.',
+                actionLabel: 'Browse Files',
+                onAction: () => Get.find<AppShellController>().openFiles(),
+              );
+            }
 
             return ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -165,7 +164,13 @@ class _HistoryTab extends StatelessWidget {
           child: Obx(() {
             if (controller.status.value.isLoading) return const LoadingView();
             final items = controller.filtered;
-            if (items.isEmpty) return const CommonEmptyView(message: 'No history yet.');
+            if (items.isEmpty) {
+              return const CommonEmptyView(
+                icon: Icons.history_rounded,
+                message: 'No history yet.',
+                subtitle: 'Documents you open will show up here.',
+              );
+            }
 
             return ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -214,7 +219,7 @@ class _CategoryChipRow extends StatelessWidget {
     final total = counts.values.fold<int>(0, (a, b) => a + b);
     if (total == 0) return const SizedBox(height: 8);
     return SizedBox(
-      height: 40,
+      height: context.scaledExtent(40),
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -254,7 +259,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Semantics(button: true, selected: selected, child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
@@ -287,7 +292,7 @@ class _Chip extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
