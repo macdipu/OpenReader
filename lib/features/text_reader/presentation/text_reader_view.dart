@@ -73,9 +73,10 @@ class _TextBodyState extends State<_TextBody> {
   /// actually laid out (UX-21); re-measured only when an input changes.
   void _attachMetrics(BuildContext context, double width, double fontSize, bool wrap) {
     final lines = widget.controller.lines;
-    var style = DefaultTextStyle.of(context).style.merge(_TextLine.styleFor(context, fontSize));
-    // `Text` renders bold under the system bold-text setting; measure the same.
-    if (MediaQuery.boldTextOf(context)) style = style.merge(const TextStyle(fontWeight: FontWeight.bold));
+    // No bold-text merge: jumps only happen with a search query, when rows
+    // render via `Text.rich` with this explicit-weight style, which the
+    // system bold-text setting doesn't override.
+    final style = DefaultTextStyle.of(context).style.merge(_TextLine.styleFor(context, fontSize));
     final textScaler = MediaQuery.textScalerOf(context);
     final contentWidth = width - _rowPadding.horizontal;
     final current = _metrics;

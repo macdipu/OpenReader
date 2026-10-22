@@ -286,6 +286,40 @@ void main() {
         'horizontal_offset': 0.0,
       });
     });
+
+    test('onClose with detached scroll views keeps the restored offsets, not zero (P2r1-review #2)', () async {
+      recents.position = {'sheet_index': 0, 'vertical_offset': 300.0, 'horizontal_offset': 120.0};
+      await loaded(controller);
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition?['vertical_offset'], 300.0);
+      expect(recents.lastReadingPosition?['horizontal_offset'], 120.0);
+    });
+
+    test('re-selecting the current sheet keeps its offsets (P2r3-review #1)', () async {
+      recents.position = {'sheet_index': 0, 'vertical_offset': 5000.0, 'horizontal_offset': 400.0};
+      await loaded(controller);
+      controller.switchSheet(0);
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition?['vertical_offset'], 5000.0);
+      expect(recents.lastReadingPosition?['horizontal_offset'], 400.0);
+    });
+
+    test('a quick close after a sheet switch saves the new sheet at the top (P2r2-review #1)', () async {
+      recents.position = {'sheet_index': 0, 'vertical_offset': 5000.0, 'horizontal_offset': 400.0};
+      await loaded(controller);
+      controller.switchSheet(1);
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition, {
+        'sheet_index': 1,
+        'row': 0,
+        'column': 0,
+        'vertical_offset': 0.0,
+        'horizontal_offset': 0.0,
+      });
+    });
   });
 
   group('delegation to DocumentInteractionController', () {

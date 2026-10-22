@@ -70,6 +70,15 @@ class TextReaderController extends BaseController {
   double _initialScrollOffset = 0;
   double get initialScrollOffset => _initialScrollOffset;
 
+  /// Last offset reported by [onScrolled]. A close saves this: by `onClose`
+  /// the list has detached from [scrollController], so reading it then lost
+  /// any scrolling since the last debounced save (P2r1-review #2).
+  double _lastScrollOffset = 0;
+
+  /// Whether the user scrolled this session, so a close saves even a
+  /// return to the very top (offset 0) over an older saved position.
+  bool _scrolledThisSession = false;
+
   Timer? _positionSaveDebounce;
 
   /// Set once the user changes font size or wrap, so the saved preference
@@ -102,7 +111,7 @@ class TextReaderController extends BaseController {
       final positionResult = await _recentRepository.getPosition(document.id);
       positionResult.fold((_) {}, (position) {
         final offset = position['scroll_offset'];
-        if (offset is num && offset > 0) _initialScrollOffset = offset.toDouble();
+        if (offset is num && offset > 0) _initialScrollOffset = _lastScrollOffset = offset.toDouble();
       });
 
       final file = File(document.path);
@@ -151,6 +160,8 @@ class TextReaderController extends BaseController {
   /// `Scrollable`, the same shape `WordReaderController.onScrollOffsetChanged`
   /// and the Excel/CSV readers' `onScrolled` use.
   void onScrolled(double offset) {
+    _lastScrollOffset = offset;
+    _scrolledThisSession = true;
     _positionSaveDebounce?.cancel();
     _positionSaveDebounce = Timer(const Duration(seconds: 2), () => _savePosition(offset));
   }
@@ -228,8 +239,8 @@ class TextReaderController extends BaseController {
   @override
   void onClose() {
     _positionSaveDebounce?.cancel();
-    final offset = scrollController.hasClients ? scrollController.offset : 0.0;
-    _interactions.readerClosedAfter(offset > 0 ? _savePosition(offset) : null);
+    final save = _scrolledThisSession || _lastScrollOffset > 0;
+    _interactions.readerClosedAfter(save ? _savePosition(_lastScrollOffset) : null);
     scrollController.dispose();
     super.onClose();
   }

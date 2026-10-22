@@ -42,19 +42,27 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
     unawaited(_completeIfGranted());
   }
 
+  /// Set while a resume re-check runs, so a second resume during it can't
+  /// finish onboarding twice. A private flag rather than `status`, which
+  /// would briefly swap the denied screen for a spinner on every resume.
+  bool _checkingAccess = false;
+
+  /// Latched by [_finishWithAccess]: navigation and the first scan run
+  /// once, however a resume re-check and an Allow tap interleave.
+  bool _finished = false;
+
   Future<void> _completeIfGranted() async {
-    // Leaves the denied states before awaiting, so a second resume (or an
-    // Allow tap) during the check can't finish onboarding twice.
-    final denied = status.value;
-    status.value = OnboardingStatus.requesting;
-    if (await _storageAccess.hasAccess()) {
-      await _finishWithAccess();
-    } else {
-      status.value = denied;
+    if (_checkingAccess || _finished) return;
+    _checkingAccess = true;
+    try {
+      if (await _storageAccess.hasAccess()) await _finishWithAccess();
+    } finally {
+      _checkingAccess = false;
     }
   }
 
   Future<void> allowAccess() async {
+    if (_finished) return;
     status.value = OnboardingStatus.requesting;
 
     final granted = await _storageAccess.requestAccess();
@@ -69,6 +77,8 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _finishWithAccess() async {
+    if (_finished) return;
+    _finished = true;
     await _settingsRepository.setOnboardingComplete(true);
     // Kick off the first scan; Home/Files will show empty/loading state
     // regardless if this hasn't finished by the time they mount.
@@ -78,6 +88,9 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
 
   /// Scenario B - user can continue in limited mode without storage access.
   Future<void> continueWithoutAccess() async {
+    // Same latch as the granted path: one navigation, however taps interleave.
+    if (_finished) return;
+    _finished = true;
     await _settingsRepository.setOnboardingComplete(true);
     unawaited(Get.offAllNamed(AppRoutes.appShell));
   }

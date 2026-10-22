@@ -178,6 +178,23 @@ void main() {
       expect(controller.onClose, returnsNormally);
       expect(recents.markOpenedCalls, 0);
     });
+
+    test('onClose saves the last scroll even after the list detached (P2r1-review #2)', () async {
+      controller.onScrolled(640);
+      final before = interactions.readerClosed.value;
+      controller.onClose(); // no attached scroll view, as on a real route dispose
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition, {'scroll_offset': 640.0});
+      expect(interactions.readerClosed.value, before + 1);
+    });
+
+    test('scrolling back to the top before closing saves the top (P2r2-review #2)', () async {
+      controller.onScrolled(3000);
+      controller.onScrolled(0);
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition, {'scroll_offset': 0.0});
+    });
   });
 
   group('search', () {

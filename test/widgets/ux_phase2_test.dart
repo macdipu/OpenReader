@@ -15,7 +15,11 @@ import 'package:openreader/core/presentation/widgets/show_dialog/confirm_dialog.
 import 'package:openreader/features/favorites/presentation/favorites_controller.dart';
 import 'package:openreader/features/favorites/presentation/favorites_view.dart';
 import 'package:openreader/features/recents/presentation/recents_controller.dart';
+import 'package:openreader/core/presentation/controllers/theme_controller.dart';
 import 'package:openreader/features/settings/presentation/settings_controller.dart';
+import 'package:openreader/features/settings/presentation/settings_view.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:openreader/features/text_reader/presentation/text_reader_controller.dart';
 import 'package:openreader/features/text_reader/presentation/text_reader_view.dart';
 import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
@@ -146,6 +150,24 @@ void main() {
     await tester.tapAt(const Offset(5, 5)); // barrier
     await tester.pumpAndSettle();
     expect(await result, isFalse);
+  });
+
+  testWidgets('Settings renders its body, including Clear Recent History (P2r4-qa #1)', (tester) async {
+    // The "Storage & Cache" row used to get infinite height inside the
+    // ListView, so the whole body failed to lay out and showed blank.
+    SharedPreferences.setMockInitialValues({});
+    PackageInfo.setMockInitialValues(
+        appName: 'OpenReader', packageName: 'p', version: '1', buildNumber: '1', buildSignature: '');
+    tester.view.physicalSize = const Size(800, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Get.put(ThemeController());
+    Get.put(SettingsController(recentRepository: recents));
+    await tester.pumpWidget(const GetMaterialApp(home: SettingsView()));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+    expect(find.text('Clear Recent History'), findsOneWidget);
+    expect(find.text('Rescan Local Storage'), findsOneWidget);
   });
 
   testWidgets('Settings > Clear Recent History asks first (UX-16)', (tester) async {

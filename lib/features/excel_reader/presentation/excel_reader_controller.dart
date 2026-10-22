@@ -64,6 +64,18 @@ class ExcelReaderController extends BaseController implements CellGridController
   double get initialVerticalOffset => _initialVerticalOffset;
   double get initialHorizontalOffset => _initialHorizontalOffset;
 
+  /// Last-known offsets, refreshed whenever the grid's controllers are
+  /// attached. A close saves these: by `onClose` the route's scroll views
+  /// have already detached, and reading the controllers then gave 0,
+  /// overwriting the saved position (CR-OPENREADER-UX P2r1-review #2).
+  double _lastVerticalOffset = 0;
+  double _lastHorizontalOffset = 0;
+
+  void _captureOffsets() {
+    if (verticalController.hasClients) _lastVerticalOffset = verticalController.offset;
+    if (horizontalController.hasClients) _lastHorizontalOffset = horizontalController.offset;
+  }
+
   Timer? _positionSaveDebounce;
 
   xls.Sheet? get currentSheet {
@@ -93,9 +105,9 @@ class ExcelReaderController extends BaseController implements CellGridController
         final sheetIndex = position['sheet_index'];
         if (sheetIndex is int && sheetIndex >= 0) _initialSheetIndex = sheetIndex;
         final vOffset = position['vertical_offset'];
-        if (vOffset is num && vOffset > 0) _initialVerticalOffset = vOffset.toDouble();
+        if (vOffset is num && vOffset > 0) _initialVerticalOffset = _lastVerticalOffset = vOffset.toDouble();
         final hOffset = position['horizontal_offset'];
-        if (hOffset is num && hOffset > 0) _initialHorizontalOffset = hOffset.toDouble();
+        if (hOffset is num && hOffset > 0) _initialHorizontalOffset = _lastHorizontalOffset = hOffset.toDouble();
       });
 
       final bytes = await File(document.path).readAsBytes();
@@ -125,12 +137,22 @@ class ExcelReaderController extends BaseController implements CellGridController
 
   void switchSheet(int index) {
     if (index < 0 || index >= sheetNames.length) return;
+    if (index != activeSheetIndex.value) {
+      // A different sheet gets a new grid, which `CellGrid` jumps to the
+      // offsets restored at open - reported as a scroll unless they're 0,
+      // when nothing reports at all. Without this reset the cache would then
+      // still hold the previous sheet's offsets and save them under this
+      // sheet. Re-selecting the current sheet keeps its grid and offsets.
+      _lastVerticalOffset = 0;
+      _lastHorizontalOffset = 0;
+    }
     activeSheetIndex.value = index;
     stopSearching();
     _schedulePositionSave();
   }
 
   void onScrolled() {
+    _captureOffsets();
     _schedulePositionSave();
   }
 
@@ -140,14 +162,15 @@ class ExcelReaderController extends BaseController implements CellGridController
   }
 
   Future<void> _savePosition() {
+    _captureOffsets();
     return _recentRepository.markOpened(
       document.id,
       readingPosition: {
         'sheet_index': activeSheetIndex.value,
-        'row': verticalController.hasClients ? (verticalController.offset / CellGridController.cellHeight).floor() : 0,
-        'column': horizontalController.hasClients ? (horizontalController.offset / CellGridController.cellWidth).floor() : 0,
-        'vertical_offset': verticalController.hasClients ? verticalController.offset : 0.0,
-        'horizontal_offset': horizontalController.hasClients ? horizontalController.offset : 0.0,
+        'row': (_lastVerticalOffset / CellGridController.cellHeight).floor(),
+        'column': (_lastHorizontalOffset / CellGridController.cellWidth).floor(),
+        'vertical_offset': _lastVerticalOffset,
+        'horizontal_offset': _lastHorizontalOffset,
       },
     );
   }

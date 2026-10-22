@@ -1,6 +1,6 @@
 # CR-OPENREADER-UX Phase 2: technical spec
 
-Status: APPROVED (in-session, 2026-10-22), revision 1. Released as v1.0.4+6 by explicit user decision, with the known issues in `validation/P2r1-review.md`. The revision 2 fixes are pending, and the run is still at REVIEW.
+Status: APPROVED and COMPLETED (2026-10-22). Revisions 0-1 shipped in v1.0.4, and revisions 2-5 in v1.0.5+7. Run `RUN-F6F654BCBB3742D6A8EF78225881E923` is COMPLETED.
 
 ## Baseline (2026-10-22, `08fe4b5`)
 - `flutter test`: 162/162 pass.
@@ -166,3 +166,37 @@ The run was reopened after the independent review (`validation/P2-review.md`). T
 - **Tests:**
   - Closing a real reader controller reloads Home only after its save.
   - The metrics test measures against the real `TextReaderView` rows.
+
+## Revision 2 (2026-10-22): fixes for v1.0.4's known issues
+Base revision `7e23a24` (v1.0.4): 192/192 tests pass, with 0 errors and 1 pre-existing warning. The fixes address `validation/P2r1-review.md`. Technical approval was given in-session.
+- **Close-save after detach.** The Text, Excel and CSV readers record the last-known scroll offsets in their scroll callbacks. `_savePosition` and `onClose` use those cached values instead of reading detached controllers, the same pattern the Word reader uses. The text reader's close no longer drops the debounced save.
+- **Bold text.** The `boldTextOf` merge is removed from the text-reader metrics. Rows on the jump path render through `Text.rich` with an explicit regular weight, so measuring them bold was wrong.
+- **PowerPoint stub.** `openDocument`'s default branch passes its `markOpened` to `readerClosedAfter`, so Home and History refresh.
+- **Onboarding.** The resume re-check uses a private `_checkingAccess` guard and leaves `status` alone, so there is no UI flicker.
+- **Tests:**
+  - Text/Excel/CSV close with detached controllers saves the cached offsets.
+  - A PowerPoint open bumps `readerClosed` after its save.
+
+## Revision 3 (2026-10-22): follow-up fixes
+These fix findings 1-3 of `validation/P2r2-review.md`. Technical approval was given in-session.
+- **Excel sheet switch.** `switchSheet` resets the cached offsets to 0, because the new sheet's grid starts at the top.
+- **Text reader.** A `_scrolledThisSession` flag is set by `onScrolled`. `onClose` saves whenever the user scrolled this session (including back to 0), or when the offset is above 0.
+- **Onboarding.** A latched `_finished` flag set in `_finishWithAccess`. Both the resume re-check and `allowAccess` return early once it is set.
+- **Tests:**
+  - Excel: a sheet switch followed by a close saves 0 offsets for the new sheet.
+  - Text: scrolling back to 0 and then closing saves 0.
+
+## Revision 4 (2026-10-22): last edges
+These fix `validation/P2r3-review.md`. The user approved the fixes, with no further independent re-review.
+- **Excel.** `switchSheet` resets the cached offsets only when the index actually changes. The comment now notes that `CellGrid` re-applies the open-time restored offsets; when those are 0, it never reports a scroll.
+- **Onboarding.** `continueWithoutAccess` uses the same `_finished` latch.
+- **Test:** re-selecting the current sheet keeps the cached offsets.
+
+## Revision 5 (2026-10-22): QA findings
+Emulator QA of revision 4 (`validation/P2r4-qa.md`) found a blank Settings screen. The user approved fixing it in this run.
+- **Settings.** The "Storage & Cache" `Row(crossAxisAlignment: stretch)` (`settings_view.dart`) sits inside a `ListView`, which gives it infinite height, and the whole body failed to lay out. It is wrapped in `IntrinsicHeight`. This was a pre-existing bug, present since `64c6da9`.
+- **Navigation label.** The bottom-navigation label for the Library tab now reads "Library" (UX-10).
+- **Error visibility.** `bootstrap`'s `FlutterError.onError` also calls `FlutterError.presentError` in debug builds, so layout errors reach logcat and the console. Release behaviour is unchanged.
+- **Tests:**
+  - A widget test renders `SettingsView` and checks Clear Recent History is visible.
+  - The navigation label test.

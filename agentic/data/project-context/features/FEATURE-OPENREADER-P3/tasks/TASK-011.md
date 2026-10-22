@@ -47,7 +47,7 @@ ODF-013/014 (DOCX read + search), ODF-015/016 (XLSX read + search), ODF-008 (rea
 - ODF-013/015: met — real files parse and their content is retrievable through each controller, test-verified.
 - ODF-014/016: met — search finds matches and reports counts; Word's highlighting is `docx_file_viewer`'s own, Excel's is first-party.
 - ODF-008: **partial** for Word (save-only, no restore — see delta); met for Excel (save and restore both implemented and test-verified).
-  - *Known issue found 2026-10-22* (`CR-OPENREADER-UX/validation/P2r1-review.md`): Excel/CSV save on close after their scroll controllers detach, so a close can write row, column and offsets as 0, overwriting the saved position. The proposed fix is to save cached last-known offsets. Not yet approved.
+  - *Known issue found 2026-10-22* (`CR-OPENREADER-UX/validation/P2r1-review.md`): Excel/CSV save on close after their scroll controllers detach, so a close can write row, column and offsets as 0, overwriting the saved position. Fixed in v1.0.5: the readers now save cached last-known offsets.
 - Favorite/Share/File Information/Open With work identically inside both readers as elsewhere (reused, not reimplemented).
 - BRD §13 exact error strings preserved: "This document may be damaged or incomplete." (both readers' corrupted-file path), "This file may have been moved or deleted." (shared guard), "No searchable text found." (both readers' empty-search-result path).
 
