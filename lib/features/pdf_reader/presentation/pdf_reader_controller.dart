@@ -24,6 +24,40 @@ import 'pdf_password_dialog.dart';
 /// discrete navigation." Flagged here rather than silently claimed as done.
 enum PdfReaderViewMode { continuous, horizontal }
 
+/// Whether any of the document's [pageCount] pages carries text. Stops at
+/// the first non-blank page. `false` only when every page loaded and was
+/// blank (a scanned PDF); `null` when a page wasn't loaded yet
+/// ([loadPageText] returns null for it under progressive loading), so the
+/// answer is unknown rather than "no text".
+Future<bool?> probePdfTextLayer(int pageCount, Future<String?> Function(int pageNumber) loadPageText) async {
+  var allLoaded = true;
+  for (var page = 1; page <= pageCount; page++) {
+    final text = await loadPageText(page);
+    if (text == null) {
+      allLoaded = false;
+    } else if (text.trim().isNotEmpty) {
+      return true;
+    }
+  }
+  return allLoaded ? false : null;
+}
+
+/// The PDF search status line. BRD line 1087's "No searchable text found."
+/// is for scanned PDFs without a text layer; an ordinary zero-match search
+/// says "No matches", like the other readers (CR-OPENREADER-UX UX-26).
+String pdfSearchStatusLabel({
+  required bool hasPattern,
+  required bool isSearching,
+  required int matchCount,
+  required int? currentIndex,
+  required bool? hasTextLayer,
+}) {
+  if (!hasPattern) return '';
+  if (isSearching) return 'Searching…';
+  if (matchCount == 0) return hasTextLayer == false ? 'No searchable text found.' : 'No matches';
+  return '${(currentIndex ?? 0) + 1} of $matchCount result(s)';
+}
+
 /// Drives the PDF reader (BRD 9.10, ODF-011/012, ODF-008 for PDF).
 ///
 /// Owns reading-position persistence itself: `DocumentInteractionController
@@ -62,6 +96,11 @@ class PdfReaderController extends BaseController {
   final showThumbnails = false.obs;
   final isSearching = false.obs;
 
+  /// `null` until a zero-match search has probed the text (see
+  /// [probePdfTextLayer]); fixed for the document once known.
+  final hasTextLayer = RxnBool();
+  bool _probingTextLayer = false;
+
   int _initialPage = 1;
   int get initialPageNumber => _initialPage;
 
@@ -98,7 +137,27 @@ class PdfReaderController extends BaseController {
   void onViewerReady(PdfDocument doc, PdfViewerController controller) {
     pageCount.value = doc.pages.length;
     currentPage.value = controller.pageNumber ?? _initialPage;
-    textSearcher.value ??= PdfTextSearcher(pdfController);
+    textSearcher.value ??= PdfTextSearcher(pdfController)..addListener(_onSearchProgress);
+  }
+
+  /// Probes the text layer once a search finishes empty. Reads each page's
+  /// raw text rather than [PdfTextSearcher.loadText]: the searcher caches a
+  /// page that wasn't loaded yet as empty text, which would make a text PDF
+  /// still loading progressively look scanned. Raw [PdfPage.loadText]
+  /// returns null for such a page instead, leaving [hasTextLayer] unknown.
+  void _onSearchProgress() {
+    final searcher = textSearcher.value;
+    if (searcher == null || hasTextLayer.value != null || _probingTextLayer) return;
+    if (searcher.pattern == null || searcher.isSearching || searcher.matches.isNotEmpty) return;
+    _probingTextLayer = true;
+    probePdfTextLayer(
+      pageCount.value,
+      (page) async => pdfController.isReady
+          ? await pdfController.useDocument<String?>((doc) async => (await doc.pages[page - 1].loadText())?.fullText)
+          : null,
+    ).then((result) {
+      if (!isClosed) hasTextLayer.value = result;
+    }).whenComplete(() => _probingTextLayer = false);
   }
 
   /// [PdfViewerParams.onPageChanged].

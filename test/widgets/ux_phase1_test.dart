@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,10 +31,14 @@ final sample = DocumentModel(
 );
 
 class FixtureDocuments implements DocumentRepository {
+  /// When set, queries wait on it, so a test can act mid-search.
+  Completer<void>? hold;
   @override
   ResultFuture<List<DocumentModel>> getDocuments(
-          {DocumentCategory? category, String? query, DocumentSortMode sort = DocumentSortMode.nameAsc}) async =>
-      Right([sample]);
+      {DocumentCategory? category, String? query, DocumentSortMode sort = DocumentSortMode.nameAsc}) async {
+    await hold?.future;
+    return Right([sample]);
+  }
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -74,6 +80,22 @@ void main() {
     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
     expect(controller.status.value, StateStatus.initial);
     expect(find.text('Search documents by filename.'), findsOneWidget);
+  });
+
+  testWidgets('Search clear drops a search still in flight (review F5)', (tester) async {
+    final documents = FixtureDocuments()..hold = Completer<void>();
+    final controller = Get.put(SearchDocumentsController(documentRepository: documents));
+    await tester.pumpWidget(const GetMaterialApp(home: SearchView()));
+    await tester.enterText(find.byType(TextField), 'rep');
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byIcon(Icons.clear_rounded));
+    await tester.pump();
+    documents.hold!.complete();
+    await tester.pumpAndSettle();
+    expect(controller.results, isEmpty);
+    expect(controller.status.value, StateStatus.initial);
+    expect(find.text('report.txt'), findsNothing);
   });
 
   testWidgets('Reader app bar only grows while searching; zero matches say "No matches" (UX1-AC5/AC7)',

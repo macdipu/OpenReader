@@ -137,16 +137,19 @@ class HomeView extends GetView<HomeController> {
                           },
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                       )),
-              ] else if (controller.categoryCounts.values.every((count) => count == 0))
+              ] else if (controller.categoryCounts.values.every((count) => count == 0)) ...[
                 // Decided from the data, not `status.isEmpty`: a reload keeps
                 // this screen mounted in `refreshing`, and an empty index must
                 // not read as "no history" while a first scan is running.
-                _EmptyState(
-                  icon: Icons.folder_off_outlined,
-                  title: 'No documents found',
-                  subtitle: 'Pull down to scan this device for PDF, Word, Excel, and text files.',
-                )
-              else
+                // While that scan runs, its banner above is the only message -
+                // "No documents found" would contradict it.
+                if (!controller.isScanning.value)
+                  _EmptyState(
+                    icon: Icons.folder_off_outlined,
+                    title: 'No documents found',
+                    subtitle: 'Pull down to scan this device for PDF, Word, Excel, and text files.',
+                  ),
+              ] else
                 // Files are indexed (chips above show real counts) but
                 // there's no reading history - e.g. right after "Clear
                 // Recent History" in Settings. Without this branch the body

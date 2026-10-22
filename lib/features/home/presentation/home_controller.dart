@@ -84,7 +84,9 @@ class HomeController extends BaseController {
 
   Future<void> refresh() async {
     _retryScan = true;
-    status.value = StateStatus.refreshing;
+    // A Retry from the error screen has nothing to keep mounted, so that
+    // case still gets the full-screen spinner.
+    beginLoad();
     isScanning.value = true;
     scanProgress.value = 0;
     final result = await _documentRepository.rescan(onProgress: (count) => scanProgress.value = count);

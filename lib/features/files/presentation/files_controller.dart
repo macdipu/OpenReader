@@ -41,11 +41,17 @@ class FilesController extends BaseController {
     load();
   }
 
+  /// Bumped per [load]; a load that finishes after a newer one started (a
+  /// filter or sort tap mid-refresh) discards its now-stale result.
+  int _loadSession = 0;
+
   Future<void> load() async {
+    final session = ++_loadSession;
     _retryScan = false;
     errorMessage.value = null;
     beginLoad();
     hasAccess.value = await _storageAccess.hasAccess();
+    if (session != _loadSession) return;
     if (!hasAccess.value) {
       status.value = StateStatus.empty;
       return;
@@ -61,6 +67,7 @@ class FilesController extends BaseController {
     // silently never repaint, since nothing reads `categoryCounts` inside an
     // Obx closure the way `status`/`documents` are read.
     final results = await Future.wait([documentsFuture, _loadCounts()]);
+    if (session != _loadSession) return;
     final result = results[0] as Either<Failure, List<DocumentModel>>;
     result.fold(
       (failure) => handleFailure(failure),
@@ -85,7 +92,9 @@ class FilesController extends BaseController {
 
   Future<void> refresh() async {
     _retryScan = true;
-    status.value = StateStatus.refreshing;
+    // A Retry from the error screen has nothing to keep mounted, so that
+    // case still gets the full-screen spinner.
+    beginLoad();
     final rescanResult = await _documentRepository.rescan();
     await rescanResult.fold<Future<void>>(
       (failure) async => handleFailure(failure),
