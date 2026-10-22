@@ -10,7 +10,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
-import '../../../core/presentation/widgets/show_dialog/show_dialog.dart';
+import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import '../../recents/presentation/recents_controller.dart';
 import 'favorites_controller.dart';
@@ -25,14 +25,12 @@ class FavoritesView extends GetView<FavoritesController> {
     final interactions = Get.find<DocumentInteractionController>();
     final recentsController = Get.find<RecentsController>();
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('OpenReader'),
+              const Text('Library'),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -50,6 +48,7 @@ class FavoritesView extends GetView<FavoritesController> {
             ],
           ),
           bottom: TabBar(
+            controller: controller.tabController,
             labelStyle: context.labelLarge,
             tabs: [
               Obx(() => Tab(text: 'Favorites (${controller.favorites.length})')),
@@ -57,36 +56,35 @@ class FavoritesView extends GetView<FavoritesController> {
             ],
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.delete_sweep_outlined),
-              tooltip: 'Clear History',
-              onPressed: () => _confirmClearHistory(context, recentsController),
-            ),
+            Obx(() => controller.isHistoryTab.value
+                ? IconButton(
+                    icon: const Icon(Icons.delete_sweep_outlined),
+                    tooltip: 'Clear History',
+                    onPressed: () => confirmClearHistory(recentsController),
+                  )
+                : const SizedBox.shrink()),
           ],
         ),
         body: TabBarView(
+          controller: controller.tabController,
           children: [
             _FavoritesTab(controller: controller, interactions: interactions),
             _HistoryTab(controller: recentsController, interactions: interactions),
           ],
         ),
-      ),
     );
   }
+}
 
-  Future<void> _confirmClearHistory(BuildContext context, RecentsController recentsController) async {
-    final confirmed = await showAppDialog<bool>(
-      child: AlertDialog(
-        title: const Text('Clear all reading history?'),
-        content: const Text('This will not delete your documents.'),
-        actions: [
-          TextButton(onPressed: () => Get.back(result: false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Get.back(result: true), child: const Text('Clear')),
-        ],
-      ),
-    );
-    if (confirmed == true) await recentsController.clearAll();
-  }
+/// Shared by Library's History tab and Settings (UX-16).
+Future<void> confirmClearHistory(RecentsController recentsController) async {
+  final confirmed = await showConfirmDialog(
+    title: 'Clear all reading history?',
+    message: 'This will not delete your documents.',
+    confirmLabel: 'Clear',
+    destructive: true,
+  );
+  if (confirmed) await recentsController.clearAll();
 }
 
 class _FavoritesTab extends StatelessWidget {
@@ -191,6 +189,7 @@ class _HistoryTab extends StatelessWidget {
                           },
                       onRemoveFromRecent: () => controller.removeOne(recent.document.id),
                       trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
+                      progress: recent.progress,
                     ));
               },
             );

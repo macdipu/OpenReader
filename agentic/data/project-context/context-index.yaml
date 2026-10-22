@@ -32,9 +32,9 @@ features:
     path: agentic/data/project-context/features/FEATURE-OPENREADER-P4
     last_indexed_revision: null
   CR-OPENREADER-UX:
-    status: TECHNICAL_READY     # UX audit remediation (34 gaps, 3 phases). Phase 1 run RUN-634FD576573D433995F3E16CB7BE4B57 at TECHNICAL, awaiting technical approval + UX-06 option (2026-10-21)
+    status: IN_REVIEW           # UX audit remediation (34 gaps, 3 phases). Phase 1 COMPLETED (RUN-634FD576..., released 1.0.3+5 in 08fe4b5). Phase 2 released as v1.0.4+6 by explicit user decision with known issues (validation/P2r1-review.md); harness run RUN-F6F654BC... still BLOCKED at REVIEW pending revision 2 fixes. Phase 3 not started.
     path: agentic/data/project-context/features/CR-OPENREADER-UX
-    last_indexed_revision: 3a13d40
+    last_indexed_revision: 08fe4b5
   FEATURE-OPENREADER-P5:
     status: TECHNICAL_READY     # Hardening scoping confirmed 2026-09-19 (all 4 SRS Unresolved Questions resolved, incl. ODF-P5-02 storage-access channel decision); task breakdown not yet done; no new dependency expected, no ADR planned
     path: agentic/data/project-context/features/FEATURE-OPENREADER-P5

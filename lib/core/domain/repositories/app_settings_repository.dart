@@ -34,6 +34,17 @@ abstract class AppSettingsRepository {
   /// Persist the default PDF reading mode.
   Future<void> setDefaultContinuousScroll(bool value);
 
+  /// Text reader font size (UX-20), shared by every text file; null when
+  /// never set.
+  Future<double?> getTextReaderFontSize();
+
+  Future<void> setTextReaderFontSize(double value);
+
+  /// Text reader line wrap (UX-20); null when never set.
+  Future<bool?> getTextReaderLineWrap();
+
+  Future<void> setTextReaderLineWrap(bool value);
+
   /// Clear all app settings
   Future<void> clearSettings();
 }

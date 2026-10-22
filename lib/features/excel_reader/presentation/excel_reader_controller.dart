@@ -219,9 +219,7 @@ class ExcelReaderController extends BaseController implements CellGridController
   @override
   void onClose() {
     _positionSaveDebounce?.cancel();
-    if (_workbook != null) {
-      unawaited(_savePosition());
-    }
+    _interactions.readerClosedAfter(_workbook != null ? _savePosition() : null);
     verticalController.dispose();
     horizontalController.dispose();
     super.onClose();

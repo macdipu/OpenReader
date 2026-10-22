@@ -208,9 +208,7 @@ class CsvReaderController extends BaseController implements CellGridController {
   @override
   void onClose() {
     _positionSaveDebounce?.cancel();
-    if (_sheet != null) {
-      unawaited(_savePosition());
-    }
+    _interactions.readerClosedAfter(_sheet != null ? _savePosition() : null);
     verticalController.dispose();
     horizontalController.dispose();
     super.onClose();

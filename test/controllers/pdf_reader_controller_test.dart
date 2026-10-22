@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:openreader/core/domain/models/document_category.dart';
@@ -47,11 +48,15 @@ class FixtureRecents implements RecentRepository {
   String? lastMarkedId;
   Map<String, Object?>? lastReadingPosition;
 
+  /// When set, saves wait on it, so a test can observe a save in flight.
+  Completer<void>? holdSave;
+
   @override
   ResultFuture<Map<String, Object?>> getPosition(String documentId) async => Right(position);
 
   @override
   ResultFuture<void> markOpened(String documentId, {Map<String, Object?> readingPosition = const {}}) async {
+    await holdSave?.future;
     markOpenedCalls++;
     lastMarkedId = documentId;
     lastReadingPosition = readingPosition;
@@ -63,8 +68,10 @@ class FixtureRecents implements RecentRepository {
 }
 
 class FixtureSettings implements AppSettingsRepository {
+  bool continuous = true;
+
   @override
-  Future<bool> getDefaultContinuousScroll() async => true;
+  Future<bool> getDefaultContinuousScroll() async => continuous;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -77,6 +84,7 @@ void main() {
   late FixtureRecents recents;
   late DocumentInteractionController interactions;
   late PdfReaderController controller;
+  late FixtureSettings settings;
 
   setUp(() async {
     Get.testMode = true;
@@ -106,7 +114,8 @@ void main() {
 
     recents = FixtureRecents();
     interactions = DocumentInteractionController(favoriteRepository: FixtureFavorites(), recentRepository: recents);
-    controller = PdfReaderController(document: document, recentRepository: recents, interactions: interactions, settingsRepository: FixtureSettings());
+    settings = FixtureSettings();
+    controller = PdfReaderController(document: document, recentRepository: recents, interactions: interactions, settingsRepository: settings);
   });
 
   tearDown(() async {
@@ -150,7 +159,7 @@ void main() {
         async.elapse(const Duration(seconds: 1, milliseconds: 1));
         expect(recents.markOpenedCalls, 1);
         expect(recents.lastMarkedId, document.id);
-        expect(recents.lastReadingPosition, {'page_number': 5});
+        expect(recents.lastReadingPosition, {'page_number': 5, 'view_mode': 'continuous'});
       });
     });
 
@@ -164,7 +173,7 @@ void main() {
 
         async.elapse(const Duration(seconds: 1));
         expect(recents.markOpenedCalls, 1);
-        expect(recents.lastReadingPosition, {'page_number': 3});
+        expect(recents.lastReadingPosition, {'page_number': 3, 'view_mode': 'continuous'});
       });
     });
 
@@ -190,7 +199,65 @@ void main() {
       controller.onClose();
       await Future<void>.delayed(Duration.zero);
       expect(recents.markOpenedCalls, 1);
-      expect(recents.lastReadingPosition, {'page_number': 3});
+      expect(recents.lastReadingPosition, {'page_number': 3, 'page_count': 3, 'view_mode': 'continuous'});
+    });
+  });
+
+  group('history refresh on close (HOME-RECENTS)', () {
+    test('readerClosed fires only after the final position save has landed', () async {
+      controller.pageCount.value = 8;
+      controller.currentPage.value = 6;
+      recents.holdSave = Completer<void>();
+      final before = interactions.readerClosed.value;
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(interactions.readerClosed.value, before, reason: 'save still in flight');
+
+      recents.holdSave!.complete();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition?['page_number'], 6);
+      expect(interactions.readerClosed.value, before + 1);
+    });
+
+    test('readerClosed fires at once when there is nothing to save', () {
+      final before = interactions.readerClosed.value;
+      controller.onClose();
+      expect(interactions.readerClosed.value, before + 1);
+    });
+  });
+
+  group('per-document view mode (UX-19)', () {
+    test('a PDF\'s remembered mode wins over the Settings default', () async {
+      recents.position = {'page_number': 2, 'view_mode': 'horizontal'};
+      controller.onInit();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.viewMode.value, PdfReaderViewMode.horizontal);
+    });
+
+    test('a PDF with no remembered mode gets the Settings default', () async {
+      settings.continuous = false;
+      controller.onInit();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.viewMode.value, PdfReaderViewMode.horizontal);
+    });
+
+    test('a toggle made before the default loads is not overridden by it', () async {
+      controller.onInit();
+      controller.toggleViewMode();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.viewMode.value, PdfReaderViewMode.horizontal);
+    });
+
+    test('toggling saves the mode with the position', () async {
+      controller.pageCount.value = 10;
+      controller.currentPage.value = 4;
+      controller.toggleViewMode();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition, {'page_number': 4, 'page_count': 10, 'view_mode': 'horizontal'});
     });
   });
 

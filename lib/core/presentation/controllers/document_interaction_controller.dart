@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
@@ -13,6 +12,7 @@ import '../../domain/models/document_model.dart';
 import '../../domain/repositories/document_repository.dart';
 import '../../domain/repositories/favorite_repository.dart';
 import '../../domain/repositories/recent_repository.dart';
+import '../widgets/show_dialog/confirm_dialog.dart';
 import '../widgets/snackbar/custom_snackbar.dart';
 import '../../../services/utilities/storage_access_service.dart';
 import '../../domain/models/document_category.dart';
@@ -96,19 +96,19 @@ class DocumentInteractionController extends GetxController {
     if (!await _verifyStillAccessible(document, skipAccessCheck: fromOtherApp)) return;
     switch (document.category) {
       case DocumentCategory.pdf:
-        unawaited(Get.toNamed(AppRoutes.pdfReader, arguments: document));
+        _openReader(AppRoutes.pdfReader, document);
         return;
       case DocumentCategory.word:
-        unawaited(Get.toNamed(AppRoutes.wordReader, arguments: document));
+        _openReader(AppRoutes.wordReader, document);
         return;
       case DocumentCategory.excel:
-        unawaited(Get.toNamed(AppRoutes.excelReader, arguments: document));
+        _openReader(AppRoutes.excelReader, document);
         return;
       case DocumentCategory.text:
-        unawaited(Get.toNamed(AppRoutes.textReader, arguments: document));
+        _openReader(AppRoutes.textReader, document);
         return;
       case DocumentCategory.csv:
-        unawaited(Get.toNamed(AppRoutes.csvReader, arguments: document));
+        _openReader(AppRoutes.csvReader, document);
         return;
       default:
         break;
@@ -118,6 +118,28 @@ class DocumentInteractionController extends GetxController {
       '${document.category.label} reader is not part of this build yet.',
       title: document.displayName,
     );
+  }
+
+  /// Bumped once a reader has closed and its final reading-position save
+  /// has landed. Home and the History tab listen to it to pick up that
+  /// history (CR-OPENREADER-UX HOME-RECENTS) - nothing else reloads them on
+  /// return.
+  final readerClosed = 0.obs;
+
+  /// Each reader's `onClose` hands over its final save ([save], or null when
+  /// there is nothing to save). Not bumped on route pop: the reader's
+  /// `onClose` runs after the pop transition, so a reload on pop would read
+  /// history before that save.
+  void readerClosedAfter(Future<Object?>? save) {
+    if (save == null) {
+      readerClosed.value++;
+    } else {
+      unawaited(save.whenComplete(() => readerClosed.value++));
+    }
+  }
+
+  void _openReader(String route, DocumentModel document) {
+    unawaited(Get.toNamed(route, arguments: document));
   }
 
   /// ODF-009: system share sheet for the original file (BRD §13's error
@@ -155,7 +177,7 @@ class DocumentInteractionController extends GetxController {
         'OpenReader no longer has access to this file.',
         title: document.displayName,
         actionLabel: 'Grant Access',
-        onAction: () => _storageAccess.requestAccess(),
+        onAction: () => _storageAccess.requestOrOpenSettings(),
       );
       return false;
     }
@@ -168,17 +190,13 @@ class DocumentInteractionController extends GetxController {
   /// storage. Returns true if it was deleted, so the calling screen can
   /// reload its list.
   Future<bool> confirmAndDelete(DocumentModel document) async {
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: const Text('Delete file?'),
-        content: Text('"${document.displayName}" will be permanently deleted from your device. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Get.back(result: false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Get.back(result: true), child: const Text('Delete')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      title: 'Delete file?',
+      message: '"${document.displayName}" will be permanently deleted from your device. This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
     );
-    if (confirmed != true) return false;
+    if (!confirmed) return false;
     return deleteDocument(document);
   }
 
@@ -188,7 +206,7 @@ class DocumentInteractionController extends GetxController {
         'OpenReader no longer has access to this file.',
         title: document.displayName,
         actionLabel: 'Grant Access',
-        onAction: () => _storageAccess.requestAccess(),
+        onAction: () => _storageAccess.requestOrOpenSettings(),
       );
       return false;
     }

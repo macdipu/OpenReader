@@ -14,6 +14,8 @@ import '../../../core/presentation/controllers/theme_controller.dart';
 import '../../home/presentation/home_controller.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/utilities/path_service.dart';
+import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
+import '../../recents/presentation/recents_controller.dart';
 
 /// Settings screen (BRD 9.18, DESIGN_SPEC.md #01).
 class SettingsController extends GetxController {
@@ -112,6 +114,14 @@ class SettingsController extends GetxController {
   }
 
   Future<void> clearRecentHistory() async {
+    // Same confirmation as Library's Clear History (UX-16).
+    final confirmed = await showConfirmDialog(
+      title: 'Clear all reading history?',
+      message: 'This will not delete your documents.',
+      confirmLabel: 'Clear',
+      destructive: true,
+    );
+    if (!confirmed) return;
     final result = await _recentRepository.clearAll();
     result.fold(
       (failure) => CustomSnackbar.error(failure.message),
@@ -123,6 +133,10 @@ class SettingsController extends GetxController {
     // app restarts.
     if (Get.isRegistered<HomeController>()) {
       await Get.find<HomeController>().load();
+    }
+    // Same for Library's History tab.
+    if (Get.isRegistered<RecentsController>()) {
+      await Get.find<RecentsController>().load();
     }
   }
 

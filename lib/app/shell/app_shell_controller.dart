@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../core/domain/models/document_category.dart';
@@ -9,8 +10,9 @@ import '../../features/files/presentation/files_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
+import '../../services/utilities/storage_access_service.dart';
 
-class AppShellController extends GetxController {
+class AppShellController extends GetxController with WidgetsBindingObserver {
   static const homeIndex = 0;
   static const filesIndex = 1;
   static const favoritesIndex = 2;
@@ -18,8 +20,11 @@ class AppShellController extends GetxController {
   final RxInt currentIndex = homeIndex.obs;
 
   final IncomingIntentService _incomingIntentService;
+  final StorageAccessService _storageAccess;
 
-  AppShellController({IncomingIntentService? incomingIntentService}) : _incomingIntentService = incomingIntentService ?? IncomingIntentService();
+  AppShellController({IncomingIntentService? incomingIntentService, StorageAccessService? storageAccess})
+      : _incomingIntentService = incomingIntentService ?? IncomingIntentService(),
+        _storageAccess = storageAccess ?? StorageAccessService.instance;
 
   @override
   void onInit() {
@@ -29,6 +34,27 @@ class AppShellController extends GetxController {
     // an incoming file here.
     unawaited(_incomingIntentService.init());
     _openLaunchFiles();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// Storage access can change while the app is in the background (the
+  /// user granted it from system settings after "Grant Access" sent them
+  /// there, or revoked it) - nothing else re-checks it (UX-18).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_recheckStorageAccess());
+  }
+
+  Future<void> _recheckStorageAccess() async {
+    final access = await _storageAccess.hasAccess();
+    if (Get.isRegistered<HomeController>()) {
+      final home = Get.find<HomeController>();
+      if (home.hasAccess.value != access) unawaited(home.load());
+    }
+    if (Get.isRegistered<FilesController>()) {
+      final files = Get.find<FilesController>();
+      if (files.hasAccess.value != access) unawaited(files.load());
+    }
   }
 
   /// Desktop: a file passed on the command line when the app was launched.
@@ -52,6 +78,7 @@ class AppShellController extends GetxController {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _incomingIntentService.dispose();
     super.onClose();
   }
@@ -78,6 +105,13 @@ class AppShellController extends GetxController {
     if (index == homeIndex) {
       Get.find<HomeController>().load();
     }
+  }
+
+  /// Home's "See All": Library tab, History sub-tab (UX-09 - the only
+  /// reading-history screen now).
+  void openHistory() {
+    changeTab(favoritesIndex);
+    Get.find<FavoritesController>().showHistory();
   }
 
   /// Switches to the Files tab, optionally pre-filtered to [category]

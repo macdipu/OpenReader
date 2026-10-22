@@ -107,19 +107,23 @@ class PdfReaderController extends BaseController {
   Timer? _positionSaveDebounce;
   bool _passwordPreviouslyWrong = false;
 
+  /// Set once the view mode is settled - by the user's toggle or this
+  /// document's remembered mode - so neither async read below can override
+  /// it afterwards (a quick toggle used to be reset by the late default).
+  bool _viewModeSettled = false;
+
   @override
   void onInit() {
     super.onInit();
-    _loadInitialPosition();
-    _loadDefaultViewMode();
+    _loadInitialPosition().then((_) => _loadDefaultViewMode());
   }
 
   /// Applies the Settings > Reading Engine Preferences default (BRD 9.18)
-  /// unless this document already has its own remembered view mode -
-  /// [readingPosition] doesn't track view mode per document, so this is a
-  /// one-shot default, not a per-file override.
+  /// only to a PDF with no remembered mode of its own (UX-19).
   Future<void> _loadDefaultViewMode() async {
+    if (_viewModeSettled) return;
     final continuous = await _settingsRepository.getDefaultContinuousScroll();
+    if (_viewModeSettled) return;
     viewMode.value = continuous ? PdfReaderViewMode.continuous : PdfReaderViewMode.horizontal;
   }
 
@@ -129,6 +133,11 @@ class PdfReaderController extends BaseController {
     result.fold((_) {}, (position) {
       final page = position['page_number'];
       if (page is int && page > 0) _initialPage = page;
+      final mode = PdfReaderViewMode.values.asNameMap()[position['view_mode']];
+      if (mode != null && !_viewModeSettled) {
+        viewMode.value = mode;
+        _viewModeSettled = true;
+      }
     });
     status.value = StateStatus.success;
   }
@@ -168,7 +177,13 @@ class PdfReaderController extends BaseController {
     _positionSaveDebounce = Timer(const Duration(seconds: 2), () => _savePosition(page));
   }
 
-  Future<void> _savePosition(int page) => _recentRepository.markOpened(document.id, readingPosition: {'page_number': page});
+  /// `page_count` feeds Home's reading-progress bar (UX-13); `view_mode`
+  /// makes the mode per-document (UX-19).
+  Future<void> _savePosition(int page) => _recentRepository.markOpened(document.id, readingPosition: {
+        'page_number': page,
+        if (pageCount.value > 0) 'page_count': pageCount.value,
+        'view_mode': viewMode.value.name,
+      });
 
   Future<void> jumpToPage(int page) async {
     if (pageCount.value < 1) return;
@@ -176,7 +191,9 @@ class PdfReaderController extends BaseController {
   }
 
   void toggleViewMode() {
+    _viewModeSettled = true;
     viewMode.value = viewMode.value == PdfReaderViewMode.continuous ? PdfReaderViewMode.horizontal : PdfReaderViewMode.continuous;
+    if (pageCount.value > 0) unawaited(_savePosition(currentPage.value));
   }
 
   void toggleThumbnails() => showThumbnails.value = !showThumbnails.value;
@@ -229,9 +246,7 @@ class PdfReaderController extends BaseController {
   @override
   void onClose() {
     _positionSaveDebounce?.cancel();
-    if (pageCount.value > 0) {
-      unawaited(_savePosition(currentPage.value));
-    }
+    _interactions.readerClosedAfter(pageCount.value > 0 ? _savePosition(currentPage.value) : null);
     textSearcher.value?.dispose();
     super.onClose();
   }

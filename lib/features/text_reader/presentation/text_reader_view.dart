@@ -6,6 +6,7 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import 'text_line_metrics.dart';
 import 'text_reader_controller.dart';
 
 /// BRD §9.14 Text Reader Screen.
@@ -60,7 +61,36 @@ class _TextBodyState extends State<_TextBody> {
   @override
   void dispose() {
     widget.controller.scrollController.removeListener(_onScroll);
+    widget.controller.lineOffsetResolver = null;
     super.dispose();
+  }
+
+  static const _rowPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 2);
+
+  TextLineMetrics? _metrics;
+
+  /// Keeps the controller's jump-to-match offsets measured against what is
+  /// actually laid out (UX-21); re-measured only when an input changes.
+  void _attachMetrics(BuildContext context, double width, double fontSize, bool wrap) {
+    final lines = widget.controller.lines;
+    var style = DefaultTextStyle.of(context).style.merge(_TextLine.styleFor(context, fontSize));
+    // `Text` renders bold under the system bold-text setting; measure the same.
+    if (MediaQuery.boldTextOf(context)) style = style.merge(const TextStyle(fontWeight: FontWeight.bold));
+    final textScaler = MediaQuery.textScalerOf(context);
+    final contentWidth = width - _rowPadding.horizontal;
+    final current = _metrics;
+    if (current == null ||
+        !current.matches(lines: lines, style: style, textScaler: textScaler, contentWidth: contentWidth, wrap: wrap)) {
+      _metrics = TextLineMetrics(
+        lines: lines,
+        style: style,
+        textScaler: textScaler,
+        contentWidth: contentWidth,
+        wrap: wrap,
+        verticalPadding: _rowPadding.vertical,
+      );
+    }
+    widget.controller.lineOffsetResolver = _metrics!.offsetOf;
   }
 
   @override
@@ -68,21 +98,26 @@ class _TextBodyState extends State<_TextBody> {
     return Obx(() {
       final lines = widget.controller.lines;
       final query = widget.controller.searchQuery.value;
+      final fontSize = widget.controller.fontSize.value;
+      final wrap = widget.controller.lineWrap.value;
       return Container(
         color: context.surface,
-        child: ListView.builder(
-          controller: widget.controller.scrollController,
-          itemCount: lines.length,
-          itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-            child: _TextLine(
-              text: lines[index],
-              fontSize: widget.controller.fontSize.value,
-              wrap: widget.controller.lineWrap.value,
-              highlightQuery: query,
+        child: LayoutBuilder(builder: (context, constraints) {
+          _attachMetrics(context, constraints.maxWidth, fontSize, wrap);
+          return ListView.builder(
+            controller: widget.controller.scrollController,
+            itemCount: lines.length,
+            itemBuilder: (context, index) => Padding(
+              padding: _rowPadding,
+              child: _TextLine(
+                text: lines[index],
+                fontSize: fontSize,
+                wrap: wrap,
+                highlightQuery: query,
+              ),
             ),
-          ),
-        ),
+          );
+        }),
       );
     });
   }
@@ -96,10 +131,14 @@ class _TextLine extends StatelessWidget {
 
   const _TextLine({required this.text, required this.fontSize, required this.wrap, required this.highlightQuery});
 
+  /// Shared with [TextLineMetrics] measurement, which must match it.
+  static TextStyle styleFor(BuildContext context, double fontSize) =>
+      context.bodyMedium?.copyWith(fontSize: fontSize, color: context.onSurface) ??
+      TextStyle(fontSize: fontSize, color: context.onSurface);
+
   @override
   Widget build(BuildContext context) {
-    final style = context.bodyMedium?.copyWith(fontSize: fontSize, color: context.onSurface) ??
-        TextStyle(fontSize: fontSize, color: context.onSurface);
+    final style = styleFor(context, fontSize);
     final content = highlightQuery.isEmpty
         ? Text(text, style: style, softWrap: wrap, overflow: wrap ? TextOverflow.visible : TextOverflow.clip)
         : Text.rich(_highlighted(text, highlightQuery, style, context), softWrap: wrap, overflow: wrap ? TextOverflow.visible : TextOverflow.clip);

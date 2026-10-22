@@ -5,10 +5,12 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/domain/models/recent_document_model.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
+import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../home/presentation/home_controller.dart';
 
-/// Recent Files screen (BRD 9.9).
+/// Reading history (BRD 9.9), shown as Library's History tab - the only
+/// history screen since the standalone Recents route was removed (UX-09).
 class RecentsController extends BaseController {
   final RecentRepository _recentRepository;
 
@@ -19,10 +21,22 @@ class RecentsController extends BaseController {
   final searchQuery = ''.obs;
   final selectedCategory = Rxn<DocumentCategory>();
 
+  Worker? _readerClosedWorker;
+
   @override
   void onInit() {
     super.onInit();
+    // A reader writes history as it opens/closes (HOME-RECENTS).
+    if (Get.isRegistered<DocumentInteractionController>()) {
+      _readerClosedWorker = ever(Get.find<DocumentInteractionController>().readerClosed, (_) => load());
+    }
     load();
+  }
+
+  @override
+  void onClose() {
+    _readerClosedWorker?.dispose();
+    super.onClose();
   }
 
   List<RecentDocumentModel> get filtered {
@@ -74,9 +88,8 @@ class RecentsController extends BaseController {
     });
   }
 
-  /// This controller backs both the standalone Recents route and the
-  /// History tab inside Favorites - either can mutate history behind Home's
-  /// back, since Home keeps its own separate `recentDocuments` list.
+  /// History changes here happen behind Home's back, since Home keeps its
+  /// own separate `recentDocuments` list.
   Future<void> _refreshHome() async {
     if (Get.isRegistered<HomeController>()) {
       await Get.find<HomeController>().load();

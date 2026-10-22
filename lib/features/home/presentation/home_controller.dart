@@ -10,7 +10,9 @@ import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/document_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
+import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
+import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/utilities/storage_access_service.dart';
 import '../../../app/shell/app_shell_controller.dart';
 
@@ -32,7 +34,12 @@ class HomeController extends BaseController {
         _storageAccess = storageAccess ?? StorageAccessService.instance,
         _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl();
 
-  static const _maxRecentPreview = 5;
+  /// Continue Reading cards plus the Recent rows below them (UX-12).
+  static const _maxRecentPreview = 8;
+
+  /// How many of [recentDocuments] are Continue Reading cards; the rest are
+  /// Recent rows, so no document is listed twice.
+  static const continueReadingCount = 3;
 
   bool _retryScan = false;
 
@@ -45,25 +52,48 @@ class HomeController extends BaseController {
   /// Live "Scan Storage" progress (DESIGN_SPEC #08 FAB) - a real running
   /// found-count from FileScannerService, not a fake percentage.
   final isScanning = false.obs;
+
+  /// Rescans in flight. The auto-scan and a pull-to-refresh can overlap;
+  /// the banner stays until the last one ends.
+  int _activeScans = 0;
   final scanProgress = 0.obs;
+
+  /// Bumped per [load]/[refresh]; one that finishes after a newer one
+  /// started (a tab tap or delete mid-scan) discards its stale result.
+  int _loadSession = 0;
+
+  Worker? _readerClosedWorker;
 
   @override
   void onInit() {
     super.onInit();
+    // A reader writes reading history behind Home's back (HOME-RECENTS).
+    if (Get.isRegistered<DocumentInteractionController>()) {
+      _readerClosedWorker = ever(Get.find<DocumentInteractionController>().readerClosed, (_) => load());
+    }
     load();
   }
 
+  @override
+  void onClose() {
+    _readerClosedWorker?.dispose();
+    super.onClose();
+  }
+
   Future<void> load() async {
+    final session = ++_loadSession;
     _retryScan = false;
     errorMessage.value = null;
     beginLoad();
     hasAccess.value = await _storageAccess.hasAccess();
+    if (session != _loadSession) return;
     if (!hasAccess.value) {
       status.value = StateStatus.empty;
       return;
     }
 
     final failures = await Future.wait([_loadCounts(), _loadRecents()]);
+    if (session != _loadSession) return;
     for (final failure in failures) {
       if (failure != null) {
         handleFailure(failure);
@@ -76,23 +106,32 @@ class HomeController extends BaseController {
     // One-time auto-scan right after storage access is granted (or on the
     // very first Home load), so a first-run user sees their documents
     // without having to find and tap "Scan Storage" themselves.
-    if (isEmpty && !await _settingsRepository.hasAutoScanned()) {
+    if (isEmpty && !await _settingsRepository.hasAutoScanned() && session == _loadSession) {
       await _settingsRepository.setAutoScanned(true);
       await refresh();
     }
   }
 
   Future<void> refresh() async {
-    _retryScan = true;
+    final session = ++_loadSession;
     // A Retry from the error screen has nothing to keep mounted, so that
     // case still gets the full-screen spinner.
     beginLoad();
+    _activeScans++;
     isScanning.value = true;
     scanProgress.value = 0;
     final result = await _documentRepository.rescan(onProgress: (count) => scanProgress.value = count);
-    isScanning.value = false;
+    isScanning.value = --_activeScans > 0;
     await result.fold<Future<void>>(
-      (failure) async => handleFailure(failure),
+      (failure) async {
+        // A newer load is showing current results; don't replace them.
+        if (session != _loadSession) {
+          CustomSnackbar.error(failure.message);
+          return;
+        }
+        handleFailure(failure);
+        _retryScan = true;
+      },
       (_) => load(),
     );
   }
@@ -133,4 +172,7 @@ class HomeController extends BaseController {
   void openAllFiles() {
     Get.find<AppShellController>().openFiles();
   }
+
+  /// "See All" - the reading history lives in Library's History tab (UX-09).
+  void openHistory() => Get.find<AppShellController>().openHistory();
 }

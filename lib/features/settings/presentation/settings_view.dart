@@ -141,6 +141,7 @@ class SettingsView extends GetView<SettingsController> {
               icon: Icons.history_toggle_off_outlined,
               title: 'Clear Recent History',
               subtitle: 'Removes reading history, keeps your files',
+              destructive: true,
               onTap: controller.clearRecentHistory,
             ),
           ),
