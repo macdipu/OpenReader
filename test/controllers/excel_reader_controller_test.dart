@@ -9,6 +9,8 @@ import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/core/presentation/utils/zip_safety_guard.dart';
+import 'package:openreader/core/presentation/widgets/cell_grid/cell_grid.dart';
+import 'package:openreader/core/presentation/widgets/cell_grid/cell_grid_controller.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
@@ -345,6 +347,42 @@ void main() {
       await tester.pump();
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
+    });
+  });
+
+  group('grid zoom and cell detail (UX-32)', () {
+    test('zoom steps stay within 75%-200%', () {
+      expect(controller.zoom.value, 1.0);
+      for (var i = 0; i < 10; i++) {
+        controller.zoomIn();
+      }
+      expect(controller.zoom.value, CellGridZoom.maxZoom);
+      expect(controller.canZoomIn, isFalse);
+      for (var i = 0; i < 10; i++) {
+        controller.zoomOut();
+      }
+      expect(controller.zoom.value, CellGridZoom.minZoom);
+      expect(controller.canZoomOut, isFalse);
+    });
+
+    testWidgets('tapping a cell shows its full value with Copy; zoom scales cells', (tester) async {
+      await tester.runAsync(() => loaded(controller));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: CellGrid(controller: controller))));
+      await tester.pump();
+      Finder cellOf(String text) => find.ancestor(of: find.text(text), matching: find.byType(Container)).first;
+      expect(tester.getSize(cellOf('Alice')).width, CellGridController.cellWidth);
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cell A2'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Copy'), findsOneWidget);
+      Navigator.of(tester.element(find.text('Cell A2'))).pop();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Zoom in'));
+      await tester.pumpAndSettle();
+      expect(find.text('125%'), findsOneWidget);
+      expect(tester.getSize(cellOf('Alice')).width, CellGridController.cellWidth * 1.25);
     });
   });
 }

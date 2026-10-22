@@ -18,6 +18,7 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   static const String _defaultContinuousScrollKey = 'app_settings:default_continuous_scroll';
   static const String _textReaderFontSizeKey = 'app_settings:text_reader_font_size';
   static const String _textReaderLineWrapKey = 'app_settings:text_reader_line_wrap';
+  static const String _pdfNightModeKey = 'app_settings:pdf_night_mode';
 
   @override
   Future<AppThemeMode> getThemeMode() async {
@@ -100,6 +101,18 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   }
 
   @override
+  Future<bool?> getPdfNightMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_pdfNightModeKey);
+  }
+
+  @override
+  Future<void> setPdfNightMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_pdfNightModeKey, value);
+  }
+
+  @override
   Future<bool> getDefaultContinuousScroll() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_defaultContinuousScrollKey) ?? true;
@@ -121,6 +134,7 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
     await prefs.remove(_defaultContinuousScrollKey);
     await prefs.remove(_textReaderFontSizeKey);
     await prefs.remove(_textReaderLineWrapKey);
+    await prefs.remove(_pdfNightModeKey);
   }
 }
 

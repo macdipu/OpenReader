@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
   FlutterError.onError = (details) {
@@ -19,6 +20,8 @@ Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
   };
 
   _initialize();
+  // Date symbols for every supported locale (en, bn) - formatDocumentDate.
+  await initializeDateFormatting();
   runApp(await builder());
 }
 

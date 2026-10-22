@@ -12,6 +12,8 @@ import '../../../core/presentation/widgets/document/document_load_error_view.dar
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import 'files_controller.dart';
+import '../../../core/presentation/widgets/offline_pill.dart';
+import '../../../core/presentation/utils/screen_utils.dart';
 
 /// All Files Explorer (DESIGN_SPEC.md #10): format filter pills, storage
 /// summary banner, sort chip, compact file rows.
@@ -116,6 +118,7 @@ class FilesView extends GetView<FilesController> {
                           isFavorite: interactions.isFavorite(document.id),
                           onTap: () => interactions.openDocument(document),
                           onLongPress: () => _showFileActionSheet(context, document, interactions),
+                          highlight: controller.searchQuery.value,
                           onToggleFavorite: (_) => interactions.toggleFavorite(document.id),
                           onShare: () => interactions.shareDocument(document),
                           onShowInfo: () => showFileInformationSheet(context, document),
@@ -207,15 +210,7 @@ class _StorageSummaryBanner extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: context.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: context.outlineVariant),
-            ),
-            child: Text('SANDBOXED', style: context.monoMetadata),
-          ),
+          const OfflinePill(showIcon: false),
         ],
       ),
     );
@@ -234,7 +229,7 @@ class _CategoryFilterRow extends StatelessWidget {
     final categories = DocumentCategory.values.where((c) => c != DocumentCategory.unknown).toList();
     final total = counts.values.fold<int>(0, (a, b) => a + b);
     return SizedBox(
-      height: 40,
+      height: context.scaledExtent(40),
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -274,7 +269,7 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Semantics(button: true, selected: selected, child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
@@ -309,7 +304,7 @@ class _Pill extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -411,7 +406,7 @@ Future<void> _showFileActionSheet(
                       ],
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.of(sheetContext).pop()),
+                  IconButton(tooltip: 'Close', icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.of(sheetContext).pop()),
                 ],
               ),
             ),

@@ -168,6 +168,12 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Clear Recent History'), findsOneWidget);
     expect(find.text('Rescan Local Storage'), findsOneWidget);
+    // UX-23 (Phase 3): no sandbox claim; the access actually used is named.
+    expect(find.text('SANDBOXED'), findsNothing);
+    expect(find.textContaining('No broader filesystem access'), findsNothing);
+    expect(find.text('OFFLINE'), findsOneWidget);
+    // The app can delete files, so the copy mustn't claim read-only access.
+    expect(find.textContaining('only reads'), findsNothing);
   });
 
   testWidgets('Settings > Clear Recent History asks first (UX-16)', (tester) async {

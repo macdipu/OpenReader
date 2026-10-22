@@ -32,7 +32,7 @@ export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellM
 /// width/height (BRD §9.12 lists "Row height"/"Column width" as Core
 /// Features) - a documented simplification (see the Phase 3 task doc), not a
 /// silent gap.
-class ExcelReaderController extends BaseController implements CellGridController {
+class ExcelReaderController extends BaseController with CellGridZoom implements CellGridController {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;
@@ -167,10 +167,11 @@ class ExcelReaderController extends BaseController implements CellGridController
       document.id,
       readingPosition: {
         'sheet_index': activeSheetIndex.value,
-        'row': (_lastVerticalOffset / CellGridController.cellHeight).floor(),
-        'column': (_lastHorizontalOffset / CellGridController.cellWidth).floor(),
-        'vertical_offset': _lastVerticalOffset,
-        'horizontal_offset': _lastHorizontalOffset,
+        // Stored at 1x zoom (UX-32), so a position survives a zoom change.
+        'row': (_lastVerticalOffset / (CellGridController.cellHeight * zoom.value)).floor(),
+        'column': (_lastHorizontalOffset / (CellGridController.cellWidth * zoom.value)).floor(),
+        'vertical_offset': _lastVerticalOffset / zoom.value,
+        'horizontal_offset': _lastHorizontalOffset / zoom.value,
       },
     );
   }
@@ -225,11 +226,11 @@ class ExcelReaderController extends BaseController implements CellGridController
 
   void jumpToCell(CellMatch cell) {
     if (verticalController.hasClients) {
-      final target = (cell.row * CellGridController.cellHeight).clamp(0.0, verticalController.position.maxScrollExtent);
+      final target = (cell.row * CellGridController.cellHeight * zoom.value).clamp(0.0, verticalController.position.maxScrollExtent);
       verticalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
     }
     if (horizontalController.hasClients) {
-      final target = (cell.column * CellGridController.cellWidth).clamp(0.0, horizontalController.position.maxScrollExtent);
+      final target = (cell.column * CellGridController.cellWidth * zoom.value).clamp(0.0, horizontalController.position.maxScrollExtent);
       horizontalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
     }
   }

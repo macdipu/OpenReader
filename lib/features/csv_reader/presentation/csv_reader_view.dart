@@ -7,6 +7,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_grid.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'csv_reader_controller.dart';
+import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.15 CSV Reader Screen. Reuses [CellGrid], the same first-party grid
 /// the Excel reader uses (`FEATURE-OPENREADER-P3/TASK-011`) - CSV has one
@@ -18,7 +19,11 @@ class CsvReaderView extends GetView<CsvReaderController> {
   Widget build(BuildContext context) {
     // Scaffold reads appBar.preferredSize only when it builds, so it is rebuilt
     // on search toggle to let the bar collapse back to toolbar height.
-    return Obx(() => Scaffold(
+    return AppShortcuts(
+      // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
+      onSearch: controller.startSearching,
+      onEscape: () => controller.isSearching.value ? controller.stopSearching() : Get.back(),
+      child: Obx(() => Scaffold(
       appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
       body: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
@@ -34,7 +39,8 @@ class CsvReaderView extends GetView<CsvReaderController> {
           child: CellGrid(controller: controller, emptyMessage: 'Empty file'),
         );
       }),
-    ));
+    )),
+    );
   }
 }
 
@@ -90,11 +96,12 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         Obx(
           () => controller.isSearching.value
-              ? IconButton(icon: const Icon(Icons.close_rounded), onPressed: controller.stopSearching)
-              : IconButton(icon: const Icon(Icons.search_rounded), onPressed: controller.startSearching),
+              ? IconButton(tooltip: 'Close search', icon: const Icon(Icons.close_rounded), onPressed: controller.stopSearching)
+              : IconButton(tooltip: 'Search in document', icon: const Icon(Icons.search_rounded), onPressed: controller.startSearching),
         ),
         Obx(
           () => IconButton(
+            tooltip: controller.isFavorite ? 'Remove from favorites' : 'Add to favorites',
             icon: Icon(
               controller.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
               color: controller.isFavorite ? context.secondary : null,
@@ -157,10 +164,12 @@ class _SearchStatusBar extends StatelessWidget {
           children: [
             Expanded(child: Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant))),
             IconButton(
+              tooltip: 'Previous match',
               icon: Icon(Icons.keyboard_arrow_up_rounded, color: context.onSurfaceVariant),
               onPressed: controller.matches.isNotEmpty ? controller.goToPrevMatch : null,
             ),
             IconButton(
+              tooltip: 'Next match',
               icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.onSurfaceVariant),
               onPressed: controller.matches.isNotEmpty ? controller.goToNextMatch : null,
             ),

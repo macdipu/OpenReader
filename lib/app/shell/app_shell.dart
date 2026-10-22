@@ -8,6 +8,9 @@ import '../../features/favorites/presentation/favorites_view.dart';
 import '../../features/files/presentation/files_view.dart';
 import '../../features/home/presentation/home_view.dart';
 import 'app_shell_controller.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import '../../core/presentation/utils/platform_info.dart';
+import '../../core/presentation/widgets/app_shortcuts.dart';
 
 /// Adaptive shell: Home / Files / Favorites (BRD 9.3). Phones get the bottom
 /// navigation bar; wider windows (tablets, desktop) get a side navigation rail
@@ -34,7 +37,7 @@ class AppShell extends StatelessWidget {
           ],
         ));
 
-    return Scaffold(
+    final scaffold = Scaffold(
       body: wide
           ? Row(
               children: [
@@ -50,6 +53,58 @@ class AppShell extends StatelessWidget {
                 currentIndex: controller.currentIndex.value,
                 onTap: controller.changeTab,
               )),
+    );
+
+    final shell = AppShortcuts(
+      onOpenFile: controller.pickAndOpenFile,
+      onSearch: () => Get.toNamed(AppRoutes.search),
+      child: scaffold,
+    );
+    if (!PlatformInfo.isDesktop) return shell;
+    // Desktop: drop a file onto the window to open it (UX-34).
+    return DropTarget(
+      onDragEntered: (_) => controller.isDraggingFile.value = true,
+      onDragExited: (_) => controller.isDraggingFile.value = false,
+      onDragDone: (details) => controller.openDroppedPaths([for (final f in details.files) f.path]),
+      child: Stack(
+        children: [
+          shell,
+          Obx(() => controller.isDraggingFile.value ? const _DropOverlay() : const SizedBox.shrink()),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown while a file is dragged over the window.
+class _DropOverlay extends StatelessWidget {
+  const _DropOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Container(
+          color: context.scrim.withValues(alpha: 0.4),
+          alignment: Alignment.center,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+            decoration: BoxDecoration(
+              color: context.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.secondary, width: 2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.file_open_outlined, color: context.secondary),
+                const SizedBox(width: 12),
+                Text('Drop to open', style: context.titleMedium),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -139,7 +194,7 @@ class _AppNavBar extends StatelessWidget {
       ),
       child: SafeArea(
         child: SizedBox(
-          height: 64,
+          height: context.scaledExtent(64),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [

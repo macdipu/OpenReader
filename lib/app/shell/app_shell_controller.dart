@@ -11,6 +11,7 @@ import '../../features/home/presentation/home_controller.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
 import '../../services/utilities/storage_access_service.dart';
+import '../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 
 class AppShellController extends GetxController with WidgetsBindingObserver {
   static const homeIndex = 0;
@@ -75,6 +76,19 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> rescan() => Get.find<HomeController>().refresh();
+
+  /// A file is being dragged over the window (desktop drop target, UX-34).
+  final isDraggingFile = false.obs;
+
+  /// Files dropped onto the window (ADR-OPENREADER-desktop-drop): the first
+  /// one goes through the same open path as "Open file" and launch arguments,
+  /// so format checks and messages are shared.
+  Future<void> openDroppedPaths(List<String> paths) async {
+    isDraggingFile.value = false;
+    if (paths.isEmpty) return;
+    await _incomingIntentService.handlePath(paths.first);
+    if (paths.length > 1) CustomSnackbar.info('Opened the first of ${paths.length} files.');
+  }
 
   @override
   void onClose() {

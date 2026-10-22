@@ -3,7 +3,9 @@ import 'package:get/get.dart';
 
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
+import '../../../core/presentation/utils/platform_info.dart';
 import 'onboarding_controller.dart';
+import 'dart:math';
 
 class OnboardingView extends GetView<OnboardingController> {
   const OnboardingView({super.key});
@@ -13,10 +15,18 @@ class OnboardingView extends GetView<OnboardingController> {
     return Scaffold(
       backgroundColor: context.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Obx(() {
+        // Scrollable but still centred: on a short screen or with large text
+        // the content used to overflow and clip (UX-31).
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: max(0, constraints.maxHeight - 48)),
+              child: IntrinsicHeight(child: Obx(() {
             final status = controller.status.value;
+            // Only Android has a storage permission to ask for; desktop gets a
+            // plain welcome with no permission text or Allow button (UX-27).
+            final askForAccess = PlatformInfo.isAndroid;
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -48,10 +58,13 @@ class OnboardingView extends GetView<OnboardingController> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'OpenReader reads PDF, Word, Excel, PowerPoint, Text, and CSV files stored on '
-                  'this device. Nothing is uploaded — everything stays local and works offline.\n\n'
-                  'Tapping Allow Access requests Android\'s "All Files Access" permission, since your '
-                  'documents can be in any folder, not just Downloads or Documents.',
+                  askForAccess
+                      ? 'OpenReader reads PDF, Word, Excel, Text, and CSV files stored on '
+                          'this device. Nothing is uploaded — everything stays local and works offline.\n\n'
+                          'Tapping Allow Access requests Android\'s "All Files Access" permission, since your '
+                          'documents can be in any folder, not just Downloads or Documents.'
+                      : 'OpenReader reads PDF, Word, Excel, Text, and CSV files stored on '
+                          'this computer. Nothing is uploaded — everything stays local and works offline.',
                   textAlign: TextAlign.center,
                   style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
                 ),
@@ -66,7 +79,12 @@ class OnboardingView extends GetView<OnboardingController> {
                   ],
                 ),
                 const SizedBox(height: 28),
-                if (status == OnboardingStatus.permanentlyDenied) ...[
+                if (!askForAccess)
+                  FilledButton(
+                    onPressed: controller.continueWithoutAccess,
+                    child: const Text('Get started'),
+                  )
+                else if (status == OnboardingStatus.permanentlyDenied) ...[
                   Text(
                     'Storage access was permanently denied. Open Settings to allow it.',
                     textAlign: TextAlign.center,
@@ -98,14 +116,18 @@ class OnboardingView extends GetView<OnboardingController> {
                         : const Text('Allow Access'),
                   ),
                 ],
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: controller.continueWithoutAccess,
-                  child: const Text('Not Now'),
-                ),
+                if (askForAccess) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: controller.continueWithoutAccess,
+                    child: const Text('Not Now'),
+                  ),
+                ],
               ],
             );
-          }),
+              })),
+            ),
+          ),
         ),
       ),
     );

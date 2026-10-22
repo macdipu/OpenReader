@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../../core/domain/extensions/extension_export.dart';
 import '../../../core/domain/models/document_model.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
@@ -11,6 +10,10 @@ import '../../../core/presentation/widgets/document/document_load_error_view.dar
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import 'file_information_controller.dart';
+import '../../../core/presentation/widgets/offline_pill.dart';
+import '../../../core/presentation/utils/platform_info.dart';
+import '../../../core/presentation/utils/document_date_formatter.dart';
+import '../../../core/presentation/utils/screen_utils.dart';
 
 /// File Metadata & Diagnostics (DESIGN_SPEC.md #11) - BRD 9.16.
 ///
@@ -68,13 +71,13 @@ class FileInformationSheet extends GetView<FileInformationController> {
                       children: [
                         Text('File Information & Diagnostics', style: context.titleMedium),
                         Text(
-                          'Sandboxed local document inspector',
+                          'Read on this device',
                           style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.of(context).pop()),
+                  IconButton(tooltip: 'Close', icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.of(context).pop()),
                 ],
               ),
             ),
@@ -133,24 +136,13 @@ class FileInformationSheet extends GetView<FileInformationController> {
                                 children: [
                                   Text(document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.titleSmall),
                                   Text(
-                                    '${formatFileSize(metadata.sizeBytes)} • ${metadata.modifiedAt.toDMYString()}',
+                                    '${formatFileSize(metadata.sizeBytes)} • ${formatDocumentDate(metadata.modifiedAt)}',
                                     style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: context.tertiaryContainer.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.16 : 1),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                Icon(Icons.verified_outlined, size: 12, color: context.tertiary),
-                                const SizedBox(width: 4),
-                                Text('Local Only', style: context.monoMetadata.copyWith(color: context.tertiary)),
-                              ]),
-                            ),
+                            const OfflinePill(),
                           ],
                         ),
                       ),
@@ -163,6 +155,7 @@ class FileInformationSheet extends GetView<FileInformationController> {
                           value: metadata.path,
                           mono: true,
                           trailing: IconButton(
+                            tooltip: 'Copy path',
                             icon: Icon(Icons.copy_rounded, size: 18, color: context.onSurfaceVariant),
                             onPressed: () {
                               Clipboard.setData(ClipboardData(text: metadata.path));
@@ -172,13 +165,15 @@ class FileInformationSheet extends GetView<FileInformationController> {
                         ),
                         _AttributeRow(label: 'Format', value: metadata.category.label),
                         _AttributeRow(label: 'Physical Size', value: formatFileSize(metadata.sizeBytes)),
-                        _AttributeRow(label: 'Last Modified', value: metadata.modifiedAt.toDMYString()),
-                        const _AttributeRow(
-                          label: 'Access Permissions',
-                          value: 'Read/write within OpenReader\'s sandboxed storage scope',
+                        _AttributeRow(label: 'Last Modified', value: formatDocumentDate(metadata.modifiedAt)),
+                        // UX-23/24: the access OpenReader really has; the former
+                        // "Created" and page-count rows were never populated.
+                        _AttributeRow(
+                          label: 'Access',
+                          value: PlatformInfo.isAndroid
+                              ? 'Read via Android\'s All Files Access'
+                              : 'Read from the folders OpenReader scans',
                         ),
-                        const _AttributeRow(label: 'Created', value: 'Not available'),
-                        const _AttributeRow(label: 'Page / sheet / slide count', value: 'Not available'),
                       ]),
                       const SizedBox(height: 20),
                       Text('ENGINE DIAGNOSTICS', style: context.labelLarge?.copyWith(color: context.onSurfaceVariant, letterSpacing: 1)),
@@ -191,11 +186,12 @@ class FileInformationSheet extends GetView<FileInformationController> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.check_circle_outline_rounded, color: context.tertiary, size: 18),
+                            Icon(Icons.cloud_off_outlined, color: context.tertiary, size: 18),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'Offline document read verified - no network access used',
+                                // A design fact, not a runtime check - so no "verified" (UX-24).
+                                'Read on-device — OpenReader makes no network calls',
                                 style: context.bodySmall?.copyWith(color: context.onSurface),
                               ),
                             ),
@@ -267,7 +263,7 @@ class _AttributeRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: context.scaledExtent(120),
             child: Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
           ),
           Expanded(
@@ -295,7 +291,7 @@ class _ActionButton extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton.filledTonal(onPressed: onTap, icon: Icon(icon)),
+        IconButton.filledTonal(tooltip: label, onPressed: onTap, icon: Icon(icon)),
         const SizedBox(height: 4),
         Text(label, style: context.labelSmall),
       ],

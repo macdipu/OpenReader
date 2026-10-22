@@ -12,6 +12,7 @@ import '../../../core/presentation/widgets/empty/common_empty_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import 'search_controller.dart';
+import '../../../core/presentation/utils/document_date_formatter.dart';
 
 /// Local Search & Filter (DESIGN_SPEC.md #07): search field, format filter
 /// chips, result count, matched-substring highlighting.
@@ -37,13 +38,13 @@ class SearchView extends GetView<SearchDocumentsController> {
         actions: [
           Obx(() => controller.query.value.isEmpty
               ? const SizedBox.shrink()
-              : IconButton(icon: const Icon(Icons.clear_rounded), onPressed: controller.clear)),
+              : IconButton(tooltip: 'Clear search', icon: const Icon(Icons.clear_rounded), onPressed: controller.clear)),
         ],
       ),
       body: ContentConstraint(
         child: Obx(() {
         if (controller.status.value.isInitial) {
-          return const CommonEmptyView(message: 'Search documents by filename.');
+          return const CommonEmptyView(icon: Icons.search_rounded, message: 'Search documents by filename.');
         }
         if (controller.status.value.isLoading) return const LoadingView();
 
@@ -65,7 +66,16 @@ class SearchView extends GetView<SearchDocumentsController> {
             Expanded(
               child: Builder(builder: (context) {
                 final items = controller.filteredResults;
-                if (items.isEmpty) return const CommonEmptyView(message: 'No results found.');
+                if (items.isEmpty) {
+                  final filtered = controller.selectedCategory.value != null;
+                  return CommonEmptyView(
+                    icon: Icons.search_off_rounded,
+                    message: 'No results found.',
+                    subtitle: filtered ? 'Try all formats.' : null,
+                    actionLabel: filtered ? 'Clear filter' : null,
+                    onAction: filtered ? () => controller.selectCategory(null) : null,
+                  );
+                }
                 return ListView.builder(
                   itemCount: items.length,
                   itemBuilder: (context, index) {
@@ -82,7 +92,8 @@ class SearchView extends GetView<SearchDocumentsController> {
                             if (await interactions.confirmAndDelete(document)) controller.removeResult(document.id);
                           },
                           trailingLabel:
-                              '${formatFileSize(document.sizeBytes)} • ${document.modifiedAt.toLocal().toString().split(' ').first}',
+                              '${formatFileSize(document.sizeBytes)} • ${formatDocumentDate(document.modifiedAt)}',
+                          highlight: controller.query.value,
                         ));
                   },
                 );
@@ -106,7 +117,7 @@ class _CategoryFilterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final categories = DocumentCategory.values.where((c) => c != DocumentCategory.unknown).toList();
     return SizedBox(
-      height: 40,
+      height: context.scaledExtent(40),
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -138,7 +149,7 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Semantics(button: true, selected: selected, child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
@@ -159,6 +170,6 @@ class _Pill extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }

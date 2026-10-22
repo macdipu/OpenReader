@@ -630,4 +630,25 @@ void main() {
       expect(f.documents.loadCalls, greaterThan(calls));
     });
   });
+
+  testWidgets('Home lays out without overflow at 2x text size (UX-31)', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final f = ScreenFixture();
+    f.documents.items = [sample];
+    f.recents.items = [
+      RecentDocumentModel(
+        document: sample,
+        lastOpenedAt: DateTime(2026),
+        readingPosition: const {'page_number': 2, 'page_count': 4},
+      ),
+    ];
+    await f.mount(tester, true);
+    await f.complete(tester);
+    expect(tester.takeException(), isNull);
+    expect(find.text('Continue Reading'), findsOneWidget);
+  });
 }
