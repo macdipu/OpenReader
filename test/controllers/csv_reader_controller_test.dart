@@ -176,6 +176,15 @@ void main() {
         'horizontal_offset': 0.0,
       });
     });
+
+    test('onClose with detached scroll views keeps the restored offsets, not zero (P2r1-review #2)', () async {
+      recents.position = {'vertical_offset': 300.0, 'horizontal_offset': 120.0};
+      await loaded(controller);
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition?['vertical_offset'], 300.0);
+      expect(recents.lastReadingPosition?['horizontal_offset'], 120.0);
+    });
   });
 
   group('delegation to DocumentInteractionController', () {

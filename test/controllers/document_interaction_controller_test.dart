@@ -136,9 +136,12 @@ void main() {
       // still-stubbed category to exercise the stub path.
       final pptDocument = documentFor(existingFile.path, category: DocumentCategory.powerpoint);
       await pumpWithSnackbarHost(tester);
+      final before = controller.readerClosed.value;
       await controller.openDocument(pptDocument);
       await tester.pump();
       expect(recents.markOpenedCalls, 1);
+      // Home/History refresh to show the open (P2r1-review #3).
+      expect(controller.readerClosed.value, before + 1);
       await drainSnackbar(tester);
     });
 

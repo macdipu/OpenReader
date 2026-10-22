@@ -32,7 +32,7 @@ features:
     path: agentic/data/project-context/features/FEATURE-OPENREADER-P4
     last_indexed_revision: null
   CR-OPENREADER-UX:
-    status: IN_REVIEW           # UX audit remediation (34 gaps, 3 phases). Phase 1 COMPLETED (RUN-634FD576..., released 1.0.3+5 in 08fe4b5). Phase 2 released as v1.0.4+6 by explicit user decision with known issues (validation/P2r1-review.md); harness run RUN-F6F654BC... still BLOCKED at REVIEW pending revision 2 fixes. Phase 3 not started.
+    status: PHASE2_COMPLETED    # UX audit remediation (34 gaps, 3 phases). Phase 1 COMPLETED (RUN-634FD576..., 1.0.3+5). Phase 2 COMPLETED (RUN-F6F654BC..., v1.0.4 then v1.0.5+7 with review/QA fixes). Phase 3 (UX-23..UX-34) not started; Word page-break clipping logged as follow-up.
     path: agentic/data/project-context/features/CR-OPENREADER-UX
     last_indexed_revision: 08fe4b5
   FEATURE-OPENREADER-P5:

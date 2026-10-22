@@ -113,7 +113,9 @@ class DocumentInteractionController extends GetxController {
       default:
         break;
     }
-    await _recentRepository.markOpened(document.id);
+    final opened = _recentRepository.markOpened(document.id);
+    readerClosedAfter(opened);
+    await opened;
     CustomSnackbar.info(
       '${document.category.label} reader is not part of this build yet.',
       title: document.displayName,

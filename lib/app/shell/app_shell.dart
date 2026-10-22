@@ -127,7 +127,7 @@ class _AppNavBar extends StatelessWidget {
   static const _items = [
     (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded, label: 'Files'),
-    (icon: Icons.star_outline_rounded, activeIcon: Icons.star_rounded, label: 'Favorites'),
+    (icon: Icons.star_outline_rounded, activeIcon: Icons.star_rounded, label: 'Library'),
   ];
 
   @override

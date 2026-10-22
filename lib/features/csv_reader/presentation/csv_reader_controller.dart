@@ -81,6 +81,18 @@ class CsvReaderController extends BaseController implements CellGridController {
   @override
   double get initialHorizontalOffset => _initialHorizontalOffset;
 
+  /// Last-known offsets, refreshed whenever the grid's controllers are
+  /// attached. A close saves these: by `onClose` the route's scroll views
+  /// have already detached, and reading the controllers then gave 0,
+  /// overwriting the saved position (CR-OPENREADER-UX P2r1-review #2).
+  double _lastVerticalOffset = 0;
+  double _lastHorizontalOffset = 0;
+
+  void _captureOffsets() {
+    if (verticalController.hasClients) _lastVerticalOffset = verticalController.offset;
+    if (horizontalController.hasClients) _lastHorizontalOffset = horizontalController.offset;
+  }
+
   Timer? _positionSaveDebounce;
 
   @override
@@ -100,9 +112,9 @@ class CsvReaderController extends BaseController implements CellGridController {
       final positionResult = await _recentRepository.getPosition(document.id);
       positionResult.fold((_) {}, (position) {
         final vOffset = position['vertical_offset'];
-        if (vOffset is num && vOffset > 0) _initialVerticalOffset = vOffset.toDouble();
+        if (vOffset is num && vOffset > 0) _initialVerticalOffset = _lastVerticalOffset = vOffset.toDouble();
         final hOffset = position['horizontal_offset'];
-        if (hOffset is num && hOffset > 0) _initialHorizontalOffset = hOffset.toDouble();
+        if (hOffset is num && hOffset > 0) _initialHorizontalOffset = _lastHorizontalOffset = hOffset.toDouble();
       });
 
       final file = File(document.path);
@@ -125,18 +137,20 @@ class CsvReaderController extends BaseController implements CellGridController {
   }
 
   void onScrolled() {
+    _captureOffsets();
     _positionSaveDebounce?.cancel();
     _positionSaveDebounce = Timer(const Duration(seconds: 2), _savePosition);
   }
 
   Future<void> _savePosition() {
+    _captureOffsets();
     return _recentRepository.markOpened(
       document.id,
       readingPosition: {
-        'row': verticalController.hasClients ? (verticalController.offset / CellGridController.cellHeight).floor() : 0,
-        'column': horizontalController.hasClients ? (horizontalController.offset / CellGridController.cellWidth).floor() : 0,
-        'vertical_offset': verticalController.hasClients ? verticalController.offset : 0.0,
-        'horizontal_offset': horizontalController.hasClients ? horizontalController.offset : 0.0,
+        'row': (_lastVerticalOffset / CellGridController.cellHeight).floor(),
+        'column': (_lastHorizontalOffset / CellGridController.cellWidth).floor(),
+        'vertical_offset': _lastVerticalOffset,
+        'horizontal_offset': _lastHorizontalOffset,
       },
     );
   }

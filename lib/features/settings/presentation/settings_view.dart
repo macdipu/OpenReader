@@ -107,7 +107,10 @@ class SettingsView extends GetView<SettingsController> {
           ),
           const SizedBox(height: 24),
           const _SectionLabel('Storage & Cache'),
-          Obx(() => Row(
+          // IntrinsicHeight: a stretched Row inside the ListView otherwise gets
+          // infinite height, and the whole Settings body failed to lay out.
+          Obx(() => IntrinsicHeight(
+                  child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
@@ -133,7 +136,7 @@ class SettingsView extends GetView<SettingsController> {
                     ),
                   ),
                 ],
-              )),
+              ))),
           const SizedBox(height: 12),
           _SectionCard(
             padding: const EdgeInsets.all(4),

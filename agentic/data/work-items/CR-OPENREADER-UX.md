@@ -85,6 +85,25 @@ Verified against HEAD `08fe4b5` by a code read; no device run.
 ### Product decisions needed before technical approval
 UX-08, UX-09, UX-10 (title), UX-12, UX-13, UX-15 (undo) and UX-19.
 
+### Phase 2 COMPLETED (2026-10-22): v1.0.5+7
+- **Release approval** recorded in-session. Run `RUN-F6F654BCBB3742D6A8EF78225881E923` is COMPLETED.
+- **v1.0.5** fixes everything listed as a v1.0.4 known issue, through revisions 2-5:
+  - Text/Excel/CSV close-save.
+  - Bold-text jump drift.
+  - PowerPoint stub refresh.
+  - Onboarding latch.
+  - The Excel sheet-switch offset.
+  - A pre-existing blank Settings screen.
+  - The "Library" navigation label.
+  - Debug builds now print Flutter errors to logcat.
+- **Reviews:** independent reviews covered revisions 0-3 (`P2-review.md`, `P2r1-review.md`, `P2r2-review.md`, `P2r3-review.md`). By the user's decision, revisions 4-5 were self-reviewed.
+- **Checks:** 199/199 tests pass. Emulator QA passed 13/13 (`P2r4-qa.md`).
+- **Tag:** local `v1.0.5`, not pushed.
+- **Follow-ups:**
+  - Word reader page-break clipping (`docx_file_viewer` paged layout). This is a separate bug.
+  - Phase 3 (UX-23…UX-34).
+  - The UX-07 product decision.
+
 ### Release (2026-10-22): v1.0.4+6, by explicit user decision
 - **Released** with the revision 1 code. The user chose "Release Phase 2 now as v1.0.4" after being told about the two confirmed review issues.
 - **Outside the harness gates.** The run stays BLOCKED at REVIEW with no release approval recorded, because a passing review was not faked to satisfy the gates.
@@ -96,7 +115,7 @@ UX-08, UX-09, UX-10 (title), UX-12, UX-13, UX-15 (undo) and UX-19.
 - **Not verified on the emulator before release:** UX-22 Word restore, UX-19/13 PDF mode and progress, UX-09/10 Library, UX-16 Settings confirm, UX-18 resume.
 - **Tag:** local `v1.0.4`, not pushed. Pushing it runs `.github/workflows/release.yml`.
 
-### Status (2026-10-22): paused by the user at REVIEW
+### Status history (2026-10-22): paused at REVIEW before v1.0.4 (superseded)
 - **Revision 1** is implemented in the uncommitted working tree on top of `08fe4b5`.
   - 192/192 tests pass.
   - The analyzer shows 0 errors and 1 pre-existing warning.
