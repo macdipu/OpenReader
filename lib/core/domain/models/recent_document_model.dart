@@ -20,15 +20,24 @@ class RecentDocumentModel extends Equatable {
   });
 
   /// 0-1 reading progress, or null when the format has no meaningful
-  /// denominator. Only the PDF reader saves one (`page_count`, since
-  /// CR-OPENREADER-UX UX-13); positions saved before that have none.
+  /// denominator. The PDF reader saves `page_count` (since CR-OPENREADER-UX
+  /// UX-13; positions saved before that have none), the PowerPoint reader
+  /// `slide_count` (CR-OPENREADER-PPTX).
   double? get progress {
-    if (document.category != DocumentCategory.pdf) return null;
-    final page = readingPosition['page_number'];
-    final count = readingPosition['page_count'];
-    if (page is! int || count is! int || page < 1 || count < 1) return null;
-    return (page / count).clamp(0, 1).toDouble();
+    final (int? done, int? count) = switch (document.category) {
+      DocumentCategory.pdf => (_int('page_number'), _int('page_count')),
+      // Zero-based index; slide 1 of 10 has read one slide.
+      DocumentCategory.powerpoint => (
+          switch (_int('slide_index')) { final int i => i + 1, _ => null },
+          _int('slide_count')
+        ),
+      _ => (null, null),
+    };
+    if (done == null || count == null || done < 1 || count < 1) return null;
+    return (done / count).clamp(0, 1).toDouble();
   }
+
+  int? _int(String key) => switch (readingPosition[key]) { final int value => value, _ => null };
 
   @override
   List<Object?> get props => [document, lastOpenedAt, readingPosition];

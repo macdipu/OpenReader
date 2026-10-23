@@ -46,10 +46,10 @@ class OnboardingView extends GetView<OnboardingController> {
                 const SizedBox(height: 12),
                 Text(
                   askForAccess
-                      ? 'OpenReader reads PDF, Word, Excel, Text, and CSV files stored on this device.\n\n'
+                      ? 'OpenReader reads PDF, Word, Excel, PowerPoint, Text, and CSV files stored on this device.\n\n'
                           'Tapping Allow Access requests Android\'s "All Files Access" permission, so you can '
                           'browse your documents in any folder, not just Downloads or Documents.'
-                      : 'OpenReader reads PDF, Word, Excel, Text, and CSV files stored on this computer.',
+                      : 'OpenReader reads PDF, Word, Excel, PowerPoint, Text, and CSV files stored on this computer.',
                   textAlign: TextAlign.center,
                   style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
                 ),

@@ -2,7 +2,7 @@
 
 A document reader built with Flutter for Android, Windows, macOS and Linux. OpenReader lets users browse, open, read, search, and navigate the documents on their device — no accounts and no server dependency.
 
-**Supported formats:** PDF, DOC/DOCX, XLS/XLSX, CSV, TXT, MD. (PPT/PPTX has no reader yet — blocked on an open product decision, see `agentic/data/project-context/features/FEATURE-OPENREADER-P3`.)
+**Supported formats:** PDF, DOCX, XLSX, PPTX, CSV, TXT, MD. Legacy binary DOC/XLS/PPT are not supported.
 
 ---
 
@@ -98,7 +98,7 @@ This generates the Clean Architecture + GetX skeleton for a new feature; you the
 - `flutter test` — unit/widget coverage across services, repositories, controllers, and widgets (see `test/`)
 - No CI configuration yet (`.github` absent) — checks are run locally/manually
 
-Known gaps: PowerPoint has no reader (open product question); no Android SDK/emulator available in this dev environment, so native rendering, real intent delivery (Open From Other Apps), and physical-device UAT remain to be verified on-device.
+Known gaps: the PowerPoint reader shows slide content (text, tables, pictures), not the original slide layout; no Android SDK/emulator available in this dev environment, so native rendering, real intent delivery (Open From Other Apps), and physical-device UAT remain to be verified on-device.
 
 ---
 

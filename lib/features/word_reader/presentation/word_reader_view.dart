@@ -55,6 +55,11 @@ class WordReaderView extends GetView<WordReaderController> {
                   padding: const EdgeInsets.all(16),
                   child: DocxView(
                     bytes: controller.validatedBytes!,
+                    // Continuous, not the default paged layout: paged mode
+                    // cuts content into fixed-height A4 boxes by *estimated*
+                    // height and clips whatever overflows, which hid text at
+                    // page breaks on phones (BUG-OPENREADER-WORD-PAGEBREAK).
+                    config: const DocxViewConfig(pageMode: DocxPageMode.continuous),
                     searchController: controller.searchController,
                     onLoaded: controller.onDocumentLoaded,
                     onError: controller.onLoadError,
