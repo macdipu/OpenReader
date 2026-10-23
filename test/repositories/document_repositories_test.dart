@@ -7,21 +7,10 @@ import 'package:openreader/core/data/repositories/recent_repository_impl.dart';
 import 'package:openreader/core/domain/error/failure.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
-import 'package:openreader/services/utilities/file_scanner_service.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-
-class FixtureScanner implements FileScannerService {
-  List<DocumentModel> documents = [];
-  bool fail = false;
-  @override
-  Future<List<DocumentModel>> scan({void Function(int foundSoFar)? onFound}) async {
-    if (fail) throw const FileSystemException('Scan failed');
-    return documents;
-  }
-}
 
 DocumentModel document(String name,
         {int size = 10, int modified = 1, String? path}) =>
@@ -44,7 +33,6 @@ void main() {
   sqfliteFfiInit();
   late Directory temporary;
   late AppDatabase database;
-  late FixtureScanner scanner;
   late DocumentRepositoryImpl documents;
   late FavoriteRepositoryImpl favorites;
   late RecentRepositoryImpl recents;
@@ -56,11 +44,13 @@ void main() {
     temporary = await Directory.systemTemp.createTemp('openreader-db-');
     database = AppDatabase(
         factory: databaseFactoryFfi, path: p.join(temporary.path, 'index.db'));
-    scanner = FixtureScanner()..documents = [b, c, a];
-    documents = DocumentRepositoryImpl(appDatabase: database, scanner: scanner);
+    documents = DocumentRepositoryImpl(appDatabase: database);
     favorites = FavoriteRepositoryImpl(appDatabase: database);
     recents = RecentRepositoryImpl(appDatabase: database);
-    await success(documents.rescan());
+    // The index holds documents the user opened (CR-OPENREADER-BROWSE).
+    for (final d in [b, c, a]) {
+      await success(documents.indexDocument(d));
+    }
   });
   tearDown(() async {
     await database.close();
@@ -101,43 +91,22 @@ void main() {
     });
   }
 
-  test('repeated scan preserves favorites, recents and reading position',
+  test('re-indexing an opened document keeps its favorite, recent entry and reading position',
       () async {
+    // Browsing re-indexes a document each time it's opened; an INSERT OR
+    // REPLACE would delete the row first and cascade these away.
     await success(favorites.add(a.id));
     await success(
         recents.markOpened(a.id, readingPosition: {'page': 7, 'zoom': 1.5}));
     final before = (await success(recents.getRecents())).single;
     final updated = document('Alpha.pdf', size: 99, modified: 900);
-    scanner.documents = [updated, b, c];
-    await success(documents.rescan());
+    await success(documents.indexDocument(updated));
     expect(await success(favorites.isFavorite(a.id)), isTrue);
     expect(await success(favorites.getFavorites()), [updated]);
     final recent = (await success(recents.getRecents())).single;
     expect(recent.document, updated);
     expect(recent.readingPosition, {'page': 7, 'zoom': 1.5});
     expect(recent.lastOpenedAt, before.lastOpenedAt);
-    await database.close();
-    expect(await success(favorites.isFavorite(a.id)), isTrue);
-  });
-
-  test('prunes removed index records and child rows without touching files',
-      () async {
-    final file =
-        await File(p.join(temporary.path, 'keep.pdf')).writeAsString('keep me');
-    final diskDocument = document('keep.pdf', path: file.path);
-    scanner.documents = [diskDocument, a];
-    await success(documents.rescan());
-    await success(favorites.add(diskDocument.id));
-    await success(recents.markOpened(diskDocument.id));
-    scanner.documents = [a];
-    await success(documents.rescan());
-    expect(await success(documents.getById(diskDocument.id)), isNull);
-    expect(await success(favorites.getFavorites()), isEmpty);
-    expect(await success(recents.getRecents()), isEmpty);
-    expect(await file.readAsString(), 'keep me');
-    scanner.documents = [];
-    await success(documents.rescan());
-    expect(await success(documents.getDocuments()), isEmpty);
   });
 
   test('favorites add, remove, toggle, ordering and idempotence', () async {
@@ -187,25 +156,13 @@ void main() {
     expect(await success(documents.getDocuments()), hasLength(3));
   });
 
-  test('scan failure preserves the previous index and metadata', () async {
-    await success(favorites.add(a.id));
-    scanner.fail = true;
-    expect((await documents.rescan()).isLeft(), isTrue);
-    expect(await success(documents.getDocuments()), [a, b, c]);
-    expect(await success(favorites.isFavorite(a.id)), isTrue);
-  });
-
-  test('transaction failure rolls back earlier writes and metadata changes',
+  test('a failed index write is reported and leaves the index and metadata intact',
       () async {
     await success(favorites.add(a.id));
-    scanner.documents = [
-      document('Alpha.pdf', size: 99),
-      document('bad.txt', size: 42)
-    ];
     final db = await database.database;
     await db.execute(
         "CREATE TRIGGER reject_bad BEFORE INSERT ON documents WHEN NEW.display_name = 'bad.txt' BEGIN SELECT RAISE(ABORT, 'fixture rejection'); END");
-    expect((await documents.rescan()).isLeft(), isTrue);
+    expect((await documents.indexDocument(document('bad.txt', size: 42))).isLeft(), isTrue);
     expect(await success(documents.getDocuments()), [a, b, c]);
     expect(await success(favorites.isFavorite(a.id)), isTrue);
   });
@@ -245,8 +202,22 @@ void main() {
 
     expect(await success(documents.getById('/fixtures/old.doc')), isNull);
     expect(await success(documents.getById('/fixtures/sheet.XLS')), isNull);
-    expect((await success(documents.getDocuments())).map((d) => d.id), unorderedEquals([a.id, b.id, c.id]));
+    // v3 (CR-OPENREADER-BROWSE) also drops rows nobody opened or favorited.
+    expect((await success(documents.getDocuments())).map((d) => d.id), [a.id]);
     expect((await success(favorites.getFavorites())).map((d) => d.id), [a.id]);
     expect(await success(recents.getRecents()), isEmpty);
+  });
+
+  test('upgrading from v2 keeps only opened or favorited documents (CR-OPENREADER-BROWSE)', () async {
+    await success(favorites.add(a.id));
+    await success(recents.markOpened(b.id));
+    final db = await database.database;
+    await db.execute('PRAGMA user_version = 2');
+    await database.close();
+
+    expect((await success(documents.getDocuments())).map((d) => d.id), unorderedEquals([a.id, b.id]));
+    expect(await success(documents.getById(c.id)), isNull);
+    expect(await success(favorites.isFavorite(a.id)), isTrue);
+    expect((await success(recents.getRecents())).single.document.id, b.id);
   });
 }

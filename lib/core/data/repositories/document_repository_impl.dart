@@ -8,67 +8,23 @@ import '../../domain/repositories/document_repository.dart';
 import '../../domain/usecase/usecase.dart';
 import '../../presentation/utils/task_runner.dart';
 import '../local/app_database.dart';
-import '../../../services/utilities/file_scanner_service.dart';
 
 class DocumentRepositoryImpl implements DocumentRepository {
   final AppDatabase _appDatabase;
-  final FileScannerService _scanner;
 
-  DocumentRepositoryImpl({
-    AppDatabase? appDatabase,
-    FileScannerService? scanner,
-  })  : _appDatabase = appDatabase ?? AppDatabase.instance,
-        _scanner = scanner ?? FileScannerService.instance;
-
-  @override
-  ResultFuture<List<DocumentModel>> rescan({void Function(int foundSoFar)? onProgress}) {
-    return runTask(() async {
-      final found = await _scanner.scan(onFound: onProgress);
-      final db = await _appDatabase.database;
-
-      await db.transaction((txn) async {
-        final batch = txn.batch();
-        for (final document in found) {
-          batch.insert(
-            'documents',
-            document.toMap(),
-            // REPLACE deletes the parent row and cascades into user metadata.
-            conflictAlgorithm: ConflictAlgorithm.ignore,
-          );
-          batch.update(
-            'documents',
-            document.toMap(),
-            where: 'id = ?',
-            whereArgs: [document.id],
-          );
-        }
-        await batch.commit(noResult: true);
-
-        if (found.isNotEmpty) {
-          final placeholders = List.filled(found.length, '?').join(',');
-          await txn.delete(
-            'documents',
-            where: 'path NOT IN ($placeholders)',
-            whereArgs: found.map((d) => d.path).toList(),
-          );
-        } else {
-          await txn.delete('documents');
-        }
-      });
-
-      return found;
-    });
-  }
+  DocumentRepositoryImpl({AppDatabase? appDatabase}) : _appDatabase = appDatabase ?? AppDatabase.instance;
 
   @override
   ResultFuture<DocumentModel> indexDocument(DocumentModel document) {
     return runTask(() async {
       final db = await _appDatabase.database;
-      await db.insert(
-        'documents',
-        document.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      // Insert-or-update, never REPLACE: SQLite's REPLACE deletes the old row
+      // first, which cascades into the document's favorite and reading
+      // position - and browsing re-indexes a document on every open.
+      await db.transaction((txn) async {
+        await txn.insert('documents', document.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
+        await txn.update('documents', document.toMap(), where: 'id = ?', whereArgs: [document.id]);
+      });
       return document;
     });
   }

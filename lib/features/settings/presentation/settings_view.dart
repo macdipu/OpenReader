@@ -5,8 +5,6 @@ import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
 import 'settings_controller.dart';
-import '../../../core/presentation/widgets/offline_pill.dart';
-import '../../../core/presentation/utils/platform_info.dart';
 
 /// Settings & Storage (DESIGN_SPEC.md #01): privacy banner, segmented
 /// appearance control, reading preferences, storage bento grid, privacy
@@ -19,15 +17,10 @@ class SettingsView extends GetView<SettingsController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        actions: [
-          const Padding(padding: EdgeInsets.only(right: 16), child: Center(child: OfflinePill())),
-        ],
       ),
       body: ContentConstraint(child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          _PrivacyBanner(),
-          const SizedBox(height: 24),
           const _SectionLabel('Appearance'),
           _SectionCard(
             padding: const EdgeInsets.all(12),
@@ -92,37 +85,17 @@ class SettingsView extends GetView<SettingsController> {
             ),
           ),
           const SizedBox(height: 24),
-          const _SectionLabel('Storage & Cache'),
-          // IntrinsicHeight: a stretched Row inside the ListView otherwise gets
-          // infinite height, and the whole Settings body failed to lay out.
-          Obx(() => IntrinsicHeight(
-                  child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: _StatBento(
-                      icon: Icons.description_outlined,
-                      value: controller.isLoadingStats.value ? '—' : '${controller.indexedDocumentCount.value}',
-                      label: 'indexed documents',
-                      busy: controller.isRefreshingIndex.value,
-                      busyLabel: controller.isRefreshingIndex.value ? 'Found ${controller.scanProgress.value}…' : null,
-                      actionLabel: 'Rescan Local Storage',
-                      onAction: controller.isRefreshingIndex.value ? null : controller.refreshFileIndex,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StatBento(
-                      icon: Icons.cleaning_services_outlined,
-                      value: controller.isLoadingStats.value ? '—' : formatFileSize(controller.cacheSizeBytes.value),
-                      label: 'cached render tiles',
-                      actionLabel: 'Clear Render Cache',
-                      destructive: true,
-                      onAction: controller.clearCache,
-                    ),
-                  ),
-                ],
-              ))),
+          // No storage scan any more (CR-OPENREADER-BROWSE), so no index
+          // count or Rescan here - just the render cache.
+          const _SectionLabel('Cache'),
+          Obx(() => _StatBento(
+                icon: Icons.cleaning_services_outlined,
+                value: controller.isLoadingStats.value ? '—' : formatFileSize(controller.cacheSizeBytes.value),
+                label: 'cached render tiles',
+                actionLabel: 'Clear Render Cache',
+                destructive: true,
+                onAction: controller.clearCache,
+              )),
           const SizedBox(height: 12),
           _SectionCard(
             padding: const EdgeInsets.all(4),
@@ -135,30 +108,16 @@ class SettingsView extends GetView<SettingsController> {
             ),
           ),
           const SizedBox(height: 24),
-          const _SectionLabel('Privacy & System Integrity'),
+          const _SectionLabel('About'),
           _SectionCard(
             padding: const EdgeInsets.all(4),
             child: Column(
               children: [
-                const _InfoRow(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Local-only processing',
-                  subtitle: 'Your documents, filenames, and search terms never leave this device. '
-                      'OpenReader has no server and no analytics.',
-                ),
-                Divider(height: 1, color: context.outlineVariant),
-                _InfoRow(
-                  icon: Icons.folder_outlined,
-                  title: 'Storage access',
-                  // UX-23: states the access OpenReader really has (All Files
-                  // Access on Android) instead of the former "sandbox" claim.
-                  subtitle: PlatformInfo.isAndroid
-                      ? 'With Android\'s All Files Access, OpenReader finds and opens documents anywhere '
-                          'on this device, and deletes one only when you choose Delete. The index stays on '
-                          'the device.'
-                      : 'OpenReader reads documents from the folders it scans on this computer. '
-                          'The index stays on this computer.',
-                ),
+                Obx(() => _ActionRow(
+                      icon: Icons.info_outline,
+                      title: 'Version',
+                      trailingText: controller.appVersion.value,
+                    )),
                 Divider(height: 1, color: context.outlineVariant),
                 _ActionRow(
                   icon: Icons.description_outlined,
@@ -169,56 +128,8 @@ class SettingsView extends GetView<SettingsController> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          const _SectionLabel('About'),
-          _SectionCard(
-            padding: const EdgeInsets.all(4),
-            child: Obx(() => _ActionRow(
-                  icon: Icons.info_outline,
-                  title: 'Version',
-                  trailingText: controller.appVersion.value,
-                )),
-          ),
         ],
       )),
-    );
-  }
-}
-
-class _PrivacyBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.tertiaryContainer.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.16 : 1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: context.tertiary.withValues(alpha: 0.15), shape: BoxShape.circle),
-            child: Icon(Icons.shield_outlined, color: context.tertiary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('100% Offline', style: context.titleSmall),
-                Text(
-                  'No cloud sync, no telemetry, no accounts.',
-                  style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -322,8 +233,6 @@ class _StatBento extends StatelessWidget {
   final String actionLabel;
   final VoidCallback? onAction;
   final bool destructive;
-  final bool busy;
-  final String? busyLabel;
 
   const _StatBento({
     required this.icon,
@@ -332,8 +241,6 @@ class _StatBento extends StatelessWidget {
     required this.actionLabel,
     required this.onAction,
     this.destructive = false,
-    this.busy = false,
-    this.busyLabel,
   });
 
   @override
@@ -350,7 +257,7 @@ class _StatBento extends StatelessWidget {
         children: [
           Icon(icon, color: context.onSurfaceVariant, size: 20),
           const SizedBox(height: 10),
-          Text(busy && busyLabel != null ? '…' : value, style: context.headlineSmall),
+          Text(value, style: context.headlineSmall),
           const SizedBox(height: 2),
           Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
           const SizedBox(height: 12),
@@ -363,18 +270,12 @@ class _StatBento extends StatelessWidget {
                 side: BorderSide(color: destructive ? context.error : context.outlineVariant),
                 padding: const EdgeInsets.symmetric(vertical: 8),
               ),
-              child: busy
-                  ? SizedBox(
-                      height: 14,
-                      width: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: context.secondary),
-                    )
-                  : Text(
-                      busyLabel ?? actionLabel,
-                      style: context.labelSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              child: Text(
+                actionLabel,
+                style: context.labelSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ],
@@ -479,37 +380,6 @@ class _ActionRow extends StatelessWidget {
             if (trailing != null) Icon(trailing, color: context.onSurfaceVariant),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  const _InfoRow({required this.icon, required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: context.onSurfaceVariant, size: 20),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: context.bodyLarge),
-                const SizedBox(height: 2),
-                Text(subtitle, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

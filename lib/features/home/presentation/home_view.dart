@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/domain/models/document_category.dart';
 import '../../../core/domain/models/recent_document_model.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
@@ -18,10 +17,9 @@ import 'home_controller.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../app/shell/app_shell_controller.dart';
 
-/// Home Discovery Hub (DESIGN_SPEC.md #08): search + format chips +
-/// continue-reading carousel + recents list. Storage is rescanned via
-/// pull-to-refresh (not a separate button) - filesystem discovery only
-/// happens on an explicit scan, since there's no live file-watcher.
+/// Home (DESIGN_SPEC.md #08): search, "Browse files", the Continue Reading
+/// carousel and the recents list. There's no storage scan
+/// (CR-OPENREADER-BROWSE); documents are found in the Browse tab.
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
@@ -78,7 +76,7 @@ class HomeView extends GetView<HomeController> {
         }
 
         return RefreshIndicator(
-          onRefresh: controller.refresh,
+          onRefresh: controller.load,
           child: ListView(
             padding: const EdgeInsets.only(bottom: 96),
             children: [
@@ -86,24 +84,17 @@ class HomeView extends GetView<HomeController> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: _SearchBarStub(onTap: () => Get.toNamed(AppRoutes.search)),
               ),
-              Obx(() => controller.isScanning.value
-                  ? _ScanProgressBanner(foundCount: controller.scanProgress.value)
-                  : const SizedBox.shrink()),
-              const SizedBox(height: 16),
-              _FormatChipRow(
-                // `Map.of(...)` forces this Obx to actually read the RxMap's
-                // entries so it subscribes to it - see files_view.dart's
-                // `_CategoryFilterRow` call site for why a bare reference
-                // silently never triggers a repaint.
-                categoryCounts: Map.of(controller.categoryCounts),
-                onSelected: (category) =>
-                    category == null ? controller.openAllFiles() : controller.openCategory(category),
-              ),
+              // No storage scan (CR-OPENREADER-BROWSE): documents are found
+              // in the Browse tab.
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-                child: Text(
-                  '${controller.categoryCounts.values.fold<int>(0, (a, b) => a + b)} files indexed',
-                  style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonalIcon(
+                    onPressed: controller.openBrowse,
+                    icon: const Icon(Icons.folder_open_rounded),
+                    label: const Text('Browse files'),
+                  ),
                 ),
               ),
               if (controller.recentDocuments.isNotEmpty) ...[
@@ -159,30 +150,13 @@ class HomeView extends GetView<HomeController> {
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                         progress: recent.progress,
                       )),
-              ] else if (controller.categoryCounts.values.every((count) => count == 0)) ...[
-                // Decided from the data, not `status.isEmpty`: a reload keeps
-                // this screen mounted in `refreshing`, and an empty index must
-                // not read as "no history" while a first scan is running.
-                // While that scan runs, its banner above is the only message -
-                // "No documents found" would contradict it.
-                if (!controller.isScanning.value)
-                  _EmptyState(
-                    icon: Icons.folder_off_outlined,
-                    title: 'No documents found',
-                    subtitle: 'Pull down to scan this device for PDF, Word, Excel, and text files.',
-                  ),
               ] else
-                // Files are indexed (chips above show real counts) but
-                // there's no reading history - e.g. right after "Clear
-                // Recent History" in Settings. Without this branch the body
-                // renders nothing below the chips, which reads as a blank
-                // screen bug rather than an intentional empty state.
                 _EmptyState(
                   icon: Icons.history_rounded,
                   title: 'No reading history yet',
                   subtitle: 'Documents you open will show up here.',
                   actionLabel: 'Browse Files',
-                  onAction: controller.openAllFiles,
+                  onAction: controller.openBrowse,
                 ),
             ],
           ),
@@ -216,93 +190,6 @@ class _SearchBarStub extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text('Search documents', style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FormatChipRow extends StatelessWidget {
-  final Map<DocumentCategory, int> categoryCounts;
-  final ValueChanged<DocumentCategory?> onSelected;
-
-  const _FormatChipRow({required this.categoryCounts, required this.onSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    final categories = DocumentCategory.values.where((c) => c != DocumentCategory.unknown).toList();
-    final total = categoryCounts.values.fold<int>(0, (a, b) => a + b);
-    return SizedBox(
-      height: context.scaledExtent(40),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          // Shortcuts into All Files, not a filter on Home - so none of
-          // them, "All" included, is shown as selected (UX-11).
-          _FormatChip(label: 'All', count: total, onTap: () => onSelected(null)),
-          for (final category in categories)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: _FormatChip(
-                label: category.label,
-                count: categoryCounts[category] ?? 0,
-                accent: category.accentColor(context),
-                onTap: () => onSelected(category),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FormatChip extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color? accent;
-  final VoidCallback onTap;
-
-  const _FormatChip({
-    required this.label,
-    required this.count,
-    this.accent,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: context.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: context.outlineVariant),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(color: accent ?? context.onSurfaceVariant, shape: BoxShape.circle),
-              ),
-            Text(
-              label,
-              style: context.labelMedium?.copyWith(color: context.onSurface),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '$count',
-              style: context.labelSmall?.copyWith(
-                color: context.onSurfaceVariant,
-              ),
             ),
           ],
         ),
@@ -373,38 +260,6 @@ class _ContinueReadingCard extends StatelessWidget {
                 Icon(Icons.play_arrow_rounded, color: context.secondary, size: 18),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Live "found N" feedback while pull-to-refresh is scanning storage
-/// (RefreshIndicator's own spinner shows "working"; this shows progress).
-class _ScanProgressBanner extends StatelessWidget {
-  final int foundCount;
-  const _ScanProgressBanner({required this.foundCount});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: context.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: context.secondary),
-            ),
-            const SizedBox(width: 10),
-            Text('Scanning storage… found $foundCount', style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
           ],
         ),
       ),

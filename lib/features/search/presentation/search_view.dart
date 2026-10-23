@@ -13,6 +13,7 @@ import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import 'search_controller.dart';
 import '../../../core/presentation/utils/document_date_formatter.dart';
+import '../../../app/shell/app_shell_controller.dart';
 
 /// Local Search & Filter (DESIGN_SPEC.md #07): search field, format filter
 /// chips, result count, matched-substring highlighting.
@@ -57,10 +58,24 @@ class SearchView extends GetView<SearchDocumentsController> {
                   onSelected: controller.selectCategory,
                 )),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Text(
-                '${controller.filteredResults.length} file(s) found',
-                style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      // Only documents opened before are indexed (no storage
+                      // scan, CR-OPENREADER-BROWSE); "Search on device" looks
+                      // on disk from the Browse tab.
+                      '${controller.filteredResults.length} opened document(s) found',
+                      style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _searchOnDevice(context),
+                    icon: const Icon(Icons.manage_search_rounded, size: 18),
+                    label: const Text('Search on device'),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -70,10 +85,10 @@ class SearchView extends GetView<SearchDocumentsController> {
                   final filtered = controller.selectedCategory.value != null;
                   return CommonEmptyView(
                     icon: Icons.search_off_rounded,
-                    message: 'No results found.',
-                    subtitle: filtered ? 'Try all formats.' : null,
-                    actionLabel: filtered ? 'Clear filter' : null,
-                    onAction: filtered ? () => controller.selectCategory(null) : null,
+                    message: 'No opened documents match.',
+                    subtitle: filtered ? 'Try all formats.' : 'Search your device to find files you haven\'t opened yet.',
+                    actionLabel: filtered ? 'Clear filter' : 'Search on device',
+                    onAction: filtered ? () => controller.selectCategory(null) : () => _searchOnDevice(context),
                   );
                 }
                 return ListView.builder(
@@ -104,6 +119,17 @@ class SearchView extends GetView<SearchDocumentsController> {
         }),
       ),
     );
+  }
+
+  /// Hands the query to the Browse tab, which searches the folder it's in
+  /// (or all storage) on disk.
+  void _searchOnDevice(BuildContext context) {
+    final query = controller.query.value;
+    // Navigator, not Get.back(): with a snackbar showing, Get.back() only
+    // closes the snackbar and leaves this screen up.
+    Navigator.of(context).pop();
+    Get.find<AppShellController>().searchOnDevice(query);
+
   }
 }
 

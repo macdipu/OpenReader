@@ -90,9 +90,9 @@ void main() {
       expect(find.text('Not available'), findsNothing);
       expect(find.textContaining('andbox'), findsNothing);
       expect(find.textContaining('verified'), findsNothing);
-      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('OFFLINE'), findsNothing);
       expect(find.text("Read via Android's All Files Access"), findsOneWidget);
-      expect(find.text('Read on-device — OpenReader makes no network calls'), findsOneWidget);
+      expect(find.textContaining('network'), findsNothing);
     });
 
     testWidgets('onboarding on desktop: welcome with Get started, no permission step (UX-27)',

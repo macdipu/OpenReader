@@ -25,7 +25,7 @@ class SplashView extends GetView<SplashController> {
             const SizedBox(height: 20),
             Text('OpenReader', style: context.headlineLarge),
             const SizedBox(height: 4),
-            Text('100% offline document reader', style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+            Text('Document reader', style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
             const SizedBox(height: 28),
             SizedBox(
               height: 20,
