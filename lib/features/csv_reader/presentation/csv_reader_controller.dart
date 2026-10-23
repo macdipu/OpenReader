@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:excel_plus/excel_plus.dart' as xls;
+import 'package:open_reader_kit/excel.dart' as xls;
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 

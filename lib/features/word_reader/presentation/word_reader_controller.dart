@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:docx_file_viewer/docx_file_viewer.dart';
+import 'package:open_reader_kit/docx.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
