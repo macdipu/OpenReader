@@ -13,8 +13,7 @@ enum IncomingDocumentOutcome {
   /// Indexed and ready to open - [IncomingDocumentResolution.document] is set.
   success,
 
-  /// The extension has no reader (BRD §13 "Unsupported format") - includes
-  /// PowerPoint, which has no reader yet either (`FEATURE-OPENREADER-P3`).
+  /// The extension has no reader (BRD §13 "Unsupported format").
   unsupported,
 
   /// The path doesn't exist or couldn't be read/indexed (BRD §13 "File
@@ -61,6 +60,7 @@ class IncomingDocumentResolver {
     'application/pdf': 'pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
     'text/plain': 'txt',
     'text/markdown': 'md',
     'text/x-markdown': 'md',
@@ -79,7 +79,7 @@ class IncomingDocumentResolver {
       }
     }
 
-    if (category == DocumentCategory.unknown || category == DocumentCategory.powerpoint) {
+    if (category == DocumentCategory.unknown) {
       return const IncomingDocumentResolution.unsupported();
     }
 

@@ -2,7 +2,7 @@ name: openreader
 description: 'A new Flutter project.'
 publish_to: 'none'
 
-version: 1.0.7+9
+version: 1.0.8+10
 
 environment:
   sdk: '>=3.2.3 <4.0.0'
@@ -73,6 +73,8 @@ dependencies:
   # promoted to direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
   # ZIP container's central directory before either library decompresses it.
   archive: ^4.3.0
+  # Parses PowerPoint slide XML (CR-OPENREADER-PPTX); already resolved via the Office libraries.
+  xml: ^7.0.1
 
   # Weather Pulse - Charts / Animations / Fonts
   fl_chart: ^0.69.0

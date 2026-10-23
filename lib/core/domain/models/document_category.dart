@@ -11,8 +11,8 @@ enum DocumentCategory {
   csv,
   unknown;
 
-  /// Legacy binary `.doc`/`.xls` are deliberately absent: the Word/Excel
-  /// readers are OOXML (ZIP) only, so those files could only ever show a
+  /// Legacy binary `.doc`/`.xls`/`.ppt` are deliberately absent: the Word/Excel/
+  /// PowerPoint readers are OOXML (ZIP) only, so those files could only ever show a
   /// misleading "damaged" error. BRD lines 125/127 require them only "if
   /// rendering engine supports acceptable fidelity", and line 175 says to
   /// ignore unsupported files in document lists (CR-OPENREADER-UX, UX-06).
@@ -20,7 +20,6 @@ enum DocumentCategory {
     'pdf': DocumentCategory.pdf,
     'docx': DocumentCategory.word,
     'xlsx': DocumentCategory.excel,
-    'ppt': DocumentCategory.powerpoint,
     'pptx': DocumentCategory.powerpoint,
     'txt': DocumentCategory.text,
     'md': DocumentCategory.text,

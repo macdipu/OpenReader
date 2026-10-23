@@ -82,9 +82,7 @@ class DocumentInteractionController extends GetxController {
   }
 
   /// Hands off to the matching reader, recording the open in Recent History.
-  /// PowerPoint has no reader yet, so that category still shows the stub
-  /// message and records the open itself; every other reader owns its own
-  /// `markOpened` calls (initial restore + debounced persistence), so this
+  /// Each reader owns its own `markOpened` calls (initial restore + debounced persistence), so this
   /// does not call it for them - a bare `markOpened(id)` here would reset an
   /// existing reading position back to `{}`, since it defaults to an empty
   /// map and replaces the whole row.
@@ -110,16 +108,13 @@ class DocumentInteractionController extends GetxController {
       case DocumentCategory.csv:
         _openReader(AppRoutes.csvReader, document);
         return;
-      default:
-        break;
+      case DocumentCategory.powerpoint:
+        _openReader(AppRoutes.powerpointReader, document);
+        return;
+      case DocumentCategory.unknown:
+        CustomSnackbar.info('This file type is not supported.', title: document.displayName);
+        return;
     }
-    final opened = _recentRepository.markOpened(document.id);
-    readerClosedAfter(opened);
-    await opened;
-    CustomSnackbar.info(
-      '${document.category.label} reader is not part of this build yet.',
-      title: document.displayName,
-    );
   }
 
   /// Bumped once a reader has closed and its final reading-position save

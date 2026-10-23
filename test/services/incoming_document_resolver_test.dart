@@ -93,8 +93,31 @@ void main() {
     expect(repository.indexed, isNull);
   });
 
-  test('rejects PowerPoint since no reader exists yet, even though the category itself is recognized', () async {
+  test('accepts PowerPoint (.pptx) now that it has a reader (CR-OPENREADER-PPTX)', () async {
     final file = File(p.join(root.path, 'deck.pptx'));
+    await file.writeAsBytes([1]);
+
+    final resolution = await resolver.resolve(file.path);
+
+    expect(resolution.outcome, IncomingDocumentOutcome.success);
+    expect(resolution.document?.category, DocumentCategory.powerpoint);
+  });
+
+  test('a .pptx shared without an extension is recognized by its MIME type', () async {
+    final file = File(p.join(root.path, 'shared'));
+    await file.writeAsBytes([1]);
+
+    final resolution = await resolver.resolve(
+      file.path,
+      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    );
+
+    expect(resolution.outcome, IncomingDocumentOutcome.success);
+    expect(resolution.document?.category, DocumentCategory.powerpoint);
+  });
+
+  test('rejects legacy binary .ppt, which the reader cannot parse', () async {
+    final file = File(p.join(root.path, 'deck.ppt'));
     await file.writeAsBytes([1]);
 
     final resolution = await resolver.resolve(file.path);

@@ -10,6 +10,8 @@ import '../../features/onboarding/presentation/onboarding_binding.dart';
 import '../../features/onboarding/presentation/onboarding_view.dart';
 import '../../features/pdf_reader/presentation/pdf_reader_binding.dart';
 import '../../features/pdf_reader/presentation/pdf_reader_view.dart';
+import '../../features/powerpoint_reader/presentation/powerpoint_reader_binding.dart';
+import '../../features/powerpoint_reader/presentation/powerpoint_reader_view.dart';
 import '../../features/search/presentation/search_binding.dart';
 import '../../features/search/presentation/search_view.dart';
 import '../../features/settings/presentation/settings_binding.dart';
@@ -60,6 +62,11 @@ class AppPages {
       name: AppRoutes.wordReader,
       page: () => const WordReaderView(),
       bindings: [WordReaderBinding()],
+    ),
+    GetPage(
+      name: AppRoutes.powerpointReader,
+      page: () => const PowerPointReaderView(),
+      bindings: [PowerPointReaderBinding()],
     ),
     GetPage(
       name: AppRoutes.excelReader,

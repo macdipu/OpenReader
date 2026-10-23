@@ -104,8 +104,8 @@ void main() {
       expect(find.text('Not Now'), findsNothing);
       expect(find.textContaining('All Files Access'), findsNothing);
       expect(find.textContaining('this computer'), findsOneWidget);
-      // No reader exists for PowerPoint (UX-07 open), so it isn't claimed.
-      expect(find.textContaining('PowerPoint'), findsNothing);
+      // PowerPoint has a reader since CR-OPENREADER-PPTX.
+      expect(find.textContaining('PowerPoint'), findsOneWidget);
     });
 
     testWidgets('onboarding on Android keeps the All Files Access disclosure, without overflowing (UX-27/31)',

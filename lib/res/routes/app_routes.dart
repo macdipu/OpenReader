@@ -9,4 +9,5 @@ class AppRoutes {
   static const String excelReader = '/excel_reader';
   static const String textReader = '/text_reader';
   static const String csvReader = '/csv_reader';
+  static const String powerpointReader = '/powerpoint_reader';
 }
