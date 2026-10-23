@@ -1,232 +1,32 @@
-import 'dart:async';
 import 'dart:io';
 
-import 'package:open_reader_kit/excel.dart' as xls;
-import 'package:flutter/widgets.dart';
-import 'package:get/get.dart';
+import 'package:open_reader_kit/open_reader_kit.dart';
+import 'package:open_reader_kit/sheets.dart';
 
-import '../../../core/data/repositories/recent_repository_impl.dart';
-import '../../../core/domain/models/document_model.dart';
-import '../../../core/domain/repositories/recent_repository.dart';
-import '../../../core/presentation/controllers/base_controller.dart';
-import '../../../core/presentation/controllers/document_interaction_controller.dart';
-import '../../../core/presentation/utils/state_status.dart';
-import '../../../core/presentation/utils/text_decoding.dart';
-import '../../../core/presentation/widgets/cell_grid/cell_grid_controller.dart';
-import '../../../core/presentation/widgets/cell_grid/cell_match.dart';
-import '../../../core/presentation/widgets/cell_grid/cell_text.dart';
+import '../../../core/presentation/controllers/sheet_reader_controller.dart';
 
-export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellMatch;
+export 'package:open_reader_kit/sheets.dart' show CellMatch;
 
-/// Drives the CSV reader (BRD §9.15, ODF-020, ODF-008 for CSV).
-///
-/// Parses via `excel_plus`'s `Excel.fromCsv` (already a dependency since
-/// `FEATURE-OPENREADER-P3`) rather than a dedicated CSV library or a hand-rolled
-/// parser - it already handles BRD's hardest CSV corner cases (quoted commas,
-/// multi-line quoted values) as part of its own tested surface
-/// (`FEATURE-OPENREADER-P4/ARCHITECTURE.md` Alternatives Considered).
-///
-/// Runs on the calling isolate, not offloaded via `Isolate.run` — verified on
-/// a real device that `Isolate.run(() => xls.Excel.fromCsv(csvText))` always
-/// throws ("object is unsendable - Library:'dart:async' Class:
-/// _AsyncCompleter"), because the resulting `Excel`/`Sheet` object graph from
-/// this factory isn't isolate-sendable, unlike the plain-byte-decode path
-/// `Excel.decodeBytesAsync` uses (which happens to produce a sendable result
-/// and was wrongly assumed to prove the same held here — it doesn't; both
-/// call the same underlying `Isolate.run`, so sendability depends on what the
-/// factory actually builds, not on which `Excel` entry point is used). This
-/// was a real bug: every `.csv` file failed to open ("This document may be
-/// damaged or incomplete.") until this was found and fixed (see
-/// `FEATURE-OPENREADER-P5/tasks/TASK-014.md`). `ARCHITECTURE.md` Risk 2 (UI
-/// jank on a large CSV) is therefore unmitigated again pending a real
-/// isolate-safe fix — the 20MB `maxBytes` ceiling below is the only guard.
-///
-/// Reuses the same [CellGridController]/`CellGrid` the Excel reader uses
-/// (`FEATURE-OPENREADER-P3/TASK-011`, extracted to be shared in this phase) -
-/// CSV has one implicit sheet, so there is no sheet-tab bar, but the row/
-/// column grid itself is identical.
-class CsvReaderController extends BaseController with CellGridZoom implements CellGridController {
-  /// Same posture as `TextReaderController.maxBytes`: a first-pass,
-  /// adjustable ceiling, not a BRD-specified number.
-  static const int maxBytes = 20 * 1024 * 1024;
+/// Drives the CSV reader (BRD §9.15, ODF-020, ODF-008 for CSV):
+/// open_reader_kit's [SpreadsheetController] parses the file (see
+/// `loadCsv` for why it runs on the UI isolate) and [SheetGrid] shows it;
+/// [SheetReaderController] adds OpenReader's saved position, favourites and
+/// error wording. CSV has one implicit sheet, so no sheet tabs.
+class CsvReaderController extends SheetReaderController {
+  CsvReaderController({required super.document, super.recentRepository, super.interactions});
 
-  final DocumentModel document;
-  final RecentRepository _recentRepository;
-  final DocumentInteractionController _interactions;
-
-  CsvReaderController({
-    required this.document,
-    RecentRepository? recentRepository,
-    DocumentInteractionController? interactions,
-  })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
-        _interactions = interactions ?? Get.find<DocumentInteractionController>();
-
-  xls.Sheet? _sheet;
-
-  final isSearching = false.obs;
-  final searchQuery = ''.obs;
-  @override
-  final matches = <CellMatch>[].obs;
-  @override
-  final currentMatchIndex = (-1).obs;
+  /// See [SpreadsheetController.maxCsvBytes].
+  static const int maxBytes = SpreadsheetController.maxCsvBytes;
 
   @override
-  final verticalController = ScrollController();
+  Future<void> loadInto(SpreadsheetController controller, File file) async {
+    // Refuse an oversized file before reading it into memory.
+    if (await file.length() > maxBytes) return controller.rejectAsTooLarge();
+    controller.loadCsv(await file.readAsBytes());
+  }
+
+  /// One sheet, so no sheet index.
   @override
-  final horizontalController = ScrollController();
-
-  double _initialVerticalOffset = 0;
-  double _initialHorizontalOffset = 0;
-  @override
-  double get initialVerticalOffset => _initialVerticalOffset;
-  @override
-  double get initialHorizontalOffset => _initialHorizontalOffset;
-
-  /// Last-known offsets, refreshed whenever the grid's controllers are
-  /// attached. A close saves these: by `onClose` the route's scroll views
-  /// have already detached, and reading the controllers then gave 0,
-  /// overwriting the saved position (CR-OPENREADER-UX P2r1-review #2).
-  double _lastVerticalOffset = 0;
-  double _lastHorizontalOffset = 0;
-
-  void _captureOffsets() {
-    if (verticalController.hasClients) _lastVerticalOffset = verticalController.offset;
-    if (horizontalController.hasClients) _lastHorizontalOffset = horizontalController.offset;
-  }
-
-  Timer? _positionSaveDebounce;
-
-  @override
-  List<List<xls.Data?>> get currentRows => _sheet?.rows ?? const [];
-  @override
-  int get columnCount => _sheet?.maxColumns ?? 0;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _load();
-  }
-
-  Future<void> _load() async {
-    status.value = StateStatus.loading;
-    try {
-      final positionResult = await _recentRepository.getPosition(document.id);
-      positionResult.fold((_) {}, (position) {
-        final vOffset = position['vertical_offset'];
-        if (vOffset is num && vOffset > 0) _initialVerticalOffset = _lastVerticalOffset = vOffset.toDouble();
-        final hOffset = position['horizontal_offset'];
-        if (hOffset is num && hOffset > 0) _initialHorizontalOffset = _lastHorizontalOffset = hOffset.toDouble();
-      });
-
-      final file = File(document.path);
-      final length = await file.length();
-      if (length > maxBytes) {
-        status.value = StateStatus.error;
-        errorMessage.value = 'This document is too large to render safely on this device.';
-        return;
-      }
-
-      final bytes = await file.readAsBytes();
-      final csvText = decodeTextBytes(bytes);
-      final workbook = xls.Excel.fromCsv(csvText);
-      _sheet = workbook.sheets[workbook.getDefaultSheet()];
-      status.value = StateStatus.success;
-    } catch (e) {
-      status.value = StateStatus.error;
-      errorMessage.value = 'This document may be damaged or incomplete.';
-    }
-  }
-
-  void onScrolled() {
-    _captureOffsets();
-    _positionSaveDebounce?.cancel();
-    _positionSaveDebounce = Timer(const Duration(seconds: 2), _savePosition);
-  }
-
-  Future<void> _savePosition() {
-    _captureOffsets();
-    return _recentRepository.markOpened(
-      document.id,
-      readingPosition: {
-        // Stored at 1x zoom (UX-32), so a position survives a zoom change.
-        'row': (_lastVerticalOffset / (CellGridController.cellHeight * zoom.value)).floor(),
-        'column': (_lastHorizontalOffset / (CellGridController.cellWidth * zoom.value)).floor(),
-        'vertical_offset': _lastVerticalOffset / zoom.value,
-        'horizontal_offset': _lastHorizontalOffset / zoom.value,
-      },
-    );
-  }
-
-  void startSearching() => isSearching.value = true;
-
-  void stopSearching() {
-    isSearching.value = false;
-    searchQuery.value = '';
-    matches.clear();
-    currentMatchIndex.value = -1;
-  }
-
-  /// Linear scan over the parsed rows (ODF-020's search feature) - the same
-  /// shape as the Excel reader's cell search, since it operates on the
-  /// identical `Sheet`/`Data` model.
-  void search(String query) {
-    searchQuery.value = query;
-    if (query.isEmpty) {
-      matches.clear();
-      currentMatchIndex.value = -1;
-      return;
-    }
-    final lower = query.toLowerCase();
-    final found = <CellMatch>[];
-    final rows = currentRows;
-    for (var r = 0; r < rows.length; r++) {
-      final row = rows[r];
-      for (var c = 0; c < row.length; c++) {
-        final text = row[c]?.readerText ?? '';
-        if (text.toLowerCase().contains(lower)) {
-          found.add(CellMatch(row: r, column: c));
-        }
-      }
-    }
-    matches.assignAll(found);
-    currentMatchIndex.value = found.isEmpty ? -1 : 0;
-    if (found.isNotEmpty) jumpToCell(found.first);
-  }
-
-  void goToNextMatch() {
-    if (matches.isEmpty) return;
-    currentMatchIndex.value = (currentMatchIndex.value + 1) % matches.length;
-    jumpToCell(matches[currentMatchIndex.value]);
-  }
-
-  void goToPrevMatch() {
-    if (matches.isEmpty) return;
-    currentMatchIndex.value = (currentMatchIndex.value - 1 + matches.length) % matches.length;
-    jumpToCell(matches[currentMatchIndex.value]);
-  }
-
-  void jumpToCell(CellMatch cell) {
-    if (verticalController.hasClients) {
-      final target = (cell.row * CellGridController.cellHeight * zoom.value).clamp(0.0, verticalController.position.maxScrollExtent);
-      verticalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
-    }
-    if (horizontalController.hasClients) {
-      final target = (cell.column * CellGridController.cellWidth * zoom.value).clamp(0.0, horizontalController.position.maxScrollExtent);
-      horizontalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
-    }
-  }
-
-  bool get isFavorite => _interactions.isFavorite(document.id);
-  Future<void> toggleFavorite() => _interactions.toggleFavorite(document.id);
-  Future<void> share() => _interactions.shareDocument(document);
-  Future<void> openWith() => _interactions.openWithExternalApp(document);
-
-  @override
-  void onClose() {
-    _positionSaveDebounce?.cancel();
-    _interactions.readerClosedAfter(_sheet != null ? _savePosition() : null);
-    verticalController.dispose();
-    horizontalController.dispose();
-    super.onClose();
-  }
+  ReadingPosition positionToSave(ReadingPosition position) =>
+      Map.of(position)..remove(PositionKeys.sheetIndex);
 }

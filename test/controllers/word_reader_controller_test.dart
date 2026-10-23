@@ -8,7 +8,7 @@ import 'package:openreader/core/domain/repositories/favorite_repository.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
-import 'package:openreader/core/presentation/utils/zip_safety_guard.dart';
+import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';

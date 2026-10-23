@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openreader/services/utilities/pptx_parser.dart';
+import 'package:open_reader_kit/slides.dart';
 
-import 'pptx_fixture.dart';
+import 'package:open_reader_kit/testing.dart';
 
 void main() {
   test('reads slides in presentation order, not file-name order', () {

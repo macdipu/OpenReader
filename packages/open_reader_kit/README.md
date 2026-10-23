@@ -14,19 +14,44 @@ Open and read documents in Flutter with document engines that ship as part of th
 - Source: this repository's app (`../../`), which depends on the kit by path.
 
 ## Usage
-Import the engine you need. They're separate libraries because their names overlap: the Word and spreadsheet models both have a `Border`, for example.
+
+### One widget for any file
 
 ```dart
-import 'package:open_reader_kit/pdf.dart';        // PdfViewer, PdfDocument, text search
-import 'package:open_reader_kit/docx.dart';       // DocxView
-import 'package:open_reader_kit/docx_core.dart';  // .docx model: parse / build
-import 'package:open_reader_kit/excel.dart' as xls; // .xlsx / CSV
+import 'package:open_reader_kit/open_reader_kit.dart';
+
+DocumentViewer.file(
+  path,
+  initialPosition: savedPosition,           // reopen where the reader left off
+  onPositionChanged: (position) => save(position),
+)
 ```
+
+`DocumentViewer` picks the reader by file type. Positions are plain JSON-safe maps (`ReadingPosition`, keys in `PositionKeys`), so store them anywhere.
+
+### Per-format readers
+For your own app bar, search UI or saving, use the controller and view for each format. Every controller is a plain `ChangeNotifier` (no state-management package). Each takes an `initialPosition`, reports through `onPositionChanged`, and exposes a typed `DocumentLoadError`.
+
+| Import | Controller | View |
+|---|---|---|
+| `package:open_reader_kit/pdf.dart` | `PdfDocumentController` (pages, layout, zoom, search, text-layer check) | `PdfDocumentView` |
+| `package:open_reader_kit/docx.dart` | `WordDocumentController` (search, scroll restore) | `WordDocumentView` |
+| `package:open_reader_kit/sheets.dart` | `SpreadsheetController` (.xlsx and CSV: sheets, hidden sheets, search, zoom) | `SheetGrid` (frozen headers, row/column selection with Count/Sum/Avg) |
+| `package:open_reader_kit/slides.dart` | `SlideDeckController` (.pptx: slides, search) | `SlideDeckView`, `SlideNavigationBar` |
+| `package:open_reader_kit/text.dart` | `TextDocumentController` (encoding, binary check, search) | `TextDocumentView` |
+
+Lower-level pieces:
+- `open_reader_kit.dart`: `DocumentFormat` (file type from extension, path or MIME type), `ZipSafetyGuard`, `decodeTextBytes`.
+- `excel.dart`, `docx_core.dart`: the engines' document models.
+- `testing.dart`: `buildPptx` for tests.
 
 ## Layout
 
 | Path | What |
 |---|---|
+| `lib/src/viewer/` | `DocumentViewer` |
+| `lib/src/pdf_reader/`, `word/`, `sheets/`, `slides/`, `text/` | The readers: controllers and views |
+| `lib/src/common/` | Format detection, ZIP safety, text decoding, reader conventions |
 | `lib/src/engines/pdf/` | PDF: `viewer/` widgets, `core/` document API, `pdfium/` FFI bindings, `pdfium_flutter/` loader |
 | `lib/src/engines/docx/` | Word: `viewer/` widgets, `core/` .docx parser/builder |
 | `lib/src/engines/excel/` | Spreadsheets: `core/` .xlsx, `csv/` CSV |
@@ -37,18 +62,10 @@ import 'package:open_reader_kit/excel.dart' as xls; // .xlsx / CSV
 The engines started from open-source packages; `NOTICE.md` lists where each came from, with its license. They are now maintained here.
 
 ## Roadmap
-**Phase B:** OpenReader's own readers move into the kit:
-- the slide viewer and `.pptx` parser
-- the spreadsheet grid with row/column selection and Sum/Avg
-- the text reader
-- ZIP safety checks
-- a `DocumentViewer` that picks the right reader by file type
-
-The kit API won't use GetX or a database; reading position is passed in and out through callbacks.
-
 **Publishing:**
 - `publish_to: none` until the first pub.dev release.
-- Before then, also review the engines' analyzer warnings: 30 redundant `!` and 5 `return` without `await` in a `try`.
+- Before then, review the engines' analyzer warnings (30 redundant `!`, 5 `return` without `await` in a `try`).
+- Decide the localisation story; `DocumentViewer`'s fallback messages are English.
 
 ## License
 - The kit's own code belongs to the OpenReader project.

@@ -16,10 +16,10 @@ import 'package:openreader/core/presentation/controllers/document_interaction_co
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/powerpoint_reader/presentation/powerpoint_reader_controller.dart';
 import 'package:openreader/features/powerpoint_reader/presentation/powerpoint_reader_view.dart';
-import 'package:openreader/services/utilities/pptx_parser.dart';
+import 'package:open_reader_kit/slides.dart';
 import 'package:path/path.dart' as p;
 
-import '../services/pptx_fixture.dart';
+import 'package:open_reader_kit/testing.dart';
 
 class FixtureFavorites implements FavoriteRepository {
   @override
@@ -110,13 +110,13 @@ void main() {
       final c = await loaded(controllerFor(await deck(threeSlides)));
       expect(c.status.value, StateStatus.success);
       expect(c.slides.map((s) => s.title), ['Welcome', 'Budget', 'Revenue outlook']);
-      expect(c.currentSlide.value, 0);
+      expect(c.currentSlide, 0);
     });
 
     test('restores the saved slide, clamped to the slides that still exist', () async {
       recents.position = {'slide_index': 9, 'slide_count': 10};
       final c = await loaded(controllerFor(await deck(threeSlides)));
-      expect(c.currentSlide.value, 2);
+      expect(c.currentSlide, 2);
       expect(c.pageController?.initialPage, 2);
     });
 
@@ -173,22 +173,22 @@ void main() {
       final c = await loaded(controllerFor(await deck(threeSlides)));
       c.onSearchQueryChanged('revenue');
       expect(c.matches, [1, 2]);
-      expect(c.currentSlide.value, 1);
+      expect(c.currentSlide, 1);
       c.goToNextMatch();
-      expect(c.currentSlide.value, 2);
+      expect(c.currentSlide, 2);
       c.goToNextMatch();
-      expect(c.currentSlide.value, 1);
+      expect(c.currentSlide, 1);
       c.goToPrevMatch();
-      expect(c.currentSlide.value, 2);
+      expect(c.currentSlide, 2);
     });
 
     test('no match leaves the slide alone; closing search clears it', () async {
       final c = await loaded(controllerFor(await deck(threeSlides)));
       c.onSearchQueryChanged('nowhere');
       expect(c.matches, isEmpty);
-      expect(c.currentSlide.value, 0);
+      expect(c.currentSlide, 0);
       c.stopSearching();
-      expect(c.searchQuery.value, '');
+      expect(c.searchQuery, '');
     });
   });
 
@@ -224,11 +224,11 @@ void main() {
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pumpAndSettle();
-      expect(c.currentSlide.value, 2);
+      expect(c.currentSlide, 2);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pumpAndSettle();
-      expect(c.currentSlide.value, 1);
+      expect(c.currentSlide, 1);
       c.onClose();
     });
 

@@ -1,6 +1,5 @@
 import 'package:open_reader_kit/excel.dart' as xls;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openreader/core/presentation/widgets/cell_grid/cell_text.dart';
 
 void main() {
   // Round-trips through encode/decode, so cells are read the way a real file is.

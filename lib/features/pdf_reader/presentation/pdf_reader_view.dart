@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -86,38 +85,19 @@ class PdfReaderView extends GetView<PdfReaderController> {
   ]);
 
   Widget _buildViewer(BuildContext context) {
-    final searcher = controller.textSearcher.value;
-    return PdfViewer.file(
-      controller.document.path,
-      controller: controller.pdfController,
-      initialPageNumber: controller.initialPageNumber,
+    return PdfDocumentView(
+      path: controller.document.path,
+      controller: controller.pdf,
       passwordProvider: controller.providePassword,
-      params: PdfViewerParams(
-        backgroundColor: context.background,
-        onViewerReady: controller.onViewerReady,
-        onPageChanged: controller.onPageChanged,
-        pagePaintCallbacks: searcher == null ? null : [searcher.pageTextMatchPaintCallback],
-        layoutPages: controller.viewMode.value == PdfReaderViewMode.horizontal ? _horizontalLayout : null,
-        // In fullscreen, a tap on the page brings the controls back.
-        onGeneralTap: (context, viewerController, details) {
-          if (!controller.isFullscreen.value) return false;
-          controller.toggleFullscreen();
-          return true;
-        },
-        errorBannerBuilder: (context, error, stackTrace, documentRef) => _ReaderErrorView(controller: controller, error: error),
-      ),
+      backgroundColor: context.background,
+      // In fullscreen, a tap on the page brings the controls back.
+      onTap: () {
+        if (!controller.isFullscreen.value) return false;
+        controller.toggleFullscreen();
+        return true;
+      },
+      errorBuilder: (context, error) => _ReaderErrorView(controller: controller, error: error),
     );
-  }
-
-  static PdfPageLayout _horizontalLayout(List<PdfPage> pages, PdfViewerParams params) {
-    final height = pages.fold(0.0, (prev, page) => max(prev, page.height)) + params.margin * 2;
-    final pageLayouts = <Rect>[];
-    var x = params.margin;
-    for (final page in pages) {
-      pageLayouts.add(Rect.fromLTWH(x, (height - page.height) / 2, page.width, page.height));
-      x += page.width + params.margin;
-    }
-    return PdfPageLayout(pageLayouts: pageLayouts, documentSize: Size(x, height));
   }
 }
 

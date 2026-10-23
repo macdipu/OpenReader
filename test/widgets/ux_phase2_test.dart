@@ -272,7 +272,7 @@ void main() {
         child: const SingleChildScrollView(child: SizedBox(height: 5000)),
       ),
     ));
-    controller.onDocumentLoaded();
+    controller.word.onDocumentLoaded();
     await tester.pump();
     expect(controller.scrollController.offset, 1200.0);
   });

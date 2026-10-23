@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:open_reader_kit/docx.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
@@ -12,20 +11,15 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import '../../../core/presentation/utils/zip_safety_guard.dart';
+import 'package:open_reader_kit/docx.dart';
+import 'package:open_reader_kit/open_reader_kit.dart';
 
-/// Drives the Word reader (BRD §9.11, ODF-013/014, ODF-008 for Word).
-///
-/// `docx_file_viewer` 1.0.4's `DocxView` exposes no `ScrollController` or
-/// initial-offset parameter, but its vertical `SingleChildScrollView` has no
-/// controller of its own, so it adopts the nearest [PrimaryScrollController].
-/// The view provides [scrollController] that way, which lets the reading
-/// position be restored ([onDocumentLoaded], CR-OPENREADER-UX UX-22) as well
-/// as saved (from the view's `NotificationListener`).
-///
-/// Favorite/Share/Open With are delegated to the same shared
-/// [DocumentInteractionController] every other reader uses, exactly like
-/// `PdfReaderController`.
+/// Drives the Word reader (BRD §9.11, ODF-013/014, ODF-008 for Word) on
+/// top of open_reader_kit's [WordDocumentController], which checks the
+/// file, owns search and scrolling, and restores the saved offset. This
+/// adds what's OpenReader's: the saved position (2 s after scrolling and
+/// once more on close), favourites/share/open-with via the shared
+/// [DocumentInteractionController], and the BRD §13 error wording.
 class WordReaderController extends BaseController {
   final DocumentModel document;
   final RecentRepository _recentRepository;
@@ -36,50 +30,41 @@ class WordReaderController extends BaseController {
     RecentRepository? recentRepository,
     DocumentInteractionController? interactions,
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
-        _interactions = interactions ?? Get.find<DocumentInteractionController>();
+        _interactions = interactions ?? Get.find<DocumentInteractionController>() {
+    word = WordDocumentController(onPositionChanged: (p) => onScrollOffsetChanged(p[PositionKeys.scrollOffset]! as double))
+      ..addListener(_onWordChanged);
+  }
 
-  final searchController = DocxSearchController();
+  late final WordDocumentController word;
+
+  DocxSearchController get searchController => word.searchController;
+  ScrollController get scrollController => word.scrollController;
+  Uint8List? get validatedBytes => word.validatedBytes;
+  double get initialScrollOffset => word.initialScrollOffset;
+
   final isSearching = false.obs;
 
-  /// `DocxView` has no error-builder hook (unlike `pdfrx`'s
-  /// `errorBannerBuilder`) - only this `onError`-style side-effect callback,
-  /// so a load failure is surfaced by swapping the whole child widget for
-  /// [_ReaderErrorView] rather than customizing `DocxView`'s own internal
-  /// error UI. Its own "Failed to load document" text may flash briefly
-  /// first, since both update from the same callback.
+  /// The engine has no error-builder hook, only an `onError` callback, so a
+  /// load failure swaps the whole body for the error view. The engine's own
+  /// "Failed to load document" text may flash briefly first.
   final hasError = false.obs;
 
-  void onLoadError(Object error) {
-    hasError.value = true;
-    errorMessage.value ??= 'This document may be damaged or incomplete.';
+  void onLoadError(Object error) => word.onLoadError(error);
+
+  void _onWordChanged() {
+    switch (word.error) {
+      case null:
+        break;
+      case DocumentLoadError.tooLarge:
+        hasError.value = true;
+        errorMessage.value ??= 'This document is too large to render safely on this device.';
+      default:
+        hasError.value = true;
+        errorMessage.value ??= 'This document may be damaged or incomplete.';
+    }
   }
-
-  /// Read once in [_loadInitialPosition] and validated via [ZipSafetyGuard]
-  /// (ODF-P5-03) before the view ever constructs a `DocxView` - passed to it
-  /// as `bytes:` rather than `path:` so the guard's read isn't repeated.
-  /// Null until validation succeeds.
-  Uint8List? _validatedBytes;
-  Uint8List? get validatedBytes => _validatedBytes;
-
-  double _initialScrollOffset = 0;
-  double get initialScrollOffset => _initialScrollOffset;
 
   double _lastKnownScrollOffset = 0;
-
-  /// Adopted by `DocxView`'s scroll view through the view's
-  /// [PrimaryScrollController].
-  final scrollController = ScrollController();
-
-  /// `DocxView.onLoaded`: the content is built, so after one layout pass the
-  /// saved offset can be applied (clamped - the document may have changed).
-  void onDocumentLoaded() {
-    if (_initialScrollOffset <= 0) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (isClosed || !scrollController.hasClients) return;
-      final position = scrollController.position;
-      scrollController.jumpTo(_initialScrollOffset.clamp(0.0, position.maxScrollExtent));
-    });
-  }
   Timer? _positionSaveDebounce;
 
   @override
@@ -92,54 +77,39 @@ class WordReaderController extends BaseController {
     status.value = StateStatus.loading;
     final result = await _recentRepository.getPosition(document.id);
     result.fold((_) {}, (position) {
-      final offset = position['scroll_offset'];
-      if (offset is num && offset > 0) _initialScrollOffset = offset.toDouble();
+      final offset = position[PositionKeys.scrollOffset];
+      if (offset is num && offset > 0) word.initialScrollOffset = offset.toDouble();
     });
-    await _loadAndValidateBytes();
+    try {
+      word.load(await File(document.path).readAsBytes());
+    } catch (_) {
+      word.onLoadError(const FileSystemException());
+    }
     status.value = StateStatus.success;
   }
 
-  Future<void> _loadAndValidateBytes() async {
-    try {
-      final bytes = await File(document.path).readAsBytes();
-      switch (ZipSafetyGuard.check(bytes)) {
-        case ZipSafetyResult.safe:
-          _validatedBytes = bytes;
-        case ZipSafetyResult.tooLarge:
-          hasError.value = true;
-          errorMessage.value = 'This document is too large to render safely on this device.';
-        case ZipSafetyResult.corrupted:
-          hasError.value = true;
-          errorMessage.value = 'This document may be damaged or incomplete.';
-      }
-    } catch (_) {
-      hasError.value = true;
-      errorMessage.value = 'This document may be damaged or incomplete.';
-    }
-  }
-
-  /// Called from the view's `NotificationListener<ScrollNotification>` as the
-  /// document scrolls, debounced the same way `PdfReaderController` debounces
-  /// per-page saves.
+  /// Called as the document scrolls (through the kit), debounced the same
+  /// way `PdfReaderController` debounces per-page saves.
   void onScrollOffsetChanged(double offset) {
     _lastKnownScrollOffset = offset;
     _positionSaveDebounce?.cancel();
     _positionSaveDebounce = Timer(const Duration(seconds: 2), () => _savePosition(offset));
   }
 
-  Future<void> _savePosition(double offset) => _recentRepository.markOpened(document.id, readingPosition: {'scroll_offset': offset});
+  Future<void> _savePosition(double offset) =>
+      _recentRepository.markOpened(document.id, readingPosition: {PositionKeys.scrollOffset: offset});
 
   void startSearching() => isSearching.value = true;
 
   void stopSearching() {
     isSearching.value = false;
-    searchController.clear();
+    word.clearSearch();
   }
 
-  void onSearchQueryChanged(String query) => searchController.search(query);
+  void onSearchQueryChanged(String query) => word.search(query);
 
-  void goToNextMatch() => searchController.nextMatch();
-  void goToPrevMatch() => searchController.previousMatch();
+  void goToNextMatch() => word.nextMatch();
+  void goToPrevMatch() => word.previousMatch();
 
   bool get isFavorite => _interactions.isFavorite(document.id);
   Future<void> toggleFavorite() => _interactions.toggleFavorite(document.id);
@@ -150,8 +120,7 @@ class WordReaderController extends BaseController {
   void onClose() {
     _positionSaveDebounce?.cancel();
     _interactions.readerClosedAfter(_lastKnownScrollOffset > 0 ? _savePosition(_lastKnownScrollOffset) : null);
-    searchController.dispose();
-    scrollController.dispose();
+    word.dispose();
     super.onClose();
   }
 }

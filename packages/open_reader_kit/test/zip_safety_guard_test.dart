@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openreader/core/presentation/utils/zip_safety_guard.dart';
+import 'package:open_reader_kit/open_reader_kit.dart';
 
 // Builds real ZIP archives via `archive`'s own encoder rather than hand-rolled
 // byte layouts, so these tests exercise the exact central-directory shape

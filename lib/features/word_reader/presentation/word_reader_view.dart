@@ -36,37 +36,7 @@ class WordReaderView extends GetView<WordReaderController> {
               border: Border.all(color: context.outlineVariant),
             ),
             clipBehavior: Clip.antiAlias,
-            child: NotificationListener<ScrollNotification>(
-              // Only the document's own vertical scroll: wide tables scroll
-              // horizontally inside it and used to overwrite the saved offset.
-              onNotification: (notification) {
-                if (notification.depth == 0 && notification.metrics.axis == Axis.vertical) {
-                  controller.onScrollOffsetChanged(notification.metrics.pixels);
-                }
-                return false;
-              },
-              // DocxView's scroll view has no controller of its own, so it
-              // adopts this one - on every platform, not only mobile -
-              // which is how the reading position is restored (UX-22).
-              child: PrimaryScrollController(
-                controller: controller.scrollController,
-                automaticallyInheritForPlatforms: TargetPlatform.values.toSet(),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: DocxView(
-                    bytes: controller.validatedBytes!,
-                    // Continuous, not the default paged layout: paged mode
-                    // cuts content into fixed-height A4 boxes by *estimated*
-                    // height and clips whatever overflows, which hid text at
-                    // page breaks on phones (BUG-OPENREADER-WORD-PAGEBREAK).
-                    config: const DocxViewConfig(pageMode: DocxPageMode.continuous),
-                    searchController: controller.searchController,
-                    onLoaded: controller.onDocumentLoaded,
-                    onError: controller.onLoadError,
-                  ),
-                ),
-              ),
-            ),
+            child: WordDocumentView(controller: controller.word),
           ),
         );
       }),
