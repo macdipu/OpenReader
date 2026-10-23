@@ -26,7 +26,11 @@ class AppShortcuts extends StatelessWidget {
         },
         if (onEscape != null) const SingleActivator(LogicalKeyboardKey.escape): onEscape!,
       },
-      child: Focus(autofocus: true, child: child),
+      // The inner scope keeps this node's autofocus from blocking the
+      // child's own: Flutter skips `autofocus` while another node in the same
+      // scope holds focus, so a reader's search field opened without its
+      // cursor or keyboard. Keys still bubble up here from inside it.
+      child: Focus(autofocus: true, child: FocusScope(child: child)),
     );
   }
 }

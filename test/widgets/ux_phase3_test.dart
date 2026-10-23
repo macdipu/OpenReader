@@ -205,6 +205,31 @@ void main() {
       expect(escaped, 1);
     });
 
+    testWidgets('a search field opened inside AppShortcuts takes focus, and Esc still reaches the shortcuts',
+        (tester) async {
+      final showField = ValueNotifier(false);
+      var escaped = 0;
+      await tester.pumpWidget(MaterialApp(
+        home: AppShortcuts(
+          onEscape: () => escaped++,
+          child: Scaffold(
+            body: ValueListenableBuilder<bool>(
+              valueListenable: showField,
+              builder: (context, show, child) => show ? const TextField(autofocus: true) : const SizedBox(),
+            ),
+          ),
+        ),
+      ));
+      showField.value = true;
+      await tester.pump();
+      await tester.pump();
+      final field = tester.widget<EditableText>(find.byType(EditableText));
+      expect(field.focusNode.hasFocus, isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      expect(escaped, 1);
+    });
+
     testWidgets('Esc in a reader closes its search first', (tester) async {
       final controller = Get.put(TextReaderController(
         document: sample,

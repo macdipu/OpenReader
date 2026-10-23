@@ -14,6 +14,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/utils/text_decoding.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_grid_controller.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_match.dart';
+import '../../../core/presentation/widgets/cell_grid/cell_text.dart';
 
 export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellMatch;
 
@@ -181,7 +182,7 @@ class CsvReaderController extends BaseController with CellGridZoom implements Ce
     for (var r = 0; r < rows.length; r++) {
       final row = rows[r];
       for (var c = 0; c < row.length; c++) {
-        final text = row[c]?.displayText ?? '';
+        final text = row[c]?.readerText ?? '';
         if (text.toLowerCase().contains(lower)) {
           found.add(CellMatch(row: r, column: c));
         }

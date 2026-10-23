@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../theme/theme_extensions.dart';
 import 'cell_grid_controller.dart';
+import 'cell_text.dart';
 import '../empty/common_empty_view.dart';
 
 /// A frozen header row + frozen leading columns + a body that scrolls both
@@ -26,6 +27,12 @@ class _CellGridState extends State<CellGrid> {
   final _frozenColumnVerticalController = ScrollController();
   bool _syncingHeader = false;
   bool _syncingFrozenColumn = false;
+
+  /// The row or column picked by tapping its header; null when none.
+  final _selection = ValueNotifier<GridSelection?>(null);
+
+  void _toggleSelection(GridSelection selection) =>
+      _selection.value = _selection.value == selection ? null : selection;
   late double _zoom;
   Worker? _zoomWorker;
 
@@ -98,6 +105,7 @@ class _CellGridState extends State<CellGrid> {
     widget.controller.verticalController.removeListener(_onMainVerticalScroll);
     _headerHorizontalController.dispose();
     _frozenColumnVerticalController.dispose();
+    _selection.dispose();
     super.dispose();
   }
 
@@ -123,6 +131,15 @@ class _CellGridState extends State<CellGrid> {
       final metrics = _CellMetrics(zoom);
       return Column(
       children: [
+        ValueListenableBuilder<GridSelection?>(
+          valueListenable: _selection,
+          builder: (context, selection, _) => selection == null
+              ? const SizedBox.shrink()
+              : _SelectionBar(
+                  summary: SelectionSummary.of(rows, columnCount, selection),
+                  onClear: () => _selection.value = null,
+                ),
+        ),
         // Column-letter header row.
         Row(
           children: [
@@ -132,7 +149,21 @@ class _CellGridState extends State<CellGrid> {
                 controller: _headerHorizontalController,
                 scrollDirection: Axis.horizontal,
                 physics: const NeverScrollableScrollPhysics(),
-                child: Row(children: List.generate(columnCount, (c) => _HeaderCell(label: _columnLabel(c), metrics: metrics))),
+                child: ValueListenableBuilder<GridSelection?>(
+                  valueListenable: _selection,
+                  builder: (context, selection, _) => Row(
+                    children: List.generate(
+                      columnCount,
+                      (c) => _HeaderCell(
+                        label: _columnLabel(c),
+                        metrics: metrics,
+                        selected: selection == GridSelection.column(c),
+                        semanticsLabel: 'Column ${_columnLabel(c)}',
+                        onTap: () => _toggleSelection(GridSelection.column(c)),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -149,7 +180,17 @@ class _CellGridState extends State<CellGrid> {
                   controller: _frozenColumnVerticalController,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: rows.length,
-                  itemBuilder: (context, r) => _HeaderCell(label: '${r + 1}', metrics: metrics, width: metrics.rowHeaderWidth),
+                  itemBuilder: (context, r) => ValueListenableBuilder<GridSelection?>(
+                    valueListenable: _selection,
+                    builder: (context, selection, _) => _HeaderCell(
+                      label: '${r + 1}',
+                      metrics: metrics,
+                      width: metrics.rowHeaderWidth,
+                      selected: selection == GridSelection.row(r),
+                      semanticsLabel: 'Row ${r + 1}',
+                      onTap: () => _toggleSelection(GridSelection.row(r)),
+                    ),
+                  ),
                 ),
               ),
               Expanded(
@@ -161,12 +202,16 @@ class _CellGridState extends State<CellGrid> {
                     child: ListView.builder(
                       controller: widget.controller.verticalController,
                       itemCount: rows.length,
-                      itemBuilder: (context, r) => _DataRow(
-                        controller: widget.controller,
-                        row: rows[r],
-                        rowIndex: r,
-                        columnCount: columnCount,
-                        metrics: metrics,
+                      itemBuilder: (context, r) => ValueListenableBuilder<GridSelection?>(
+                        valueListenable: _selection,
+                        builder: (context, selection, _) => _DataRow(
+                          controller: widget.controller,
+                          row: rows[r],
+                          rowIndex: r,
+                          columnCount: columnCount,
+                          metrics: metrics,
+                          selection: selection,
+                        ),
                       ),
                     ),
                   ),
@@ -285,17 +330,157 @@ class _HeaderCell extends StatelessWidget {
   final String label;
   final _CellMetrics metrics;
   final double? width;
+  final bool selected;
+  final String semanticsLabel;
+  final VoidCallback onTap;
 
-  const _HeaderCell({required this.label, required this.metrics, this.width});
+  const _HeaderCell({
+    required this.label,
+    required this.metrics,
+    this.width,
+    required this.selected,
+    required this.semanticsLabel,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: semanticsLabel,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: width ?? metrics.width,
+          height: metrics.height,
+          alignment: Alignment.center,
+          color: selected ? context.primary : context.surfaceContainer,
+          child: Text(
+            label,
+            style: context.bodySmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 12 * metrics.zoom,
+              color: selected ? context.onPrimary : null,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A whole row or column of the grid, picked from its header.
+class GridSelection {
+  const GridSelection.row(this.index) : isRow = true;
+  const GridSelection.column(this.index) : isRow = false;
+
+  final bool isRow;
+  final int index;
+
+  bool contains(int row, int column) => isRow ? row == index : column == index;
+
+  @override
+  bool operator ==(Object other) => other is GridSelection && other.isRow == isRow && other.index == index;
+
+  @override
+  int get hashCode => Object.hash(isRow, index);
+}
+
+/// What the selection bar shows: like a spreadsheet's status bar, Sum and
+/// Average cover the number cells only.
+class SelectionSummary {
+  const SelectionSummary({required this.label, required this.values, required this.numbers});
+
+  factory SelectionSummary.of(List<List<xls.Data?>> rows, int columnCount, GridSelection selection) {
+    final cells = selection.isRow
+        ? [for (var c = 0; c < columnCount; c++) selection.index < rows.length && c < rows[selection.index].length ? rows[selection.index][c] : null]
+        : [for (final row in rows) selection.index < row.length ? row[selection.index] : null];
+    return SelectionSummary(
+      label: selection.isRow ? 'Row ${selection.index + 1}' : 'Column ${_columnLabel(selection.index)}',
+      values: [for (final cell in cells) cell?.readerText ?? ''],
+      numbers: [for (final cell in cells) if (cell?.numericValue case final n?) n],
+    );
+  }
+
+  final String label;
+
+  /// Every cell's shown text, in order, blanks included (what Copy copies).
+  final List<String> values;
+  final List<num> numbers;
+
+  int get count => values.where((v) => v.isNotEmpty).length;
+  num get sum => numbers.fold<num>(0, (a, b) => a + b);
+  double? get average => numbers.isEmpty ? null : sum / numbers.length;
+
+  /// Trailing blanks dropped, so a column doesn't copy hundreds of empty lines.
+  String get copyText {
+    var end = values.length;
+    while (end > 0 && values[end - 1].isEmpty) {
+      end--;
+    }
+    return values.take(end).join('\n');
+  }
+}
+
+String _formatNumber(num n) {
+  final rounded = n is double ? double.parse(n.toStringAsFixed(4)) : n;
+  return rounded == rounded.roundToDouble() && rounded.abs() < 1e15 ? rounded.toInt().toString() : rounded.toString();
+}
+
+class _SelectionBar extends StatelessWidget {
+  final SelectionSummary summary;
+  final VoidCallback onClear;
+
+  const _SelectionBar({required this.summary, required this.onClear});
+
+  @override
+  Widget build(BuildContext context) {
+    final average = summary.average;
+    final details = [
+      // Excel's status-bar wording, short enough for a phone.
+      'Count ${summary.count}',
+      if (summary.numbers.isNotEmpty) 'Sum ${_formatNumber(summary.sum)}',
+      if (average != null) 'Avg ${_formatNumber(average)}',
+    ].join(' · ');
     return Container(
-      width: width ?? metrics.width,
-      height: metrics.height,
-      alignment: Alignment.center,
-      color: context.surfaceContainer,
-      child: Text(label, style: context.bodySmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 12 * metrics.zoom)),
+      color: context.primaryContainer,
+      padding: const EdgeInsets.only(left: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(text: summary.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+                TextSpan(text: '  $details'),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.bodySmall?.copyWith(color: context.onPrimaryContainer),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Copy ${summary.label.toLowerCase()}',
+            icon: const Icon(Icons.copy_rounded, size: 20),
+            color: context.onPrimaryContainer,
+            onPressed: summary.count == 0
+                ? null
+                : () {
+                    Clipboard.setData(ClipboardData(text: summary.copyText));
+                    ScaffoldMessenger.maybeOf(context)
+                      ?..hideCurrentSnackBar()
+                      ..showSnackBar(SnackBar(content: Text('${summary.label} copied')));
+                  },
+          ),
+          IconButton(
+            tooltip: 'Clear selection',
+            icon: const Icon(Icons.close_rounded, size: 20),
+            color: context.onPrimaryContainer,
+            onPressed: onClear,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -307,6 +492,7 @@ class _DataRow extends StatelessWidget {
   final int columnCount;
 
   final _CellMetrics metrics;
+  final GridSelection? selection;
 
   const _DataRow({
     required this.controller,
@@ -314,6 +500,7 @@ class _DataRow extends StatelessWidget {
     required this.rowIndex,
     required this.columnCount,
     required this.metrics,
+    this.selection,
   });
 
   @override
@@ -328,12 +515,14 @@ class _DataRow extends StatelessWidget {
               ? _CellHighlight.current
               : matchedColumns.contains(c)
                   ? _CellHighlight.match
-                  : _CellHighlight.none;
+                  : selection?.contains(rowIndex, c) ?? false
+                      ? _CellHighlight.selected
+                      : _CellHighlight.none;
           return _DataCell(
             data: data,
             highlight: highlight,
             metrics: metrics,
-            onTap: () => showCellDetail(context, address: '${_columnLabel(c)}${rowIndex + 1}', value: data?.displayText ?? ''),
+            onTap: () => showCellDetail(context, address: '${_columnLabel(c)}${rowIndex + 1}', value: data?.readerText ?? ''),
           );
         }),
       );
@@ -341,7 +530,7 @@ class _DataRow extends StatelessWidget {
   }
 }
 
-enum _CellHighlight { none, match, current }
+enum _CellHighlight { none, match, current, selected }
 
 class _DataCell extends StatelessWidget {
   final xls.Data? data;
@@ -367,12 +556,15 @@ class _DataCell extends StatelessWidget {
     final fill = switch (highlight) {
       _CellHighlight.current => context.tertiaryContainer,
       _CellHighlight.match => context.secondaryContainer.withValues(alpha: 0.5),
+      _CellHighlight.selected => context.primaryContainer,
       _CellHighlight.none => background,
     };
     // Readable on the file's own fill colour as well as on the theme surface.
     final textColor = highlight == _CellHighlight.current
         ? context.onTertiaryContainer
-        : fill == null || highlight == _CellHighlight.match
+        : highlight == _CellHighlight.selected
+            ? context.onPrimaryContainer
+            : fill == null || highlight == _CellHighlight.match
             ? context.onSurface
             : (fill.computeLuminance() > 0.5 ? Colors.black87 : Colors.white);
     return InkWell(
@@ -387,7 +579,7 @@ class _DataCell extends StatelessWidget {
           border: Border.all(color: context.outlineVariant, width: 0.5),
         ),
         child: Text(
-          data?.displayText ?? '',
+          data?.readerText ?? '',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(

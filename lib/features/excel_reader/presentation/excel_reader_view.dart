@@ -215,13 +215,18 @@ class _SheetTabBar extends StatelessWidget {
     return Obx(() {
       if (controller.sheetNames.length <= 1) return const SizedBox.shrink();
       final accent = DocumentCategory.excel.accentColor(context);
+      // The bar's background runs under the system gesture/navigation bar,
+      // but the tabs sit above it - they used to be drawn underneath it.
       return Container(
-        height: context.scaledExtent(44),
         decoration: BoxDecoration(
           color: context.surfaceContainerLowest,
           border: Border(top: BorderSide(color: context.outlineVariant)),
         ),
-        child: ListView.builder(
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: context.scaledExtent(44),
+            child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: controller.sheetNames.length,
           itemBuilder: (context, index) {
@@ -244,6 +249,8 @@ class _SheetTabBar extends StatelessWidget {
               ),
             );
           },
+            ),
+          ),
         ),
       );
     });

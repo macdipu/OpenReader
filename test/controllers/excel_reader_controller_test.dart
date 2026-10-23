@@ -16,6 +16,7 @@ import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
 import 'package:excel_plus/excel_plus.dart' as xls;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
@@ -127,6 +128,33 @@ void main() {
       expect(controller.currentRows[0][0]?.displayText, 'Name');
       expect(controller.currentRows[1][0]?.displayText, 'Alice');
       expect(controller.currentRows[1][1]?.displayText, '97');
+    });
+
+    test('leaves out sheets the author hid, as Excel does', () async {
+      final workbook = xls.Excel.createExcel();
+      final first = workbook.getDefaultSheet()!;
+      workbook[first].cell(xls.CellIndex.indexByString('A1')).value = xls.TextCellValue('shown');
+      workbook['Secret'].cell(xls.CellIndex.indexByString('A1')).value = xls.TextCellValue('hidden');
+      workbook['Secret'].visibility = xls.SheetVisibility.hidden;
+      workbook['Later'].cell(xls.CellIndex.indexByString('A1')).value = xls.TextCellValue('shown too');
+      final file = File(p.join(root.path, 'hidden.xlsx'));
+      await file.writeAsBytes(workbook.encode()!);
+      final c = ExcelReaderController(
+        document: DocumentModel(
+          id: file.path,
+          path: file.path,
+          displayName: 'hidden.xlsx',
+          extension: 'xlsx',
+          category: DocumentCategory.excel,
+          sizeBytes: 1,
+          modifiedAt: DateTime(2026),
+          lastSeenAt: DateTime(2026),
+        ),
+        recentRepository: recents,
+        interactions: interactions,
+      );
+      await loaded(c);
+      expect(c.sheetNames, [first, 'Later']);
     });
 
     test('restores the saved sheet index', () async {
@@ -383,6 +411,38 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('125%'), findsOneWidget);
       expect(tester.getSize(cellOf('Alice')).width, CellGridController.cellWidth * 1.25);
+    });
+
+    testWidgets('tapping a column or row header selects it, sums its numbers, copies it, and clears', (tester) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String?;
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+      await tester.runAsync(() => loaded(controller));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: CellGrid(controller: controller))));
+      await tester.pump();
+
+      await tester.tap(find.bySemanticsLabel('Column B'));
+      await tester.pump();
+      // 'Score' is text, so only 97 counts toward Sum/Average.
+      expect(find.textContaining('Count 2 · Sum 97 · Avg 97'), findsOneWidget);
+      await tester.tap(find.byTooltip('Copy column b'));
+      await tester.pump();
+      expect(copied, 'Score\n97');
+      expect(find.text('Column B copied'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Row 2'));
+      await tester.pump();
+      expect(find.byTooltip('Copy row 2'), findsOneWidget);
+      expect(find.byTooltip('Copy column b'), findsNothing);
+
+      // Tapping the selected header again clears it.
+      await tester.tap(find.bySemanticsLabel('Row 2'));
+      await tester.pump();
+      expect(find.byTooltip('Clear selection'), findsNothing);
+      await tester.pump(const Duration(seconds: 5));
     });
   });
 }
