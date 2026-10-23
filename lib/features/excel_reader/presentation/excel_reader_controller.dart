@@ -14,6 +14,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/utils/zip_safety_guard.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_grid_controller.dart';
 import '../../../core/presentation/widgets/cell_grid/cell_match.dart';
+import '../../../core/presentation/widgets/cell_grid/cell_text.dart';
 
 export '../../../core/presentation/widgets/cell_grid/cell_match.dart' show CellMatch;
 
@@ -125,7 +126,13 @@ class ExcelReaderController extends BaseController with CellGridZoom implements 
 
       final workbook = await xls.Excel.decodeBytesAsync(bytes);
       _workbook = workbook;
-      final names = workbook.sheetOrder;
+      // Sheets the author hid stay hidden, as in Excel - unless every sheet
+      // is, when showing nothing would be worse.
+      final visible = [
+        for (final name in workbook.sheetOrder)
+          if (workbook.sheets[name]?.visibility == xls.SheetVisibility.visible) name,
+      ];
+      final names = visible.isEmpty ? workbook.sheetOrder : visible;
       sheetNames.assignAll(names);
       activeSheetIndex.value = _initialSheetIndex < names.length ? _initialSheetIndex : 0;
       status.value = StateStatus.success;
@@ -201,7 +208,7 @@ class ExcelReaderController extends BaseController with CellGridZoom implements 
     for (var r = 0; r < rows.length; r++) {
       final row = rows[r];
       for (var c = 0; c < row.length; c++) {
-        final text = row[c]?.displayText ?? '';
+        final text = row[c]?.readerText ?? '';
         if (text.toLowerCase().contains(lower)) {
           found.add(CellMatch(row: r, column: c));
         }
