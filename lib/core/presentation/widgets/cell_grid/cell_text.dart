@@ -1,4 +1,4 @@
-import 'package:excel_plus/excel_plus.dart' as xls;
+import 'package:open_reader_kit/excel.dart' as xls;
 
 extension CellText on xls.Data {
   /// What a reader shows for this cell. Same as `excel_plus`'s `displayText`,

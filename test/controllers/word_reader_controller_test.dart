@@ -12,7 +12,7 @@ import 'package:openreader/core/presentation/utils/zip_safety_guard.dart';
 import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
-import 'package:docx_creator/docx_creator.dart';
+import 'package:open_reader_kit/docx_core.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:pdfrx/pdfrx.dart';
+import 'package:open_reader_kit/pdf.dart';
 
 import '../../core/domain/models/document_model.dart';
 import 'path_service.dart';

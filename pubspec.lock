@@ -169,14 +169,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.2"
-  csv_plus:
-    dependency: transitive
-    description:
-      name: csv_plus
-      sha256: "9c8d4b83f7ce3d43d72b0c9bc161866739461e262974ce1a41ca38d128010377"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.9.0"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -225,22 +217,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "8.1.0"
-  docx_creator:
-    dependency: transitive
-    description:
-      name: docx_creator
-      sha256: cc80a4728f2daf4727e94d94410e7e4334a9a36093a575a42365dc116f80f228
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.3.3"
-  docx_file_viewer:
-    dependency: "direct main"
-    description:
-      name: docx_file_viewer
-      sha256: "88c9a4ed025caea6c42abbbb05229e1ccc766b1a43ff750c9ff6baa683b5be6b"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.4"
   equatable:
     dependency: "direct main"
     description:
@@ -249,14 +225,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  excel_plus:
-    dependency: "direct main"
-    description:
-      name: excel_plus
-      sha256: a361a52a2e8116f9ea9389aba1d10a9aa254ce1171152f6a611a1677cf534230
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.22.0"
   fake_async:
     dependency: transitive
     description:
@@ -804,6 +772,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.7.0"
+  open_reader_kit:
+    dependency: "direct main"
+    description:
+      path: "packages/open_reader_kit"
+      relative: true
+    source: path
+    version: "0.1.0"
   package_info_plus:
     dependency: "direct main"
     description:
@@ -884,38 +859,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
-  pdfium_dart:
-    dependency: transitive
-    description:
-      name: pdfium_dart
-      sha256: "86e95c66b09f3245b95c4924f2edce8d4f7c9786876e5c5ee8e36b104a94bbb0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.5"
-  pdfium_flutter:
-    dependency: transitive
-    description:
-      name: pdfium_flutter
-      sha256: "0b115c0917aef9cf6bb9c4d47d0efc61d97f44844cd76287c921f997c26cf15d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.3"
-  pdfrx:
-    dependency: "direct main"
-    description:
-      name: pdfrx
-      sha256: "85a87117ae6358e0ef2cc90d4db9f5e689eabbd7f19ab98c97164584d0be4a4a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.4.8"
-  pdfrx_engine:
-    dependency: transitive
-    description:
-      name: pdfrx_engine
-      sha256: "4399846809a75aed03881d8b8a19e5e70addd4b46b22fd94a0effd8859258f07"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.7"
   permission_handler:
     dependency: "direct main"
     description:

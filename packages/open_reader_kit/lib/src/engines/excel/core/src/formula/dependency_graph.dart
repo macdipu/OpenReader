@@ -1,0 +1,266 @@
+part of '../../excel_plus.dart';
+
+/// Functions whose precedents cannot be determined statically (dynamic
+/// references or volatile results). A formula that uses one is always treated as
+/// affected during an incremental [Excel.recalculate], so it never goes stale.
+const _volatileFunctions = <String>{
+  'INDIRECT',
+  'OFFSET',
+  'NOW',
+  'TODAY',
+  'RAND',
+  'RANDBETWEEN',
+};
+
+/// An inclusive, 0-based rectangular cell region on one sheet.
+class _CellBox {
+  final String sheet;
+  final int c1;
+  final int r1;
+  final int c2;
+  final int r2;
+  const _CellBox(this.sheet, this.c1, this.r1, this.c2, this.r2);
+
+  bool intersects(_CellBox o) =>
+      sheet == o.sheet && c1 <= o.c2 && o.c1 <= c2 && r1 <= o.r2 && o.r1 <= r2;
+}
+
+/// The static precedents a formula reads, and whether it must always recompute.
+class _Precedents {
+  final List<_CellBox> boxes;
+  final bool volatile;
+  const _Precedents(this.boxes, this.volatile);
+}
+
+/// One formula cell as a node in the dependency graph.
+class _GraphEntry {
+  final (String, int, int) key;
+  final _CellBox cellBox;
+  final _CellBox? spillBox;
+  final _Precedents precedents;
+  const _GraphEntry(this.key, this.cellBox, this.spillBox, this.precedents);
+}
+
+/// Extracts the precedent boxes a formula [node] reads (resolving defined names
+/// and clamping full-row/column references to used bounds), flagging the formula
+/// volatile when it uses a dynamic-reference function or an unresolvable name.
+_Precedents _extractPrecedents(_FNode node, String sheet, _FormulaContext ctx) {
+  final boxes = <_CellBox>[];
+  final seenNames = <String>{}; // defined names on the current resolution path
+  var volatile = false;
+
+  void walk(_FNode n, String s) {
+    if (n is _RefNode) {
+      boxes.add(_boxFromRef(n, s, ctx._excel));
+    } else if (n is _RangeNode) {
+      boxes.add(_boxFromRange(n, s, ctx._excel));
+    } else if (n is _NameNode) {
+      final key = n.name.toLowerCase();
+      if (!seenNames.add(key)) {
+        volatile = true; // cyclic defined name: recompute rather than recurse
+        return;
+      }
+      final dn = ctx._findDefinedName(n.name, n.sheet ?? s);
+      if (dn == null) {
+        volatile = true; // unknown name: recompute to stay safe
+      } else {
+        try {
+          walk(_parseFormula(dn.refersTo), n.sheet ?? s);
+        } on FormatException {
+          volatile = true;
+        }
+      }
+      seenNames.remove(key);
+    } else if (n is _UnaryNode) {
+      walk(n.operand, s);
+    } else if (n is _BinaryNode) {
+      walk(n.left, s);
+      walk(n.right, s);
+    } else if (n is _FuncNode) {
+      if (_volatileFunctions.contains(n.name.toUpperCase())) volatile = true;
+      for (final a in n.args) {
+        walk(a, s);
+      }
+    }
+  }
+
+  walk(node, sheet);
+  return _Precedents(boxes, volatile);
+}
+
+/// The box a single-cell (or full-row/column) reference reads.
+_CellBox _boxFromRef(_RefNode n, String sheet, Excel excel) {
+  final s = n.sheet ?? sheet;
+  if (n.col != null && n.row != null) {
+    return _CellBox(s, n.col!, n.row!, n.col!, n.row!);
+  }
+  final so = excel._sheetMap[s];
+  final maxC = (so?.maxColumns ?? 1) - 1;
+  final maxR = (so?.maxRows ?? 1) - 1;
+  return _CellBox(
+    s,
+    n.col ?? 0,
+    n.row ?? 0,
+    n.col ?? (maxC < 0 ? 0 : maxC),
+    n.row ?? (maxR < 0 ? 0 : maxR),
+  );
+}
+
+/// The box a range reads, clamping open row/column ends to used bounds.
+_CellBox _boxFromRange(_RangeNode n, String sheet, Excel excel) {
+  final s = n.start.sheet ?? sheet;
+  final so = excel._sheetMap[s];
+  final maxC = (so?.maxColumns ?? 1) - 1;
+  final maxR = (so?.maxRows ?? 1) - 1;
+  final sc = n.start.col ?? 0;
+  final sr = n.start.row ?? 0;
+  final ec = n.end.col ?? (maxC < 0 ? 0 : maxC);
+  final er = n.end.row ?? (maxR < 0 ? 0 : maxR);
+  return _CellBox(
+    s,
+    sc < ec ? sc : ec,
+    sr < er ? sr : er,
+    sc < ec ? ec : sc,
+    sr < er ? er : sr,
+  );
+}
+
+/// The keys of formula cells whose value can change when any [changed] cell
+/// changes, computed transitively. Directly-changed formula cells and volatile
+/// formulas are always included; an affected formula's own cell and its prior
+/// spill range feed the next round (so readers of its output recompute too).
+Set<(String, int, int)> _affectedFormulaKeys(
+  List<_GraphEntry> entries,
+  List<_CellBox> changed,
+) {
+  final affected = <(String, int, int)>{};
+  final worklist = <_CellBox>[...changed];
+
+  void mark(_GraphEntry f) {
+    if (affected.add(f.key)) {
+      worklist.add(f.cellBox);
+      final sb = f.spillBox;
+      if (sb != null) worklist.add(sb);
+    }
+  }
+
+  for (final f in entries) {
+    if (f.precedents.volatile || changed.any((b) => b.intersects(f.cellBox))) {
+      mark(f);
+    }
+  }
+
+  var i = 0;
+  while (i < worklist.length) {
+    final box = worklist[i++];
+    for (final f in entries) {
+      if (affected.contains(f.key)) continue;
+      if (f.precedents.boxes.any((b) => b.intersects(box))) mark(f);
+    }
+  }
+  return affected;
+}
+
+/// Parses an A1 reference (optionally sheet-qualified, optionally a range) into
+/// a box, using [excel]'s default sheet when unqualified. Returns null when the
+/// reference cannot be parsed.
+_CellBox? _parseRefToBox(Excel excel, String ref) {
+  var s = ref.trim();
+  String sheet;
+  final bang = s.lastIndexOf('!');
+  if (bang >= 0) {
+    sheet = s.substring(0, bang);
+    if (sheet.length >= 2 && sheet.startsWith("'") && sheet.endsWith("'")) {
+      sheet = sheet.substring(1, sheet.length - 1).replaceAll("''", "'");
+    }
+    s = s.substring(bang + 1);
+  } else {
+    sheet =
+        excel.getDefaultSheet() ??
+        (excel.sheetOrder.isEmpty ? '' : excel.sheetOrder.first);
+  }
+  final parts = s.split(':');
+  try {
+    final a = CellIndex.indexByString(parts.first.replaceAll('\$', ''));
+    final b = CellIndex.indexByString(
+      (parts.length > 1 ? parts[1] : parts.first).replaceAll('\$', ''),
+    );
+    return _CellBox(
+      sheet,
+      a.columnIndex < b.columnIndex ? a.columnIndex : b.columnIndex,
+      a.rowIndex < b.rowIndex ? a.rowIndex : b.rowIndex,
+      a.columnIndex < b.columnIndex ? b.columnIndex : a.columnIndex,
+      a.rowIndex < b.rowIndex ? b.rowIndex : a.rowIndex,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+/// The subset of [all] formula cells to recompute for an incremental
+/// [Excel.recalculate]: those affected (transitively) by [changed]. Falls back
+/// to [all] when [changed] lists references but none parse; returns an empty
+/// list when [changed] is itself empty.
+List<(Data, String)> _incrementalTargets(
+  _FormulaContext ctx,
+  List<(Data, String)> all,
+  Iterable<String> changed,
+) {
+  final excel = ctx._excel;
+  final changedBoxes = <_CellBox>[];
+  var named = false;
+  for (final ref in changed) {
+    named = true;
+    final box = _parseRefToBox(excel, ref);
+    if (box != null) changedBoxes.add(box);
+  }
+  if (changedBoxes.isEmpty) {
+    // The caller named cells but none could be parsed: recompute everything
+    // rather than silently skip (correctness first). An empty `changed`
+    // genuinely means nothing changed, so recompute nothing.
+    return named ? all : const [];
+  }
+
+  final entries = <_GraphEntry>[];
+  for (final (data, name) in all) {
+    final idx = data.cellIndex;
+    final fv = data.value as FormulaCellValue;
+    _Precedents prec;
+    try {
+      prec = _extractPrecedents(_parseFormula(fv.formula), name, ctx);
+    } on FormatException {
+      prec = const _Precedents(<_CellBox>[], true); // unparseable: recompute
+    }
+    _CellBox? spillBox;
+    final aref = fv._arrayRef;
+    if (aref != null) {
+      final b = excel._spillBox(aref);
+      if (b != null) spillBox = _CellBox(name, b.$1, b.$2, b.$3, b.$4);
+    }
+    entries.add(
+      _GraphEntry(
+        (name, idx.columnIndex, idx.rowIndex),
+        _CellBox(
+          name,
+          idx.columnIndex,
+          idx.rowIndex,
+          idx.columnIndex,
+          idx.rowIndex,
+        ),
+        spillBox,
+        prec,
+      ),
+    );
+  }
+
+  final affected = _affectedFormulaKeys(entries, changedBoxes);
+  return [
+    for (final t in all)
+      if (affected.contains((
+        t.$2,
+        t.$1.cellIndex.columnIndex,
+        t.$1.cellIndex.rowIndex,
+      )))
+        t,
+  ];
+}
