@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openreader/features/pdf_reader/presentation/pdf_reader_controller.dart';
+import 'package:open_reader_kit/pdf.dart';
 
 // CR-OPENREADER-UX Phase 1 revision 1: the PDF zero-match label. The
 // controller wiring needs a live PdfTextSearcher (unavailable here, see

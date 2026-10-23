@@ -44,3 +44,37 @@ See `features/CR-OPENREADER-KIT/TECH-SPEC.md`.
 - **Example app:** listed in the kit README with its Play Store link: https://play.google.com/store/apps/details?id=com.chowdhuryelab.openreader
 - **Not committed.**
 - **Next:** Phase B, moving OpenReader's own readers into the kit.
+
+## Phase B1: done (2026-10-23)
+- **Moved into the kit:**
+  - `ZipSafetyGuard` and `decodeTextBytes` → `open_reader_kit.dart`
+  - `PptxParser` → `slides.dart`
+  - `CellText`/`CellNumber` → `excel.dart`
+  - the `.pptx` test builder → `testing.dart`
+- **New in the kit:**
+  - `DocumentFormat`: extension, path and MIME detection. The app's `DocumentCategory` and `IncomingDocumentResolver` now use it, so supported types are defined in one place.
+  - `reader_contract.dart`:
+    - `ReadingPosition` is a map, and its `PositionKeys` are the same keys the app already stores, so no data migration is needed.
+    - `DocumentLoadError` lists the load failures as typed values.
+- **Tests:** the app has 218, the kit has 21; that is the 17 that moved plus 4 new format tests. All pass, and analyze is clean.
+
+## Phase B2–B5: done (2026-10-23)
+The parallel agents hit the usage limit before saving any work, so B2–B5 were done in the main tree, one after another.
+
+- **B3: slides and text.**
+  - `SlideDeckController` + `SlideDeckView`/`SlideNavigationBar` (`slides.dart`).
+  - `TextDocumentController` + `TextDocumentView` (`text.dart`). `TextLineMetrics` moved into the kit.
+- **B2: spreadsheets.** `SpreadsheetController` (.xlsx with hidden sheets left out; CSV; sheets, search, zoom, scroll, position) + `SheetGrid`, which was `CellGrid` (`sheets.dart`). The app's Excel and CSV controllers now share `SheetReaderController`.
+- **B4: Word and PDF.**
+  - `WordDocumentController` + `WordDocumentView` (`docx.dart`).
+  - `PdfDocumentController` + `PdfDocumentView` (`pdf.dart`), with `probePdfTextLayer`, `pdfSearchStatusLabel` and `pdfHorizontalLayout`.
+  - The app keeps fullscreen, night mode, thumbnails and the password dialog.
+- **B5:** `DocumentViewer.file(path, initialPosition, onPositionChanged)` picks the reader by type.
+- **Kit conventions:** controllers are `ChangeNotifier`s with no GetX or storage, positions use `PositionKeys`, and errors are typed as `DocumentLoadError`.
+- **App controllers:** these are now adapters. They keep the saved position (debounced, and saved again on close), favourites/share/open-with, BRD wording, and observable mirrors for their views.
+- **Checks:**
+  - App: 208 tests pass. Kit: 53 tests pass, including `DocumentViewer` widget tests.
+  - Analyze is clean (only an older settings warning remains).
+  - The APK builds.
+  - On the emulator, PDF, DOCX, XLSX (6440), PPTX (reopened at 29/30) and TXT all open. Word also reopens at its saved scroll position.
+- **Not committed.**

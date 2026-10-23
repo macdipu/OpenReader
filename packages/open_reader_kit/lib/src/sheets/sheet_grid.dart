@@ -1,28 +1,26 @@
-import 'package:open_reader_kit/excel.dart' as xls;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 
-import '../../theme/theme_extensions.dart';
-import 'cell_grid_controller.dart';
+import '../engines/excel/core/excel_plus.dart' as xls;
 import 'cell_text.dart';
-import '../empty/common_empty_view.dart';
+import 'spreadsheet_controller.dart';
 
-/// A frozen header row + frozen leading columns + a body that scrolls both
-/// axes, all synced to the controller's `verticalController`/
-/// `horizontalController`. Shared by the Excel and CSV readers - see
-/// [CellGridController]'s doc comment for why one widget serves both.
-class CellGrid extends StatefulWidget {
-  final CellGridController controller;
+/// A spreadsheet grid: a frozen header row and row-number column, a body
+/// that scrolls both axes (synced to the controller's
+/// `verticalController`/`horizontalController`), a −/+ zoom pill, search
+/// highlights, row/column selection with Count/Sum/Avg and Copy, and a
+/// cell's full value on tap. Serves Excel and CSV alike.
+class SheetGrid extends StatefulWidget {
+  final SpreadsheetController controller;
   final String emptyMessage;
 
-  const CellGrid({super.key, required this.controller, this.emptyMessage = 'No data to display'});
+  const SheetGrid({super.key, required this.controller, this.emptyMessage = 'No data to display'});
 
   @override
-  State<CellGrid> createState() => _CellGridState();
+  State<SheetGrid> createState() => _SheetGridState();
 }
 
-class _CellGridState extends State<CellGrid> {
+class _SheetGridState extends State<SheetGrid> {
   final _headerHorizontalController = ScrollController();
   final _frozenColumnVerticalController = ScrollController();
   bool _syncingHeader = false;
@@ -34,7 +32,6 @@ class _CellGridState extends State<CellGrid> {
   void _toggleSelection(GridSelection selection) =>
       _selection.value = _selection.value == selection ? null : selection;
   late double _zoom;
-  Worker? _zoomWorker;
 
   @override
   void initState() {
@@ -44,12 +41,16 @@ class _CellGridState extends State<CellGrid> {
     widget.controller.verticalController.addListener(_onMainVerticalScroll);
     // Read now, not lazily: the first read used to happen inside the zoom
     // handler, after the change, so the first zoom wasn't anchored.
-    _zoom = widget.controller.zoom.value;
-    _zoomWorker = ever(widget.controller.zoom, _onZoomChanged);
+    _zoom = widget.controller.zoom;
+    widget.controller.addListener(_onControllerChanged);
   }
 
   /// Keeps the same cells in view across a zoom change: offsets scale by
   /// the zoom ratio once the resized grid has laid out (UX-32).
+  void _onControllerChanged() {
+    if (widget.controller.zoom != _zoom) _onZoomChanged(widget.controller.zoom);
+  }
+
   void _onZoomChanged(double zoom) {
     final ratio = zoom / _zoom;
     _zoom = zoom;
@@ -67,7 +68,7 @@ class _CellGridState extends State<CellGrid> {
   /// Saved offsets are at 1x zoom (see the readers' `_savePosition`).
   void _restoreInitialOffsets() {
     final controller = widget.controller;
-    final zoom = controller.zoom.value;
+    final zoom = controller.zoom;
     if (controller.verticalController.hasClients && controller.initialVerticalOffset > 0) {
       final max = controller.verticalController.position.maxScrollExtent;
       controller.verticalController.jumpTo((controller.initialVerticalOffset * zoom).clamp(0.0, max));
@@ -100,7 +101,7 @@ class _CellGridState extends State<CellGrid> {
 
   @override
   void dispose() {
-    _zoomWorker?.dispose();
+    widget.controller.removeListener(_onControllerChanged);
     widget.controller.horizontalController.removeListener(_onMainHorizontalScroll);
     widget.controller.verticalController.removeListener(_onMainVerticalScroll);
     _headerHorizontalController.dispose();
@@ -114,7 +115,7 @@ class _CellGridState extends State<CellGrid> {
     final rows = widget.controller.currentRows;
     final columnCount = widget.controller.columnCount;
     if (rows.isEmpty || columnCount == 0) {
-      return CommonEmptyView(icon: Icons.grid_off_rounded, message: widget.emptyMessage);
+      return _EmptySheet(message: widget.emptyMessage);
     }
 
     return Stack(
@@ -126,8 +127,8 @@ class _CellGridState extends State<CellGrid> {
   }
 
   Widget _buildGrid(List<List<xls.Data?>> rows, int columnCount) {
-    return Obx(() {
-      final zoom = widget.controller.zoom.value;
+    return ListenableBuilder(listenable: widget.controller, builder: (context, _) {
+      final zoom = widget.controller.zoom;
       final metrics = _CellMetrics(zoom);
       return Column(
       children: [
@@ -229,18 +230,17 @@ class _CellGridState extends State<CellGrid> {
 /// Floating −/+ zoom pill over the grid's corner (UX-32) - kept off the app
 /// bar, which has no room for two more actions on a phone.
 class _ZoomControls extends StatelessWidget {
-  final CellGridController controller;
+  final SpreadsheetController controller;
 
   const _ZoomControls({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: context.surfaceContainerHigh,
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
       elevation: 2,
       borderRadius: BorderRadius.circular(999),
-      child: Obx(() {
-        controller.zoom.value; // rebuild on zoom changes
+      child: ListenableBuilder(listenable: controller, builder: (context, _) {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -249,7 +249,7 @@ class _ZoomControls extends StatelessWidget {
               icon: const Icon(Icons.zoom_out_rounded),
               onPressed: controller.canZoomOut ? controller.zoomOut : null,
             ),
-            Text('${(controller.zoom.value * 100).round()}%', style: context.labelMedium),
+            Text('${(controller.zoom * 100).round()}%', style: Theme.of(context).textTheme.labelMedium),
             IconButton(
               tooltip: 'Zoom in',
               icon: const Icon(Icons.zoom_in_rounded),
@@ -268,9 +268,9 @@ class _CellMetrics {
 
   final double zoom;
 
-  double get width => CellGridController.cellWidth * zoom;
-  double get height => CellGridController.cellHeight * zoom;
-  double get rowHeaderWidth => CellGridController.rowHeaderWidth * zoom;
+  double get width => SpreadsheetController.cellWidth * zoom;
+  double get height => SpreadsheetController.cellHeight * zoom;
+  double get rowHeaderWidth => SpreadsheetController.rowHeaderWidth * zoom;
   double get fontSize => 13 * zoom;
 }
 
@@ -287,12 +287,12 @@ Future<void> showCellDetail(BuildContext context, {required String address, requ
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Cell $address', style: sheetContext.titleMedium),
+            Text('Cell $address', style: Theme.of(sheetContext).textTheme.titleMedium),
             const SizedBox(height: 12),
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.5),
               child: SingleChildScrollView(
-                child: SelectableText(value.isEmpty ? '(empty)' : value, style: sheetContext.bodyLarge),
+                child: SelectableText(value.isEmpty ? '(empty)' : value, style: Theme.of(sheetContext).textTheme.bodyLarge),
               ),
             ),
             const SizedBox(height: 16),
@@ -356,13 +356,13 @@ class _HeaderCell extends StatelessWidget {
           width: width ?? metrics.width,
           height: metrics.height,
           alignment: Alignment.center,
-          color: selected ? context.primary : context.surfaceContainer,
+          color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainer,
           child: Text(
             label,
-            style: context.bodySmall?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.bold,
               fontSize: 12 * metrics.zoom,
-              color: selected ? context.onPrimary : null,
+              color: selected ? Theme.of(context).colorScheme.onPrimary : null,
             ),
           ),
         ),
@@ -445,7 +445,7 @@ class _SelectionBar extends StatelessWidget {
       if (average != null) 'Avg ${_formatNumber(average)}',
     ].join(' · ');
     return Container(
-      color: context.primaryContainer,
+      color: Theme.of(context).colorScheme.primaryContainer,
       padding: const EdgeInsets.only(left: 12),
       child: Row(
         children: [
@@ -457,13 +457,13 @@ class _SelectionBar extends StatelessWidget {
               ]),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.bodySmall?.copyWith(color: context.onPrimaryContainer),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer),
             ),
           ),
           IconButton(
             tooltip: 'Copy ${summary.label.toLowerCase()}',
             icon: const Icon(Icons.copy_rounded, size: 20),
-            color: context.onPrimaryContainer,
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
             onPressed: summary.count == 0
                 ? null
                 : () {
@@ -476,7 +476,7 @@ class _SelectionBar extends StatelessWidget {
           IconButton(
             tooltip: 'Clear selection',
             icon: const Icon(Icons.close_rounded, size: 20),
-            color: context.onPrimaryContainer,
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
             onPressed: onClear,
           ),
         ],
@@ -486,7 +486,7 @@ class _SelectionBar extends StatelessWidget {
 }
 
 class _DataRow extends StatelessWidget {
-  final CellGridController controller;
+  final SpreadsheetController controller;
   final List<xls.Data?> row;
   final int rowIndex;
   final int columnCount;
@@ -505,8 +505,8 @@ class _DataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final current = controller.matches.isEmpty ? null : controller.matches[controller.currentMatchIndex.value];
+    return ListenableBuilder(listenable: controller, builder: (context, _) {
+      final current = controller.matches.isEmpty ? null : controller.matches[controller.currentMatchIndex];
       final matchedColumns = {for (final m in controller.matches) if (m.row == rowIndex) m.column};
       return Row(
         children: List.generate(columnCount, (c) {
@@ -554,18 +554,18 @@ class _DataCell extends StatelessWidget {
     // Theme colours, not a hard-coded orange (UX-32): the current match
     // stands out, other matches are marked lightly.
     final fill = switch (highlight) {
-      _CellHighlight.current => context.tertiaryContainer,
-      _CellHighlight.match => context.secondaryContainer.withValues(alpha: 0.5),
-      _CellHighlight.selected => context.primaryContainer,
+      _CellHighlight.current => Theme.of(context).colorScheme.tertiaryContainer,
+      _CellHighlight.match => Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5),
+      _CellHighlight.selected => Theme.of(context).colorScheme.primaryContainer,
       _CellHighlight.none => background,
     };
     // Readable on the file's own fill colour as well as on the theme surface.
     final textColor = highlight == _CellHighlight.current
-        ? context.onTertiaryContainer
+        ? Theme.of(context).colorScheme.onTertiaryContainer
         : highlight == _CellHighlight.selected
-            ? context.onPrimaryContainer
+            ? Theme.of(context).colorScheme.onPrimaryContainer
             : fill == null || highlight == _CellHighlight.match
-            ? context.onSurface
+            ? Theme.of(context).colorScheme.onSurface
             : (fill.computeLuminance() > 0.5 ? Colors.black87 : Colors.white);
     return InkWell(
       onTap: onTap,
@@ -576,7 +576,7 @@ class _DataCell extends StatelessWidget {
         alignment: Alignment.centerLeft,
         decoration: BoxDecoration(
           color: fill,
-          border: Border.all(color: context.outlineVariant, width: 0.5),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 0.5),
         ),
         child: Text(
           data?.readerText ?? '',
@@ -590,6 +590,30 @@ class _DataCell extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _EmptySheet extends StatelessWidget {
+  const _EmptySheet({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+      children: [
+        Icon(Icons.grid_off_rounded, size: 56, color: colors.onSurfaceVariant),
+        const SizedBox(height: 16),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.onSurface),
+        ),
+      ],
     );
   }
 }

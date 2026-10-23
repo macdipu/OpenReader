@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import '../../../core/presentation/widgets/cell_grid/cell_grid.dart';
+import 'package:open_reader_kit/sheets.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'excel_reader_controller.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
@@ -13,7 +13,7 @@ import '../../../core/presentation/widgets/app_shortcuts.dart';
 /// BRD §9.12 Excel Reader Screen.
 ///
 /// `excel_plus` (the parsing library, see `ExcelReaderController`'s own doc
-/// comment) ships no grid widget, so [CellGrid] - shared with the CSV reader
+/// comment) ships no grid widget, so [SheetGrid] - shared with the CSV reader
 /// since `FEATURE-OPENREADER-P4` - is first-party OpenReader UI built directly on
 /// its parsed cell model.
 ///
@@ -47,7 +47,7 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: CellGrid(key: ValueKey(sheetIndex), controller: controller, emptyMessage: 'Empty workbook'),
+                child: SheetGrid(key: ValueKey(sheetIndex), controller: controller.sheet, emptyMessage: 'Empty workbook'),
               ),
             ),
             _SheetTabBar(controller: controller),

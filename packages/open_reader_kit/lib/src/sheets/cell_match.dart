@@ -1,4 +1,4 @@
-/// A single cell match from a [CellGridController]'s search.
+/// A single cell match from a [SpreadsheetController]'s search.
 class CellMatch {
   final int row;
   final int column;

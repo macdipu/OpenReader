@@ -5,3 +5,4 @@
 library;
 
 export 'src/engines/excel/core/excel_plus.dart';
+export 'src/sheets/cell_text.dart';

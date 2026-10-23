@@ -8,9 +8,8 @@ import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
-import 'package:openreader/core/presentation/utils/zip_safety_guard.dart';
-import 'package:openreader/core/presentation/widgets/cell_grid/cell_grid.dart';
-import 'package:openreader/core/presentation/widgets/cell_grid/cell_grid_controller.dart';
+import 'package:open_reader_kit/open_reader_kit.dart';
+import 'package:open_reader_kit/sheets.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
@@ -379,26 +378,28 @@ void main() {
   });
 
   group('grid zoom and cell detail (UX-32)', () {
-    test('zoom steps stay within 75%-200%', () {
+    test('zoom steps stay within 75%-200%', () async {
+      // The kit's SpreadsheetController (which owns zoom) exists once loading starts.
+      await loaded(controller);
       expect(controller.zoom.value, 1.0);
       for (var i = 0; i < 10; i++) {
         controller.zoomIn();
       }
-      expect(controller.zoom.value, CellGridZoom.maxZoom);
+      expect(controller.zoom.value, SpreadsheetController.maxZoom);
       expect(controller.canZoomIn, isFalse);
       for (var i = 0; i < 10; i++) {
         controller.zoomOut();
       }
-      expect(controller.zoom.value, CellGridZoom.minZoom);
+      expect(controller.zoom.value, SpreadsheetController.minZoom);
       expect(controller.canZoomOut, isFalse);
     });
 
     testWidgets('tapping a cell shows its full value with Copy; zoom scales cells', (tester) async {
       await tester.runAsync(() => loaded(controller));
-      await tester.pumpWidget(MaterialApp(home: Scaffold(body: CellGrid(controller: controller))));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SheetGrid(controller: controller.sheet))));
       await tester.pump();
       Finder cellOf(String text) => find.ancestor(of: find.text(text), matching: find.byType(Container)).first;
-      expect(tester.getSize(cellOf('Alice')).width, CellGridController.cellWidth);
+      expect(tester.getSize(cellOf('Alice')).width, SpreadsheetController.cellWidth);
 
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
@@ -410,7 +411,7 @@ void main() {
       await tester.tap(find.byTooltip('Zoom in'));
       await tester.pumpAndSettle();
       expect(find.text('125%'), findsOneWidget);
-      expect(tester.getSize(cellOf('Alice')).width, CellGridController.cellWidth * 1.25);
+      expect(tester.getSize(cellOf('Alice')).width, SpreadsheetController.cellWidth * 1.25);
     });
 
     testWidgets('tapping a column or row header selects it, sums its numbers, copies it, and clears', (tester) async {
@@ -421,7 +422,7 @@ void main() {
       });
       addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
       await tester.runAsync(() => loaded(controller));
-      await tester.pumpWidget(MaterialApp(home: Scaffold(body: CellGrid(controller: controller))));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SheetGrid(controller: controller.sheet))));
       await tester.pump();
 
       await tester.tap(find.bySemanticsLabel('Column B'));

@@ -9,6 +9,7 @@ import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
+import 'package:open_reader_kit/pdf.dart';
 import 'package:openreader/features/pdf_reader/presentation/pdf_reader_controller.dart';
 import 'package:dartz/dartz.dart';
 import 'package:fake_async/fake_async.dart';
@@ -202,8 +203,7 @@ void main() {
     });
 
     test('onClose persists the current page once the document is ready', () async {
-      controller.pageCount.value = 3;
-      controller.currentPage.value = 3;
+      controller.pdf.debugSetPages(pageCount: 3, currentPage: 3);
       controller.onClose();
       await Future<void>.delayed(Duration.zero);
       expect(recents.markOpenedCalls, 1);
@@ -213,8 +213,7 @@ void main() {
 
   group('history refresh on close (HOME-RECENTS)', () {
     test('readerClosed fires only after the final position save has landed', () async {
-      controller.pageCount.value = 8;
-      controller.currentPage.value = 6;
+      controller.pdf.debugSetPages(pageCount: 8, currentPage: 6);
       recents.holdSave = Completer<void>();
       final before = interactions.readerClosed.value;
       controller.onClose();
@@ -302,8 +301,7 @@ void main() {
     });
 
     test('toggling saves the mode with the position', () async {
-      controller.pageCount.value = 10;
-      controller.currentPage.value = 4;
+      controller.pdf.debugSetPages(pageCount: 10, currentPage: 4);
       controller.toggleViewMode();
       await Future<void>.delayed(Duration.zero);
       expect(recents.lastReadingPosition, {'page_number': 4, 'page_count': 10, 'view_mode': 'horizontal'});

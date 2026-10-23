@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/data/repositories/document_repository_impl.dart';
@@ -53,26 +54,13 @@ class IncomingDocumentResolver {
 
   IncomingDocumentResolver({DocumentRepository? documentRepository}) : _documentRepository = documentRepository ?? DocumentRepositoryImpl();
 
-  /// MIME types an incoming file may carry when its cached filename has no
-  /// usable extension (the sharing plugin names some `content://` copies
-  /// `<prefix>_<time>.null`), mapped to the extension they stand for.
-  static const _extensionByMimeType = {
-    'application/pdf': 'pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
-    'text/plain': 'txt',
-    'text/markdown': 'md',
-    'text/x-markdown': 'md',
-    'text/csv': 'csv',
-    'text/comma-separated-values': 'csv',
-  };
-
   Future<IncomingDocumentResolution> resolve(String path, {String? mimeType}) async {
     var extension = p.extension(path).replaceFirst('.', '').toLowerCase();
     var category = DocumentCategory.fromExtension(extension);
     if (category == DocumentCategory.unknown && mimeType != null) {
-      final fromMime = _extensionByMimeType[mimeType.toLowerCase()];
+      // The sharing plugin names some `content://` copies `<prefix>_<time>.null`,
+      // so the MIME type is the only clue to what they are.
+      final fromMime = DocumentFormat.extensionForMimeType(mimeType);
       if (fromMime != null) {
         extension = fromMime;
         category = DocumentCategory.fromExtension(fromMime);

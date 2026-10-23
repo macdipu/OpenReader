@@ -4,12 +4,12 @@ import 'package:get/get.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import '../../../core/presentation/widgets/cell_grid/cell_grid.dart';
+import 'package:open_reader_kit/sheets.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'csv_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 
-/// BRD §9.15 CSV Reader Screen. Reuses [CellGrid], the same first-party grid
+/// BRD §9.15 CSV Reader Screen. Reuses [SheetGrid], the same first-party grid
 /// the Excel reader uses (`FEATURE-OPENREADER-P3/TASK-011`) - CSV has one
 /// implicit sheet, so there is no sheet-tab bar here.
 class CsvReaderView extends GetView<CsvReaderController> {
@@ -36,7 +36,7 @@ class CsvReaderView extends GetView<CsvReaderController> {
             borderRadius: BorderRadius.circular(12),
           ),
           clipBehavior: Clip.antiAlias,
-          child: CellGrid(controller: controller, emptyMessage: 'Empty file'),
+          child: SheetGrid(controller: controller.sheet, emptyMessage: 'Empty file'),
         );
       }),
     )),

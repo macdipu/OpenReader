@@ -8,8 +8,13 @@ import 'package:archive/archive.dart';
 /// rels, and media. [slides] are slide-tree bodies (`p:spTree` children), in
 /// presentation order; they're stored in *reverse* file-name order so a test
 /// can tell `p:sldIdLst` order from file order.
-Uint8List buildPptx(List<String> slides, {Map<String, List<int>> media = const {}, Map<int, String> slideRels = const {}}) {
-  const ns = 'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+Uint8List buildPptx(
+  List<String> slides, {
+  Map<String, List<int>> media = const {},
+  Map<int, String> slideRels = const {},
+}) {
+  const ns =
+      'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
       'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
       'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
   final archive = Archive();
@@ -51,11 +56,15 @@ String titleShape(String text) =>
     '<p:txBody><a:p><a:r><a:t>$text</a:t></a:r></a:p></p:txBody></p:sp>';
 
 /// A body shape; each entry is (text, bullet level).
-String bodyShape(List<(String, int)> paragraphs) => '<p:sp><p:nvSpPr><p:cNvPr id="3" name="Body"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'
+String bodyShape(List<(String, int)> paragraphs) =>
+    '<p:sp><p:nvSpPr><p:cNvPr id="3" name="Body"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'
     '<p:txBody>${[for (final (text, level) in paragraphs) '<a:p><a:pPr lvl="$level"/><a:r><a:t>$text</a:t></a:r></a:p>'].join()}</p:txBody></p:sp>';
 
-String tableFrame(List<List<String>> rows) => '<p:graphicFrame><a:graphic><a:graphicData><a:tbl>'
-    '${[for (final row in rows) '<a:tr>${[for (final cell in row) '<a:tc><a:txBody><a:p><a:r><a:t>$cell</a:t></a:r></a:p></a:txBody></a:tc>'].join()}</a:tr>'].join()}'
+String tableFrame(List<List<String>> rows) =>
+    '<p:graphicFrame><a:graphic><a:graphicData><a:tbl>'
+    '${[
+      for (final row in rows) '<a:tr>${[for (final cell in row) '<a:tc><a:txBody><a:p><a:r><a:t>$cell</a:t></a:r></a:p></a:txBody></a:tc>'].join()}</a:tr>',
+    ].join()}'
     '</a:tbl></a:graphicData></a:graphic></p:graphicFrame>';
 
 String picture(String relId) => '<p:pic><p:blipFill><a:blip r:embed="$relId"/></p:blipFill></p:pic>';

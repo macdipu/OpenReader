@@ -40,13 +40,13 @@ class PptxSlide {
 
   /// Everything searchable on the slide.
   String get text => [
-        if (title case final title?) title,
-        for (final block in blocks)
-          if (block is PptxParagraph)
-            block.text
-          else if (block is PptxTable)
-            for (final row in block.rows) row.join(' '),
-      ].join('\n');
+    if (title case final title?) title,
+    for (final block in blocks)
+      if (block is PptxParagraph)
+        block.text
+      else if (block is PptxTable)
+        for (final row in block.rows) row.join(' '),
+  ].join('\n');
 }
 
 class PptxPresentation {
@@ -89,7 +89,7 @@ class PptxParser {
     }
     final files = {
       for (final f in archive.files)
-        if (f.isFile) f.name: f
+        if (f.isFile) f.name: f,
     };
 
     String? readText(String name) {

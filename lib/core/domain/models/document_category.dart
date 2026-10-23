@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:open_reader_kit/open_reader_kit.dart';
 
 import '../../presentation/theme/color_schemes.dart';
 
@@ -11,27 +12,20 @@ enum DocumentCategory {
   csv,
   unknown;
 
-  /// Legacy binary `.doc`/`.xls`/`.ppt` are deliberately absent: the Word/Excel/
-  /// PowerPoint readers are OOXML (ZIP) only, so those files could only ever show a
-  /// misleading "damaged" error. BRD lines 125/127 require them only "if
-  /// rendering engine supports acceptable fidelity", and line 175 says to
-  /// ignore unsupported files in document lists (CR-OPENREADER-UX, UX-06).
-  static const Map<String, DocumentCategory> _byExtension = {
-    'pdf': DocumentCategory.pdf,
-    'docx': DocumentCategory.word,
-    'xlsx': DocumentCategory.excel,
-    'pptx': DocumentCategory.powerpoint,
-    'txt': DocumentCategory.text,
-    'md': DocumentCategory.text,
-    'markdown': DocumentCategory.text,
-    'csv': DocumentCategory.csv,
-  };
+  /// What open_reader_kit reads decides what the app lists and opens: one
+  /// source of truth (legacy `.doc`/`.xls`/`.ppt` are not among them -
+  /// CR-OPENREADER-UX, UX-06; see `DocumentFormat`).
+  static DocumentCategory fromExtension(String extension) => switch (DocumentFormat.fromExtension(extension)) {
+        DocumentFormat.pdf => DocumentCategory.pdf,
+        DocumentFormat.word => DocumentCategory.word,
+        DocumentFormat.excel => DocumentCategory.excel,
+        DocumentFormat.powerpoint => DocumentCategory.powerpoint,
+        DocumentFormat.text => DocumentCategory.text,
+        DocumentFormat.csv => DocumentCategory.csv,
+        null => DocumentCategory.unknown,
+      };
 
-  static DocumentCategory fromExtension(String extension) {
-    return _byExtension[extension.toLowerCase()] ?? DocumentCategory.unknown;
-  }
-
-  static List<String> get supportedExtensions => _byExtension.keys.toList();
+  static List<String> get supportedExtensions => DocumentFormat.supportedExtensions;
 
   String get label {
     switch (this) {
