@@ -31,6 +31,10 @@ features:
     status: IN_PROGRESS         # Text/CSV implemented 2026-09-18 (TASK-012); device verification and large-file corpus still outstanding
     path: agentic/data/project-context/features/FEATURE-OPENREADER-P4
     last_indexed_revision: null
+  CR-OPENREADER-BROWSE:
+    status: COMPLETED           # Storage scan removed on all platforms; in-app folder browser (Browse tab); privacy/sandbox/local badges removed; DB v3 keeps opened/favorited docs only. RUN-5C655F87..., v1.0.7+9 (2026-10-23).
+    path: agentic/data/project-context/features/CR-OPENREADER-BROWSE
+    last_indexed_revision: 1e12acb
   CR-OPENREADER-UX:
     status: COMPLETED           # UX audit remediation, 3 phases all COMPLETED: Phase 1 (RUN-634FD576..., 1.0.3+5), Phase 2 (RUN-F6F654BC..., 1.0.4/1.0.5+7), Phase 3 (RUN-1553CD5C..., 1.0.6+8, ADR-OPENREADER-desktop-drop). Open: UX-07 decision, Word page-break clipping, Phase 3 logged items.
     path: agentic/data/project-context/features/CR-OPENREADER-UX

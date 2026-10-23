@@ -1,6 +1,6 @@
 # OpenReader
 
-A privacy-first, fully offline document reader built with Flutter for Android, Windows, macOS and Linux. OpenReader lets users discover, open, read, search, and navigate documents stored locally on their device — no accounts, no cloud upload, no server dependency.
+A document reader built with Flutter for Android, Windows, macOS and Linux. OpenReader lets users browse, open, read, search, and navigate the documents on their device — no accounts and no server dependency.
 
 **Supported formats:** PDF, DOC/DOCX, XLS/XLSX, CSV, TXT, MD. (PPT/PPTX has no reader yet — blocked on an open product decision, see `agentic/data/project-context/features/FEATURE-OPENREADER-P3`.)
 
@@ -9,9 +9,9 @@ A privacy-first, fully offline document reader built with Flutter for Android, W
 ## Features
 
 - **Readers:** PDF (page-based), Word (paginated/flow), Excel/CSV (spreadsheet grid), plain text
-- **File discovery:** on-device document scanner, Recents, Favorites, Search
+- **File discovery:** in-app folder browser, Recents, Favorites, Search
 - **Sharing:** Share, File Info, Open With, and Open From Other Apps (receive shared/opened files from other apps)
-- **Offline-first:** all reading happens on-device; local SQLite index for recents/favorites
+- **Data:** an on-device SQLite index of opened documents for recents/favorites
 
 Reference: `lib/features/` (`pdf_reader`, `word_reader`, `excel_reader`, `csv_reader`, `text_reader`, `files`, `recents`, `favorites`, `search`, `settings`, `onboarding`, `home`).
 
@@ -19,7 +19,7 @@ Reference: `lib/features/` (`pdf_reader`, `word_reader`, `excel_reader`, `csv_re
 
 ## Platforms and release builds
 
-The layout adapts to window size (`lib/core/presentation/utils/screen_utils.dart`): phones get a bottom navigation bar, tablets and desktop windows get a side rail, an "Open file" button, and width-capped content. On desktop the scanner indexes Documents, Downloads and Desktop; any other file opens through "Open file" or as a command-line argument (`openreader file.pdf`).
+The layout adapts to window size (`lib/core/presentation/utils/screen_utils.dart`): phones get a bottom navigation bar, tablets and desktop windows get a side rail, an "Open file" button, and width-capped content. Documents are found with the in-app folder browser (Browse tab), starting from device storage (Android) or Home, Documents, Downloads and Desktop (desktop); a file can also be opened with "Open file", by drag-and-drop on desktop, or as a command-line argument (`openreader file.pdf`).
 
 ```bash
 flutter build apk --release --split-per-abi   # Android

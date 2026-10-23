@@ -167,11 +167,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
     expect(find.text('Clear Recent History'), findsOneWidget);
-    expect(find.text('Rescan Local Storage'), findsOneWidget);
-    // UX-23 (Phase 3): no sandbox claim; the access actually used is named.
-    expect(find.text('SANDBOXED'), findsNothing);
-    expect(find.textContaining('No broader filesystem access'), findsNothing);
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text('Clear Render Cache'), findsOneWidget);
+    // No storage scan any more (CR-OPENREADER-BROWSE).
+    expect(find.textContaining('Rescan'), findsNothing);
+    expect(find.textContaining('indexed'), findsNothing);
+    // CR-OPENREADER-COPY: no sandbox / local-only / privacy badges or claims.
+    for (final banned in ['SANDBOXED', 'OFFLINE', 'LOCAL', 'Local-only', 'Private', '100% Offline', 'telemetry']) {
+      expect(find.textContaining(banned), findsNothing, reason: banned);
+    }
     // The app can delete files, so the copy mustn't claim read-only access.
     expect(find.textContaining('only reads'), findsNothing);
   });

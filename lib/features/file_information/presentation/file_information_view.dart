@@ -10,7 +10,6 @@ import '../../../core/presentation/widgets/document/document_load_error_view.dar
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import 'file_information_controller.dart';
-import '../../../core/presentation/widgets/offline_pill.dart';
 import '../../../core/presentation/utils/platform_info.dart';
 import '../../../core/presentation/utils/document_date_formatter.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
@@ -142,7 +141,6 @@ class FileInformationSheet extends GetView<FileInformationController> {
                                 ],
                               ),
                             ),
-                            const OfflinePill(),
                           ],
                         ),
                       ),
@@ -172,32 +170,9 @@ class FileInformationSheet extends GetView<FileInformationController> {
                           label: 'Access',
                           value: PlatformInfo.isAndroid
                               ? 'Read via Android\'s All Files Access'
-                              : 'Read from the folders OpenReader scans',
+                              : 'Read from your folders',
                         ),
                       ]),
-                      const SizedBox(height: 20),
-                      Text('ENGINE DIAGNOSTICS', style: context.labelLarge?.copyWith(color: context.onSurfaceVariant, letterSpacing: 1)),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: context.tertiaryContainer.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.16 : 1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.cloud_off_outlined, color: context.tertiary, size: 18),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                // A design fact, not a runtime check - so no "verified" (UX-24).
-                                'Read on-device — OpenReader makes no network calls',
-                                style: context.bodySmall?.copyWith(color: context.onSurface),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                       const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,

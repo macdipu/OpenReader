@@ -19,7 +19,9 @@ class AppDatabase {
   static const _legacyFileName = 'opendocs.db';
   /// 2: legacy `.doc`/`.xls` are no longer indexed (CR-OPENREADER-UX UX-06),
   /// so rows an older install indexed are pruned on upgrade - see [_onUpgrade].
-  static const _version = 2;
+  /// 3: no storage scan any more (CR-OPENREADER-BROWSE) - the index keeps
+  /// only documents the user opened or favorited; see [_onUpgrade].
+  static const _version = 3;
 
   Database? _database;
 
@@ -97,6 +99,13 @@ class AppDatabase {
   static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.delete('documents', where: "lower(extension) IN ('doc', 'xls')");
+    }
+    if (oldVersion < 3) {
+      await db.delete(
+        'documents',
+        where: 'id NOT IN (SELECT document_id FROM recent_documents) '
+            'AND id NOT IN (SELECT document_id FROM favorite_documents)',
+      );
     }
   }
 

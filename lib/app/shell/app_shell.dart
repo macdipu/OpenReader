@@ -5,7 +5,7 @@ import '../../core/presentation/theme/theme_extensions.dart';
 import '../../core/presentation/utils/screen_utils.dart';
 import '../../res/routes/app_routes.dart';
 import '../../features/favorites/presentation/favorites_view.dart';
-import '../../features/files/presentation/files_view.dart';
+import '../../features/browse/presentation/browse_view.dart';
 import '../../features/home/presentation/home_view.dart';
 import 'app_shell_controller.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -14,7 +14,7 @@ import '../../core/presentation/widgets/app_shortcuts.dart';
 
 /// Adaptive shell: Home / Files / Favorites (BRD 9.3). Phones get the bottom
 /// navigation bar; wider windows (tablets, desktop) get a side navigation rail
-/// with Open file / Rescan / Settings actions, and the page content is capped
+/// with Open file / Settings actions, and the page content is capped
 /// to a readable width. Settings is a pushed route (AppRoutes.settings), not a
 /// tab - on phones it is reached via the gear icon in Home's app bar.
 ///
@@ -32,7 +32,7 @@ class AppShell extends StatelessWidget {
           index: controller.currentIndex.value,
           children: const [
             HomeView(),
-            FilesView(),
+            BrowseView(),
             FavoritesView(),
           ],
         ));
@@ -147,11 +147,6 @@ class _AppNavRail extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'Rescan storage',
-                      icon: const Icon(Icons.refresh_rounded),
-                      onPressed: controller.rescan,
-                    ),
-                    IconButton(
                       tooltip: 'Settings',
                       icon: const Icon(Icons.settings_outlined),
                       onPressed: () => Get.toNamed(AppRoutes.settings),
@@ -181,7 +176,7 @@ class _AppNavBar extends StatelessWidget {
 
   static const _items = [
     (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded, label: 'Files'),
+    (icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded, label: 'Browse'),
     (icon: Icons.star_outline_rounded, activeIcon: Icons.star_rounded, label: 'Library'),
   ];
 

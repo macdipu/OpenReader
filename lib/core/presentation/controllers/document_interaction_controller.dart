@@ -144,7 +144,23 @@ class DocumentInteractionController extends GetxController {
     unawaited(Get.toNamed(route, arguments: document));
   }
 
-  /// ODF-009: system share sheet for the original file (BRD §13's error
+  /// Opens a document picked in the in-app browser. Browsed files aren't in
+  /// the index until used (CR-OPENREADER-BROWSE), and recents/favorites
+  /// reference index rows, so it's indexed first.
+  Future<void> openFromBrowse(DocumentModel document) async {
+    final indexed = await _documentRepository.indexDocument(document);
+    // Still open it - just say it won't appear in Recent.
+    indexed.fold((failure) => CustomSnackbar.error("This document won't appear in Recent.", title: document.displayName), (_) {});
+    await openDocument(document);
+  }
+
+  /// Star/unstar from the browser - indexed first, for the same reason.
+  Future<void> toggleFavoriteFor(DocumentModel document) async {
+    if (!isFavorite(document.id)) await _documentRepository.indexDocument(document);
+    await toggleFavorite(document.id);
+  }
+
+    /// ODF-009: system share sheet for the original file (BRD §13's error
   /// messages apply first via [_verifyStillAccessible]).
   Future<void> shareDocument(DocumentModel document) async {
     if (!await _verifyStillAccessible(document)) return;

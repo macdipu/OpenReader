@@ -1,0 +1,1 @@
+{"status":"READY","evidence":["base 1e12acb (v1.0.6): 220/220 tests at release; copy-removal edits in working tree: 220/220 pass"],"blocking_issues":[],"open_questions":[],"recommended_next_step":"IMPACT","outputs":{"verdict":"CONTEXT_READY","source_revision":"1e12acb"}}

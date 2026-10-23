@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 
 import '../../core/domain/models/document_category.dart';
 import '../../features/favorites/presentation/favorites_controller.dart';
-import '../../features/files/presentation/files_controller.dart';
+import '../../features/browse/presentation/browse_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
@@ -52,8 +52,8 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
       final home = Get.find<HomeController>();
       if (home.hasAccess.value != access) unawaited(home.load());
     }
-    if (Get.isRegistered<FilesController>()) {
-      final files = Get.find<FilesController>();
+    if (Get.isRegistered<BrowseController>()) {
+      final files = Get.find<BrowseController>();
       if (files.hasAccess.value != access) unawaited(files.load());
     }
   }
@@ -75,7 +75,6 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     if (path != null) await _incomingIntentService.handlePath(path);
   }
 
-  Future<void> rescan() => Get.find<HomeController>().refresh();
 
   /// A file is being dragged over the window (desktop drop target, UX-34).
   final isDraggingFile = false.obs;
@@ -128,10 +127,13 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     Get.find<FavoritesController>().showHistory();
   }
 
-  /// Switches to the Files tab, optionally pre-filtered to [category]
-  /// (invoked from Home's category shortcuts, BRD 9.3).
-  void openFiles({DocumentCategory? category}) {
-    Get.find<FilesController>().selectCategory(category);
-    currentIndex.value = filesIndex;
+  /// Switches to the Browse tab (Home's "Browse files").
+  void openBrowse() => currentIndex.value = filesIndex;
+
+  /// Search screen's "Search on device": Browse tab, searching the folder
+  /// it's in (or all storage) for [query].
+  void searchOnDevice(String query) {
+    openBrowse();
+    unawaited(Get.find<BrowseController>().searchSubfolders(query));
   }
 }

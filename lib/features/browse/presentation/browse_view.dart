@@ -8,131 +8,234 @@ import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
-import '../../../core/presentation/widgets/document/document_load_error_view.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../file_information/presentation/file_information_view.dart';
-import 'files_controller.dart';
-import '../../../core/presentation/widgets/offline_pill.dart';
+import 'package:path/path.dart' as p;
+
+import '../../../app/shell/app_shell_controller.dart';
+import 'browse_controller.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 
-/// All Files Explorer (DESIGN_SPEC.md #10): format filter pills, storage
-/// summary banner, sort chip, compact file rows.
-class FilesView extends GetView<FilesController> {
-  const FilesView({super.key});
+/// The Browse tab (CR-OPENREADER-BROWSE): storage roots, then folders with
+/// their supported documents. Replaces the former All Files list of a
+/// whole-storage scan.
+class BrowseView extends GetView<BrowseController> {
+  const BrowseView({super.key});
 
   @override
   Widget build(BuildContext context) {
     final interactions = Get.find<DocumentInteractionController>();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('All Files'),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: context.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text('LOCAL', style: context.monoMetadata),
+    return Obx(() => PopScope(
+          // Back goes up a folder (or out of search results) before leaving -
+          // only while this tab is showing: the shell keeps every tab mounted,
+          // so otherwise back on Home would move Browse instead of exiting.
+          canPop: !_isActiveTab || (controller.atRoots && !controller.showingSearch.value),
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) controller.goUp();
+          },
+          child: Scaffold(
+            appBar: AppBar(
+              leading: controller.atRoots && !controller.showingSearch.value
+                  ? null
+                  : IconButton(
+                      tooltip: 'Back',
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      onPressed: controller.goUp,
+                    ),
+              title: Text(controller.showingSearch.value ? 'Search results' : 'Browse'),
             ),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: _SearchField(onChanged: controller.setSearchQuery),
-          ),
-          const SizedBox(height: 12),
-          Obx(() => _CategoryFilterRow(
-                selected: controller.selectedCategory.value,
-                // `Map.of(...)` (not a bare reference) so this Obx actually
-                // reads the RxMap's entries and subscribes to it - passing
-                // the RxMap through unread never registers a dependency, so
-                // `categoryCounts.assignAll(...)` would otherwise silently
-                // never repaint this row.
-                counts: Map.of(controller.categoryCounts),
-                onSelected: controller.selectCategory,
-              )),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Obx(() => _SortChip(mode: controller.sortMode.value, onSelected: controller.setSort)),
-            ),
-          ),
-          const SizedBox(height: 2),
-          // Reloads (filter/sort/search/rescan) keep the list mounted; this
-          // thin bar is the only busy signal for them - see `beginLoad`.
-          Obx(() => SizedBox(
-                height: 2,
-                child: controller.status.value.isRefreshing ? const LinearProgressIndicator(minHeight: 2) : null,
-              )),
-          Expanded(
-            child: Obx(() {
-              if (!controller.hasAccess.value) {
-                return _FilesMessage(
-                  icon: Icons.folder_off_outlined,
-                  message: 'Storage access is required to list files.',
-                  actionLabel: 'Grant Access',
-                  onAction: controller.requestAccess,
-                );
-              }
-              if (controller.status.value.isLoading) return const LoadingView();
-              if (controller.status.value.isError) {
-                return DocumentLoadErrorView(
-                  message: controller.errorMessage.value ?? 'Unable to load documents.',
-                  onRetry: controller.retry,
-                );
-              }
-              if (controller.status.value.isEmpty || controller.documents.isEmpty) {
-                // Scrollable so pull-to-refresh reaches an empty list too.
-                final filtered = controller.hasActiveFilter;
-                return RefreshIndicator(
-                  onRefresh: controller.refresh,
-                  child: _FilesMessage(
-                    icon: filtered ? Icons.search_off_rounded : Icons.folder_open_outlined,
-                    message: filtered ? 'No matching documents' : 'No documents found',
-                    actionLabel: filtered ? null : 'Scan storage',
-                    onAction: filtered ? null : controller.refresh,
-                  ),
-                );
-              }
-              return RefreshIndicator(
-                onRefresh: controller.refresh,
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(top: 8, bottom: 24),
-                  itemCount: controller.documents.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) return _StorageSummaryBanner(documents: controller.documents);
-                    final document = controller.documents[index - 1];
-                    return Obx(() => DocumentListTile(
-                          document: document,
-                          dense: true,
-                          isFavorite: interactions.isFavorite(document.id),
-                          onTap: () => interactions.openDocument(document),
-                          onLongPress: () => _showFileActionSheet(context, document, interactions),
-                          highlight: controller.searchQuery.value,
-                          onToggleFavorite: (_) => interactions.toggleFavorite(document.id),
-                          onShare: () => interactions.shareDocument(document),
-                          onShowInfo: () => showFileInformationSheet(context, document),
-                          onOpenWith: () => interactions.openWithExternalApp(document),
-                          onDelete: () async {
-                            if (await interactions.confirmAndDelete(document)) controller.load();
-                          },
-                        ));
-                  },
+            body: Column(
+              children: [
+                if (!controller.atRoots && !controller.showingSearch.value) _Breadcrumb(controller: controller),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  // Keyed, so the field keeps its state while rows above and
+                  // below it come and go (breadcrumb, filters, search results).
+                  child: _SearchField(key: const ValueKey('browse-search'), controller: controller),
                 ),
-              );
-            }),
+                if (!controller.atRoots && !controller.showingSearch.value) ...[
+                  const SizedBox(height: 12),
+                  _CategoryFilterRow(
+                    selected: controller.selectedCategory.value,
+                    counts: controller.categoryCounts,
+                    onSelected: controller.selectCategory,
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _SortChip(mode: controller.sortMode.value, onSelected: controller.setSort),
+                    ),
+                  ),
+                ],
+                SizedBox(
+                  height: 2,
+                  child: controller.status.value.isRefreshing || controller.isSearching.value
+                      ? const LinearProgressIndicator(minHeight: 2)
+                      : null,
+                ),
+                Expanded(child: _body(context, interactions)),
+              ],
+            ),
           ),
+        ));
+  }
+
+  /// Whether the shell is showing this tab (always true outside the shell).
+  bool get _isActiveTab =>
+      !Get.isRegistered<AppShellController>() ||
+      Get.find<AppShellController>().currentIndex.value == AppShellController.filesIndex;
+
+  Widget _body(BuildContext context, DocumentInteractionController interactions) {
+    if (!controller.hasAccess.value) {
+      return _FilesMessage(
+        icon: Icons.folder_off_outlined,
+        message: 'Storage access is needed to browse your files.',
+        actionLabel: 'Grant Access',
+        onAction: controller.requestAccess,
+      );
+    }
+    if (controller.status.value.isLoading) return const LoadingView();
+    if (controller.showingSearch.value) return _searchResults(context, interactions);
+    if (controller.atRoots) {
+      return ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          for (final root in controller.roots)
+            ListTile(
+              leading: Icon(Icons.sd_storage_outlined, color: context.secondary),
+              title: Text(root.name, style: context.titleMedium),
+              subtitle: Text(root.path, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => controller.openRoot(root),
+            ),
         ],
+      );
+    }
+    if (controller.denied.value) {
+      return const _FilesMessage(icon: Icons.lock_outline_rounded, message: "This folder can't be opened.");
+    }
+    final folders = controller.visibleFolders;
+    final documents = controller.visibleDocuments;
+    if (folders.isEmpty && documents.isEmpty) {
+      return _FilesMessage(
+        icon: Icons.folder_open_outlined,
+        message: controller.documents.isEmpty && controller.folders.isEmpty
+            ? 'This folder has no documents.'
+            : 'Nothing here matches.',
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: controller.load,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(top: 4, bottom: 24),
+        itemCount: folders.length + documents.length,
+        itemBuilder: (context, index) {
+          if (index < folders.length) {
+            final folder = folders[index];
+            return ListTile(
+              leading: Icon(Icons.folder_rounded, color: context.secondary),
+              title: Text(p.basename(folder.path), maxLines: 1, overflow: TextOverflow.ellipsis),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => controller.openFolder(folder.path),
+            );
+          }
+          return _documentTile(context, interactions, documents[index - folders.length], controller.filter.value);
+        },
+      ),
+    );
+  }
+
+  Widget _searchResults(BuildContext context, DocumentInteractionController interactions) {
+    final results = controller.searchResults;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  controller.isSearching.value
+                      ? 'Searching for "${controller.searchQuery.value}"… ${results.length} found'
+                      : '${results.length} found for "${controller.searchQuery.value}"',
+                  style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
+                ),
+              ),
+              if (controller.isSearching.value)
+                TextButton(onPressed: controller.cancelSearch, child: const Text('Stop')),
+            ],
+          ),
+        ),
+        Expanded(
+          child: results.isEmpty && !controller.isSearching.value
+              ? const _FilesMessage(icon: Icons.search_off_rounded, message: 'No matching documents.')
+              : ListView.builder(
+                  padding: const EdgeInsets.only(top: 4, bottom: 24),
+                  itemCount: results.length,
+                  itemBuilder: (context, index) =>
+                      _documentTile(context, interactions, results[index], controller.searchQuery.value, showFolder: true),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _documentTile(
+    BuildContext context,
+    DocumentInteractionController interactions,
+    DocumentModel document,
+    String highlight, {
+    bool showFolder = false,
+  }) {
+    return Obx(() => DocumentListTile(
+          document: document,
+          dense: true,
+          isFavorite: interactions.isFavorite(document.id),
+          onTap: () => interactions.openFromBrowse(document),
+          onLongPress: () => _showFileActionSheet(context, document, interactions),
+          highlight: highlight,
+          trailingLabel: showFolder ? p.dirname(document.path) : null,
+          onToggleFavorite: (_) => interactions.toggleFavoriteFor(document),
+          onShare: () => interactions.shareDocument(document),
+          onShowInfo: () => showFileInformationSheet(context, document),
+          onOpenWith: () => interactions.openWithExternalApp(document),
+          onDelete: () async {
+            if (await interactions.confirmAndDelete(document)) controller.removeDocument(document.id);
+          },
+        ));
+  }
+}
+
+/// Where the folder on screen is; each part jumps there.
+class _Breadcrumb extends StatelessWidget {
+  final BrowseController controller;
+  const _Breadcrumb({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final crumbs = controller.breadcrumb;
+    return SizedBox(
+      height: context.scaledExtent(40),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        reverse: true, // keeps the current folder in view
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: crumbs.length,
+        separatorBuilder: (_, __) => Icon(Icons.chevron_left_rounded, size: 18, color: context.onSurfaceVariant),
+        itemBuilder: (context, i) {
+          final crumb = crumbs[crumbs.length - 1 - i];
+          final isCurrent = i == 0;
+          return Center(
+            child: TextButton(
+              onPressed: isCurrent ? null : () => controller.openFolder(crumb.path),
+              child: Text(crumb.name, style: isCurrent ? context.labelLarge : null),
+            ),
+          );
+        },
       ),
     );
   }
@@ -167,51 +270,55 @@ class _FilesMessage extends StatelessWidget {
   }
 }
 
-class _SearchField extends StatelessWidget {
-  final ValueChanged<String> onChanged;
-  const _SearchField({required this.onChanged});
+/// Filters the folder on screen as you type; Enter (or the button) searches
+/// it and every subfolder on disk.
+class _SearchField extends StatefulWidget {
+  final BrowseController controller;
+  const _SearchField({super.key, required this.controller});
 
   @override
-  Widget build(BuildContext context) {
-    return TextField(
-      onChanged: onChanged,
-      style: context.bodyMedium,
-      decoration: InputDecoration(
-        hintText: 'Search this list',
-        prefixIcon: Icon(Icons.search_rounded, color: context.onSurfaceVariant),
-      ),
-    );
-  }
+  State<_SearchField> createState() => _SearchFieldState();
 }
 
-class _StorageSummaryBanner extends StatelessWidget {
-  final List<DocumentModel> documents;
-  const _StorageSummaryBanner({required this.documents});
+class _SearchFieldState extends State<_SearchField> {
+  late final _text = TextEditingController(text: widget.controller.filter.value);
+  Worker? _filterWorker;
+
+  @override
+  void initState() {
+    super.initState();
+    // The field shows the filter in force: a folder change clears it.
+    _filterWorker = ever(widget.controller.filter, (String value) {
+      if (_text.text != value) _text.text = value;
+    });
+  }
+
+  @override
+  void dispose() {
+    _filterWorker?.dispose();
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _searchSubfolders() => widget.controller.searchSubfolders(_text.text);
 
   @override
   Widget build(BuildContext context) {
-    final totalBytes = documents.fold<int>(0, (sum, d) => sum + d.sizeBytes);
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: context.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.folder_outlined, size: 18, color: context.onSurfaceVariant),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '${documents.length} documents • ${formatFileSize(totalBytes)} total • Zero network sync',
-              style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const OfflinePill(showIcon: false),
-        ],
+    final where = widget.controller.atRoots ? 'all storage' : 'this folder and subfolders';
+    return TextField(
+      controller: _text,
+      onChanged: widget.controller.setFilter,
+      onSubmitted: (_) => _searchSubfolders(),
+      textInputAction: TextInputAction.search,
+      style: context.bodyMedium,
+      decoration: InputDecoration(
+        hintText: widget.controller.atRoots ? 'Search all storage' : 'Filter, or search subfolders',
+        prefixIcon: Icon(Icons.search_rounded, color: context.onSurfaceVariant),
+        suffixIcon: IconButton(
+          tooltip: 'Search $where',
+          icon: const Icon(Icons.manage_search_rounded),
+          onPressed: _searchSubfolders,
+        ),
       ),
     );
   }
@@ -416,7 +523,7 @@ Future<void> _showFileActionSheet(
               title: 'Open in Reader',
               onTap: () {
                 Navigator.of(sheetContext).pop();
-                interactions.openDocument(document);
+                interactions.openFromBrowse(document);
               },
             ),
             Obx(() => _SheetAction(
@@ -424,7 +531,7 @@ Future<void> _showFileActionSheet(
                   title: interactions.isFavorite(document.id) ? 'Remove from Favorites' : 'Add to Favorites',
                   onTap: () {
                     Navigator.of(sheetContext).pop();
-                    interactions.toggleFavorite(document.id);
+                    interactions.toggleFavoriteFor(document);
                   },
                 )),
             _SheetAction(
@@ -457,7 +564,7 @@ Future<void> _showFileActionSheet(
               destructive: true,
               onTap: () async {
                 Navigator.of(sheetContext).pop();
-                if (await interactions.confirmAndDelete(document)) Get.find<FilesController>().load();
+                if (await interactions.confirmAndDelete(document)) Get.find<BrowseController>().removeDocument(document.id);
               },
             ),
             const SizedBox(height: 8),

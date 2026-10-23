@@ -14,7 +14,6 @@ import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import '../../recents/presentation/recents_controller.dart';
 import 'favorites_controller.dart';
-import '../../../core/presentation/widgets/offline_pill.dart';
 import '../../../app/shell/app_shell_controller.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 
@@ -30,14 +29,7 @@ class FavoritesView extends GetView<FavoritesController> {
 
     return Scaffold(
         appBar: AppBar(
-          title: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Library'),
-              SizedBox(width: 8),
-              OfflinePill(),
-            ],
-          ),
+          title: const Text('Library'),
           bottom: TabBar(
             controller: controller.tabController,
             labelStyle: context.labelLarge,
@@ -107,7 +99,7 @@ class _FavoritesTab extends StatelessWidget {
                 message: 'No favorite documents yet.',
                 subtitle: 'Tap the star on any document to keep it here.',
                 actionLabel: 'Browse Files',
-                onAction: () => Get.find<AppShellController>().openFiles(),
+                onAction: () => Get.find<AppShellController>().openBrowse(),
               );
             }
 
@@ -296,10 +288,7 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// Footer stat banner (DESIGN_SPEC #06 footer banner) - "Local Encrypted
-/// Vault" in the mockup overstates what this app does (no encryption is
-/// implemented anywhere), so this uses the accurate claim instead: local
-/// storage, zero telemetry.
+/// Footer summary of the list: how many documents, and their total size.
 class _VaultFooterBanner extends StatelessWidget {
   final int count;
   final int bytes;
@@ -316,11 +305,11 @@ class _VaultFooterBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.shield_outlined, size: 16, color: context.onSurfaceVariant),
+          Icon(Icons.folder_outlined, size: 16, color: context.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Local device storage • 0 telemetry sent',
+              count == 1 ? '1 document' : '$count documents',
               style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

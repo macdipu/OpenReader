@@ -31,19 +31,6 @@ class OnboardingView extends GetView<OnboardingController> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: context.tertiaryContainer.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.16 : 1),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.shield_outlined, size: 14, color: context.tertiary),
-                    const SizedBox(width: 6),
-                    Text('100% OFFLINE', style: context.monoMetadata.copyWith(color: context.tertiary)),
-                  ]),
-                ),
-                const SizedBox(height: 24),
-                Container(
                   width: 96,
                   height: 96,
                   alignment: Alignment.center,
@@ -52,19 +39,17 @@ class OnboardingView extends GetView<OnboardingController> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Your Documents, Completely\nPrivate & Offline',
+                  'All Your Documents\nin One Reader',
                   textAlign: TextAlign.center,
                   style: context.headlineMedium,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   askForAccess
-                      ? 'OpenReader reads PDF, Word, Excel, Text, and CSV files stored on '
-                          'this device. Nothing is uploaded — everything stays local and works offline.\n\n'
-                          'Tapping Allow Access requests Android\'s "All Files Access" permission, since your '
-                          'documents can be in any folder, not just Downloads or Documents.'
-                      : 'OpenReader reads PDF, Word, Excel, Text, and CSV files stored on '
-                          'this computer. Nothing is uploaded — everything stays local and works offline.',
+                      ? 'OpenReader reads PDF, Word, Excel, Text, and CSV files stored on this device.\n\n'
+                          'Tapping Allow Access requests Android\'s "All Files Access" permission, so you can '
+                          'browse your documents in any folder, not just Downloads or Documents.'
+                      : 'OpenReader reads PDF, Word, Excel, Text, and CSV files stored on this computer.',
                   textAlign: TextAlign.center,
                   style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
                 ),

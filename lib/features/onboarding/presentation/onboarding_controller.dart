@@ -4,9 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
-import '../../../core/data/repositories/document_repository_impl.dart';
 import '../../../core/domain/repositories/app_settings_repository.dart';
-import '../../../core/domain/repositories/document_repository.dart';
 import '../../../res/routes/app_routes.dart';
 import '../../../services/utilities/storage_access_service.dart';
 
@@ -17,7 +15,6 @@ enum OnboardingStatus { initial, requesting, denied, permanentlyDenied }
 class OnboardingController extends GetxController with WidgetsBindingObserver {
   final StorageAccessService _storageAccess = StorageAccessService.instance;
   final AppSettingsRepository _settingsRepository = AppSettingsRepositoryImpl();
-  final DocumentRepository _documentRepository = DocumentRepositoryImpl();
 
   final status = OnboardingStatus.initial.obs;
 
@@ -80,9 +77,6 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
     if (_finished) return;
     _finished = true;
     await _settingsRepository.setOnboardingComplete(true);
-    // Kick off the first scan; Home/Files will show empty/loading state
-    // regardless if this hasn't finished by the time they mount.
-    unawaited(_documentRepository.rescan());
     unawaited(Get.offAllNamed(AppRoutes.appShell));
   }
 
