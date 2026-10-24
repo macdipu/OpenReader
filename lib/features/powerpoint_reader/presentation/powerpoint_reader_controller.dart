@@ -11,11 +11,11 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
-import 'package:open_reader_kit/slides.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
+import 'package:universal_document_viewer/slides.dart';
 
 /// Drives the PowerPoint reader (CR-OPENREADER-PPTX, UX-07) on top of
-/// open_reader_kit's [SlideDeckController], which owns the slides, the
+/// universal_document_viewer's [SlideDeckController], which owns the slides, the
 /// slide on screen and search. This adds what's OpenReader's: the saved
 /// position (restored on open, saved 2 s after a move and once more on
 /// close), favourites/share/open-with, and the BRD §13 error wording.

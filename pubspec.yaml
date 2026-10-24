@@ -60,11 +60,11 @@ dependencies:
   # TASK-009 (Open From Other Apps, BRD §7.7): receives ACTION_VIEW/
   # ACTION_SEND intents for supported document types.
   receive_sharing_intent: ^1.9.0
-  # Every document engine (PDF, Word, Excel/CSV) is open_reader_kit's own
+  # Every document engine (PDF, Word, Excel/CSV) is universal_document_viewer's own
   # code (CR-OPENREADER-KIT; origins in its NOTICE.md). OpenReader is the
   # kit's example app.
-  open_reader_kit:
-    path: packages/open_reader_kit
+  universal_document_viewer:
+    path: packages/universal_document_viewer
   # ODF-P5-03: direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
   # ZIP container's central directory before the kit's engines decompress it.
   archive: ^4.5.0

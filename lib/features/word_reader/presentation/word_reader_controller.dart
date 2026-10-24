@@ -10,11 +10,11 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import 'package:open_reader_kit/docx.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
+import 'package:universal_document_viewer/docx.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
 
 /// Drives the Word reader (BRD §9.11, ODF-013/014, ODF-008 for Word) on
-/// top of open_reader_kit's [WordDocumentController], which checks the
+/// top of universal_document_viewer's [WordDocumentController], which checks the
 /// file, owns search and scrolling, and restores the saved offset. This
 /// adds what's OpenReader's: the saved position (2 s after scrolling and
 /// once more on close), favourites/share/open-with via the shared

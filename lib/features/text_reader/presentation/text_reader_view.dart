@@ -6,7 +6,7 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
-import 'package:open_reader_kit/text.dart';
+import 'package:universal_document_viewer/text.dart';
 import 'text_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 

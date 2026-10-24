@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
 
 import '../../core/domain/models/document_model.dart';
 import 'path_service.dart';
@@ -14,7 +14,7 @@ typedef ThumbnailRender = Future<Uint8List?> Function(String path, {required int
 
 /// Renders and disk-caches a small first-page preview for every format
 /// the kit reads - PDF, Word, Excel, CSV, PowerPoint and text - via
-/// open_reader_kit's [DocumentThumbnails] (DocumentListTile thumbnail +
+/// universal_document_viewer's [DocumentThumbnails] (DocumentListTile thumbnail +
 /// format-badge overlay). Never throws - callers fall back to the plain
 /// badge when this returns null.
 ///

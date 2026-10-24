@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
-import 'package:open_reader_kit/sheets.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
+import 'package:universal_document_viewer/sheets.dart';
 
 import '../../data/repositories/recent_repository_impl.dart';
 import '../../domain/models/document_model.dart';
@@ -14,7 +14,7 @@ import '../utils/state_status.dart';
 import 'base_controller.dart';
 import 'document_interaction_controller.dart';
 
-/// What the Excel and CSV readers share, on top of open_reader_kit's
+/// What the Excel and CSV readers share, on top of universal_document_viewer's
 /// [SpreadsheetController] (which owns the sheets, search, zoom and
 /// scrolling): the saved position (restored on open, saved 2 s after a
 /// scroll or sheet switch and once more on close), favourites/share/

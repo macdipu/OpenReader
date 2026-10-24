@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
@@ -180,7 +180,7 @@ void main() {
     expect(cached, contains(newest!.path));
   });
 
-  test('previews a real non-PDF file through open_reader_kit', () async {
+  test('previews a real non-PDF file through universal_document_viewer', () async {
     final path = '${temp.path}/notes.txt';
     File(path).writeAsStringSync('Shopping list\nMilk\nBread\n');
     final service = DocumentThumbnailService.withDependencies(pathService: _FakePathService(temp));

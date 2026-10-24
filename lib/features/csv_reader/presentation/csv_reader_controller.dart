@@ -1,14 +1,14 @@
 import 'dart:io';
 
-import 'package:open_reader_kit/open_reader_kit.dart';
-import 'package:open_reader_kit/sheets.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
+import 'package:universal_document_viewer/sheets.dart';
 
 import '../../../core/presentation/controllers/sheet_reader_controller.dart';
 
-export 'package:open_reader_kit/sheets.dart' show CellMatch;
+export 'package:universal_document_viewer/sheets.dart' show CellMatch;
 
 /// Drives the CSV reader (BRD §9.15, ODF-020, ODF-008 for CSV):
-/// open_reader_kit's [SpreadsheetController] parses the file (off the UI
+/// universal_document_viewer's [SpreadsheetController] parses the file (off the UI
 /// isolate) and [SheetGrid] shows it;
 /// [SheetReaderController] adds OpenReader's saved position, favourites and
 /// error wording. CSV has one implicit sheet, so no sheet tabs.

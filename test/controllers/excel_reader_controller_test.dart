@@ -8,19 +8,19 @@ import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
-import 'package:open_reader_kit/sheets.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
+import 'package:universal_document_viewer/sheets.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
-import 'package:open_reader_kit/testing.dart';
+import 'package:universal_document_viewer/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
-// open_reader_kit's spreadsheet engine is pure Dart with no native binary
+// universal_document_viewer's spreadsheet engine is pure Dart with no native binary
 // dependency (unlike the PDF engine's PDFium), so a real .xlsx workbook can
 // be built, encoded, and re-parsed end to end in this test environment -
 // unlike the PDF reader, whose native rendering stays an out-of-environment

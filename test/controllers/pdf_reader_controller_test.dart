@@ -9,7 +9,7 @@ import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
-import 'package:open_reader_kit/pdf.dart';
+import 'package:universal_document_viewer/pdf.dart';
 import 'package:openreader/features/pdf_reader/presentation/pdf_reader_controller.dart';
 import 'package:dartz/dartz.dart';
 import 'package:fake_async/fake_async.dart';
@@ -18,7 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
-// These tests don't open a document (open_reader_kit's own tests cover the
+// These tests don't open a document (universal_document_viewer's own tests cover the
 // PDF engine against real PDFium). They cover the logic around it:
 // initial-position restore, debounced position saving, and delegation to
 // DocumentInteractionController.
