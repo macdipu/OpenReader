@@ -18,7 +18,8 @@ typedef PdfTileKey = ({int page, int level, int column, int row});
 ///
 /// Requests are made by the view as what's visible changes ([request]),
 /// never from paint. Images that arrive notify listeners; images over the
-/// byte budget are evicted least-recently-used first; requests no longer
+/// byte budget are evicted least-recently-used first (never ones the view
+/// currently wants); requests no longer
 /// wanted are cancelled while still queued.
 class PdfImageCache extends ChangeNotifier {
   PdfImageCache(this.document, {this.maxBytes = 96 << 20});
@@ -38,6 +39,11 @@ class PdfImageCache extends ChangeNotifier {
   /// Most recently used last; keys are page ints (bases) or tile keys.
   final _lru = LinkedHashSet<Object>();
   final _inFlight = <Object, PdfRenderTask>{};
+
+  /// What the last [request] asked for (bases and tiles). Never evicted:
+  /// nothing re-requests an image until the view moves, so evicting one of
+  /// these would leave its page blank or soft until then.
+  var _wanted = <Object>{};
   var _bytes = 0;
   bool _disposed = false;
 
@@ -72,7 +78,7 @@ class PdfImageCache extends ChangeNotifier {
     required ui.Size Function(PdfTileKey key) tileFullSize,
   }) {
     if (_disposed) return;
-    final wanted = <Object>{};
+    final wanted = _wanted = <Object>{};
     for (final page in basePages) {
       wanted.add(page);
       final width = baseWidth(page);
@@ -116,7 +122,15 @@ class PdfImageCache extends ChangeNotifier {
   void _start(Object key, PdfRenderTask task, void Function(ui.Image) store) {
     _inFlight[key] = task;
     task.result.then((rendered) async {
-      final image = await rendered.toImage();
+      final ui.Image image;
+      try {
+        image = await rendered.toImage();
+      } catch (_) {
+        // Couldn't decode: as if the render failed (asked again once the
+        // view moves).
+        if (identical(_inFlight[key], task)) _inFlight.remove(key);
+        return;
+      }
       if (_disposed || !identical(_inFlight[key], task)) {
         image.dispose();
         return;
@@ -145,11 +159,15 @@ class PdfImageCache extends ChangeNotifier {
 
   static int _sizeOf(ui.Image image) => image.width * image.height * 4;
 
+  /// Least recently used first, skipping what's wanted now: the budget may
+  /// be exceeded by what's on screen, never by what isn't.
   void _evict() {
-    while (_bytes > maxBytes && _lru.length > 1) {
-      final oldest = _lru.first;
-      _lru.remove(oldest);
-      final image = oldest is int ? _bases.remove(oldest) : _tiles.remove(oldest);
+    if (_bytes <= maxBytes) return;
+    for (final key in _lru.toList()) {
+      if (_bytes <= maxBytes) break;
+      if (_wanted.contains(key)) continue;
+      _lru.remove(key);
+      final image = key is int ? _bases.remove(key) : _tiles.remove(key);
       if (image != null) {
         _bytes -= _sizeOf(image);
         image.dispose();

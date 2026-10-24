@@ -91,14 +91,21 @@ class _Binary {
 
 Future<void> _download(_Binary binary, File library, File stamp) async {
   final uri = Uri.parse('$_release/${binary.archive}.tgz');
-  final client = HttpClient()..connectionTimeout = const Duration(seconds: 30);
+  // Behind a proxy (CI, corporate networks) the standard proxy variables
+  // are honoured, as other build tools do.
+  final client = HttpClient()
+    ..connectionTimeout = const Duration(seconds: 30)
+    ..findProxy = HttpClient.findProxyFromEnvironment;
   try {
     final request = await client.getUrl(uri);
     final response = await request.close().timeout(const Duration(minutes: 5));
     if (response.statusCode != HttpStatus.ok) {
       throw HttpException('PDFium download failed (${response.statusCode})', uri: uri);
     }
-    final bytes = await response.fold<BytesBuilder>(BytesBuilder(copy: false), (b, chunk) => b..add(chunk));
+    // A stalled body fails the build rather than hanging it.
+    final bytes = await response
+        .fold<BytesBuilder>(BytesBuilder(copy: false), (b, chunk) => b..add(chunk))
+        .timeout(const Duration(minutes: 10));
     final data = bytes.takeBytes();
     final actual = sha256.convert(data).toString();
     if (actual != binary.sha256) {

@@ -118,4 +118,31 @@ void main() {
       expect((await task.result).width, 1200);
     }
   });
+
+  test('a render cancelled with nobody waiting is not an uncaught error', () async {
+    // An uncaught error here would fail the test.
+    doc.render(0, fullWidth: 600, fullHeight: 775, priority: PdfPriority.background).cancel();
+    await doc.renderThumbnail(0, width: 60);
+  });
+
+  test('a thumbnail of a page out of range fails with a typed error', () async {
+    await expectLater(doc.renderThumbnail(4, width: 60), throwsA(isA<PdfEngineException>()));
+    await expectLater(doc.renderThumbnail(-1, width: 60), throwsA(isA<PdfEngineException>()));
+  });
+
+  test('close goes ahead of queued renders and drops them', () async {
+    final other = await PdfiumDocument.openFile(_features);
+    final queued = [
+      for (var i = 0; i < 8; i++)
+        other.render(i % 4, fullWidth: 1600, fullHeight: 2070, priority: PdfPriority.background).result,
+    ];
+    final outcomes = [
+      for (final render in queued) render.then<Object>((image) => image, onError: (Object e) => e),
+    ];
+    await other.close();
+    final dropped = (await Future.wait(outcomes)).whereType<PdfEngineException>();
+    expect(dropped, isNotEmpty, reason: 'renders queued behind the close are answered as closed');
+    // The shared worker carries on for other documents.
+    expect((await doc.renderThumbnail(0, width: 60)).width, 60);
+  });
 }
