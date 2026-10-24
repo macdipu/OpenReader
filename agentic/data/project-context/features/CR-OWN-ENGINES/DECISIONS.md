@@ -10,7 +10,7 @@ TECH-SPEC.md stays frozen as the run's context. The user's answers are recorded 
   3. **A paged print layout** as an option next to the continuous view.
 
   E2 grows to cover these.
-- **Q3, kit license:** still open. It's needed by E5.
+- **Q3, kit license:** **MIT** (user, in-session 2026-10-24: "MIT, push it"). The copyright holder in `packages/open_reader_kit/LICENSE` is "chowdhuryelab", the GitHub org the user chose for the kit's repo. The user was told they can change it to a legal name.
 
 ## Amendment (user, in-session 2026-10-24): idea-level reference to the old engines
 - **User's words:** "do look old code took the idea and write them in better way scalabe way"

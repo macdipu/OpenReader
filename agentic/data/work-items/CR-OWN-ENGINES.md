@@ -248,10 +248,10 @@ Fixes:
 - **This covers E3 (done), the thumbnails request (done) and E4** (dependency pruning, analyzer clean, no upstream engine names left in code).
 
 ## NEXT STEPS (updated 2026-10-24)
-1. **E5, repo split and pub.dev.** Waits on the user:
-   - choose the licence (DECISIONS Q3: MIT recommended, Apache-2.0 or BSD-3)
-   - run `gh auth login`, and have rights to create `chowdhuryelab/open_reader_kit` (fresh start)
-   - Then: `LICENSE`; README licence section and `<repo-url>`; pubspec `homepage`/`repository`/`topics` with `publish_to: none` removed; `dart pub publish --dry-run`; push the kit to the new repo; switch the app to a git dependency. The publish itself needs release approval.
+1. **E5, repo split and pub.dev.**
+   - **Done:** the licence is **MIT** (`LICENSE` added on 2026-10-24) and the README licence section is updated.
+   - **Waits on the user:** run `gh auth login`, and have rights to create `chowdhuryelab/open_reader_kit` (fresh start).
+   - Then: README `<repo-url>`; pubspec `homepage`/`repository`/`topics` with `publish_to: none` removed; `dart pub publish --dry-run`; push the kit to the new repo; switch the app to a git dependency. The publish itself needs release approval.
 2. **REVIEW, QA and RELEASE** for run `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF`. The release approval is the user's.
 3. **Optional follow-ups:**
    - `DocumentViewer` maps PDF password failures to `corrupted`; it could pass `passwordRequired` through.
