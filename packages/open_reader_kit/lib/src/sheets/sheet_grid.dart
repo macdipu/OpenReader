@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
@@ -85,6 +87,23 @@ class _SheetGridState extends State<SheetGrid> {
       final max = controller.horizontalController.position.maxScrollExtent;
       controller.horizontalController.jumpTo((controller.initialHorizontalOffset * zoom).clamp(0.0, max));
     }
+  }
+
+  @override
+  void didUpdateWidget(SheetGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller
+      ..removeListener(_onControllerChanged)
+      ..horizontalController.removeListener(oldWidget.controller.onScrolled)
+      ..verticalController.removeListener(oldWidget.controller.onScrolled);
+    widget.controller
+      ..addListener(_onControllerChanged)
+      ..horizontalController.addListener(widget.controller.onScrolled)
+      ..verticalController.addListener(widget.controller.onScrolled);
+    _zoom = widget.controller.zoom;
+    _mergesFor = null;
+    _selection.value = null;
   }
 
   @override
@@ -225,19 +244,35 @@ class _SheetGridState extends State<SheetGrid> {
   /// coordinates. Hidden rows/columns inside a merge are skipped; a merge
   /// that would straddle the frozen panes' edge is left unmerged (the table
   /// can't merge across it).
+  static const _maxMergedCells = 200000;
+
   Map<(int, int), _Merge> _mergesOf(SheetGeometry geometry) {
     if (identical(_mergesFor, geometry)) return _merges;
     final merges = <(int, int), _Merge>{};
+    final lastRow = widget.controller.currentRows.length - 1;
+    final lastColumn = widget.controller.columnCount - 1;
     for (final range in widget.controller.currentSheet?.merges ?? const <CellRange>[]) {
+      // Only the sheet's own cells (a merge may run far past its data).
       final rows = [
-        for (var r = range.firstRow; r <= range.lastRow; r++)
+        for (var r = range.firstRow; r <= math.min(range.lastRow, lastRow); r++)
           if (geometry.visibleIndexOfRow(r) case final v?) v,
       ];
       final columns = [
-        for (var c = range.firstColumn; c <= range.lastColumn; c++)
+        for (var c = range.firstColumn; c <= math.min(range.lastColumn, lastColumn); c++)
           if (geometry.visibleIndexOfColumn(c) case final v?) v,
       ];
       if (rows.isEmpty || columns.isEmpty || (rows.length == 1 && columns.length == 1)) continue;
+      // Merges can't overlap in Excel; a damaged file's that do are left
+      // unmerged rather than handing the table conflicting spans. A cap
+      // keeps a hostile file's merges from filling memory.
+      if (merges.length + rows.length * columns.length > _maxMergedCells) continue;
+      var overlaps = false;
+      for (var r = rows.first; r <= rows.last && !overlaps; r++) {
+        for (var c = columns.first; c <= columns.last && !overlaps; c++) {
+          overlaps = merges.containsKey((r + 1, c + 1));
+        }
+      }
+      if (overlaps) continue;
       bool straddles(List<int> indices, int frozen) => indices.first < frozen && indices.last >= frozen;
       if (straddles(rows, geometry.frozenRowCount) || straddles(columns, geometry.frozenColumnCount)) continue;
       final merge = _Merge(

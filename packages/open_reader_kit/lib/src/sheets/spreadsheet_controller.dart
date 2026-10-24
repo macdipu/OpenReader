@@ -138,21 +138,10 @@ class SpreadsheetController extends ChangeNotifier {
       switchSheet(sheetOnly);
       return true;
     }
-    final bang = text.lastIndexOf('!');
-    var location = text;
-    if (bang > 0) {
-      final name = text.substring(0, bang).replaceAll(RegExp(r"^'|'$"), '').replaceAll("''", "'");
-      final index = _sheetIndexNamed(name);
-      if (index == null) return false;
-      location = "'${_sheets[index].name.replaceAll("'", "''")}'${text.substring(bang)}";
-    }
-    final cell = RegExp(r'!?\$?([A-Za-z]{1,3})\$?(\d+)$').firstMatch(location);
-    if (cell == null || !openInternalLink(location)) return false;
-    var column = 0;
-    for (final unit in cell.group(1)!.toUpperCase().codeUnits) {
-      column = column * 26 + (unit - 0x40);
-    }
-    _target = CellMatch(row: int.parse(cell.group(2)!) - 1, column: column - 1);
+    final place = _locate(text, ignoreCase: true);
+    if (place == null) return false;
+    _goToPlace(place.$1, place.$2);
+    _target = place.$2;
     notifyListeners();
     return true;
   }
@@ -237,6 +226,10 @@ class SpreadsheetController extends ChangeNotifier {
       // Re-selecting the current sheet keeps its grid and offsets.
       _lastVerticalOffset = 0;
       _lastHorizontalOffset = 0;
+      // The offsets restored at open belong to the sheet it opened on; a
+      // new sheet's grid starts at the top.
+      initialVerticalOffset = 0;
+      initialHorizontalOffset = 0;
     }
     _activeSheet = index;
     _columnCount = null;
@@ -244,7 +237,9 @@ class SpreadsheetController extends ChangeNotifier {
     _target = null;
     _resetSearch();
     notifyListeners();
-    onPositionChanged?.call(position);
+    // Not [position]: the old sheet's grid is still attached and would
+    // report its offsets for this sheet.
+    onPositionChanged?.call(_positionAt(_lastVerticalOffset, _lastHorizontalOffset));
   }
 
   double _zoom = 1;
@@ -277,9 +272,13 @@ class SpreadsheetController extends ChangeNotifier {
   /// `column` are the sheet's (zero-based) row and column at the top left.
   ReadingPosition get position {
     _captureOffsets();
+    return _positionAt(_lastVerticalOffset, _lastHorizontalOffset);
+  }
+
+  ReadingPosition _positionAt(double verticalPixels, double horizontalPixels) {
     final grid = geometry;
-    final vertical = _lastVerticalOffset / _zoom;
-    final horizontal = _lastHorizontalOffset / _zoom;
+    final vertical = verticalPixels / _zoom;
+    final horizontal = horizontalPixels / _zoom;
     return {
       PositionKeys.sheetIndex: _activeSheet,
       PositionKeys.row: grid.visibleRows.isEmpty ? 0 : grid.visibleRows[grid.visibleRowAtScrollOffset(vertical)],
@@ -379,16 +378,39 @@ class SpreadsheetController extends ChangeNotifier {
   /// scrolls there once the sheet is on screen. Returns false when the
   /// place isn't a visible sheet's cell (e.g. a defined name).
   bool openInternalLink(String location) {
-    final match = RegExp(r"^(?:'((?:[^']|'')+)'|([^!]+))?!?\$?([A-Za-z]{1,3})\$?(\d+)").firstMatch(location.trim());
-    if (match == null) return false;
-    final sheetName = (match.group(1)?.replaceAll("''", "'") ?? match.group(2));
+    final place = _locate(location, ignoreCase: false);
+    if (place == null) return false;
+    _goToPlace(place.$1, place.$2);
+    return true;
+  }
+
+  /// A place in the workbook -> (sheet index, cell); null when it isn't one.
+  /// The sheet part is optional (this sheet) and must end in `!`; a range
+  /// gives its first cell.
+  (int, CellMatch)? _locate(String location, {required bool ignoreCase}) {
+    final match = _place.firstMatch(location.trim());
+    if (match == null) return null;
+    final sheetName = match.group(1)?.replaceAll("''", "'") ?? match.group(2);
     var column = 0;
     for (final unit in match.group(3)!.toUpperCase().codeUnits) {
       column = column * 26 + (unit - 0x40);
     }
-    final cell = CellMatch(row: int.parse(match.group(4)!) - 1, column: column - 1);
-    final index = sheetName == null ? _activeSheet : _sheets.indexWhere((sheet) => sheet.name == sheetName);
-    if (index < 0) return false;
+    final row = int.parse(match.group(4)!);
+    if (row < 1 || row > 1048576 || column > 16384) return null;
+    final index = sheetName == null
+        ? _activeSheet
+        : ignoreCase
+            ? _sheetIndexNamed(sheetName) ?? -1
+            : _sheets.indexWhere((sheet) => sheet.name == sheetName);
+    if (index < 0) return null;
+    return (index, CellMatch(row: row - 1, column: column - 1));
+  }
+
+  static final _place = RegExp(
+    r"^(?:(?:'((?:[^']|'')+)'|([^!']+))!)?\$?([A-Za-z]{1,3})\$?(\d+)(?::\$?[A-Za-z]{1,3}\$?\d+)?$",
+  );
+
+  void _goToPlace(int index, CellMatch cell) {
     if (index != _activeSheet) {
       switchSheet(index);
       // The new sheet's grid attaches the scroll controllers after this frame.
@@ -398,7 +420,6 @@ class SpreadsheetController extends ChangeNotifier {
     } else {
       jumpToCell(cell);
     }
-    return true;
   }
 
   /// Scrolls [cell] to the top left (frozen rows/columns don't scroll).

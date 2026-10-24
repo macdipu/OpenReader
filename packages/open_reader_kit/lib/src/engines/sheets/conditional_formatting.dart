@@ -98,10 +98,12 @@ abstract final class ConditionalFormatting {
   static List<List<SheetCell?>> apply(List<List<SheetCell?>> rows, List<ConditionalRule> rules, {bool date1904 = false}) {
     if (rules.isEmpty || rows.isEmpty) return rows;
     final columnCount = rows.fold(0, (widest, row) => math.max(widest, row.length));
-    final ordered = [...rules]..sort((a, b) => a.priority.compareTo(b.priority));
+    // By priority, then file order (List.sort isn't stable).
+    final ordered = [for (var i = 0; i < rules.length; i++) (i, rules[i])]
+      ..sort((a, b) => a.$2.priority != b.$2.priority ? a.$2.priority.compareTo(b.$2.priority) : a.$1.compareTo(b.$1));
     final overrides = <(int, int), _Override>{};
 
-    for (final rule in ordered) {
+    for (final (_, rule) in ordered) {
       final cells = <(int, int)>[];
       for (final range in rule.ranges) {
         final lastRow = math.min(range.lastRow, rows.length - 1);
@@ -170,6 +172,9 @@ abstract final class ConditionalFormatting {
           final value = _comparable(cell);
           if (value == null) return null;
           final a = operand(0, r, c);
+          // An operand this can't work out (a formula, a blank cell)
+          // matches nothing, not even notEqual.
+          if (a == null) return null;
           final matches = switch (rule.operator) {
             'between' => _between(value, a, operand(1, r, c)),
             'notBetween' => !_between(value, a, operand(1, r, c)),

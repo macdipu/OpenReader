@@ -40,6 +40,8 @@ class NumberFormat {
     // Sections get the magnitude; a negative section shows its own sign
     // (e.g. `(#,##0)`), otherwise [negativeSign] asks for a `-`.
     final shown = value.abs();
+    // Excel can't show a date before its epoch or after 9999-12-31.
+    if (section.isDate && (value < 0 || value >= _maxDateSerial)) return '#####';
     final text = section.isDate ? _formatDate(section, shown, date1904) : _formatNumber(section, shown);
     return ((negativeSign && text.contains(RegExp('[1-9]'))) ? '-$text' : text).trim();
   }
@@ -404,8 +406,9 @@ String _formatNumber(_Section section, num value) {
   }
   final firstDigit = tokens.indexWhere((t) => t is _Digit);
   if (firstDigit == -1) {
-    // No digits: only literals (e.g. `"-"` for zero), or `@`, or nothing.
-    if (tokens.isEmpty) return NumberFormat.formatGeneral(value);
+    // No digits: only literals (e.g. `"-"` for zero), or `@`, or nothing -
+    // an empty section (`;;;`, `0;;`) hides the value.
+    if (tokens.isEmpty) return '';
     return [
       for (final t in tokens)
         if (t is _TextPlaceholder) NumberFormat.formatGeneral(value) else _literalText(t),
@@ -447,7 +450,8 @@ String _formatNumber(_Section section, num value) {
           for (var i = pointAt + 1; i <= lastDigit; i++)
             if (tokens[i] is _Digit || tokens[i] is _Literal) tokens[i],
         ];
-  final decimals = fractionSlots.whereType<_Digit>().length;
+  // toStringAsFixed takes at most 20; the slots past that show zeros.
+  final decimals = math.min(fractionSlots.whereType<_Digit>().length, 20);
 
   var exponentText = '';
   if (exponentAt != -1) {
@@ -624,7 +628,9 @@ String _formatFraction(List<_Token> tokens, num value) {
     denominator = fixed;
     numerator = (remainder * fixed).round();
   } else {
-    final maxDenominator = math.pow(10, math.max(denominatorDigits, 1)).toInt() - 1;
+    // Past 9 digits a denominator overflows nothing useful: Excel itself
+    // shows at most `?????????/?????????`.
+    final maxDenominator = math.pow(10, denominatorDigits.clamp(1, 9)).toInt() - 1;
     (numerator, denominator) = _closestFraction(remainder, maxDenominator);
   }
   var wholeShown = whole;
@@ -653,24 +659,37 @@ String _formatFraction(List<_Token> tokens, num value) {
   return out.toString();
 }
 
+/// The fraction closest to [value] (0 <= value < 1, or any value for a
+/// format without a whole part) with a denominator up to [maxDenominator]:
+/// the best of the continued fraction's last convergent and semiconvergent,
+/// found in a few dozen steps whatever the denominator limit.
 (int, int) _closestFraction(num value, int maxDenominator) {
-  var bestNumerator = 0;
-  var bestDenominator = 1;
-  var bestError = value.toDouble();
-  for (var d = 1; d <= maxDenominator; d++) {
-    final n = (value * d).round();
-    final error = (value - n / d).abs();
-    if (error < bestError - 1e-12) {
-      bestError = error;
-      bestNumerator = n;
-      bestDenominator = d;
-      if (error == 0) break;
+  final x = value.toDouble();
+  // Convergents p/q, as (p0/q0, p1/q1) pairs.
+  var (p0, q0, p1, q1) = (0, 1, 1, 0);
+  var rest = x;
+  for (var i = 0; i < 64; i++) {
+    final a = rest.floor();
+    final q2 = a * q1 + q0;
+    if (q2 > maxDenominator) {
+      // The best semiconvergent before the limit, if it beats p1/q1.
+      final k = (maxDenominator - q0) ~/ q1;
+      final (ps, qs) = (k * p1 + p0, k * q1 + q0);
+      if (q1 == 0) return (ps, qs);
+      return (x - ps / qs).abs() < (x - p1 / q1).abs() ? (ps, qs) : (p1, q1);
     }
+    (p0, q0, p1, q1) = (p1, q1, a * p1 + p0, q2);
+    final fraction = rest - a;
+    if (fraction.abs() < 1e-12) break;
+    rest = 1 / fraction;
   }
-  return (bestNumerator, bestDenominator);
+  return q1 == 0 ? (x.round(), 1) : (p1, q1);
 }
 
 // --- Dates and times ---------------------------------------------------------
+
+/// The day after 9999-12-31, Excel's last date.
+const _maxDateSerial = 2958466;
 
 const _monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June', //
