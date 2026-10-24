@@ -7,15 +7,23 @@ import 'package:url_launcher/url_launcher.dart';
 import '../engines/word/word_model.dart';
 import 'word_document_controller.dart';
 import 'word_document_layout.dart';
+import 'word_pagination.dart';
+import 'word_paragraph_styler.dart';
 import 'word_widgets.dart';
 
-/// A `.docx` as one continuous, lazily built scrolling document: the first
-/// section's header, the text, the last section's footer, then footnotes
-/// and endnotes. Search highlights come from
-/// [WordDocumentController.searchController], which also drives jumping
-/// to the current match. Tapping a note mark shows the note; links open
-/// (web links outside the app, `http`/`https`/`mailto` only) or jump to
-/// their bookmark.
+/// A `.docx`, lazily built, in one of two layouts
+/// ([WordDocumentController.viewMode]):
+///
+/// - **continuous**: the text reflowed to the screen - the first section's
+///   header, the body, the last section's footer, then the notes;
+/// - **paged**: Word's print layout - pages at their real size (scaled to
+///   fit), split by measuring the text exactly as drawn, each with its
+///   section's header and footer and live page numbers.
+///
+/// Search highlights and jumping come from
+/// [WordDocumentController.searchController]. Tapping a note mark shows the
+/// note; links open (web links outside the app, `http`/`https`/`mailto`
+/// only) or jump to their bookmark.
 class WordDocumentView extends StatefulWidget {
   const WordDocumentView({super.key, required this.controller, this.padding = const EdgeInsets.all(16)});
 
@@ -30,16 +38,25 @@ class _WordDocumentViewState extends State<WordDocumentView> {
   final _anchors = <int, BuildContext>{};
 
   /// Measured heights of the list items built so far, for estimating where
-  /// an unbuilt item is.
+  /// an unbuilt item is. Cleared when the layout changes.
   final _itemHeights = <int, double>{};
   int? _lastMatchKey;
   bool _restored = false;
+  late WordViewMode _mode;
+
+  WordPagination? _pagination;
+  Object? _paginationKey;
 
   WordDocumentController get controller => widget.controller;
+
+  /// The paper pages are drawn on: dark text on white, whatever the app
+  /// theme, as in print.
+  static final _paper = ThemeData(colorScheme: const ColorScheme.light(surface: Colors.white, onSurface: Colors.black));
 
   @override
   void initState() {
     super.initState();
+    _mode = controller.viewMode;
     controller.addListener(_onControllerChanged);
     controller.searchController.addListener(_onSearchChanged);
     _scheduleRestore();
@@ -65,8 +82,45 @@ class _WordDocumentViewState extends State<WordDocumentView> {
 
   void _onControllerChanged() {
     if (!mounted) return;
+    if (controller.viewMode != _mode) {
+      // Keep the paragraph being read in view across the switch.
+      final reading = _topParagraph();
+      _mode = controller.viewMode;
+      _itemHeights.clear();
+      _anchors.clear();
+      setState(() {});
+      if (reading != null) WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToParagraph(reading, align: 0));
+      return;
+    }
     setState(() {});
     _scheduleRestore();
+  }
+
+  /// The number of the first paragraph at or below the top of the view.
+  int? _topParagraph() {
+    final viewport = context.findRenderObject() as RenderBox?;
+    if (viewport == null) return null;
+    final top = viewport.localToGlobal(Offset.zero).dy;
+    int? best;
+    double bestY = double.infinity;
+    _anchors.forEach((number, anchorContext) {
+      if (!anchorContext.mounted) return;
+      final box = anchorContext.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached) return;
+      final y = box.localToGlobal(Offset.zero).dy;
+      final bottom = y + box.size.height * _scaleOf(box);
+      if (bottom > top && y < bestY) {
+        bestY = y;
+        best = number;
+      }
+    });
+    return best;
+  }
+
+  /// How much a box is scaled on screen (pages are drawn scaled down).
+  static double _scaleOf(RenderBox box) {
+    final transform = box.getTransformTo(null);
+    return transform.getMaxScaleOnAxis();
   }
 
   /// Scrolls to the saved offset once the document is on screen. The list
@@ -103,18 +157,34 @@ class _WordDocumentViewState extends State<WordDocumentView> {
     _jumpToParagraph(match.paragraph);
   }
 
+  /// The list item showing paragraph [number] in the current layout.
+  int? _itemOf(int number) {
+    final layout = controller.layout;
+    if (layout == null) return null;
+    if (_mode == WordViewMode.paged) {
+      // Headers and footers aren't placed on a page of their own: use the
+      // first body paragraph after this one.
+      final pages = _pagination?.pageOfParagraph;
+      if (pages == null) return null;
+      for (var n = number; n < layout.paragraphs.length; n++) {
+        if (pages[n] case final page?) return page;
+      }
+      return null;
+    }
+    return number < layout.itemOfParagraph.length ? layout.itemOfParagraph[number] : null;
+  }
+
   /// Brings paragraph [number] into view: directly when it's built,
   /// otherwise by jumping to an estimate first.
-  void _jumpToParagraph(int number, [int attempt = 0]) {
-    final layout = controller.layout;
-    if (layout == null || !mounted) return;
+  void _jumpToParagraph(int number, {double align = 0.25, int attempt = 0}) {
+    if (!mounted) return;
     final anchor = _anchors[number];
     if (anchor != null && anchor.mounted) {
-      Scrollable.ensureVisible(anchor, alignment: 0.25, duration: const Duration(milliseconds: 200));
+      Scrollable.ensureVisible(anchor, alignment: align, duration: const Duration(milliseconds: 200));
       return;
     }
-    if (attempt >= 4 || !controller.scrollController.hasClients) return;
-    final item = layout.itemOfParagraph[number];
+    final item = _itemOf(number);
+    if (item == null || attempt >= 4 || !controller.scrollController.hasClients) return;
     final known = _itemHeights.values;
     final average = known.isEmpty ? 48.0 : known.reduce((a, b) => a + b) / known.length;
     var estimate = 0.0;
@@ -123,7 +193,7 @@ class _WordDocumentViewState extends State<WordDocumentView> {
     }
     final position = controller.scrollController.position;
     position.jumpTo(estimate.clamp(0.0, position.maxScrollExtent));
-    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToParagraph(number, attempt + 1));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToParagraph(number, align: align, attempt: attempt + 1));
   }
 
   void _onLink(WordLink link) {
@@ -169,12 +239,21 @@ class _WordDocumentViewState extends State<WordDocumentView> {
     );
   }
 
+  /// Pages for the current document and text scale, worked out once.
+  WordPagination _paginate(WordDocumentLayout layout) {
+    final textScaler = MediaQuery.textScalerOf(context);
+    final key = (layout, textScaler);
+    if (_pagination != null && _paginationKey == key) return _pagination!;
+    final styler = WordParagraphStyler(scheme: _paper.colorScheme, linkColor: layout.document.linkColor, pageNumber: 1, pageCount: 1);
+    _pagination = WordPaginator(layout, WordMeasurer(styler, textScaler: textScaler)).paginate();
+    _paginationKey = key;
+    return _pagination!;
+  }
+
   @override
   Widget build(BuildContext context) {
     final layout = controller.layout;
     if (layout == null) return const Center(child: CircularProgressIndicator());
-    final firstNote = layout.firstNoteItem;
-    final items = layout.items;
     return WordScope(
       layout: layout,
       search: controller.searchController,
@@ -190,35 +269,134 @@ class _WordDocumentViewState extends State<WordDocumentView> {
           }
           return false;
         },
-        child: ListView.builder(
-          controller: controller.scrollController,
-          padding: widget.padding,
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            Widget child = WordBlockView(item.block);
-            if (item.kind == WordItemKind.header || item.kind == WordItemKind.footer) {
-              child = DefaultTextStyle.merge(style: const TextStyle(fontSize: 12), child: child);
-            }
-            final previous = index == 0 ? null : items[index - 1].kind;
-            final children = [
-              if (index == firstNote) ...[
-                const Divider(height: 32),
-                Text('Notes', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 8),
-              ] else if (item.kind == WordItemKind.footer && previous != WordItemKind.footer)
-                const Divider(height: 32),
-              child,
-              if (item.kind == WordItemKind.header && (index + 1 >= items.length || items[index + 1].kind != WordItemKind.header))
-                const Divider(height: 32),
-            ];
-            return _SizeReporter(
-              onSize: (size) => _itemHeights[index] = size.height,
-              child: children.length == 1
-                  ? child
-                  : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-            );
-          },
+        child: _mode == WordViewMode.paged ? _buildPages(layout) : _buildContinuous(layout),
+      ),
+    );
+  }
+
+  Widget _measured(int index, Widget child) =>
+      _SizeReporter(onSize: (size) => _itemHeights[index] = size.height, child: child);
+
+  Widget _buildContinuous(WordDocumentLayout layout) {
+    final firstNote = layout.firstNoteItem;
+    final items = layout.items;
+    return ListView.builder(
+      key: const PageStorageKey('continuous'),
+      controller: controller.scrollController,
+      padding: widget.padding,
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        Widget child = WordBlockView(item.block);
+        if (item.kind == WordItemKind.header || item.kind == WordItemKind.footer) {
+          child = DefaultTextStyle.merge(style: const TextStyle(fontSize: 12), child: child);
+        }
+        final previous = index == 0 ? null : items[index - 1].kind;
+        final children = [
+          if (index == firstNote) ...[
+            const Divider(height: 32),
+            Text('Notes', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+          ] else if (item.kind == WordItemKind.footer && previous != WordItemKind.footer)
+            const Divider(height: 32),
+          child,
+          if (item.kind == WordItemKind.header && (index + 1 >= items.length || items[index + 1].kind != WordItemKind.header))
+            const Divider(height: 32),
+        ];
+        return _measured(
+          index,
+          children.length == 1 ? child : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+        );
+      },
+    );
+  }
+
+  Widget _buildPages(WordDocumentLayout layout) {
+    final pagination = _paginate(layout);
+    final pages = pagination.pages;
+    return ListView.builder(
+      key: const PageStorageKey('paged'),
+      controller: controller.scrollController,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      itemCount: pages.length,
+      itemBuilder: (context, index) => _measured(
+        index,
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Theme(
+                data: _paper,
+                child: WordPageInfo(
+                  number: index + 1,
+                  count: pages.length,
+                  child: _PageView(pages[index]),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One page on paper: the body at the page's margins, the header and footer
+/// in the margins above and below.
+class _PageView extends StatelessWidget {
+  const _PageView(this.page);
+
+  final WordPage page;
+
+  @override
+  Widget build(BuildContext context) {
+    final section = page.section;
+    final header = page.header;
+    final footer = page.footer;
+    final left = section.marginLeft * wordScale;
+    final right = section.marginRight * wordScale;
+    // Headers and footers sit half an inch from the page edge by default.
+    const edge = 36 * wordScale;
+    return Material(
+      color: Colors.white,
+      elevation: 1,
+      child: SizedBox(
+        width: page.width,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: page.height),
+          child: Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(left, section.marginTop * wordScale, right, section.marginBottom * wordScale),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final entry in page.entries)
+                      switch (entry.block) {
+                        final WordParagraph paragraph when entry.number != null =>
+                          WordParagraphView(paragraph, number: entry.number, textOffset: entry.textOffset),
+                        final block => WordBlockView(block),
+                      },
+                  ],
+                ),
+              ),
+              if (header != null)
+                Positioned(
+                  top: edge,
+                  left: left,
+                  right: right,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final b in header) WordBlockView(b)]),
+                ),
+              if (footer != null)
+                Positioned(
+                  bottom: edge,
+                  left: left,
+                  right: right,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final b in footer) WordBlockView(b)]),
+                ),
+            ],
+          ),
         ),
       ),
     );

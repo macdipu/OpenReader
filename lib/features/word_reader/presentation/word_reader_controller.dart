@@ -30,8 +30,7 @@ class WordReaderController extends BaseController {
     DocumentInteractionController? interactions,
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>() {
-    word = WordDocumentController(onPositionChanged: (p) => onScrollOffsetChanged(p[PositionKeys.scrollOffset]! as double))
-      ..addListener(_onWordChanged);
+    word = WordDocumentController(onPositionChanged: _onPositionChanged)..addListener(_onWordChanged);
   }
 
   late final WordDocumentController word;
@@ -42,10 +41,17 @@ class WordReaderController extends BaseController {
 
   final isSearching = false.obs;
 
+  /// Print layout (pages) rather than continuous; mirrors the kit's
+  /// [WordDocumentController.viewMode] for the menu.
+  final isPaged = false.obs;
+
+  void toggleLayout() => word.toggleViewMode();
+
   /// A load failure swaps the whole body for the error view.
   final hasError = false.obs;
 
   void _onWordChanged() {
+    isPaged.value = word.viewMode == WordViewMode.paged;
     switch (word.error) {
       case null:
         break;
@@ -58,7 +64,7 @@ class WordReaderController extends BaseController {
     }
   }
 
-  double _lastKnownScrollOffset = 0;
+  ReadingPosition? _lastKnownPosition;
   Timer? _positionSaveDebounce;
 
   @override
@@ -70,10 +76,8 @@ class WordReaderController extends BaseController {
   Future<void> _loadInitialPosition() async {
     status.value = StateStatus.loading;
     final result = await _recentRepository.getPosition(document.id);
-    result.fold((_) {}, (position) {
-      final offset = position[PositionKeys.scrollOffset];
-      if (offset is num && offset > 0) word.initialScrollOffset = offset.toDouble();
-    });
+    result.fold((_) {}, word.restore);
+    isPaged.value = word.viewMode == WordViewMode.paged;
     try {
       await word.load(await File(document.path).readAsBytes());
     } catch (_) {
@@ -82,16 +86,17 @@ class WordReaderController extends BaseController {
     status.value = StateStatus.success;
   }
 
-  /// Called as the document scrolls (through the kit), debounced the same
-  /// way `PdfReaderController` debounces per-page saves.
-  void onScrollOffsetChanged(double offset) {
-    _lastKnownScrollOffset = offset;
+  /// Called as the document scrolls (through the kit) with
+  /// `{scroll_offset, view_mode}`, debounced the same way
+  /// `PdfReaderController` debounces per-page saves.
+  void _onPositionChanged(ReadingPosition position) {
+    _lastKnownPosition = position;
     _positionSaveDebounce?.cancel();
-    _positionSaveDebounce = Timer(const Duration(seconds: 2), () => _savePosition(offset));
+    _positionSaveDebounce = Timer(const Duration(seconds: 2), () => _savePosition(position));
   }
 
-  Future<void> _savePosition(double offset) =>
-      _recentRepository.markOpened(document.id, readingPosition: {PositionKeys.scrollOffset: offset});
+  Future<void> _savePosition(ReadingPosition position) =>
+      _recentRepository.markOpened(document.id, readingPosition: position);
 
   void startSearching() => isSearching.value = true;
 
@@ -113,7 +118,8 @@ class WordReaderController extends BaseController {
   @override
   void onClose() {
     _positionSaveDebounce?.cancel();
-    _interactions.readerClosedAfter(_lastKnownScrollOffset > 0 ? _savePosition(_lastKnownScrollOffset) : null);
+    final last = _lastKnownPosition;
+    _interactions.readerClosedAfter(last == null ? null : _savePosition(last));
     word.dispose();
     super.onClose();
   }

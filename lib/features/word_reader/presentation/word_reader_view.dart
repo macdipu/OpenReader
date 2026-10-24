@@ -116,9 +116,13 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         PopupMenuButton<_ReaderAction>(
           onSelected: (action) => _handle(action),
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
-            PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: _ReaderAction.layout,
+              child: Text(controller.isPaged.value ? 'Continuous layout' : 'Print layout'),
+            ),
+            const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
+            const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
           ],
         ),
       ],
@@ -130,6 +134,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _handle(_ReaderAction action) {
     switch (action) {
+      case _ReaderAction.layout:
+        controller.toggleLayout();
       case _ReaderAction.share:
         controller.share();
       case _ReaderAction.openWith:
@@ -138,7 +144,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { share, openWith }
+enum _ReaderAction { layout, share, openWith }
 
 class _ReaderErrorView extends StatelessWidget {
   final WordReaderController controller;
