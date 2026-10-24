@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
@@ -63,9 +64,14 @@ PageFieldKind? _pageFieldKind(String instruction) {
 
 /// What the block parser needs about the part it's reading.
 class _PartContext {
-  _PartContext(this.path, this.relationships);
+  _PartContext(this.path, this.relationships, {this.mainBody = false});
 
   final String path;
+
+  /// The document's own body, the only place a paragraph's `w:sectPr` ends a
+  /// section. Headers, footers and notes can't hold section breaks, and
+  /// reading one there could pull in the header part being read (recursion).
+  final bool mainBody;
 
   /// Relationship id -> target (part name, or external URI).
   final Map<String, OpcRelationship> relationships;
@@ -105,6 +111,16 @@ class _DocxParser {
   /// The note being read, so its `w:footnoteRef` can show its own mark.
   String? _currentNoteLabel;
 
+  /// Text boxes open around the content being read. Word doesn't nest them,
+  /// so a deep nest is a hostile file: past [_maxTextBoxDepth] the inner
+  /// boxes are skipped rather than recursed into.
+  int _textBoxDepth = 0;
+  static const _maxTextBoxDepth = 8;
+
+  /// Word's limit is 63 grid columns; spans and skipped columns beyond this
+  /// are malformed, and the views allocate per column.
+  static const _maxGridColumns = 64;
+
   WordDocument parse() {
     final documentPath = package.mainPart ?? 'word/document.xml';
     final document = package.readXml(documentPath);
@@ -120,7 +136,7 @@ class _DocxParser {
     styles = WordStyles.parse(partOfType('styles'), theme);
     numbering = WordNumbering.parse(partOfType('numbering'), theme);
 
-    final context = _context(documentPath);
+    final context = _context(documentPath, mainBody: true);
     final body = wChild(document.rootElement, 'body');
     final blocks = body == null ? <WordBlock>[] : _blocks(body, context);
     // The body's own sectPr describes the last section.
@@ -139,8 +155,8 @@ class _DocxParser {
     );
   }
 
-  _PartContext _context(String path) =>
-      _PartContext(path, {for (final rel in package.relationshipsOf(path)) rel.id: rel});
+  _PartContext _context(String path, {bool mainBody = false}) =>
+      _PartContext(path, {for (final rel in package.relationshipsOf(path)) rel.id: rel}, mainBody: mainBody);
 
   // --- Blocks ----------------------------------------------------------------
 
@@ -214,7 +230,9 @@ class _DocxParser {
       ),
       ...carried,
     ];
-    if (wChild(pPr, 'sectPr') case final sectPr?) {
+    // Only a body paragraph ends a section: not one in a table cell or text
+    // box, nor in a header, footer or note.
+    if (wChild(pPr, 'sectPr') case final sectPr? when part.mainBody && cell == null && _textBoxDepth == 0) {
       _sections.add(_section(sectPr, part));
       result.add(WordSectionBreak(_sections.length - 1));
     }
@@ -438,22 +456,49 @@ class _DocxParser {
       final height = (double.tryParse(wAttr(extent, 'cy') ?? '') ?? 0) / 12700;
       final docPr = wChild(frame, 'docPr');
       final description = wAttr(docPr, 'descr') ?? wAttr(docPr, 'title');
-      final blip = frame.descendantElements.where((e) => e.localName == 'blip').firstOrNull;
+      final blip = _outsideTextBoxes(frame, 'blip').firstOrNull;
       final embed = wAttr(blip, 'embed');
       if (embed != null) {
         final image = _image(embed, part, width, height, description, floating);
         if (image != null) floating ? carried.add(WordParagraph([image])) : out.add(image);
       }
       // Shapes and text boxes: their text, as blocks after the paragraph.
-      for (final box in frame.descendantElements.where((e) => e.localName == 'txbxContent')) {
+      _textBoxes(frame, part, carried);
+    }
+  }
+
+  /// The text boxes directly in [shape], read as blocks into [carried].
+  /// Boxes nested inside them are read by their own box's paragraphs, so
+  /// they're not visited here: visiting every descendant box made each
+  /// level read the ones below it again, doubling the work per level.
+  void _textBoxes(XmlElement shape, _PartContext part, List<WordBlock> carried) {
+    if (_textBoxDepth >= _maxTextBoxDepth) return;
+    _textBoxDepth++;
+    try {
+      for (final box in _outsideTextBoxes(shape, 'txbxContent')) {
         carried.addAll(_blocks(box, part));
       }
+    } finally {
+      _textBoxDepth--;
+    }
+  }
+
+  /// Elements named [name] under [root], in document order, without looking
+  /// inside text boxes (`w:txbxContent`, itself yielded when asked for):
+  /// what's in a box belongs to the box. Iterative, as a hostile file can
+  /// nest deeply.
+  static Iterable<XmlElement> _outsideTextBoxes(XmlElement root, String name) sync* {
+    final stack = root.childElements.toList().reversed.toList();
+    while (stack.isNotEmpty) {
+      final element = stack.removeLast();
+      if (element.localName == name) yield element;
+      if (element.localName != 'txbxContent') stack.addAll(element.childElements.toList().reversed);
     }
   }
 
   /// Legacy VML pictures (`w:pict`, `w:object` previews).
   void _vml(XmlElement element, _PartContext part, List<WordInline> out, List<WordBlock> carried) {
-    final imageData = element.descendantElements.where((e) => e.localName == 'imagedata').firstOrNull;
+    final imageData = _outsideTextBoxes(element, 'imagedata').firstOrNull;
     final id = wAttr(imageData, 'id');
     if (id != null) {
       final shape = imageData!.parentElement;
@@ -473,9 +518,7 @@ class _DocxParser {
       final image = _image(id, part, size('width'), size('height'), wAttr(shape, 'alt'), false);
       if (image != null) out.add(image);
     }
-    for (final box in element.descendantElements.where((e) => e.localName == 'txbxContent')) {
-      carried.addAll(_blocks(box, part));
-    }
+    _textBoxes(element, part, carried);
   }
 
   WordImage? _image(String relationshipId, _PartContext part, double width, double height, String? description,
@@ -555,12 +598,16 @@ class _DocxParser {
 
       collectCells(rowElements[r]);
       final row = <_CellDraft>[];
-      var gridColumn = int.tryParse(wAttr(wChild(wChild(rowElements[r], 'trPr'), 'gridBefore'), 'val') ?? '') ?? 0;
+      final gridBefore = int.tryParse(wAttr(wChild(wChild(rowElements[r], 'trPr'), 'gridBefore'), 'val') ?? '') ?? 0;
+      var gridColumn = gridBefore.clamp(0, _maxGridColumns);
       final lastGridColumn = (gridCount ?? 0) - 1;
       for (var c = 0; c < cellElements.length; c++) {
         final tc = cellElements[c];
         final tcPr = wChild(tc, 'tcPr');
-        final span = int.tryParse(wAttr(wChild(tcPr, 'gridSpan'), 'val') ?? '') ?? 1;
+        // A span below one would break the column arithmetic; a huge one
+        // makes the views lay out (and allocate for) that many columns.
+        final gridSpan = int.tryParse(wAttr(wChild(tcPr, 'gridSpan'), 'val') ?? '') ?? 1;
+        final span = gridSpan < 1 ? 1 : math.min(gridSpan, math.min(gridCount ?? _maxGridColumns, _maxGridColumns));
         final vMerge = wChild(tcPr, 'vMerge');
         final continues = vMerge != null && wAttr(vMerge, 'val') != 'restart';
 
@@ -694,21 +741,27 @@ class _DocxParser {
               _kind(wAttr(ref, 'type')): _headerFooter(rel.target),
         };
     final landscape = wAttr(size, 'orient') == 'landscape';
-    var width = twips(wAttr(size, 'w')) ?? 612;
-    var height = twips(wAttr(size, 'h')) ?? 792;
+    // Pages between half an inch and Word's 22 inches, margins within the
+    // page: a malformed size would otherwise lay out absurd (or no) pages.
+    var width = (twips(wAttr(size, 'w')) ?? 612).clamp(_minPageSize, _maxPageSize);
+    var height = (twips(wAttr(size, 'h')) ?? 792).clamp(_minPageSize, _maxPageSize);
     if (landscape && width < height) (width, height) = (height, width);
+    double margin(String? value, double page) => (twips(value) ?? 72).abs().clamp(0.0, page);
     return WordSection(
       pageWidth: width,
       pageHeight: height,
-      marginTop: (twips(wAttr(margins, 'top')) ?? 72).abs(),
-      marginBottom: (twips(wAttr(margins, 'bottom')) ?? 72).abs(),
-      marginLeft: twips(wAttr(margins, 'left') ?? wAttr(margins, 'start')) ?? 72,
-      marginRight: twips(wAttr(margins, 'right') ?? wAttr(margins, 'end')) ?? 72,
+      marginTop: margin(wAttr(margins, 'top'), height),
+      marginBottom: margin(wAttr(margins, 'bottom'), height),
+      marginLeft: margin(wAttr(margins, 'left') ?? wAttr(margins, 'start'), width),
+      marginRight: margin(wAttr(margins, 'right') ?? wAttr(margins, 'end'), width),
       headers: parts('headerReference'),
       footers: parts('footerReference'),
       titlePage: wOnOff(wChild(sectPr, 'titlePg')) ?? false,
     );
   }
+
+  static const double _minPageSize = 36;
+  static const double _maxPageSize = 1584;
 
   static HeaderFooterKind _kind(String? type) => switch (type) {
         'first' => HeaderFooterKind.first,
@@ -764,12 +817,18 @@ class _DocxParser {
         if (wAttr(note, 'id') case final id?) id: note,
     };
     final notes = <String, List<WordBlock>>{};
-    for (final id in labels.keys) {
+    // A note can refer to another note, which numbers it (adds to [labels])
+    // while this walks them: work through a list that grows to match.
+    final pending = labels.keys.toList();
+    for (var i = 0; i < pending.length; i++) {
+      final id = pending[i];
       final note = byId[id];
-      if (note == null) continue;
-      _currentNoteLabel = labels[id];
-      notes[id] = _blocks(note, context);
-      _fields.clear();
+      if (note != null) {
+        _currentNoteLabel = labels[id];
+        notes[id] = _blocks(note, context);
+        _fields.clear();
+      }
+      if (labels.length > pending.length) pending.addAll(labels.keys.skip(pending.length));
     }
     _currentNoteLabel = null;
     return notes;

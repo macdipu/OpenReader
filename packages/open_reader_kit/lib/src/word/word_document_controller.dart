@@ -105,8 +105,10 @@ class WordDocumentController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// For a caller whose own read failed (e.g. the file vanished).
+  /// For a caller whose own read failed (e.g. the file vanished). A no-op
+  /// once disposed: the read can fail because the reader was closed.
   void rejectAsCorrupted() {
+    if (_disposed) return;
     _error = DocumentLoadError.corrupted;
     _loaded = true;
     notifyListeners();
