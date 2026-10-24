@@ -67,7 +67,7 @@ dependencies:
     path: packages/open_reader_kit
   # ODF-P5-03: direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
   # ZIP container's central directory before the kit's engines decompress it.
-  archive: ^4.3.0
+  archive: ^4.5.0
   # Parses PowerPoint slide XML (CR-OPENREADER-PPTX); also used by the kit.
   xml: ^7.0.1
 

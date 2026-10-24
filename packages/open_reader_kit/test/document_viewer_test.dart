@@ -53,6 +53,59 @@ void main() {
     expect(find.text('This document may be damaged or incomplete.'), findsOneWidget);
   });
 
+  testWidgets('refuses an Office file over the size ceiling before reading it', (tester) async {
+    for (final name in ['huge.docx', 'huge.xlsx', 'huge.pptx']) {
+      final path = '${dir.path}/$name';
+      await tester.runAsync(() async {
+        final handle = await File(path).open(mode: FileMode.write);
+        await handle.truncate(ZipSafetyGuard.maxFileBytes + 1); // Sparse: nothing is written.
+        await handle.close();
+      });
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: DocumentViewer.file(path))));
+      await settle(tester);
+      expect(find.text('This document is too large to open.'), findsOneWidget, reason: name);
+    }
+  });
+
+  // One test, as the PDF engine's worker is shared and answers in the zone
+  // of the test that started it.
+  testWidgets('an encrypted PDF is password protected, and opens with passwordProvider\'s password', (tester) async {
+    /// Lets the PDF engine's isolate work, in real time, until [done] (and
+    /// a little longer, for what follows it) or a few seconds pass.
+    Future<void> pumpPdf(Widget viewer, bool Function() done) async {
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: viewer)));
+      var after = 10;
+      for (var i = 0; i < 200 && after > 0; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 25)));
+        await tester.pump();
+        if (done()) after--;
+      }
+    }
+
+    const path = 'test/fixtures/pdf/encrypted.pdf';
+    const message = 'This document is password protected.';
+    await pumpPdf(DocumentViewer.file(path), () => find.text(message).evaluate().isNotEmpty);
+    expect(find.text(message), findsOneWidget);
+
+    var asked = 0;
+    DocumentLoadError? failed;
+    await pumpPdf(
+      DocumentViewer.file(
+        path,
+        key: const ValueKey('with password'),
+        passwordProvider: () async => asked++ == 0 ? 'secret' : null,
+        errorBuilder: (context, error) {
+          failed = error;
+          return const SizedBox();
+        },
+      ),
+      () => asked > 0,
+    );
+    expect(asked, 1);
+    expect(failed, isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('reopens when the path changes', (tester) async {
     await pumpViewer(tester, 'a.txt', 'from a'.codeUnits);
     final second = '${dir.path}/b.txt';
