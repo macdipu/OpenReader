@@ -54,7 +54,7 @@ class TextDocumentController extends ChangeNotifier {
   List<String> get lines => _lines;
 
   /// Checks [bytes] look like text, then decodes them (UTF-8, else
-  /// Latin-1) into lines. A caller reading from a file should refuse files
+  /// Latin-1; UTF-16 after its byte order mark) into lines. A caller reading from a file should refuse files
   /// over [maxBytes] before reading them.
   void load(Uint8List bytes) {
     if (bytes.length > maxBytes) {
@@ -71,9 +71,10 @@ class TextDocumentController extends ChangeNotifier {
   /// A cheap heuristic, not a real content-type sniffer: a NUL byte, or a
   /// high proportion of non-whitespace control bytes in a leading sample,
   /// is treated as "not text" (e.g. a binary file renamed `.txt`). False
-  /// positives/negatives are possible on edge-case files.
+  /// positives/negatives are possible on edge-case files. UTF-16 text with a
+  /// byte order mark is text, whatever its NUL bytes.
   static bool looksBinary(Uint8List bytes) {
-    if (bytes.isEmpty) return false;
+    if (bytes.isEmpty || hasUtf16Bom(bytes)) return false;
     final sampleSize = bytes.length < 8000 ? bytes.length : 8000;
     var controlCount = 0;
     for (var i = 0; i < sampleSize; i++) {

@@ -22,6 +22,12 @@ class TextThumbnailRenderer implements ThumbnailRenderer {
   static const Size _page = Size(420, 594);
   static const int _maxLines = 80;
 
+  /// Most characters kept of one line, and of the page: a page shows a few
+  /// thousand at most, and a minified or one-line file could otherwise hand
+  /// the offscreen layout megabytes of text to wrap.
+  static const int _maxLineChars = 300;
+  static const int _maxChars = 8000;
+
   @override
   Future<ui.Image?> render(String path, {required int width, ReadingPosition? position}) async {
     final line = positionIndex(position, PositionKeys.line) ?? 0;
@@ -30,23 +36,30 @@ class TextThumbnailRenderer implements ThumbnailRenderer {
       lines = await parseTextFile<String?>(
         path,
         maxBytes: TextDocumentController.maxBytes,
-        parse: (bytes) => _linesFrom(bytes, line),
+        parse: (bytes) => linesFrom(bytes, line),
       );
     } else {
       final head = await readTextHead(path, maxBytes: TextDocumentController.maxBytes);
-      lines = head == null ? null : _linesFrom(head, 0);
+      lines = head == null ? null : linesFrom(head, 0);
     }
     if (lines == null) return null;
     return renderOffscreen(_TextPage(lines), size: _page, width: width);
   }
 
   /// The page's lines, from [first] on (from the top when the text is
-  /// shorter); null for bytes that don't look like text.
-  static String? _linesFrom(Uint8List bytes, int first) {
+  /// shorter), each cut to [_maxLineChars] and all to [_maxChars]; null for
+  /// bytes that don't look like text.
+  @visibleForTesting
+  static String? linesFrom(Uint8List bytes, int first) {
     if (TextDocumentController.looksBinary(bytes)) return null;
     final lines = decodeTextBytes(bytes).split('\n');
     final start = first < lines.length ? first : 0;
-    return lines.skip(start).take(_maxLines).join('\n');
+    final page = lines
+        .skip(start)
+        .take(_maxLines)
+        .map((line) => line.length > _maxLineChars ? line.substring(0, _maxLineChars) : line)
+        .join('\n');
+    return page.length > _maxChars ? page.substring(0, _maxChars) : page;
   }
 }
 

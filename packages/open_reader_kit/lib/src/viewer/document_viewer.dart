@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../common/document_format.dart';
 import '../common/reader_contract.dart';
+import '../common/zip_safety_guard.dart';
+import '../engines/pdfium/pdf_types.dart';
 import '../pdf_reader/pdf_document_controller.dart';
 import '../pdf_reader/pdf_document_view.dart';
 import '../sheets/sheet_grid.dart';
@@ -30,6 +33,7 @@ class DocumentViewer extends StatefulWidget {
     this.initialPosition,
     this.onPositionChanged,
     this.errorBuilder,
+    this.passwordProvider,
   });
 
   final String path;
@@ -42,6 +46,11 @@ class DocumentViewer extends StatefulWidget {
 
   /// Shown when the file can't be opened. Defaults to a short message.
   final Widget Function(BuildContext context, DocumentLoadError error)? errorBuilder;
+
+  /// Asked for the password of an encrypted PDF, once per attempt, until it
+  /// returns null (give up) or the password works. Without one an encrypted
+  /// PDF shows [DocumentLoadError.passwordRequired].
+  final PdfPasswordProvider? passwordProvider;
 
   @override
   State<DocumentViewer> createState() => _DocumentViewerState();
@@ -90,13 +99,21 @@ class _DocumentViewerState extends State<DocumentViewer> {
         case DocumentFormat.word:
           final word = WordDocumentController(initialPosition: at, onPositionChanged: report);
           controller = word;
-          await word.load(await file.readAsBytes());
-          error = word.error;
+          if (await _readOffice(file) case final bytes?) {
+            await word.load(bytes);
+            error = word.error;
+          } else {
+            error = DocumentLoadError.tooLarge;
+          }
         case DocumentFormat.excel:
           final sheet = SpreadsheetController(initialPosition: at, onPositionChanged: report);
           controller = sheet;
-          await sheet.loadXlsx(await file.readAsBytes());
-          error = sheet.error;
+          if (await _readOffice(file) case final bytes?) {
+            await sheet.loadXlsx(bytes);
+            error = sheet.error;
+          } else {
+            error = DocumentLoadError.tooLarge;
+          }
         case DocumentFormat.csv:
           final sheet = SpreadsheetController(initialPosition: at, onPositionChanged: report);
           controller = sheet;
@@ -109,8 +126,12 @@ class _DocumentViewerState extends State<DocumentViewer> {
         case DocumentFormat.powerpoint:
           final deck = SlideDeckController(initialPosition: at, onPositionChanged: report);
           controller = deck;
-          await deck.load(await file.readAsBytes());
-          error = deck.error;
+          if (await _readOffice(file) case final bytes?) {
+            await deck.load(bytes);
+            error = deck.error;
+          } else {
+            error = DocumentLoadError.tooLarge;
+          }
         case DocumentFormat.text:
           final text = TextDocumentController(initialPosition: at, onPositionChanged: report);
           controller = text;
@@ -135,6 +156,12 @@ class _DocumentViewerState extends State<DocumentViewer> {
     });
   }
 
+  /// The Office file's bytes, or null when it is over
+  /// [ZipSafetyGuard.maxFileBytes] - checked before reading, so a huge file
+  /// is never pulled into memory only to be refused.
+  static Future<Uint8List?> _readOffice(File file) async =>
+      await file.length() > ZipSafetyGuard.maxFileBytes ? null : await file.readAsBytes();
+
   @override
   void dispose() {
     _controller?.dispose();
@@ -152,9 +179,11 @@ class _DocumentViewerState extends State<DocumentViewer> {
       final PdfDocumentController pdf => PdfDocumentView(
           path: widget.path,
           controller: pdf,
-          errorBuilder: (context, _) =>
-              widget.errorBuilder?.call(context, DocumentLoadError.corrupted) ??
-              Center(child: Text(_errorText(DocumentLoadError.corrupted))),
+          passwordProvider: widget.passwordProvider,
+          errorBuilder: (context, error) {
+            final loadError = _pdfError(error);
+            return widget.errorBuilder?.call(context, loadError) ?? Center(child: Text(_errorText(loadError)));
+          },
         ),
       final WordDocumentController word => WordDocumentView(controller: word),
       final SpreadsheetController sheet => _SheetWithTabs(controller: sheet),
@@ -168,6 +197,14 @@ class _DocumentViewerState extends State<DocumentViewer> {
       _ => Center(child: Text(_errorText(DocumentLoadError.unsupported))),
     };
   }
+
+  /// An encrypted PDF the reader couldn't unlock - no password, a wrong
+  /// one, or an encryption PDFium doesn't support - is password protected,
+  /// not damaged.
+  static DocumentLoadError _pdfError(Object error) => switch (error) {
+        PdfOpenException(error: PdfOpenError.password || PdfOpenError.security) => DocumentLoadError.passwordRequired,
+        _ => DocumentLoadError.corrupted,
+      };
 
   static String _errorText(DocumentLoadError error) => switch (error) {
         DocumentLoadError.tooLarge => 'This document is too large to open.',

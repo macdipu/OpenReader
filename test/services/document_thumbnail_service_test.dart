@@ -120,6 +120,66 @@ void main() {
     expect(await failing.getThumbnail(_document('/docs/notes.txt')), isNull);
   });
 
+  test('the same service redraws an edited file, not the preview from before the edit', () async {
+    var renders = 0;
+    final service = DocumentThumbnailService.withDependencies(
+      pathService: _FakePathService(temp),
+      render: (path, {required width, position}) async => Uint8List.fromList([++renders]),
+    );
+    final before = await service.getThumbnail(_document('/docs/a.docx'));
+    final after = await service.getThumbnail(_document('/docs/a.docx', modifiedAt: DateTime(2027)));
+    expect(renders, 2);
+    expect(after!.readAsBytesSync(), [2]);
+    expect(after.path, isNot(before!.path));
+  });
+
+  test('no preview is tried again once failureRetryAfter has passed, not before', () async {
+    Uint8List? next;
+    var renders = 0;
+    DocumentThumbnailService service(Duration retryAfter) => DocumentThumbnailService.withDependencies(
+          pathService: _FakePathService(temp),
+          failureRetryAfter: retryAfter,
+          render: (path, {required width, position}) async {
+            renders++;
+            return next;
+          },
+        );
+    final document = _document('/docs/copying.pptx');
+
+    final patient = service(const Duration(hours: 1));
+    expect(await patient.getThumbnail(document), isNull);
+    next = Uint8List.fromList([7]);
+    expect(await patient.getThumbnail(document), isNull);
+    expect(renders, 1);
+
+    next = null;
+    final eager = service(Duration.zero);
+    expect(await eager.getThumbnail(document), isNull);
+    next = Uint8List.fromList([7]);
+    expect((await eager.getThumbnail(document))!.readAsBytesSync(), [7]);
+    expect(renders, 3);
+  });
+
+  test('cache files: stable 64-bit names, no partial files left, oldest pruned past the cap', () async {
+    expect(DocumentThumbnailService.cacheFileName('a'), 'af63dc4c8601ec8c'); // FNV-1a 64 of "a".
+    expect(DocumentThumbnailService.cacheFileName('a'), matches(RegExp(r'^[0-9a-f]{16}$')));
+    expect(DocumentThumbnailService.cacheFileName('b'), isNot(DocumentThumbnailService.cacheFileName('a')));
+
+    final service = DocumentThumbnailService.withDependencies(
+      pathService: _FakePathService(temp),
+      maxCachedFiles: 3,
+      render: (path, {required width, position}) async => Uint8List.fromList([1]),
+    );
+    File? newest;
+    for (var i = 0; i < 6; i++) {
+      newest = await service.getThumbnail(_document('/docs/$i.txt'));
+    }
+    final cached = Directory('${temp.path}/document_thumbnails').listSync().map((e) => e.path).toList();
+    expect(cached, hasLength(3));
+    expect(cached.where((path) => path.endsWith('.tmp')), isEmpty);
+    expect(cached, contains(newest!.path));
+  });
+
   test('previews a real non-PDF file through open_reader_kit', () async {
     final path = '${temp.path}/notes.txt';
     File(path).writeAsStringSync('Shopping list\nMilk\nBread\n');
