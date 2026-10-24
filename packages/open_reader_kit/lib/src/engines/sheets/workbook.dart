@@ -45,6 +45,7 @@ class Worksheet {
     this.layout = SheetLayout.standard,
     this.merges = const [],
     this.hyperlinks = const {},
+    this.comments = const {},
   });
 
   final String name;
@@ -58,6 +59,9 @@ class Worksheet {
 
   /// Link targets by cell: a URL, or a place in the workbook (`Sheet2!A1`).
   final Map<CellAddress, String> hyperlinks;
+
+  /// Notes (Excel's comments) by cell.
+  final Map<CellAddress, CellComment> comments;
 
   /// Rows from the first (index 0 = row 1) to the last one holding a cell.
   /// Rows have different lengths: each stops at its own last cell, and a
@@ -76,6 +80,15 @@ class Worksheet {
     }
     return widest;
   }
+}
+
+/// A note on a cell (Excel's "comment"; a threaded comment shows as the
+/// thread's text, as older Excel shows it).
+class CellComment {
+  const CellComment(this.text, {this.author});
+
+  final String text;
+  final String? author;
 }
 
 /// A zero-based cell position.
@@ -136,11 +149,17 @@ class SheetLayout {
 }
 
 class SheetCell {
-  const SheetCell(this.value, {this.style = CellStyle.plain, this.date1904 = false});
+  const SheetCell(this.value, {this.style = CellStyle.plain, this.date1904 = false, this.dataBar});
 
   /// Null for a cell that only carries formatting (e.g. a fill colour).
   final CellValue? value;
+
+  /// The cell's format, with what conditional formatting applies to it
+  /// already folded in.
   final CellStyle style;
+
+  /// A conditional-formatting data bar drawn behind the value, or null.
+  final DataBar? dataBar;
 
   /// Copied from the [Workbook], so [text] can place date serials.
   final bool date1904;
@@ -156,9 +175,16 @@ class SheetCell {
         BoolValue(:final value) => value ? 'TRUE' : 'FALSE',
         ErrorValue(:final code) => code,
         FormulaValue(:final formula, :final cached) => switch (cached) {
-            null || TextValue(text: '') => '=$formula',
+            null || TextValue(text: '') => formula.isEmpty ? '' : '=$formula',
             final cached => SheetCell(cached, style: style, date1904: date1904).text,
           },
+      };
+
+  /// The formula as Excel's formula bar shows it (`=SUM(A1:A3)`, an array
+  /// formula in braces); null when the cell has none.
+  String? get formulaText => switch (value) {
+        FormulaValue(:final formula, :final array) when formula.isNotEmpty => array ? '{=$formula}' : '=$formula',
+        _ => null,
       };
 
   /// The cell's number, for a selection's Sum/Average: a number cell, or a
@@ -212,9 +238,25 @@ class ErrorValue extends CellValue {
 /// A formula and the result Excel saved with it ([cached]; null when the
 /// file has none).
 class FormulaValue extends CellValue {
-  const FormulaValue(this.formula, {this.cached});
+  const FormulaValue(this.formula, {this.cached, this.array = false});
+
+  /// Without the leading `=`. A formula filled across cells is stored once
+  /// in the file; each cell gets its own copy, references moved as Excel
+  /// moves them.
   final String formula;
   final CellValue? cached;
+
+  /// An array (CSE) formula, which Excel shows in braces.
+  final bool array;
+}
+
+/// A bar across part of a cell's width, as conditional formatting draws
+/// it: [fraction] (0-1) of the width, in [color] (0xAARRGGBB).
+class DataBar {
+  const DataBar(this.fraction, this.color);
+
+  final double fraction;
+  final int color;
 }
 
 enum HorizontalAlignment {
@@ -246,6 +288,7 @@ class CellStyle {
     this.verticalAlignment = VerticalAlignment.bottom,
     this.wrapText = false,
     this.numberFormat = NumberFormat.general,
+    this.borders = CellBorders.none,
   });
 
   static const plain = CellStyle();
@@ -269,4 +312,71 @@ class CellStyle {
   final bool wrapText;
 
   final NumberFormat numberFormat;
+
+  /// Lines the author drew on the cell's sides.
+  final CellBorders borders;
+
+  /// This style with conditional formatting's overrides on top.
+  CellStyle overriddenBy({bool? bold, bool? italic, bool? underline, bool? strikethrough, int? textColor, int? fillColor}) =>
+      CellStyle(
+        bold: bold ?? this.bold,
+        italic: italic ?? this.italic,
+        underline: underline ?? this.underline,
+        strikethrough: strikethrough ?? this.strikethrough,
+        fontSize: fontSize,
+        textColor: textColor ?? this.textColor,
+        fillColor: fillColor ?? this.fillColor,
+        horizontalAlignment: horizontalAlignment,
+        verticalAlignment: verticalAlignment,
+        wrapText: wrapText,
+        numberFormat: numberFormat,
+        borders: borders,
+      );
+}
+
+/// Excel's line styles. A reader draws the dashed and dotted ones solid;
+/// [width] is their weight in logical pixels.
+enum BorderLineStyle {
+  hair(0.5),
+  thin(1),
+  dotted(1),
+  dashed(1),
+  dashDot(1),
+  dashDotDot(1),
+  medium(2),
+  mediumDashed(2),
+  mediumDashDot(2),
+  mediumDashDotDot(2),
+  slantDashDot(2),
+  thick(3),
+
+  /// Excel's `double`.
+  doubleLine(3);
+
+  const BorderLineStyle(this.width);
+
+  final double width;
+}
+
+/// One side's line: its style, and colour as 0xAARRGGBB (null for
+/// automatic, which is black on white paper).
+class BorderLine {
+  const BorderLine(this.style, {this.color});
+
+  final BorderLineStyle style;
+  final int? color;
+}
+
+/// The lines on a cell's four sides; null where there's none.
+class CellBorders {
+  const CellBorders({this.left, this.right, this.top, this.bottom});
+
+  static const none = CellBorders();
+
+  final BorderLine? left;
+  final BorderLine? right;
+  final BorderLine? top;
+  final BorderLine? bottom;
+
+  bool get isEmpty => left == null && right == null && top == null && bottom == null;
 }

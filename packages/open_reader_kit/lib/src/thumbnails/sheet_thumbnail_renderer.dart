@@ -9,6 +9,7 @@ import '../common/text_decoding.dart';
 import '../engines/sheets/csv_reader.dart';
 import '../engines/sheets/workbook.dart';
 import '../engines/sheets/xlsx_reader.dart';
+import '../sheets/cell_border.dart';
 import '../sheets/spreadsheet_controller.dart';
 import 'offscreen_render.dart';
 import 'thumbnail_renderer.dart';
@@ -189,7 +190,16 @@ class _SheetCornerView extends StatelessWidget {
               children: [
                 header('${corner.rows[r] + 1}', SheetCorner.rowHeaderWidth, corner.rowHeights[r]),
                 for (var c = 0; c < corner.columns.length; c++)
-                  _CellView(corner.cells[r][c], width: corner.columnWidths[c], height: corner.rowHeights[r], border: border),
+                  _CellView(
+                    corner.cells[r][c],
+                    width: corner.columnWidths[c],
+                    height: corner.rowHeights[r],
+                    border: cellBorder(
+                      corner.cells[r][c]?.style.borders ?? CellBorders.none,
+                      gridline: scheme.outlineVariant,
+                      automatic: Colors.black,
+                    ),
+                  ),
               ],
             ),
         ],

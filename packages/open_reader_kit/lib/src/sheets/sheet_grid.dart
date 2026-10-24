@@ -4,6 +4,7 @@ import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../engines/sheets/workbook.dart';
+import 'cell_border.dart';
 import 'sheet_geometry.dart';
 import 'spreadsheet_controller.dart';
 
@@ -12,7 +13,9 @@ import 'spreadsheet_controller.dart';
 /// out, its frozen panes pinned along with the header row and row-number
 /// column, merged cells, and its text formatting. Also: a −/+ zoom pill,
 /// search highlights, row/column selection with Count/Sum/Avg and Copy, a
-/// cell's full value (and its link) on tap. Scrolls through the
+/// cell's full value (with its formula, note and link) on tap. Cell
+/// borders, conditional formatting (fills, colours, data bars) and a note
+/// marker come from the file. Scrolls through the
 /// controller's `verticalController`/`horizontalController`. Serves Excel
 /// and CSV alike.
 class SheetGrid extends StatefulWidget {
@@ -180,6 +183,7 @@ class _SheetGridState extends State<SheetGrid> {
         final column = merge?.sheetColumn ?? geometry.visibleColumns[c - 1];
         final data = row < rows.length && column < rows[row].length ? rows[row][column] : null;
         final link = controller.currentSheet?.hyperlinks[(row: row, column: column)];
+        final comment = controller.currentSheet?.comments[(row: row, column: column)];
         final highlight = controller.isCurrentMatch(row, column)
             ? _CellHighlight.current
             : controller.isMatch(row, column)
@@ -197,10 +201,17 @@ class _SheetGridState extends State<SheetGrid> {
             highlight: highlight,
             zoom: zoom,
             isLink: link != null,
+            hasComment: comment != null,
             onTap: () => showCellDetail(
               context,
               address: '${_columnLabel(column)}${row + 1}',
-              value: data?.text ?? '',
+              // A formula saved without its result has no value to show.
+              value: switch (data?.value) {
+                FormulaValue(cached: null) => '',
+                _ => data?.text ?? '',
+              },
+              formula: data?.formulaText,
+              comment: comment,
               link: link,
               onOpenInternalLink: controller.openInternalLink,
             ),
@@ -304,13 +315,17 @@ class _ZoomControls extends StatelessWidget {
 }
 
 /// Full value of a cell, which the grid truncates (UX-32), with Copy and,
-/// for a linked cell, Open link. Web links open outside the app (`http`,
+/// for a linked cell, Open link. A formula cell also shows its [formula]
+/// (as Excel's formula bar does, with its own Copy), and a noted cell its
+/// [comment]. Web links open outside the app (`http`,
 /// `https` and `mailto` only); a link to a place in the workbook
 /// (`#Sheet2!A1`) goes to [onOpenInternalLink].
 Future<void> showCellDetail(
   BuildContext context, {
   required String address,
   required String value,
+  String? formula,
+  CellComment? comment,
   String? link,
   void Function(String location)? onOpenInternalLink,
 }) {
@@ -333,9 +348,52 @@ Future<void> showCellDetail(
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.5),
               child: SingleChildScrollView(
-                child: SelectableText(value.isEmpty ? '(empty)' : value, style: Theme.of(sheetContext).textTheme.bodyLarge),
+                child: SelectableText(
+                  value.isNotEmpty
+                      ? value
+                      : formula != null
+                          ? 'No saved result: the file was saved without calculating this formula.'
+                          : '(empty)',
+                  style: value.isEmpty
+                      ? Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                          )
+                      : Theme.of(sheetContext).textTheme.bodyLarge,
+                ),
               ),
             ),
+            if (formula != null) ...[
+              const SizedBox(height: 16),
+              Text('Formula', style: Theme.of(sheetContext).textTheme.labelMedium),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: SelectableText(
+                      formula,
+                      style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Copy formula',
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: formula));
+                      Navigator.of(sheetContext).pop();
+                    },
+                  ),
+                ],
+              ),
+            ],
+            if (comment != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                comment.author == null ? 'Note' : 'Note from ${comment.author}',
+                style: Theme.of(sheetContext).textTheme.labelMedium,
+              ),
+              const SizedBox(height: 4),
+              SelectableText(comment.text, style: Theme.of(sheetContext).textTheme.bodyMedium),
+            ],
             if (link != null) ...[
               const SizedBox(height: 8),
               Text(link, style: Theme.of(sheetContext).textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -561,6 +619,7 @@ class _DataCell extends StatelessWidget {
   final _CellHighlight highlight;
   final double zoom;
   final bool isLink;
+  final bool hasComment;
   final VoidCallback onTap;
 
   const _DataCell({
@@ -569,6 +628,7 @@ class _DataCell extends StatelessWidget {
     required this.zoom,
     required this.isLink,
     required this.onTap,
+    this.hasComment = false,
   });
 
   /// Office's default font size; the grid draws it at 13 logical px.
@@ -598,6 +658,7 @@ class _DataCell extends StatelessWidget {
       if (style.underline || isLink) TextDecoration.underline,
       if (style.strikethrough) TextDecoration.lineThrough,
     ];
+    final bar = data?.dataBar;
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -606,9 +667,10 @@ class _DataCell extends StatelessWidget {
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           color: fill,
-          border: Border.all(color: scheme.outlineVariant, width: 0.5),
+          border: cellBorder(style.borders, gridline: scheme.outlineVariant, automatic: scheme.onSurface, zoom: zoom),
         ),
-        child: Text(
+        foregroundDecoration: hasComment ? _CommentMarker(color: scheme.error, size: 7 * zoom) : null,
+        child: _withBar(bar, _alignment(style, data?.value), Text(
           data?.text ?? '',
           maxLines: style.wrapText ? null : 1,
           softWrap: style.wrapText,
@@ -621,8 +683,35 @@ class _DataCell extends StatelessWidget {
             fontStyle: style.italic ? FontStyle.italic : FontStyle.normal,
             decoration: decorations.isEmpty ? null : TextDecoration.combine(decorations),
           ),
-        ),
+        )),
       ),
+    );
+  }
+
+  /// [text] over a conditional-formatting data bar, which runs from the
+  /// cell's left edge (inside its padding) as a soft gradient, as Excel
+  /// draws it. The text keeps its [alignment].
+  static Widget _withBar(DataBar? bar, Alignment alignment, Widget text) {
+    if (bar == null) return text;
+    final color = Color(bar.color);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: bar.fraction,
+            heightFactor: 0.8,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.25)]),
+                border: Border.all(color: color, width: 0.5),
+              ),
+            ),
+          ),
+        ),
+        Align(alignment: alignment, child: text),
+      ],
     );
   }
 
@@ -695,5 +784,36 @@ class _EmptySheet extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Excel's note marker: a small triangle in a cell's top-right corner.
+class _CommentMarker extends Decoration {
+  const _CommentMarker({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) => _CommentMarkerPainter(this);
+}
+
+class _CommentMarkerPainter extends BoxPainter {
+  _CommentMarkerPainter(this.marker);
+
+  final _CommentMarker marker;
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final size = configuration.size;
+    if (size == null) return;
+    final right = offset.dx + size.width;
+    final top = offset.dy;
+    final path = Path()
+      ..moveTo(right - marker.size, top)
+      ..lineTo(right, top)
+      ..lineTo(right, top + marker.size)
+      ..close();
+    canvas.drawPath(path, Paint()..color = marker.color);
   }
 }
