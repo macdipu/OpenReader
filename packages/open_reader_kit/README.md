@@ -206,11 +206,22 @@ The wording is yours. `PdfDocumentController.error` holds the PDF engine's excep
 
 ## Thumbnails
 
-A `DocumentThumbnails` API for first-page previews is being added.
+`DocumentThumbnails.render` draws a file's first page as PNG bytes of a given width (height follows the page's shape). Every format is covered:
+- **PDF:** page 1.
+- **Word:** page 1 in print layout.
+- **PowerPoint:** slide 1.
+- **Spreadsheets and CSV:** the top-left cells of the first visible sheet.
+- **Text:** the first lines.
+
+```dart
+final Uint8List? png = await DocumentThumbnails.render('/path/to/report.docx', width: 160);
+```
+
+It returns null rather than throwing for unsupported, damaged, encrypted or too-large files. Caching is up to you; the OpenReader app keeps them on disk.
 
 ## Other libraries
 
-- `open_reader_kit.dart`: `DocumentViewer`, `DocumentFormat`, `ReadingPosition`, `PositionKeys`, `DocumentLoadError`, `ZipSafetyGuard`, `decodeTextBytes`.
+- `open_reader_kit.dart`: `DocumentViewer`, `DocumentThumbnails`, `DocumentFormat`, `ReadingPosition`, `PositionKeys`, `DocumentLoadError`, `ZipSafetyGuard`, `decodeTextBytes`.
 - `word.dart`: the Word engine (`DocxReader`, the `WordDocument` model).
 - `testing.dart`: `buildDocx`, `buildXlsx` and `buildPptx` build small documents in memory for tests.
 

@@ -66,3 +66,5 @@ app.*.map.json
 /android/keystore/
 *.jks
 *.keystore
+# Claude Code agent worktrees
+/.claude/worktrees/

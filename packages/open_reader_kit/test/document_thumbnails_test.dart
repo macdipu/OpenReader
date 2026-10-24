@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image/image.dart' as img;
+import 'package:archive/archive.dart' show getCrc32;
 import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:open_reader_kit/testing.dart';
 
@@ -87,7 +87,7 @@ void main() {
   });
 
   test('PowerPoint: slide 1 in the slide shape, picture included', () async {
-    final png = img.encodePng(img.Image(width: 40, height: 20)..clear(img.ColorRgb8(30, 120, 220)));
+    final png = _solidPng(40, 20, 30, 120, 220);
     final widescreen = file(
       'deck.pptx',
       buildPptx(
@@ -153,4 +153,24 @@ Future<void> _loadRoboto() async {
       ..addFont(load('Roboto-Italic.ttf'));
     await loader.load();
   }
+}
+
+/// A [width] x [height] PNG of one RGB colour, written by hand (8-bit RGB,
+/// no filtering) so the test needs no imaging package.
+List<int> _solidPng(int width, int height, int r, int g, int b) {
+  List<int> uint32(int value) => [value >> 24 & 0xFF, value >> 16 & 0xFF, value >> 8 & 0xFF, value & 0xFF];
+  List<int> chunk(String type, List<int> data) {
+    final body = [...type.codeUnits, ...data];
+    return [...uint32(data.length), ...body, ...uint32(getCrc32(body))];
+  }
+
+  final rows = [
+    for (var y = 0; y < height; y++) ...[0, for (var x = 0; x < width; x++) ...[r, g, b]],
+  ];
+  return [
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
+    ...chunk('IHDR', [...uint32(width), ...uint32(height), 8, 2, 0, 0, 0]),
+    ...chunk('IDAT', ZLibCodec().encode(rows)),
+    ...chunk('IEND', const []),
+  ];
 }
