@@ -49,10 +49,6 @@ class _WordDocumentViewState extends State<WordDocumentView> {
 
   WordDocumentController get controller => widget.controller;
 
-  /// The paper pages are drawn on: dark text on white, whatever the app
-  /// theme, as in print.
-  static final _paper = ThemeData(colorScheme: const ColorScheme.light(surface: Colors.white, onSurface: Colors.black));
-
   @override
   void initState() {
     super.initState();
@@ -244,7 +240,7 @@ class _WordDocumentViewState extends State<WordDocumentView> {
     final textScaler = MediaQuery.textScalerOf(context);
     final key = (layout, textScaler);
     if (_pagination != null && _paginationKey == key) return _pagination!;
-    final styler = WordParagraphStyler(scheme: _paper.colorScheme, linkColor: layout.document.linkColor, pageNumber: 1, pageCount: 1);
+    final styler = WordParagraphStyler(scheme: WordPageView.paper.colorScheme, linkColor: layout.document.linkColor, pageNumber: 1, pageCount: 1);
     _pagination = WordPaginator(layout, WordMeasurer(styler, textScaler: textScaler)).paginate();
     _paginationKey = key;
     return _pagination!;
@@ -327,11 +323,11 @@ class _WordDocumentViewState extends State<WordDocumentView> {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Theme(
-                data: _paper,
+                data: WordPageView.paper,
                 child: WordPageInfo(
                   number: index + 1,
                   count: pages.length,
-                  child: _PageView(pages[index]),
+                  child: WordPageView(pages[index]),
                 ),
               ),
             ),
@@ -343,11 +339,16 @@ class _WordDocumentViewState extends State<WordDocumentView> {
 }
 
 /// One page on paper: the body at the page's margins, the header and footer
-/// in the margins above and below.
-class _PageView extends StatelessWidget {
-  const _PageView(this.page);
+/// in the margins above and below. Shown under [paper], a [WordScope] and a
+/// [WordPageInfo]; also drawn offscreen for a document's thumbnail.
+class WordPageView extends StatelessWidget {
+  const WordPageView(this.page, {super.key});
 
   final WordPage page;
+
+  /// The paper pages are drawn on: dark text on white, whatever the app
+  /// theme, as in print.
+  static final paper = ThemeData(colorScheme: const ColorScheme.light(surface: Colors.white, onSurface: Colors.black));
 
   @override
   Widget build(BuildContext context) {

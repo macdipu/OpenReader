@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/models/document_category.dart';
 import '../../../domain/models/document_model.dart';
-import '../../../../services/utilities/pdf_thumbnail_service.dart';
+import '../../../../services/utilities/document_thumbnail_service.dart';
 import '../../theme/theme_extensions.dart';
 import '../../utils/file_size_formatter.dart';
 import '../../utils/document_date_formatter.dart';
@@ -185,9 +185,10 @@ class DocumentListTile extends StatelessWidget {
 
 enum _DocumentAction { share, info, openWith, removeFromRecent, delete }
 
-/// PDF first-page preview with the format icon stacked on its corner, per
-/// PdfThumbnailService; every other format (no renderer available - see
-/// that service's doc comment) falls back to the plain code badge.
+/// First-page preview with the format icon stacked on its corner, per
+/// DocumentThumbnailService (every format the app opens); a file it can't
+/// preview (damaged, protected, too large, unknown type) falls back to the
+/// plain code badge.
 class _DocumentThumbnail extends StatelessWidget {
   final DocumentModel document;
   final double size;
@@ -198,10 +199,10 @@ class _DocumentThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (document.category != DocumentCategory.pdf) return _badge(context);
+    if (document.category == DocumentCategory.unknown) return _badge(context);
 
     return FutureBuilder<File?>(
-      future: PdfThumbnailService.instance.getThumbnail(document),
+      future: DocumentThumbnailService.instance.getThumbnail(document),
       builder: (context, snapshot) {
         final file = snapshot.data;
         if (file == null) return _badge(context);
@@ -219,6 +220,9 @@ class _DocumentThumbnail extends StatelessWidget {
                   width: size,
                   height: size,
                   fit: BoxFit.cover,
+                  // The top of the page (or a slide's middle), where its
+                  // title is.
+                  alignment: Alignment.topCenter,
                   errorBuilder: (context, error, stackTrace) => _badge(context),
                 ),
               ),
