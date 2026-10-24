@@ -65,11 +65,10 @@ dependencies:
   # kit's example app.
   open_reader_kit:
     path: packages/open_reader_kit
-  # ODF-P5-03: was already transitive via docx_file_viewer/excel_plus;
-  # promoted to direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
-  # ZIP container's central directory before either library decompresses it.
+  # ODF-P5-03: direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
+  # ZIP container's central directory before the kit's engines decompress it.
   archive: ^4.3.0
-  # Parses PowerPoint slide XML (CR-OPENREADER-PPTX); already resolved via the Office libraries.
+  # Parses PowerPoint slide XML (CR-OPENREADER-PPTX); also used by the kit.
   xml: ^7.0.1
 
   # Weather Pulse - Charts / Animations / Fonts
@@ -103,7 +102,7 @@ dev_dependencies:
 
   # App Branding / Assets
   # rename_app removed: it hard-pins xml ^6.5.0 (even at its latest 1.6.6),
-  # which conflicts with excel_plus's xml ^7.0.1 requirement. It's a one-shot
+  # which conflicts with the xml ^7.0.1 requirement. It's a one-shot
   # setup CLI (rename the bundle ID/app name), not referenced anywhere else
   # in this repo - see ADR-OPENREADER-office-libraries.
   flutter_launcher_icons: ^0.14.4

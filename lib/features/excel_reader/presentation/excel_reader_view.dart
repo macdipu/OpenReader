@@ -12,10 +12,9 @@ import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.12 Excel Reader Screen.
 ///
-/// `excel_plus` (the parsing library, see `ExcelReaderController`'s own doc
-/// comment) ships no grid widget, so [SheetGrid] - shared with the CSV reader
-/// since `FEATURE-OPENREADER-P4` - is first-party OpenReader UI built directly on
-/// its parsed cell model.
+/// Renders open_reader_kit's spreadsheet engine (see `ExcelReaderController`'s
+/// own doc comment) through [SheetGrid] - shared with the CSV reader since
+/// `FEATURE-OPENREADER-P4` - built directly on the engine's parsed cell model.
 ///
 /// Styled per DESIGN_SPEC.md #05/#15 (Excel Viewer, light + AMOLED): the
 /// XLSX format accent (mint/emerald) marks the active sheet tab and header
