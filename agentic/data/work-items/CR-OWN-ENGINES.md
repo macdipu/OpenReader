@@ -312,10 +312,63 @@ User: "continue" (Tier 2 as planned: go to a cell or sheet; freeze the header ro
 - **Emulator check:** `qa-tier2.xlsx` (300 rows, 2 sheets). After freezing, row 1 stays pinned at row 150; "Go to cell" B150 lands at the top left with the cell marked.
 - **Tier 3 is not started:** filter/table header styling, view-only sort/filter, pictures, charts, rotated text.
 
+## Pre-review and fixes (2026-10-24)
+A pre-review of `git diff 65e0f33 HEAD`, done before the formal REVIEW stage, which waits for E5. Four read-only agents reviewed PDF, Word, sheets, and shared/app code, then each finding was checked and fixed with regression tests. Sheets were fixed in-session; PDF, Word and shared fixes were made by agents in worktrees and merged after review.
+- **Sheets (a7caa2a):**
+  - **Number formats:** the fraction search took seconds per cell with a 9-digit denominator (now uses continued fractions). `;;;` now hides values. More than 20 decimals and out-of-range dates no longer throw.
+  - **Reader:** ignores cells outside the grid and caps the empty slots that pad sparse rows. NaN and Infinity no longer read as numbers. ISO dates in 1904-based workbooks are placed on the right day.
+  - **Go to and links:** `goTo` and links work for columns past Z and for ranges.
+  - **Sheet switch:** no longer reuses the offsets restored at open.
+  - **Conditional formatting:** an operand it can't work out matches nothing, `notEqual` included.
+  - **Structured references:** `Sales[Q1]` is no longer shifted as if it were a cell.
+  - **Merges:** clamped to the sheet, overlapping ones are skipped, and the total is capped.
+- **Word (1ff38fd):**
+  - Nested text boxes were parsed exponentially (depth 30 hung).
+  - In paged view, the paragraph saved as the top could be a header or footer.
+  - `gridSpan` and `gridBefore` are now clamped.
+  - Numbering levels outside 0-8 are ignored.
+  - A footnote referencing another footnote no longer fails.
+  - A `sectPr` outside the body is ignored (a self-referencing header overflowed the stack).
+  - List numbers and page sizes are bounded.
+  - Rejecting a document after dispose no longer notifies.
+- **PDF (b46203e):**
+  - A dead worker isolate used to hang every call; now it fails them.
+  - A viewport resize no longer resets zoom.
+  - The image cache never evicts what's on screen.
+  - `close` jumps the queue and drops the document's pending renders.
+  - Thumbnails can be cancelled and update when the document opens.
+  - **Hook:** honours proxy settings and has a body timeout.
+  - **View:** follows a new controller or path.
+  - **Errors:** a double `open` reuses the first; render errors are typed.
+- **Shared (6580de3):**
+  - **ZIP bomb:** `archive` raised to `^4.5.0`, since 4.3.0 inflated past declared sizes. `OpcPackage` also bounds inflation itself.
+  - **PowerPoint:** one copy per picture, caps on count and size, and `parseSlide` for thumbnails.
+  - **Size checks:** Office files are size-checked before they're read.
+  - **Text:** `lineAt` is bounded per call; text thumbnails are capped.
+  - **DocumentViewer:** maps encrypted PDFs to `passwordRequired` and takes a `passwordProvider`.
+  - **App thumbnail cache:** the in-flight key includes `modifiedAt`, file names use FNV-1a, writes are atomic, and old files are pruned.
+  - **Decoding:** a UTF-8 BOM is dropped, and UTF-16 with a BOM is decoded.
+- **Tests after merging:** kit 191, app 221; analyze is clean apart from the old `settings_view` warning.
+- **Left open:**
+  - **Spreadsheets:** cache each cell's formatted text; cap CSV columns; count a blank cell as 0 in comparison rules.
+  - **Word:** paginate off the UI isolate; restore the paged view by paragraph.
+  - **PDF:** override the hook with a local PDFium copy; faster search on long PDFs.
+  - **App:** limit how many thumbnails render at once; decode slide pictures at thumbnail size.
+
+## Example app as the package's test app (2026-10-24)
+User: the package needs its own test app, since OpenReader will gain features the package won't.
+- **`example/`:**
+  - Android, iOS and macOS projects.
+  - Samples in `assets/samples`, built by `tool/make_samples.py`.
+  - A home list with resumed-page thumbnails and "Open file" (file_selector).
+  - `DocumentViewer` with a PDF password prompt, a Word page and a sheet page.
+  - Positions saved to disk.
+- **On-device test:** `integration_test/samples_test.dart` passes all 11 tests on the Pixel_4a emulator (commits 4c877f5, b4ab32f). It caught a bug in the example's own password dialog.
+
 ## NEXT STEPS (updated 2026-10-24)
 1. **E5, repo split and pub.dev.**
    - **Done:** the licence is **MIT** (`LICENSE` added on 2026-10-24) and the README licence section is updated.
-   - **Waits on the user:** run `gh auth login`, and have rights to create `chowdhuryelab/open_reader_kit` (fresh start).
+   - **Plan changed (user, 2026-10-24):** Claude copies the package to a new folder (`/Volumes/dipu_1tb/projects/chowdhuryelab/open_reader_kit`); the user creates the GitHub repo and pushes. The repo URL still needs the user's confirmation (assumed `github.com/chowdhuryelab/open_reader_kit`).
    - Then: README `<repo-url>`; pubspec `homepage`/`repository`/`topics` with `publish_to: none` removed; `dart pub publish --dry-run`; push the kit to the new repo; switch the app to a git dependency. The publish itself needs release approval.
 2. **Resumed-page thumbnails: done** (see the section above). Checked on the Pixel_4a emulator: the PDF, text and Word cards and rows show the resumed page.
 2b. **Sheet-reading features:** Tiers 1 and 2 are done (E1c, E1d above). Still planned and not scheduled: filter/table header styling, view-only sort/filter, pictures, charts, rotated text, and a small formula evaluator for files saved without results.
