@@ -4,6 +4,8 @@ import 'package:xml/xml.dart';
 import 'package:xml/xml_events.dart';
 
 import '../ooxml/opc_package.dart';
+import 'conditional_formatting.dart';
+import 'formula_references.dart';
 import 'number_format.dart';
 import 'workbook.dart';
 
@@ -20,7 +22,8 @@ class XlsxFormatException implements Exception {
 /// display: sheet order and visibility, cell values (shared and inline
 /// strings, numbers, booleans, errors, formulas with their saved results),
 /// the formatting a reader shows (number format, bold, italic, solid fill
-/// with theme and indexed colours), and frozen panes.
+/// with theme and indexed colours, cell borders), conditional formatting
+/// (see [ConditionalRule] for which rules), comments, and frozen panes.
 ///
 /// Sheets are streamed (XML events, not a document tree), so a large sheet
 /// doesn't hold its whole XML tree in memory. Callers should check the
@@ -54,7 +57,7 @@ abstract final class XlsxReader {
     };
     final sharedStrings = _sharedStrings(textOfType('sharedStrings'));
     final theme = _themeColors(package, partOfType('theme'));
-    final styles = _styles(package, partOfType('styles'), theme);
+    final (:styles, :differential) = _styles(package, partOfType('styles'), theme);
 
     final sheets = <Worksheet>[];
     final sheetsElement = _child(workbook.rootElement, 'sheets');
@@ -68,6 +71,7 @@ abstract final class XlsxReader {
         _ => SheetVisibility.visible,
       };
       final xml = target == null ? null : package.readText(target);
+      final sheetRels = target == null ? const <OpcRelationship>[] : package.relationshipsOf(target);
       // A chart sheet or a missing part: an empty sheet keeps tabs in step.
       sheets.add(xml == null
           ? Worksheet(name: name, rows: const [], visibility: visibility)
@@ -77,11 +81,14 @@ abstract final class XlsxReader {
               visibility: visibility,
               sharedStrings: sharedStrings,
               styles: styles,
+              differential: differential,
+              theme: theme,
               date1904: date1904,
               links: {
-                for (final rel in package.relationshipsOf(target!))
+                for (final rel in sheetRels)
                   if (rel.isOfType('hyperlink')) rel.id: rel.target,
               },
+              comments: _comments(package, sheetRels.where((r) => !r.external && r.isOfType('comments')).firstOrNull?.target),
             ));
     }
     return Workbook(sheets, date1904: date1904);
@@ -180,10 +187,15 @@ abstract final class XlsxReader {
     0xFFA5A5A5, 0xFFFFC000, 0xFF5B9BD5, 0xFF70AD47, 0xFF0563C1, 0xFF954F72,
   ];
 
-  /// Cell formats (`<cellXfs>`), by the index cells use in their `s`.
-  static List<CellStyle> _styles(OpcPackage package, String? part, List<int> theme) {
+  /// Cell formats (`<cellXfs>`), by the index cells use in their `s`, and
+  /// conditional formats' looks (`<dxfs>`), by a rule's `dxfId`.
+  static ({List<CellStyle> styles, List<DifferentialStyle> differential}) _styles(
+    OpcPackage package,
+    String? part,
+    List<int> theme,
+  ) {
     final root = part == null ? null : package.readXml(part)?.rootElement;
-    if (root == null) return const [];
+    if (root == null) return (styles: const [], differential: const []);
 
     final customFormats = <int, String>{
       for (final f in _child(root, 'numFmts')?.childElements ?? const <XmlElement>[])
@@ -212,12 +224,17 @@ abstract final class XlsxReader {
       for (final fill in _child(root, 'fills')?.childElements ?? const <XmlElement>[]) _fillColor(fill, theme),
     ];
 
-    return [
+    final borders = [
+      for (final border in _child(root, 'borders')?.childElements ?? const <XmlElement>[]) _borders(border, theme),
+    ];
+
+    final styles = [
       for (final xf in _child(root, 'cellXfs')?.childElements ?? const <XmlElement>[])
         () {
           final numFmtId = int.tryParse(xf.getAttribute('numFmtId') ?? '') ?? 0;
           final fontId = int.tryParse(xf.getAttribute('fontId') ?? '') ?? 0;
           final fillId = int.tryParse(xf.getAttribute('fillId') ?? '') ?? 0;
+          final borderId = int.tryParse(xf.getAttribute('borderId') ?? '') ?? 0;
           final font = fontId < fonts.length ? fonts[fontId] : null;
           final format = customFormats[numFmtId] != null
               ? NumberFormat(customFormats[numFmtId]!)
@@ -238,9 +255,107 @@ abstract final class XlsxReader {
                 VerticalAlignment.values.asNameMap()[alignment?.getAttribute('vertical')] ?? VerticalAlignment.bottom,
             wrapText: _flag(alignment, attribute: 'wrapText', absent: false),
             numberFormat: format,
+            borders: borderId < borders.length ? borders[borderId] : CellBorders.none,
           );
         }(),
     ];
+
+    final differential = [
+      for (final dxf in _child(root, 'dxfs')?.childElements ?? const <XmlElement>[]) _differentialStyle(dxf, theme),
+    ];
+    return (styles: styles, differential: differential);
+  }
+
+  /// A `<border>`'s four sides (§18.8.4); diagonals aren't drawn.
+  static CellBorders _borders(XmlElement border, List<int> theme) {
+    BorderLine? side(String name) {
+      final element = _child(border, name) ?? (name == 'left' ? _child(border, 'start') : null) ??
+          (name == 'right' ? _child(border, 'end') : null);
+      final style = BorderLineStyle.values.asNameMap()[switch (element?.getAttribute('style')) {
+        'double' => 'doubleLine',
+        final other => other,
+      }];
+      if (style == null) return null;
+      final color = switch (_child(element!, 'color')) {
+        final c? when c.getAttribute('auto') != '1' && c.getAttribute('auto') != 'true' => _color(c, theme),
+        _ => null,
+      };
+      return BorderLine(style, color: color);
+    }
+
+    final borders = CellBorders(left: side('left'), right: side('right'), top: side('top'), bottom: side('bottom'));
+    return borders.isEmpty ? CellBorders.none : borders;
+  }
+
+  /// A `<dxf>`: the font and fill a conditional format sets. Its solid
+  /// fill's colour is `bgColor` (§18.8.17), though some writers use
+  /// `fgColor`.
+  static DifferentialStyle _differentialStyle(XmlElement dxf, List<int> theme) {
+    final font = _child(dxf, 'font');
+    bool? flag(String name) => switch (font == null ? null : _child(font, name)) {
+          null => null,
+          final element => _flag(element),
+        };
+    final pattern = switch (_child(dxf, 'fill')) {
+      final fill? => _child(fill, 'patternFill'),
+      null => null,
+    };
+    final fillColorElement = pattern == null ? null : (_child(pattern, 'bgColor') ?? _child(pattern, 'fgColor'));
+    final patternType = pattern?.getAttribute('patternType');
+    return DifferentialStyle(
+      bold: flag('b'),
+      italic: flag('i'),
+      underline: switch (font == null ? null : _child(font, 'u')) {
+        null => null,
+        final u => u.getAttribute('val') != 'none',
+      },
+      strikethrough: flag('strike'),
+      textColor: switch (font == null ? null : _child(font, 'color')) {
+        final c? => _color(c, theme),
+        null => null,
+      },
+      fillColor: fillColorElement == null || (patternType != null && patternType != 'solid')
+          ? null
+          : _color(fillColorElement, theme),
+    );
+  }
+
+  /// A sheet's comments part (§18.7): each `<comment>`'s text and author.
+  /// A threaded comment's fallback text loses Excel's notice about
+  /// threaded comments.
+  static Map<CellAddress, CellComment> _comments(OpcPackage package, String? part) {
+    final root = part == null ? null : package.readXml(part)?.rootElement;
+    if (root == null) return const {};
+    final authors = [
+      for (final author in _child(root, 'authors')?.childElements ?? const <XmlElement>[]) author.innerText,
+    ];
+    final comments = <CellAddress, CellComment>{};
+    for (final comment in _child(root, 'commentList')?.childElements ?? const <XmlElement>[]) {
+      final range = _range(comment.getAttribute('ref'));
+      final body = _child(comment, 'text');
+      if (range == null || body == null) continue;
+      final text = StringBuffer();
+      for (final t in body.descendantElements) {
+        // Phonetic guides aren't part of the text.
+        if (t.localName == 't' && t.parentElement?.localName != 'rPh') text.write(t.innerText);
+      }
+      final authorId = int.tryParse(comment.getAttribute('authorId') ?? '');
+      final author = authorId != null && authorId >= 0 && authorId < authors.length ? authors[authorId] : null;
+      comments[(row: range.firstRow, column: range.firstColumn)] = CellComment(
+        _threadedText(_unescapeOoxml(text.toString())),
+        author: author == null || author.isEmpty || author.startsWith('tc=') ? null : author,
+      );
+    }
+    return comments;
+  }
+
+  /// Excel writes a threaded comment's legacy copy as a notice, then
+  /// `Comment:` and the thread; keep the thread.
+  static String _threadedText(String text) {
+    if (!text.startsWith('[Threaded comment]')) return text.trim();
+    final at = text.indexOf('Comment:');
+    if (at < 0) return text.trim();
+    return text.substring(at + 'Comment:'.length).split('\n').map((line) => line.trim()).join('\n').trim();
   }
 
   /// `<b/>` and `<b val="1"/>` are on; `<b val="0"/>` and no element off.
@@ -262,7 +377,11 @@ abstract final class XlsxReader {
   }
 
   /// A `CT_Color` (§18.8.19): `rgb`, `theme` (+ `tint`) or `indexed`.
-  static int? _color(XmlElement color, List<int> theme) {
+  static int? _color(XmlElement color, List<int> theme) => _colorOf(color.getAttribute, theme);
+
+  /// [_color] from a colour element's attributes, for streamed XML.
+  static int? _colorOf(String? Function(String name) attribute, List<int> theme) {
+    final color = (getAttribute: attribute);
     int? base;
     if (color.getAttribute('rgb') case final rgb?) {
       final hex = rgb.length == 6 ? 'FF$rgb' : rgb;
@@ -340,8 +459,11 @@ abstract final class XlsxReader {
     required SheetVisibility visibility,
     required List<String> sharedStrings,
     required List<CellStyle> styles,
+    required List<DifferentialStyle> differential,
+    required List<int> theme,
     required bool date1904,
     required Map<String, String> links,
+    Map<CellAddress, CellComment> comments = const {},
   }) {
     final rows = <int, List<SheetCell?>>{};
     var frozenRows = 0;
@@ -363,7 +485,20 @@ abstract final class XlsxReader {
     var styleIndex = 0;
     String? value;
     String? formula;
+    // The cell's <f>: its t (shared, array) and a shared formula's si.
+    String? formulaType;
+    String? sharedIndex;
+    // Shared formulas by si: the text, written for the cell that holds it.
+    final sharedFormulas = <String, (String, int, int)>{};
     final text = StringBuffer();
+
+    // Conditional formatting, collected as it streams by.
+    final rules = <ConditionalRule>[];
+    var ruleRanges = <CellRange>[];
+    Map<String, String>? rule;
+    final ruleFormulas = <String>[];
+    final rulePoints = <ConditionalValuePoint>[];
+    final ruleColors = <int>[];
     // Which element's text is being collected: v, f, or t (inline string).
     String? collecting;
     var inCell = false;
@@ -372,9 +507,22 @@ abstract final class XlsxReader {
 
     void putCell() {
       final style = styleIndex < styles.length ? styles[styleIndex] : CellStyle.plain;
-      final cellValue = _cellValue(cellType, value, formula, sharedStrings);
-      // Blank cells only matter when they're filled.
-      if (cellValue == null && style.fillColor == null) return;
+      var cellFormula = formula;
+      if (formulaType == 'shared' && sharedIndex != null) {
+        if (cellFormula != null && cellFormula.isNotEmpty) {
+          sharedFormulas[sharedIndex] = (cellFormula, rowIndex, columnIndex);
+        } else if (sharedFormulas[sharedIndex] case (final master, final row, final column)) {
+          cellFormula = shiftFormula(master, rowIndex - row, columnIndex - column);
+        }
+      }
+      final cellValue = _cellValue(cellType, value, cellFormula, sharedStrings, array: formulaType == 'array');
+      // Blank cells only matter when they're filled, bordered or noted.
+      if (cellValue == null &&
+          style.fillColor == null &&
+          style.borders.isEmpty &&
+          !comments.containsKey((row: rowIndex, column: columnIndex))) {
+        return;
+      }
       final row = rows.putIfAbsent(rowIndex, () => <SheetCell?>[]);
       while (row.length <= columnIndex) {
         row.add(null);
@@ -438,6 +586,8 @@ abstract final class XlsxReader {
               styleIndex = int.tryParse(attr('s') ?? '') ?? 0;
               value = null;
               formula = null;
+              formulaType = null;
+              sharedIndex = null;
               inCell = true;
               if (isSelfClosing) {
                 putCell();
@@ -448,6 +598,8 @@ abstract final class XlsxReader {
               text.clear();
             case 'f' when inCell:
               formula ??= '';
+              formulaType = attr('t');
+              sharedIndex = attr('si');
               if (!isSelfClosing) {
                 collecting = 'f';
                 text.clear();
@@ -460,6 +612,24 @@ abstract final class XlsxReader {
             case 't' when inInlineString && phoneticDepth == 0 && !isSelfClosing:
               collecting = 't';
               text.clear();
+            case 'conditionalFormatting':
+              ruleRanges = [for (final ref in (attr('sqref') ?? '').split(' ')) ?_range(ref)];
+            case 'cfRule':
+              rule = {for (final a in attributes) a.localName: a.value};
+              ruleFormulas.clear();
+              rulePoints.clear();
+              ruleColors.clear();
+              if (isSelfClosing) {
+                rules.add(_rule(rule, ruleRanges, ruleFormulas, rulePoints, ruleColors, differential));
+                rule = null;
+              }
+            case 'formula' when rule != null && !isSelfClosing:
+              collecting = 'formula';
+              text.clear();
+            case 'cfvo' when rule != null:
+              rulePoints.add(ConditionalValuePoint(attr('type') ?? 'min', attr('val')));
+            case 'color' when rule != null:
+              if (_colorOf(attr, theme) case final color?) ruleColors.add(color);
           }
         case XmlEndElementEvent(:final localName):
           switch (localName) {
@@ -469,6 +639,12 @@ abstract final class XlsxReader {
             case 'f' when collecting == 'f':
               formula = text.toString();
               collecting = null;
+            case 'formula' when collecting == 'formula':
+              ruleFormulas.add(_unescapeOoxml(text.toString()));
+              collecting = null;
+            case 'cfRule' when rule != null:
+              rules.add(_rule(rule, ruleRanges, ruleFormulas, rulePoints, ruleColors, differential));
+              rule = null;
             case 't' when collecting == 't':
               value = '${value ?? ''}$text';
               collecting = null;
@@ -491,11 +667,20 @@ abstract final class XlsxReader {
       }
     }
 
+    // A note on a cell outside the data still needs its row.
+    for (final address in comments.keys) {
+      rows.putIfAbsent(address.row, () => <SheetCell?>[]);
+    }
     final lastRow = rows.keys.fold(-1, (a, b) => a > b ? a : b);
     return Worksheet(
       name: name,
       visibility: visibility,
-      rows: [for (var r = 0; r <= lastRow; r++) rows[r] ?? <SheetCell?>[]],
+      rows: ConditionalFormatting.apply(
+        [for (var r = 0; r <= lastRow; r++) rows[r] ?? <SheetCell?>[]],
+        rules,
+        date1904: date1904,
+      ),
+      comments: comments,
       frozenRows: frozenRows,
       frozenColumns: frozenColumns,
       layout: SheetLayout(
@@ -526,8 +711,51 @@ abstract final class XlsxReader {
     );
   }
 
+  /// A `<cfRule>` from its attributes and children.
+  static ConditionalRule _rule(
+    Map<String, String> attributes,
+    List<CellRange> ranges,
+    List<String> formulas,
+    List<ConditionalValuePoint> points,
+    List<int> colors,
+    List<DifferentialStyle> differential,
+  ) {
+    bool flag(String name, bool absent) => switch (attributes[name]) {
+          null => absent,
+          final v => v == '1' || v == 'true',
+        };
+    int number(String name, int absent) => int.tryParse(attributes[name] ?? '') ?? absent;
+    final dxfId = int.tryParse(attributes['dxfId'] ?? '');
+    return ConditionalRule(
+      ranges: List.of(ranges),
+      type: attributes['type'] ?? '',
+      priority: number('priority', 0),
+      stopIfTrue: flag('stopIfTrue', false),
+      style: dxfId != null && dxfId >= 0 && dxfId < differential.length ? differential[dxfId] : null,
+      operator: attributes['operator'],
+      formulas: List.of(formulas),
+      text: attributes['text'],
+      rank: number('rank', 10),
+      percent: flag('percent', false),
+      bottom: flag('bottom', false),
+      aboveAverage: flag('aboveAverage', true),
+      equalAverage: flag('equalAverage', false),
+      standardDeviations: number('stdDev', 0),
+      points: List.of(points),
+      colors: List.of(colors),
+      minLength: number('minLength', 10),
+      maxLength: number('maxLength', 90),
+    );
+  }
+
   /// A cell's value from its type (`t`), `<v>`/inline text and `<f>`.
-  static CellValue? _cellValue(String? type, String? raw, String? formula, List<String> sharedStrings) {
+  static CellValue? _cellValue(
+    String? type,
+    String? raw,
+    String? formula,
+    List<String> sharedStrings, {
+    bool array = false,
+  }) {
     CellValue? result;
     switch (type) {
       case 's':
@@ -549,7 +777,7 @@ abstract final class XlsxReader {
         result = number == null ? null : NumberValue(number is double && number == number.truncateToDouble() && number.abs() < 1e15 ? number.toInt() : number);
     }
     if (formula == null) return result;
-    return FormulaValue(_unescapeOoxml(formula), cached: result);
+    return FormulaValue(_unescapeOoxml(formula), cached: result, array: array);
   }
 
   static num _dateToSerial(DateTime date) {

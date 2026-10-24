@@ -275,12 +275,39 @@ User request: "for resume, show thumbnail resumed page".
   - thumbnails of earlier pages stay in the temp cache, and the OS clears them
   - Word and text positions saved before this change have no paragraph or line, so they show page 1 until the document is read again
 
+## E1c: what a reader needs to read a sheet, Tier 1 (2026-10-24)
+User request: "plan such a feature need for person who is trying to read it", then "ok start".
+- **Where it's tracked:** in this run, not a new CR. The harness allows one open run at a time, and this one is waiting on E5.
+- **Kit:**
+  - **Borders:** `CellBorders`/`BorderLine` from `<borders>` (`borderId`). Dashed and dotted lines are drawn solid at a bit over half weight, since neighbouring cells both draw a shared line. Automatic colour follows the theme's `onSurface`. Bordered blank cells are kept. The thumbnail draws borders too.
+  - **Conditional formatting:** `engines/sheets/conditional_formatting.dart`, applied at read time; the results go into each cell's style or `SheetCell.dataBar`.
+    - **Rules:** `cellIs` (against constants or a single cell), the text rules, blanks/errors, top10, aboveAverage, duplicates/unique, colorScale, dataBar.
+    - **Order:** rules apply by priority with `stopIfTrue`. Formats come from `<dxfs>`.
+    - **Not evaluated:** `expression` and `timePeriod`.
+  - **Comments:** the legacy comments part becomes `Worksheet.comments` (`CellComment` with an author). Threaded comments lose Excel's notice. Cells show a red corner marker, and the tap sheet shows "Note from …".
+  - **Formulas:** `SheetCell.formulaText` (array formulas in braces). The tap sheet shows "Formula" with its own copy button.
+    - A formula filled down a column (`t="shared"`) gets its references moved per cell (`formula_references.dart`, `shiftFormula`).
+    - A formula with no saved result says so instead of repeating the formula as its value.
+  - **Test builder:** `XlsxTestCell` takes borders, a cell can be raw XML (`XlsxTestXml`), sheets take notes and raw XML after the data, and `buildXlsx` takes `dxfs:`.
+- **Tests:** 12 new, so 141 in the kit, all passing; the app's 216 also pass.
+  - formula reference moving
+  - borders, notes, filled formulas and each conditional-formatting rule type
+  - a grid widget test of the tap sheet, the data bar and the border width
+- **Emulator check (Pixel_4a):** an openpyxl-written workbook, `scratchpad/make_tier1.py`.
+  - Borders, the red under-target units, "Overdue" text highlighting, Score data bars and note markers all show.
+  - Tapping B3 shows Rina's note. Tapping B8 shows `=SUM(B2:B6)` and "No saved result".
+- **Seen, not fixed:**
+  - Files written by openpyxl save formulas without results, so totals show as `=SUM(...)` in the grid. Fixing that needs a small formula evaluator; that would be a later CR.
+  - The cold-start bug (BUG-OPENREADER-COLDSTART-INTENT): opening a file while the app isn't running lands on Home. It was already open before this work.
+- **Tier 2 is next, not started:** go to a cell or sheet; freezing the header row yourself.
+
 ## NEXT STEPS (updated 2026-10-24)
 1. **E5, repo split and pub.dev.**
    - **Done:** the licence is **MIT** (`LICENSE` added on 2026-10-24) and the README licence section is updated.
    - **Waits on the user:** run `gh auth login`, and have rights to create `chowdhuryelab/open_reader_kit` (fresh start).
    - Then: README `<repo-url>`; pubspec `homepage`/`repository`/`topics` with `publish_to: none` removed; `dart pub publish --dry-run`; push the kit to the new repo; switch the app to a git dependency. The publish itself needs release approval.
 2. **Resumed-page thumbnails: done** (see the section above). Checked on the Pixel_4a emulator: the PDF, text and Word cards and rows show the resumed page.
+2b. **Sheet-reading features:** Tier 1 is done (E1c above). Tier 2 (go to cell; freeze the header row yourself) and Tier 3 (pictures, charts, rotated text) are planned in-session, and the user hasn't scheduled them.
 3. **REVIEW, QA and RELEASE** for run `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF`. The release approval is the user's.
 4. **Optional follow-ups:**
    - `DocumentViewer` maps PDF password failures to `corrupted`; it could pass `passwordRequired` through.

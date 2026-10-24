@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_reader_kit/sheets.dart';
+import 'package:open_reader_kit/testing.dart';
 
 void main() {
   Future<SpreadsheetController> load(WidgetTester tester) async {
@@ -53,5 +54,44 @@ void main() {
     expect(controller.activeSheetIndex, 1);
     expect(controller.openInternalLink("'No such sheet'!A1"), isFalse);
     expect(controller.openInternalLink('B3'), isTrue);
+  });
+
+  testWidgets('tapping a cell shows its formula and note; data bars and borders draw', (tester) async {
+    final controller = SpreadsheetController();
+    await tester.runAsync(() => controller.loadXlsx(buildXlsx([
+          const XlsxTestSheet(
+            'S',
+            {
+              'A1': 2,
+              'B1': XlsxTestXml('<f>A1*21</f><v>42</v>'),
+              'C1': XlsxTestCell('Boxed', border: 'thick'),
+            },
+            comments: {'B1': (author: 'Rina', text: 'Answer, roughly')},
+            afterSheetData: '<conditionalFormatting sqref="A1"><cfRule type="dataBar" priority="1"><dataBar>'
+                '<cfvo type="num" val="0"/><cfvo type="num" val="4"/><color rgb="FF638EC6"/></dataBar></cfRule>'
+                '</conditionalFormatting>',
+          ),
+        ])));
+    await pumpGrid(tester, controller);
+
+    expect(find.byType(FractionallySizedBox), findsOneWidget, reason: "A1's data bar");
+    final boxed = tester.widget<Container>(
+      find.ancestor(of: find.text('Boxed'), matching: find.byType(Container)).first,
+    );
+    expect(((boxed.decoration! as BoxDecoration).border! as Border).top.width, closeTo(1.8, 1e-9));
+
+    await tester.tap(find.text('42'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cell B1'), findsOneWidget);
+    expect(find.text('Formula'), findsOneWidget);
+    expect(find.text('=A1*21'), findsOneWidget);
+    expect(find.text('Note from Rina'), findsOneWidget);
+    expect(find.text('Answer, roughly'), findsOneWidget);
+    Navigator.of(tester.element(find.text('Cell B1'))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Boxed'));
+    await tester.pumpAndSettle();
+    expect(find.text('Formula'), findsNothing, reason: 'a plain cell has no formula line');
   });
 }
