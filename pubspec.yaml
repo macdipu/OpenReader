@@ -62,9 +62,10 @@ dependencies:
   receive_sharing_intent: ^1.9.0
   # Every document engine (PDF, Word, Excel/CSV) is universal_document_viewer's own
   # code (CR-OPENREADER-KIT; origins in its NOTICE.md). OpenReader is the
-  # kit's example app.
+  # kit's example app. The package has its own repository; until it is on
+  # GitHub/pub.dev it is a sibling checkout next to this one.
   universal_document_viewer:
-    path: packages/universal_document_viewer
+    path: ../universal_document_viewer
   # ODF-P5-03: direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
   # ZIP container's central directory before the kit's engines decompress it.
   archive: ^4.5.0

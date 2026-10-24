@@ -1204,7 +1204,7 @@ packages:
   universal_document_viewer:
     dependency: "direct main"
     description:
-      path: "packages/universal_document_viewer"
+      path: "../universal_document_viewer"
       relative: true
     source: path
     version: "0.1.0"
