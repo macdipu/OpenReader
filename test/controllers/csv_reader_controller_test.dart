@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
-// excel_plus's CSV parsing is pure Dart with no native binary dependency, so
+// open_reader_kit's CSV parsing is pure Dart with no native binary dependency, so
 // a real .csv file - including one exercising BRD's own hard corner cases
 // (quoted commas, multi-line quoted values) - can be built and parsed end to
 // end in this test environment.
@@ -109,10 +109,10 @@ void main() {
     });
 
     test('surfaces the generic corrupted-file error when parsing throws', () async {
-      // excel_plus's CSV import is permissive about content, so a genuinely
+      // The kit's CSV parser is permissive about content, so a genuinely
       // unparseable case here is an unreadable file rather than malformed
       // text - a directory path is the simplest way to force a real read
-      // failure without depending on excel_plus's exact validation rules.
+      // failure without depending on the parser's exact validation rules.
       final dirDocument = makeDocument(root.path);
       final dirController = CsvReaderController(document: dirDocument, recentRepository: recents, interactions: interactions);
       await loaded(dirController);
