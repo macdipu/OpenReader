@@ -45,14 +45,9 @@ class _Task {
   final int order;
 }
 
-/// A page's geometry, read once at open: its displayed size and what
-/// mapping PDF coordinates to the display needs.
+/// What mapping a page's PDF coordinates to the displayed page needs.
 class _PageGeometry {
-  _PageGeometry(this.width, this.height, this.rotation, this.left, this.top, this.right, this.bottom);
-
-  /// Displayed size in points (rotation applied).
-  final double width;
-  final double height;
+  _PageGeometry(this.rotation, this.left, this.top, this.right, this.bottom);
 
   /// Quarter turns clockwise (`/Rotate` / 90).
   final int rotation;
@@ -87,10 +82,13 @@ class _PageGeometry {
 }
 
 class _Document {
-  _Document(this.handle, this.pages, this.buffer);
+  _Document(this.handle, this.pageCount, this.buffer);
 
   final Pointer<fpdf_document_t__> handle;
-  final List<_PageGeometry> pages;
+  final int pageCount;
+
+  /// Pages' geometry, read on first use.
+  final _geometry = <int, _PageGeometry>{};
 
   /// The bytes of a document opened from memory, which PDFium reads from
   /// until it's closed.
@@ -115,6 +113,21 @@ class _Document {
     }
     return page;
   }
+
+  /// The page's rotation and crop box, for mapping text and link boxes to
+  /// the displayed page.
+  _PageGeometry geometry(int index) => _geometry[index] ??= using((arena) {
+        final page = this.page(index);
+        final rotation = FPDFPage_GetRotation(page) & 3;
+        final box = arena<FS_RECTF>();
+        final double left, top, right, bottom;
+        if (FPDF_GetPageBoundingBox(page, box) != 0) {
+          (left, top, right, bottom) = (box.ref.left, box.ref.top, box.ref.right, box.ref.bottom);
+        } else {
+          (left, top, right, bottom) = (0, FPDF_GetPageHeightF(page), FPDF_GetPageWidthF(page), 0);
+        }
+        return _PageGeometry(rotation, left, top, right, bottom);
+      });
 
   Pointer<fpdf_textpage_t__> textPage(int index) {
     final cached = _textCache.remove(index);
@@ -249,33 +262,20 @@ class _Worker {
         if (buffer != null) malloc.free(buffer);
         throw _WorkerError('open', '$error');
       }
+      // Sizes without loading any page (it applies /Rotate), so a long
+      // document opens at once; each page's full geometry is read when
+      // first needed (see [_Document.geometry]).
       final count = FPDF_GetPageCount(handle);
-      final pages = <_PageGeometry>[];
-      final box = arena<FS_RECTF>();
+      final sizes = Float64List(count * 2);
+      final size = arena<FS_SIZEF>();
       for (var i = 0; i < count; i++) {
-        final page = FPDF_LoadPage(handle, i);
-        if (page == nullptr) {
-          // A broken page keeps its slot, at Letter size.
-          pages.add(_PageGeometry(612, 792, 0, 0, 792, 612, 0));
-          continue;
-        }
-        final rotation = FPDFPage_GetRotation(page) & 3;
-        // The displayed size is worked out here, from the crop box and
-        // /Rotate: FPDF_GetPageWidthF/HeightF give the unrotated size.
-        final double left, top, right, bottom;
-        if (FPDF_GetPageBoundingBox(page, box) != 0) {
-          (left, top, right, bottom) = (box.ref.left, box.ref.top, box.ref.right, box.ref.bottom);
-        } else {
-          (left, top, right, bottom) = (0, FPDF_GetPageHeightF(page), FPDF_GetPageWidthF(page), 0);
-        }
-        final w0 = right - left;
-        final h0 = top - bottom;
-        pages.add(_PageGeometry(rotation.isOdd ? h0 : w0, rotation.isOdd ? w0 : h0, rotation, left, top, right, bottom));
-        FPDF_ClosePage(page);
+        final ok = FPDF_GetPageSizeByIndexF(handle, i, size) != 0;
+        sizes[i * 2] = ok ? size.ref.width : 612;
+        sizes[i * 2 + 1] = ok ? size.ref.height : 792;
       }
       final id = _nextDocument++;
-      _documents[id] = _Document(handle, pages, buffer);
-      return [id, Float64List.fromList([for (final p in pages) ...[p.width, p.height]])];
+      _documents[id] = _Document(handle, count, buffer);
+      return [id, sizes];
     });
   }
 
@@ -327,7 +327,7 @@ class _Worker {
 
   (String, Float32List) _readText(_Document document, int index) {
     final textPage = document.textPage(index);
-    final geometry = document.pages[index];
+    final geometry = document.geometry(index);
     final count = math.max(0, FPDFText_CountChars(textPage));
     final units = Uint16List(count);
     final boxes = Float32List(count * 4);
@@ -372,7 +372,7 @@ class _Worker {
     while (at != -1) {
       final start = offsets[at];
       final end = offsets[at + needle.length];
-      matches.add([start, end, _lineRects(boxes, start, end, sideways: document.pages[index].rotation.isOdd)]);
+      matches.add([start, end, _lineRects(boxes, start, end, sideways: document.geometry(index).rotation.isOdd)]);
       at = haystack.indexOf(needle, at + needle.length);
     }
     return [true, matches];
@@ -405,7 +405,7 @@ class _Worker {
   /// page or -1, rects...]` per link.
   Object? _links(_Document document, int index) {
     final page = document.page(index);
-    final geometry = document.pages[index];
+    final geometry = document.geometry(index);
     final links = <Object>[];
     using((arena) {
       final position = arena<Int>()..value = 0;

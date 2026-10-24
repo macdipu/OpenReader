@@ -46,7 +46,7 @@ class PdfDocumentView extends StatefulWidget {
   State<PdfDocumentView> createState() => _PdfDocumentViewState();
 }
 
-class _PdfDocumentViewState extends State<PdfDocumentView> {
+class _PdfDocumentViewState extends State<PdfDocumentView> with SingleTickerProviderStateMixin {
   final _transform = TransformationController();
   PdfImageCache? _cache;
   PdfLayout? _layout;
@@ -62,6 +62,11 @@ class _PdfDocumentViewState extends State<PdfDocumentView> {
   final _links = <int, List<PdfLink>>{};
 
   Offset? _doubleTapAt;
+
+  /// Settles a horizontal swipe on a whole page.
+  late final _snap = AnimationController(vsync: this, duration: const Duration(milliseconds: 220))
+    ..addListener(_onSnapTick);
+  Matrix4Tween? _snapTween;
 
   PdfDocumentController get controller => widget.controller;
 
@@ -103,6 +108,7 @@ class _PdfDocumentViewState extends State<PdfDocumentView> {
     controller
       ..removeListener(_onControllerChanged)
       ..detachView();
+    _snap.dispose();
     _transform.dispose();
     _cache?.dispose();
     super.dispose();
@@ -160,6 +166,30 @@ class _PdfDocumentViewState extends State<PdfDocumentView> {
     // Keep [point] where it is on screen.
     final screen = (point - visible.topLeft) * _scale;
     _setTransform(s, point - screen / s);
+  }
+
+  void _onSnapTick() {
+    final tween = _snapTween;
+    if (tween != null) _transform.value = tween.evaluate(CurvedAnimation(parent: _snap, curve: Curves.easeOut));
+  }
+
+  /// Horizontal layout at page width: a swipe ends on a whole page - the
+  /// next or previous one for a flick, the nearest one for a slow drag.
+  void _onInteractionEnd(ScaleEndDetails details) {
+    final layout = _layout;
+    if (layout == null || !layout.isHorizontal || _scale > 1.01 || layout.pages.isEmpty) return;
+    final visible = _visibleRect();
+    var page = layout.currentPage(visible, previous: controller.currentPage - 1);
+    final velocity = details.velocity.pixelsPerSecond.dx;
+    final start = layout.pages[page].left - PdfLayout.margin;
+    if (velocity < -300 && visible.left >= start - 1) page += 1;
+    if (velocity > 300 && visible.left <= start + 1) page -= 1;
+    page = page.clamp(0, layout.pages.length - 1);
+    final maxX = math.max(0.0, layout.size.width - layout.viewport.width);
+    final x = (layout.pages[page].left - PdfLayout.margin).clamp(0.0, maxX);
+    final target = Matrix4.identity()..translateByDouble(-x, -visible.top, 0, 1);
+    _snapTween = Matrix4Tween(begin: _transform.value.clone(), end: target);
+    _snap.forward(from: 0);
   }
 
   void _jumpToPage(int page) {
@@ -359,6 +389,10 @@ class _PdfDocumentViewState extends State<PdfDocumentView> {
             minScale: 1,
             maxScale: _maxZoom,
             boundaryMargin: EdgeInsets.zero,
+            // Horizontal pages snap instead of gliding on.
+            interactionEndFrictionCoefficient: layout.isHorizontal ? 1 : 0.0000135,
+            onInteractionStart: (_) => _snap.stop(),
+            onInteractionEnd: _onInteractionEnd,
             builder: (context, quad) {
               final bounds = _quadBounds(quad).inflate(layout.isHorizontal ? viewport.width : viewport.height);
               return Listener(
