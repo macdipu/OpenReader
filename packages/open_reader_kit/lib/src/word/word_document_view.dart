@@ -97,14 +97,22 @@ class _WordDocumentViewState extends State<WordDocumentView> {
   }
 
   /// The number of the first paragraph at or below the top of the view.
+  ///
+  /// Header and footer paragraphs don't count: on pages they're drawn on
+  /// every page (registering under their layout numbers, which come before
+  /// and after the body), so one could otherwise be "at the top" and send
+  /// a layout switch, or the saved paragraph, to the document's start or end.
   int? _topParagraph() {
     final viewport = context.findRenderObject() as RenderBox?;
-    if (viewport == null) return null;
+    final layout = controller.layout;
+    if (viewport == null || layout == null) return null;
     final top = viewport.localToGlobal(Offset.zero).dy;
     int? best;
     double bestY = double.infinity;
     _anchors.forEach((number, anchorContext) {
-      if (!anchorContext.mounted) return;
+      if (!anchorContext.mounted || number >= layout.itemOfParagraph.length) return;
+      final kind = layout.items[layout.itemOfParagraph[number]].kind;
+      if (kind == WordItemKind.header || kind == WordItemKind.footer) return;
       final box = anchorContext.findRenderObject() as RenderBox?;
       if (box == null || !box.attached) return;
       final y = box.localToGlobal(Offset.zero).dy;
