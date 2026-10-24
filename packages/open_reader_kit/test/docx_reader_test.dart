@@ -168,4 +168,115 @@ void main() {
       expect(() => DocxReader.read(buildXlsx(const [XlsxTestSheet('S', {'A1': 'x'})])), throwsA(isA<DocxFormatException>()));
     });
   });
+
+  group('malformed or hostile input', () {
+    const drawingNs = 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+        'xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"';
+    const vmlNs = 'xmlns:v="urn:schemas-microsoft-com:vml"';
+    const relNs = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+    /// A paragraph holding a text box holding [inner], nested [depth] deep.
+    String drawingBoxes(int depth, String inner) => depth == 0
+        ? inner
+        : '<w:p><w:r><w:drawing><wp:inline $drawingNs><wp:extent cx="1" cy="1"/><a:graphic><a:graphicData>'
+            '<wps:wsp><wps:txbx><w:txbxContent>${drawingBoxes(depth - 1, inner)}</w:txbxContent></wps:txbx></wps:wsp>'
+            '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
+    String vmlBoxes(int depth, String inner) => depth == 0
+        ? inner
+        : '<w:p><w:r><w:pict><v:shape $vmlNs><v:textbox><w:txbxContent>${vmlBoxes(depth - 1, inner)}'
+            '</w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>';
+    int count(WordDocument doc, String text) => paragraphs(doc.body).where((p) => p.plainText == text).length;
+
+    test('nested text boxes are read once each, and a deep nest is cut off quickly', () {
+      for (final boxes in [drawingBoxes, vmlBoxes]) {
+        expect(count(DocxReader.read(buildDocx(boxes(2, p('leaf')))), 'leaf'), 1);
+        final stopwatch = Stopwatch()..start();
+        final deep = DocxReader.read(buildDocx(boxes(40, p('leaf'))));
+        expect(stopwatch.elapsed, lessThan(const Duration(seconds: 2)));
+        expect(count(deep, 'leaf'), 0, reason: 'past the nesting cap');
+      }
+    });
+
+    test('table spans and skipped columns are kept within the grid', () {
+      String table(String span, {String before = '0'}) =>
+          '<w:tbl><w:tblGrid><w:gridCol w:w="2000"/><w:gridCol w:w="2000"/></w:tblGrid>'
+          '<w:tr><w:trPr><w:gridBefore w:val="$before"/></w:trPr>'
+          '<w:tc><w:tcPr><w:gridSpan w:val="$span"/></w:tcPr><w:p/></w:tc><w:tc><w:p/></w:tc></w:tr></w:tbl>';
+      int firstSpan(String xml) =>
+          (DocxReader.read(buildDocx(xml)).body.single as WordTable).rows.single.cells.first.columnSpan;
+      expect(firstSpan(table('-1')), 1);
+      expect(firstSpan(table('0')), 1);
+      expect(firstSpan(table('3000000')), 2);
+      expect(firstSpan(table('3000000', before: '-5')), 2);
+      expect(firstSpan(table('3000000', before: '99999999')), 2);
+      // Without a grid, capped at Word's column limit.
+      const noGrid = '<w:tbl><w:tr><w:tc><w:tcPr><w:gridSpan w:val="3000000"/></w:tcPr><w:p/></w:tc></w:tr></w:tbl>';
+      expect(firstSpan(noGrid), 64);
+    });
+
+    String listItem(String level) => '<w:p><w:pPr><w:numPr><w:ilvl w:val="$level"/><w:numId w:val="1"/></w:numPr></w:pPr>'
+        '<w:r><w:t>x</w:t></w:r></w:p>';
+    String list(String level, {String start = '1', String format = 'decimal', String text = '%1.', String num = ''}) =>
+        '<w:abstractNum w:abstractNumId="1"><w:lvl w:ilvl="$level"><w:start w:val="$start"/><w:numFmt w:val="$format"/>'
+        '<w:lvlText w:val="$text"/></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="1"/>$num</w:num>';
+    String? marker(String body, String numbering) =>
+        paragraphs(DocxReader.read(buildDocx(body, numbering: numbering)).body).first.marker?.text;
+
+    test('numbering levels outside 0-8 are ignored', () {
+      expect(marker(listItem('9'), list('9')), isNull);
+      expect(marker(listItem('-1'), list('-1')), isNull);
+      expect(marker(listItem('0'), list('0', text: '%0.%1')), '.1');
+      expect(
+        marker(listItem('0'), list('0', num: '<w:lvlOverride w:ilvl="-3"><w:startOverride w:val="5"/></w:lvlOverride>'
+            '<w:lvlOverride w:ilvl="12"><w:startOverride w:val="5"/></w:lvlOverride>')),
+        '1.',
+      );
+    });
+
+    test('list numbers are bounded, so letter numbering stays short', () {
+      expect(marker(listItem('0'), list('0', start: '100000000', format: 'lowerLetter'))!.length, lessThan(1300));
+      final overridden = marker(listItem('0'),
+          list('0', num: '<w:lvlOverride w:ilvl="0"><w:startOverride w:val="-100000000"/></w:lvlOverride>'));
+      expect(overridden, '0.');
+    });
+
+    test('a footnote that refers to another footnote', () {
+      final doc = DocxReader.read(buildDocx(
+        '<w:p><w:r><w:footnoteReference w:id="1"/></w:r></w:p>',
+        footnotes: '<w:footnote w:id="1"><w:p><w:r><w:t>one</w:t></w:r><w:r><w:footnoteReference w:id="2"/></w:r></w:p>'
+            '</w:footnote><w:footnote w:id="2"><w:p><w:r><w:t>two</w:t></w:r></w:p></w:footnote>',
+      ));
+      expect(doc.footnotes.keys, ['1', '2']);
+      expect(paragraphs(doc.footnotes['2']!).single.plainText, 'two');
+    });
+
+    test('only the body ends sections: a header referencing itself, a text box section', () {
+      final header = '<?xml version="1.0"?>'
+          '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="$relNs">'
+          '<w:p><w:pPr><w:sectPr><w:headerReference w:type="default" r:id="rH"/></w:sectPr></w:pPr>'
+          '<w:r><w:t>head</w:t></w:r></w:p></w:hdr>';
+      final headerRels = '<?xml version="1.0"?>'
+          '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+          '<Relationship Id="rH" Type="$relNs/header" Target="header1.xml"/></Relationships>';
+      final doc = DocxReader.read(buildDocx(
+        drawingBoxes(1, '<w:p><w:pPr><w:sectPr/></w:pPr></w:p>') +
+            '<w:p><w:r><w:t>body</w:t></w:r></w:p><w:sectPr><w:headerReference w:type="default" r:id="rH"/></w:sectPr>',
+        relationships: '<Relationship Id="rH" Type="$relNs/header" Target="header1.xml"/>',
+        media: {'header1.xml': header.codeUnits, '_rels/header1.xml.rels': headerRels.codeUnits},
+      ));
+      expect(doc.sections, hasLength(1));
+      expect(doc.body.whereType<WordSectionBreak>(), isEmpty);
+      expect(paragraphs(doc.sections.single.headers[HeaderFooterKind.defaultKind]!).single.plainText, 'head');
+    });
+
+    test('non-finite and out-of-range page sizes fall back to sane ones', () {
+      WordSection section(String sectPr) =>
+          DocxReader.read(buildDocx('<w:p/><w:sectPr>$sectPr</w:sectPr>')).sections.single;
+      final infinite = section('<w:pgSz w:w="Infinity" w:h="NaN"/><w:pgMar w:left="-Infinity" w:top="NaN"/>');
+      expect([infinite.pageWidth, infinite.pageHeight, infinite.marginLeft, infinite.marginTop], [612, 792, 72, 72]);
+      final huge = section('<w:pgSz w:w="99999999" w:h="1"/><w:pgMar w:left="-1440" w:right="99999999"/>');
+      expect([huge.pageWidth, huge.pageHeight, huge.marginLeft, huge.marginRight], [1584, 36, 72, 1584]);
+    });
+  });
 }

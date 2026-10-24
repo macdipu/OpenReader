@@ -206,6 +206,16 @@ void main() {
       expect(controller.hasError.value, isTrue);
     });
 
+    test('closing while the file is still being read leaves the disposed document alone', () async {
+      final missingController =
+          WordReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
+      missingController.onInit();
+      missingController.onClose();
+      // The read fails after the close; reporting it would notify a disposed controller.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(missingController.hasError.value, isFalse);
+    });
+
     test('a valid docx passes the ZIP-safety guard and is parsed', () async {
       await loaded(controller);
       expect(controller.hasError.value, isFalse);

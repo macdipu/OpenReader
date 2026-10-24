@@ -30,10 +30,11 @@ bool? wOnOff(XmlElement? element) {
   return value == null || value == '1' || value == 'true' || value == 'on';
 }
 
-/// Twentieths of a point -> points.
+/// Twentieths of a point -> points. `double.tryParse` also accepts
+/// `Infinity` and `NaN`, which no measurement can be: those read as unset.
 double? twips(String? value) => switch (double.tryParse(value ?? '')) {
-      final v? => v / 20,
-      null => null,
+      final v? when v.isFinite => v / 20,
+      _ => null,
     };
 
 // --- Theme -----------------------------------------------------------------
@@ -616,12 +617,16 @@ class WordNumbering {
   factory WordNumbering.parse(XmlDocument? doc, WordTheme theme) {
     final root = doc?.rootElement;
     final abstract = <int, Map<int, _Level>>{};
+    // Lists have nine levels (0-8); the counters are sized to match, so a
+    // level outside them is dropped here rather than indexed later.
+    bool isLevel(int? level) => level != null && level >= 0 && level < _levels;
     for (final definition in wChildren(root, 'abstractNum')) {
       final id = int.tryParse(wAttr(definition, 'abstractNumId') ?? '');
       if (id == null) continue;
       abstract[id] = {
         for (final level in wChildren(definition, 'lvl'))
-          if (int.tryParse(wAttr(level, 'ilvl') ?? '') case final ilvl?) ilvl: _readLevel(level, ilvl, theme),
+          if (int.tryParse(wAttr(level, 'ilvl') ?? '') case final ilvl? when isLevel(ilvl))
+            ilvl: _readLevel(level, ilvl, theme),
       };
     }
     final nums = <int, int>{};
@@ -634,14 +639,22 @@ class WordNumbering {
       for (final override in wChildren(num, 'lvlOverride')) {
         final level = int.tryParse(wAttr(override, 'ilvl') ?? '');
         final start = int.tryParse(wAttr(wChild(override, 'startOverride'), 'val') ?? '');
-        if (level != null && start != null) (overrides[id] ??= {})[level] = start;
+        if (isLevel(level) && start != null) (overrides[id] ??= {})[level!] = _clampNumber(start);
       }
     }
     return WordNumbering._(abstract, nums, overrides);
   }
 
+  /// List levels per definition (§17.9.6).
+  static const _levels = 9;
+
+  /// Word keeps list numbers to 0-32767. Bounding them also bounds letter
+  /// numbering, which repeats the letter once per 26 (`aaa...`).
+  static const _maxNumber = 32767;
+  static int _clampNumber(int value) => value.clamp(0, _maxNumber);
+
   static _Level _readLevel(XmlElement level, int ilvl, WordTheme theme) => _Level(
-        start: int.tryParse(wAttr(wChild(level, 'start'), 'val') ?? '') ?? 1,
+        start: _clampNumber(int.tryParse(wAttr(wChild(level, 'start'), 'val') ?? '') ?? 1),
         format: wAttr(wChild(level, 'numFmt'), 'val') ?? 'decimal',
         text: wAttr(wChild(level, 'lvlText'), 'val') ?? '',
         paragraph: ParaProps()..read(wChild(level, 'pPr'), theme),
@@ -671,19 +684,20 @@ class WordNumbering {
     final definition = abstractId == null ? null : _abstract[abstractId];
     final current = definition?[level];
     if (abstractId == null || definition == null || current == null) return null;
-    final counters = _counters.putIfAbsent(abstractId, () => List<int?>.filled(9, null));
+    final counters = _counters.putIfAbsent(abstractId, () => List<int?>.filled(_levels, null));
     if (_overrides[numId] case final overrides? when _overridesApplied.add(numId)) {
-      overrides.forEach((l, start) {
-        if (l < 9) counters[l] = start - 1;
-      });
+      overrides.forEach((l, start) => counters[l] = start - 1);
     }
-    counters[level] = (counters[level] ?? (current.start - 1)) + 1;
-    for (var deeper = level + 1; deeper < 9; deeper++) {
+    counters[level] = _clampNumber((counters[level] ?? (current.start - 1)) + 1);
+    for (var deeper = level + 1; deeper < _levels; deeper++) {
       final restartAfter = definition[deeper]?.restartAfter ?? deeper - 1;
       if (restartAfter >= level) counters[deeper] = null;
     }
+    // `%1`-`%9` stand for the levels' numbers; `%0` names no level, so shows
+    // nothing.
     final text = current.text.replaceAllMapped(RegExp(r'%(\d)'), (m) {
       final l = int.parse(m.group(1)!) - 1;
+      if (l < 0) return '';
       final levelDefinition = definition[l];
       final value = counters[l] ?? levelDefinition?.start ?? 1;
       // A higher level shown in a lower one's number ("1.1") uses decimal
