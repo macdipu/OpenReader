@@ -149,3 +149,33 @@ Change request. CR_TASKS level (engine by engine), NO_REPLAN. There is no sprint
     - `features.docx`: print layout shows pages with headers and footers, the page break, the landscape section and full table borders, and it reopens in print layout.
     - `qa-word.docx`: switching from continuous at paragraph 7 lands on paragraph 6 in print layout, and pages fill to the bottom margin.
 
+## E3a PDF native layer and engine: done (2026-10-24)
+- **Design notes:** `E3-PDF-NOTES.md`, from the survey of the old pdfrx engine (idea level).
+- **Hook (`hook/build.dart`):**
+  - bblanchon/pdfium-binaries **`chromium/8086`** (PDFium 157.0.8086, 2026-10-05), with SHA-256 pinned for all 13 archives. Covers Android (4 ABIs), iOS device and simulator, macOS, Linux and Windows.
+  - A cached library is reused only with a matching hash stamp. Downloads have timeouts and are written atomically.
+  - iOS is skipped until E3b removes the old `darwin/` xcframework.
+- **Our own bindings:** `tool/pdfium/ffigen.dart` (ffigen 23, programmatic API) generates `lib/src/engines/pdfium/pdfium_bindings.g.dart`.
+  - 36 functions in 384 lines, against 14k lines before.
+  - `@Native` functions bound to the `package:open_reader_kit/libpdfium` asset; no library loading by hand.
+  - Built from headers kept in `tool/pdfium/include` along with PDFium's licence.
+- **Worker (`pdfium_worker.dart`):** one isolate owns PDFium.
+  - Priority queue (visible, prefetch, background), back to the event loop between tasks, and cancelling of queued requests.
+  - The last error is read in the same call as the open, so password detection is right on Windows too.
+  - LRU of page and text-page handles.
+  - Rendering goes straight to RGBA (`FPDF_REVERSE_BYTE_ORDER`) and comes back via `TransferableTypedData`.
+  - Displayed sizes come from the crop box and `/Rotate`. `FPDF_GetPageWidthF/HeightF` turned out to give the unrotated size; tests caught it.
+  - Text boxes are mapped to the displayed page (crop-box offset plus rotation).
+  - Search runs in the worker: line breaks are joined so a wrapped phrase matches, case folding keeps offsets valid, and rects are merged per line along the reading direction, so rotated pages work too.
+  - Links: annotation URIs and GoTo targets, plus web addresses written as text.
+- **API (`pdf_engine.dart`):** `PdfiumDocument.openFile/openBytes` with password, typed `PdfOpenException`, `pageSizes`, cancellable `render` (region or tile), `renderThumbnail` (the whole page, unlike the old service's crop), `text`, `search`, `links`, `close`. `PdfRenderedImage.toImage` uses `ImageDescriptor.raw`.
+- **Checks:**
+  - 9 engine tests run against the real PDFium on the macOS host, using reportlab fixtures:
+    - sizes with rotation, a rotated page rendering turned, region renders
+    - text boxes, search (case, wrapped phrase, rotated page, page without text)
+    - links of both kinds
+    - password retry, damaged and missing files, cancelling
+  - The kit has 109 tests and the app 209, all passing.
+  - The APK bundles the new PDFium for 3 ABIs, and the current viewer opens `qa-text.pdf` on the emulator with it.
+- **Next: E3b.** The viewer widget and controller switch, the thumbnail strip and service, removing pdfrx, the wasm assets, `darwin/`, the link hook and `ffiPlugin`, enabling iOS in the hook, NOTICE, and device checks. Open question L1 (PDF link taps) defaults to supporting them.
+
