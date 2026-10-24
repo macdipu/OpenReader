@@ -1,11 +1,23 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:vector_math/vector_math_64.dart' show Quad;
 
-import '../engines/pdf/viewer/pdfrx.dart';
+import '../engines/pdfium/pdf_types.dart';
 import 'pdf_document_controller.dart';
+import 'pdf_image_cache.dart';
+import 'pdf_layout.dart';
 
-/// A PDF file shown with [controller]'s layout, search highlights and page
-/// tracking.
-class PdfDocumentView extends StatelessWidget {
+/// A PDF file, opened by [controller] and shown in its layout: pages built
+/// only near the viewport, pinch/double-tap/wheel zoom, a low-resolution
+/// image per page sharpened by tiles when zoomed in, search highlights,
+/// and links (web links open outside the app, `http`/`https`/`mailto`
+/// only; links to pages jump).
+class PdfDocumentView extends StatefulWidget {
   const PdfDocumentView({
     super.key,
     required this.path,
@@ -19,42 +31,559 @@ class PdfDocumentView extends StatelessWidget {
   final String path;
   final PdfDocumentController controller;
 
-  /// Asked for a password for an encrypted PDF: first an empty password is
-  /// tried automatically, then this is called once per attempt until it
+  /// Asked for a password for an encrypted PDF, once per attempt, until it
   /// returns null (give up) or the password works.
   final PdfPasswordProvider? passwordProvider;
   final Color? backgroundColor;
 
-  /// A tap on a page; return true if it was handled.
+  /// A tap on a page (not on a link); return true if it was handled.
   final bool Function()? onTap;
 
   /// Shown instead of the document when it fails to open.
   final Widget Function(BuildContext context, Object error)? errorBuilder;
 
   @override
+  State<PdfDocumentView> createState() => _PdfDocumentViewState();
+}
+
+class _PdfDocumentViewState extends State<PdfDocumentView> {
+  final _transform = TransformationController();
+  PdfImageCache? _cache;
+  PdfLayout? _layout;
+  Object? _layoutKey;
+  bool _positioned = false;
+  bool _updateScheduled = false;
+
+  /// Tiles to paint per page at the current zoom level.
+  var _tilesByPage = <int, List<PdfTileKey>>{};
+  var _tileLevel = 1;
+
+  /// Links per page, loaded on first tap.
+  final _links = <int, List<PdfLink>>{};
+
+  Offset? _doubleTapAt;
+
+  PdfDocumentController get controller => widget.controller;
+
+  static const _maxZoom = 8.0;
+
+  @override
+  void initState() {
+    super.initState();
+    controller.addListener(_onControllerChanged);
+    _transform.addListener(_scheduleUpdate);
+    controller.attachView(
+      zoom: () => _transform.value.getMaxScaleOnAxis(),
+      setZoom: _setZoom,
+      jumpToPage: _jumpToPage,
+      showMatch: _showMatch,
+    );
+    controller.open(widget.path, passwordProvider: widget.passwordProvider);
+  }
+
+  @override
+  void didUpdateWidget(PdfDocumentView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != controller) {
+      oldWidget.controller
+        ..removeListener(_onControllerChanged)
+        ..detachView();
+      controller.addListener(_onControllerChanged);
+      controller.attachView(
+        zoom: () => _transform.value.getMaxScaleOnAxis(),
+        setZoom: _setZoom,
+        jumpToPage: _jumpToPage,
+        showMatch: _showMatch,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    controller
+      ..removeListener(_onControllerChanged)
+      ..detachView();
+    _transform.dispose();
+    _cache?.dispose();
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    final document = controller.document;
+    if (document != null && _cache?.document != document) {
+      _cache?.dispose();
+      _cache = PdfImageCache(document);
+    }
+    if (mounted) setState(() {});
+  }
+
+  // --- Geometry ----------------------------------------------------------
+
+  double get _scale => _transform.value.getMaxScaleOnAxis();
+
+  /// The part of the content on screen.
+  Rect _visibleRect() {
+    final layout = _layout;
+    if (layout == null) return Rect.zero;
+    final matrix = _transform.value;
+    final scale = matrix.getMaxScaleOnAxis();
+    final translation = matrix.getTranslation();
+    return Rect.fromLTWH(
+      -translation.x / scale,
+      -translation.y / scale,
+      layout.viewport.width / scale,
+      layout.viewport.height / scale,
+    );
+  }
+
+  /// Sets scale and the content point at the top-left of the view, kept
+  /// within the content.
+  void _setTransform(double scale, Offset topLeft) {
+    final layout = _layout;
+    if (layout == null) return;
+    final s = scale.clamp(1.0, _maxZoom);
+    final maxX = math.max(0.0, layout.size.width - layout.viewport.width / s);
+    final maxY = math.max(0.0, layout.size.height - layout.viewport.height / s);
+    final x = topLeft.dx.clamp(0.0, maxX);
+    final y = topLeft.dy.clamp(0.0, maxY);
+    _transform.value = Matrix4.identity()
+      ..translateByDouble(-x * s, -y * s, 0, 1)
+      ..scaleByDouble(s, s, 1, 1);
+  }
+
+  void _setZoom(double zoom, {Offset? focus}) {
+    final layout = _layout;
+    if (layout == null) return;
+    final visible = _visibleRect();
+    final point = focus ?? visible.center;
+    final s = zoom.clamp(1.0, _maxZoom);
+    // Keep [point] where it is on screen.
+    final screen = (point - visible.topLeft) * _scale;
+    _setTransform(s, point - screen / s);
+  }
+
+  void _jumpToPage(int page) {
+    final layout = _layout;
+    if (layout == null || page < 0 || page >= layout.pages.length) return;
+    final rect = layout.pages[page];
+    final visible = _visibleRect();
+    _setTransform(
+      _scale,
+      layout.isHorizontal
+          ? Offset(rect.left - PdfLayout.margin, visible.top)
+          : Offset(visible.left, rect.top - PdfLayout.margin),
+    );
+  }
+
+  /// Scrolls a search hit into view (centred) if it isn't already.
+  void _showMatch(PdfTextMatch match) {
+    final layout = _layout;
+    final document = controller.document;
+    if (layout == null || document == null || match.page >= layout.pages.length) return;
+    final page = layout.pages[match.page];
+    final factor = page.width / document.pageSizes[match.page].width;
+    final hit = match.bounds;
+    final bounds = match.rects.isEmpty
+        ? page
+        : Rect.fromLTRB(page.left + hit.left * factor, page.top + hit.top * factor, page.left + hit.right * factor,
+            page.top + hit.bottom * factor);
+    final visible = _visibleRect();
+    if (visible.deflate(8).contains(bounds.topLeft) && visible.deflate(8).contains(bounds.bottomRight)) return;
+    _setTransform(_scale, bounds.center - Offset(visible.width / 2, visible.height / 2));
+  }
+
+  // --- Reacting to the viewport ------------------------------------------
+
+  void _scheduleUpdate() {
+    if (_updateScheduled) return;
+    _updateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateScheduled = false;
+      if (mounted) _update();
+    });
+  }
+
+  /// Works out the page being read and what to render, after the view
+  /// moved or zoomed. Never called from paint.
+  void _update() {
+    final layout = _layout;
+    final cache = _cache;
+    final document = controller.document;
+    if (layout == null || cache == null || document == null || layout.pages.isEmpty) return;
+    final visible = _visibleRect();
+    final page = layout.currentPage(visible, previous: controller.currentPage - 1);
+    controller.onPageChanged(page + 1);
+
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final scale = _scale;
+    final onScreen = layout.pagesIn(visible).toSet();
+    // One page either side, at prefetch priority.
+    final around = <int>{
+      for (final p in onScreen) ...[p - 1, p, p + 1],
+    }.where((p) => p >= 0 && p < layout.pages.length);
+
+    // Past 1.25x, the base image is too soft: tiles at the next power of
+    // two (2x, 4x, 8x).
+    final level = scale <= 1.25 ? 1 : math.min(8, math.pow(2, (math.log(scale) / math.ln2).ceil()).toInt());
+    final tiles = <int, List<PdfTileKey>>{};
+    if (level > 1) {
+      for (final p in onScreen) {
+        final rect = layout.pages[p];
+        final part = rect.intersect(visible);
+        if (part.isEmpty) continue;
+        final pixels = level * dpr;
+        final local = part.shift(-rect.topLeft);
+        final step = PdfImageCache.tileSize / pixels;
+        final keys = <PdfTileKey>[];
+        for (var row = (local.top / step).floor(); row * step < local.bottom; row++) {
+          for (var column = (local.left / step).floor(); column * step < local.right; column++) {
+            keys.add((page: p, level: level, column: column, row: row));
+          }
+        }
+        tiles[p] = keys;
+      }
+    }
+    final tilesChanged = level != _tileLevel || !_sameTiles(tiles, _tilesByPage);
+    _tileLevel = level;
+    _tilesByPage = tiles;
+    cache.request(
+      basePages: around,
+      visiblePages: onScreen,
+      baseWidth: (p) => PdfImageCache.baseWidthFor(layout.pages[p].width * dpr),
+      tiles: tiles.values.expand((t) => t),
+      tileFullSize: (key) {
+        final rect = layout.pages[key.page];
+        return Size(rect.width * key.level * dpr, rect.height * key.level * dpr);
+      },
+    );
+    if (tilesChanged) setState(() {});
+  }
+
+  static bool _sameTiles(Map<int, List<PdfTileKey>> a, Map<int, List<PdfTileKey>> b) {
+    if (a.length != b.length) return false;
+    for (final entry in a.entries) {
+      final other = b[entry.key];
+      if (other == null || other.length != entry.value.length) return false;
+      for (var i = 0; i < other.length; i++) {
+        if (other[i] != entry.value[i]) return false;
+      }
+    }
+    return true;
+  }
+
+  // --- Taps and the wheel --------------------------------------------------
+
+  Future<void> _onPageTap(int page, Offset local) async {
+    final document = controller.document;
+    final layout = _layout;
+    if (document == null || layout == null) return;
+    final factor = document.pageSizes[page].width / layout.pages[page].width;
+    final point = local * factor;
+    final links = _links[page] ??= await document.links(page).catchError((Object _) => <PdfLink>[]);
+    for (final link in links) {
+      if (!link.rects.any((r) => r.inflate(2).contains(point))) continue;
+      if (link.page != null) {
+        _jumpToPage(link.page!);
+        return;
+      }
+      final uri = link.url == null ? null : Uri.tryParse(link.url!);
+      if (uri != null && const {'http', 'https', 'mailto'}.contains(uri.scheme)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    }
+    widget.onTap?.call();
+  }
+
+  void _onWheel(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    GestureBinding.instance.pointerSignalResolver.register(event, (event) {
+      final scroll = event as PointerScrollEvent;
+      final keys = HardwareKeyboard.instance;
+      if (keys.isControlPressed || keys.isMetaPressed) {
+        final visible = _visibleRect();
+        final focus = visible.topLeft + scroll.localPosition / _scale;
+        _setZoom(_scale * (scroll.scrollDelta.dy > 0 ? 0.9 : 1.1), focus: focus);
+      } else {
+        final visible = _visibleRect();
+        _setTransform(_scale, visible.topLeft + scroll.scrollDelta / _scale);
+      }
+    });
+  }
+
+  // --- Build ---------------------------------------------------------------
+
+  @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final searcher = controller.textSearcher;
-        return PdfViewer.file(
-          path,
-          controller: controller.pdfController,
-          initialPageNumber: controller.initialPageNumber,
-          passwordProvider: passwordProvider,
-          params: PdfViewerParams(
-            backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.surface,
-            onViewerReady: controller.onViewerReady,
-            onPageChanged: controller.onPageChanged,
-            pagePaintCallbacks: searcher == null ? null : [searcher.pageTextMatchPaintCallback],
-            layoutPages: controller.viewMode == PdfReaderViewMode.horizontal ? pdfHorizontalLayout : null,
-            onGeneralTap: onTap == null ? null : (context, viewerController, details) => onTap!(),
-            errorBannerBuilder: errorBuilder == null
-                ? null
-                : (context, error, stackTrace, documentRef) => errorBuilder!(context, error),
+    final background = widget.backgroundColor ?? Theme.of(context).colorScheme.surface;
+    if (controller.error case final error?) {
+      return ColoredBox(
+        color: background,
+        child: widget.errorBuilder?.call(context, error) ?? const Center(child: Text('This PDF could not be opened.')),
+      );
+    }
+    final document = controller.document;
+    final cache = _cache;
+    if (document == null || cache == null) {
+      return ColoredBox(color: background, child: const Center(child: CircularProgressIndicator()));
+    }
+    return ColoredBox(
+      color: background,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final viewport = constraints.biggest;
+        final key = (viewport, controller.viewMode, document);
+        if (key != _layoutKey) {
+          final restoring = _layoutKey == null || (_layoutKey as (Size, PdfReaderViewMode, Object)).$2 != controller.viewMode;
+          final reading = restoring ? controller.initialPageNumber - 1 : controller.currentPage - 1;
+          _layout = PdfLayout(pageSizes: document.pageSizes, viewport: viewport, mode: controller.viewMode);
+          _layoutKey = key;
+          _positioned = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _positioned) return;
+            _positioned = true;
+            _transform.value = Matrix4.identity();
+            _jumpToPage(reading);
+            _scheduleUpdate();
+          });
+        }
+        final layout = _layout!;
+        return GestureDetector(
+          onDoubleTapDown: (details) => _doubleTapAt = details.localPosition,
+          onDoubleTap: () {
+            final visible = _visibleRect();
+            final focus = visible.topLeft + (_doubleTapAt ?? viewport.center(Offset.zero)) / _scale;
+            _setZoom(_scale > 1.1 ? 1 : 2.5, focus: focus);
+          },
+          child: InteractiveViewer.builder(
+            transformationController: _transform,
+            minScale: 1,
+            maxScale: _maxZoom,
+            boundaryMargin: EdgeInsets.zero,
+            builder: (context, quad) {
+              final bounds = _quadBounds(quad).inflate(layout.isHorizontal ? viewport.width : viewport.height);
+              return Listener(
+                onPointerSignal: _onWheel,
+                child: SizedBox.fromSize(
+                  size: layout.size,
+                  child: Stack(
+                    children: [
+                      for (final page in layout.pagesIn(bounds))
+                        Positioned.fromRect(
+                          rect: layout.pages[page],
+                          child: _PdfPage(
+                            key: ValueKey(page),
+                            page: page,
+                            cache: cache,
+                            search: controller.searchController,
+                            pageSize: document.pageSizes[page],
+                            tiles: _tilesByPage[page] ?? const [],
+                            devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                            onTap: (local) => _onPageTap(page, local),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         );
-      },
+      }),
+    );
+  }
+
+  static Rect _quadBounds(Quad quad) {
+    final xs = [quad.point0.x, quad.point1.x, quad.point2.x, quad.point3.x];
+    final ys = [quad.point0.y, quad.point1.y, quad.point2.y, quad.point3.y];
+    return Rect.fromLTRB(xs.reduce(math.min), ys.reduce(math.min), xs.reduce(math.max), ys.reduce(math.max));
+  }
+}
+
+/// One page: white paper, its base image, any sharper tiles, and search
+/// highlights.
+class _PdfPage extends StatelessWidget {
+  const _PdfPage({
+    super.key,
+    required this.page,
+    required this.cache,
+    required this.search,
+    required this.pageSize,
+    required this.tiles,
+    required this.devicePixelRatio,
+    required this.onTap,
+  });
+
+  final int page;
+  final PdfImageCache cache;
+  final PdfSearchController search;
+  final Size pageSize;
+  final List<PdfTileKey> tiles;
+  final double devicePixelRatio;
+  final void Function(Offset local) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      label: 'Page ${page + 1}',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (details) => onTap(details.localPosition),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            boxShadow: [BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 1))],
+          ),
+          child: CustomPaint(
+            painter: _PagePainter(
+              page: page,
+              cache: cache,
+              search: search,
+              pageSize: pageSize,
+              tiles: tiles,
+              devicePixelRatio: devicePixelRatio,
+              match: scheme.secondaryContainer.withValues(alpha: 0.45),
+              current: scheme.tertiary.withValues(alpha: 0.45),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PagePainter extends CustomPainter {
+  _PagePainter({
+    required this.page,
+    required this.cache,
+    required this.search,
+    required this.pageSize,
+    required this.tiles,
+    required this.devicePixelRatio,
+    required this.match,
+    required this.current,
+  }) : super(repaint: Listenable.merge([cache, search]));
+
+  final int page;
+  final PdfImageCache cache;
+  final PdfSearchController search;
+  final Size pageSize;
+  final List<PdfTileKey> tiles;
+  final double devicePixelRatio;
+  final Color match;
+  final Color current;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..filterQuality = FilterQuality.medium;
+    final base = cache.base(page);
+    if (base != null) {
+      canvas.drawImageRect(
+        base,
+        Rect.fromLTWH(0, 0, base.width.toDouble(), base.height.toDouble()),
+        Offset.zero & size,
+        paint,
+      );
+    }
+    for (final key in tiles) {
+      final tile = cache.tile(key);
+      if (tile == null) continue;
+      final step = PdfImageCache.tileSize / (key.level * devicePixelRatio);
+      final dst = Rect.fromLTWH(
+        key.column * step,
+        key.row * step,
+        tile.width / (key.level * devicePixelRatio),
+        tile.height / (key.level * devicePixelRatio),
+      );
+      canvas.drawImageRect(tile, Rect.fromLTWH(0, 0, tile.width.toDouble(), tile.height.toDouble()), dst, paint);
+    }
+    final hits = search.matchesOn(page);
+    if (hits.isEmpty) return;
+    final factor = size.width / pageSize.width;
+    for (final (hit, isCurrent) in hits) {
+      final highlight = Paint()..color = isCurrent ? current : match;
+      for (final rect in hit.rects) {
+        canvas.drawRect(
+          Rect.fromLTRB(rect.left * factor, rect.top * factor, rect.right * factor, rect.bottom * factor).inflate(1),
+          highlight,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PagePainter old) =>
+      old.page != page || old.cache != cache || old.tiles != tiles || old.match != match || old.current != current;
+}
+
+/// A whole page as a small image (e.g. a thumbnail strip), rendered at
+/// low priority.
+class PdfPageThumbnail extends StatefulWidget {
+  const PdfPageThumbnail({super.key, required this.controller, required this.pageNumber, this.width = 70});
+
+  final PdfDocumentController controller;
+
+  /// 1-based.
+  final int pageNumber;
+
+  /// Logical pixels.
+  final double width;
+
+  @override
+  State<PdfPageThumbnail> createState() => _PdfPageThumbnailState();
+}
+
+class _PdfPageThumbnailState extends State<PdfPageThumbnail> {
+  ui.Image? _image;
+  Object? _requested;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(PdfPageThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _load();
+  }
+
+  Future<void> _load() async {
+    final document = widget.controller.document;
+    if (document == null) return;
+    final width = (widget.width * MediaQuery.devicePixelRatioOf(context)).round();
+    final key = (document, widget.pageNumber, width);
+    if (key == _requested) return;
+    _requested = key;
+    try {
+      final rendered = await document.renderThumbnail(widget.pageNumber - 1, width: width);
+      final image = await rendered.toImage();
+      if (!mounted || _requested != key) {
+        image.dispose();
+        return;
+      }
+      setState(() {
+        _image?.dispose();
+        _image = image;
+      });
+    } catch (_) {
+      // A thumbnail is optional: the slot stays blank.
+    }
+  }
+
+  @override
+  void dispose() {
+    _image?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = _image;
+    return ColoredBox(
+      color: Colors.white,
+      child: image == null ? const SizedBox.expand() : RawImage(image: image, fit: BoxFit.contain),
     );
   }
 }

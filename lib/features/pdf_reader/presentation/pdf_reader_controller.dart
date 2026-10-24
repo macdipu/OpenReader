@@ -45,18 +45,21 @@ class PdfReaderController extends BaseController {
   /// open_reader_kit's PDF state: pages, layout, zoom, search, text layer.
   late final PdfDocumentController pdf;
 
-  PdfViewerController get pdfController => pdf.pdfController;
   int get initialPageNumber => pdf.initialPageNumber;
 
+  /// The kit's search: query, matches, current match (a Listenable).
+  PdfSearchController get searchController => pdf.searchController;
+
   // Mirrors of the kit's state, for Obx widgets and tests.
-  final textSearcher = Rxn<PdfTextSearcher>();
+  /// The document is open (search and thumbnails need it).
+  final isReady = false.obs;
   final currentPage = 1.obs;
   final pageCount = 0.obs;
   final viewMode = PdfReaderViewMode.continuous.obs;
   final hasTextLayer = RxnBool();
 
   void _mirror() {
-    textSearcher.value = pdf.textSearcher;
+    isReady.value = pdf.isReady;
     currentPage.value = pdf.currentPage;
     pageCount.value = pdf.pageCount;
     viewMode.value = pdf.viewMode;
@@ -145,11 +148,10 @@ class PdfReaderController extends BaseController {
     status.value = StateStatus.success;
   }
 
-  /// [PdfViewerParams.onViewerReady].
-  void onViewerReady(PdfDocument doc, PdfViewerController controller) => pdf.onViewerReady(doc, controller);
-
-  /// [PdfViewerParams.onPageChanged].
-  void onPageChanged(int? page) => pdf.onPageChanged(page);
+  /// The page being read (1-based), as the kit's view reports it.
+  void onPageChanged(int? page) {
+    if (page != null) pdf.onPageChanged(page);
+  }
 
   /// A page change saves 2 s later ([toggleViewMode] saves at once).
   void _onPositionChanged(ReadingPosition _) {
@@ -191,11 +193,10 @@ class PdfReaderController extends BaseController {
 
   Future<void> openWith() => _interactions.openWithExternalApp(document);
 
-  /// [PdfPasswordProvider]: pdfrx calls this once per attempt (first with an
-  /// empty password automatically, then once per retry) until it returns
-  /// null or the password succeeds - see `PdfDocument`'s own retry loop. A
-  /// cancelled dialog leaves the reader instead of surfacing a raw
-  /// [PdfPasswordException] banner for a choice the user already made.
+  /// [PdfPasswordProvider]: the kit asks once per attempt (after trying no
+  /// password) until this returns null or the password works. A cancelled
+  /// dialog leaves the reader instead of showing an error for a choice the
+  /// user already made.
   Future<String?> providePassword() async {
     final entered = await showAppDialog<String>(
       child: PdfPasswordDialog(showIncorrectHint: _passwordPreviouslyWrong),

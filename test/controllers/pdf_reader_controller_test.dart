@@ -18,14 +18,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
-// pdfrx's PdfTextSearcher can only be constructed once PdfViewerController is
-// attached to a live, loaded PdfViewer widget (see PdfReaderController's own
-// doc comment on its `textSearcher` field) - something this environment can't
-// render (no native PDFium available; see the PDF reader's implementation
-// notes for the documented gap). So `onViewerReady` is never invoked here and
-// `textSearcher.value` stays null throughout - these tests cover only the
-// logic that doesn't require a rendered document: initial-position restore,
-// debounced position saving, and delegation to DocumentInteractionController.
+// These tests don't open a document (open_reader_kit's own tests cover the
+// PDF engine against real PDFium). They cover the logic around it:
+// initial-position restore, debounced position saving, and delegation to
+// DocumentInteractionController.
 
 class FixtureFavorites implements FavoriteRepository {
   final _favorites = <String>{};
@@ -197,7 +193,7 @@ void main() {
 
     test('onClose is a no-op when the viewer was never attached', () {
       expect(controller.pageCount.value, 0);
-      expect(controller.textSearcher.value, isNull);
+      expect(controller.isReady.value, isFalse);
       expect(controller.onClose, returnsNormally);
       expect(recents.markOpenedCalls, 0);
     });

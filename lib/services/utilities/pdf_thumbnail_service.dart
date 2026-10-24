@@ -51,46 +51,24 @@ class PdfThumbnailService {
     }
   }
 
+  /// The whole first page scaled down to [_thumbnailWidth] (the old
+  /// engine's call rendered at 72 dpi and kept only the top-left corner).
   Future<File?> _render(DocumentModel document, File cacheFile) async {
-    final doc = await PdfDocument.openFile(document.path);
+    final doc = await PdfiumDocument.openFile(document.path);
     try {
-      if (doc.pages.isEmpty) return null;
-      final page = doc.pages.first;
-      if (page.width <= 0) return null;
-
-      final scale = _thumbnailWidth / page.width;
-      const width = _thumbnailWidth;
-      final height = (page.height * scale).round().clamp(1, 4000);
-
-      final image = await page.render(width: width, height: height);
-      if (image == null) return null;
+      if (doc.pageCount == 0 || doc.pageSizes.first.width <= 0) return null;
+      final rendered = await doc.renderThumbnail(0, width: _thumbnailWidth);
+      final image = await rendered.toImage();
       try {
-        final uiImage = await _decode(image);
-        try {
-          final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
-          if (byteData == null) return null;
-          await cacheFile.writeAsBytes(byteData.buffer.asUint8List());
-          return cacheFile;
-        } finally {
-          uiImage.dispose();
-        }
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (byteData == null) return null;
+        await cacheFile.writeAsBytes(byteData.buffer.asUint8List());
+        return cacheFile;
       } finally {
         image.dispose();
       }
     } finally {
-      await doc.dispose();
+      await doc.close();
     }
-  }
-
-  Future<ui.Image> _decode(PdfImage image) {
-    final completer = Completer<ui.Image>();
-    ui.decodeImageFromPixels(
-      image.pixels,
-      image.width,
-      image.height,
-      ui.PixelFormat.bgra8888,
-      completer.complete,
-    );
-    return completer.future;
   }
 }
