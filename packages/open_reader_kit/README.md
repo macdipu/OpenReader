@@ -46,22 +46,17 @@ Android, iOS, macOS, Windows and Linux. Web is not supported yet.
 
 ## Installation
 
-open_reader_kit is not on pub.dev yet. Until it is, depend on it by path or git:
+```sh
+flutter pub add open_reader_kit
+```
+
+To use the latest code from GitHub instead:
 
 ```yaml
 dependencies:
   open_reader_kit:
     git:
-      url: <repo-url>
-      path: packages/open_reader_kit
-```
-
-or, with a local checkout:
-
-```yaml
-dependencies:
-  open_reader_kit:
-    path: ../open_reader_kit
+      url: https://github.com/chowdhuryelab/open_reader_kit.git
 ```
 
 It needs Dart 3.11.4 or later and Flutter 3.41 or later.
@@ -244,7 +239,8 @@ It returns null rather than throwing for unsupported, damaged, encrypted or too-
 
 **OpenReader** is a document reader app built on open_reader_kit and shows everything it does:
 - Google Play: https://play.google.com/store/apps/details?id=com.chowdhuryelab.openreader
-- Source: the app in this repository (`../../`), which depends on the kit by path.
+
+The package's own test app is in [`example/`](example): sample documents in every format, every reader, and an on-device integration test.
 
 ## Licence
 
