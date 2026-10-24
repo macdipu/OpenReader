@@ -163,9 +163,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
               : IconButton(
                 tooltip: 'Search in document',
                   icon: const Icon(Icons.search_rounded),
-                  // Text search needs a live document (see textSearcher's doc
-                  // comment); disabled until onViewerReady supplies one.
-                  onPressed: controller.textSearcher.value != null ? controller.startSearching : null,
+                  // Search needs the open document.
+                  onPressed: controller.isReady.value ? controller.startSearching : null,
                 ),
         ),
         Obx(
@@ -221,8 +220,7 @@ class _SearchStatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (!controller.isSearching.value) return const SizedBox.shrink();
-      final searcher = controller.textSearcher.value;
-      if (searcher == null) return const SizedBox.shrink();
+      final searcher = controller.searchController;
       // Read here, not in the ListenableBuilder, so this Obx tracks it.
       final hasTextLayer = controller.hasTextLayer.value;
       return Container(
@@ -433,13 +431,12 @@ class _ThumbnailStripState extends State<_ThumbnailStrip> {
       ),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       clipBehavior: Clip.antiAlias,
-      child: PdfDocumentViewBuilder(
-        documentRef: controller.pdfController.documentRef,
-        builder: (context, document) => ListView.builder(
+      child: Obx(
+        () => ListView.builder(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.all(8),
-          itemCount: document?.pages.length ?? 0,
+          itemCount: controller.isReady.value ? controller.pageCount.value : 0,
           itemBuilder: (context, index) {
             final pageNumber = index + 1;
             return Padding(
@@ -459,7 +456,7 @@ class _ThumbnailStripState extends State<_ThumbnailStrip> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(child: PdfPageView(document: document, pageNumber: pageNumber, maximumDpi: 50)),
+                        Expanded(child: PdfPageThumbnail(controller: controller.pdf, pageNumber: pageNumber)),
                         Text('$pageNumber', style: context.labelSmall?.copyWith(color: context.onSurfaceVariant)),
                       ],
                     ),
@@ -484,7 +481,7 @@ class _ReaderErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     // BRD §13: password failures are handled entirely by the password
     // dialog retry loop (PdfReaderController.providePassword); reaching
-    // here with a PdfPasswordException means the user already cancelled and
+    // here after a password error means the user already cancelled and
     // left, so this always shows the generic corrupted/unsupported message.
     return Center(
       child: Padding(
