@@ -51,6 +51,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+
+# Xcode's Swift Package Manager state for Flutter's generated plugin package
+/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+/macos/Runner.xcworkspace/xcshareddata/swiftpm/
 
 # FVM Version Cache
 .fvm/

@@ -48,10 +48,13 @@ class DocumentViewer extends StatefulWidget {
 }
 
 class _DocumentViewerState extends State<DocumentViewer> {
-  late final DocumentFormat? _format = DocumentFormat.fromPath(widget.path);
   ChangeNotifier? _controller;
   DocumentLoadError? _error;
   bool _loading = true;
+
+  /// Bumped per [_open], so a load that finishes after the path changed (or
+  /// the viewer went away) disposes its controller instead of showing it.
+  int _generation = 0;
 
   @override
   void initState() {
@@ -59,54 +62,77 @@ class _DocumentViewerState extends State<DocumentViewer> {
     _open();
   }
 
+  @override
+  void didUpdateWidget(DocumentViewer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.path == oldWidget.path) return;
+    _controller?.dispose();
+    _controller = null;
+    _error = null;
+    _loading = true;
+    _open();
+  }
+
   Future<void> _open() async {
+    final generation = ++_generation;
     final at = widget.initialPosition;
     final report = widget.onPositionChanged;
     final file = File(widget.path);
+    ChangeNotifier? controller;
+    DocumentLoadError? error;
     try {
-      switch (_format) {
+      switch (DocumentFormat.fromPath(widget.path)) {
         case null:
-          _error = DocumentLoadError.unsupported;
+          error = DocumentLoadError.unsupported;
         case DocumentFormat.pdf:
           // The PDF engine reads the file itself (and asks for passwords).
-          _controller = PdfDocumentController(initialPosition: at, onPositionChanged: report);
+          controller = PdfDocumentController(initialPosition: at, onPositionChanged: report);
         case DocumentFormat.word:
           final word = WordDocumentController(initialPosition: at, onPositionChanged: report);
-          _controller = word..load(await file.readAsBytes());
-          _error = word.error;
+          controller = word;
+          word.load(await file.readAsBytes());
+          error = word.error;
         case DocumentFormat.excel:
           final sheet = SpreadsheetController(initialPosition: at, onPositionChanged: report);
-          _controller = sheet;
+          controller = sheet;
           await sheet.loadXlsx(await file.readAsBytes());
-          _error = sheet.error;
+          error = sheet.error;
         case DocumentFormat.csv:
           final sheet = SpreadsheetController(initialPosition: at, onPositionChanged: report);
-          _controller = sheet;
+          controller = sheet;
           if (await file.length() > SpreadsheetController.maxCsvBytes) {
             sheet.rejectAsTooLarge();
           } else {
             sheet.loadCsv(await file.readAsBytes());
           }
-          _error = sheet.error;
+          error = sheet.error;
         case DocumentFormat.powerpoint:
           final deck = SlideDeckController(initialPosition: at, onPositionChanged: report);
-          _controller = deck;
+          controller = deck;
           await deck.load(await file.readAsBytes());
-          _error = deck.error;
+          error = deck.error;
         case DocumentFormat.text:
           final text = TextDocumentController(initialPosition: at, onPositionChanged: report);
-          _controller = text;
+          controller = text;
           if (await file.length() > TextDocumentController.maxBytes) {
-            _error = DocumentLoadError.tooLarge;
+            error = DocumentLoadError.tooLarge;
           } else {
             text.load(await file.readAsBytes());
-            _error = text.error;
+            error = text.error;
           }
       }
     } catch (_) {
-      _error = DocumentLoadError.corrupted;
+      error = DocumentLoadError.corrupted;
     }
-    if (mounted) setState(() => _loading = false);
+    if (!mounted || generation != _generation) {
+      controller?.dispose();
+      return;
+    }
+    setState(() {
+      _controller = controller;
+      _error = error;
+      _loading = false;
+    });
   }
 
   @override
