@@ -233,6 +233,6 @@ It returns null rather than throwing for unsupported, damaged, encrypted or too-
 
 ## Licence
 
-The licence for open_reader_kit is to be decided (TBD) before the first release.
+open_reader_kit is released under the [MIT License](LICENSE).
 
 Third-party code and the PDFium binary keep their own licences; see [`NOTICE.md`](NOTICE.md) and `licenses/`.
