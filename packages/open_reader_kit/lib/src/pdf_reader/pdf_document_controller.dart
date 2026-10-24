@@ -200,11 +200,15 @@ class PdfDocumentController extends ChangeNotifier {
       (page) async => pdfController.isReady
           ? await pdfController.useDocument<String?>((doc) async => (await doc.pages[page - 1].loadText())?.fullText)
           : null,
-    ).then((result) {
-      if (_disposed) return;
-      _hasTextLayer = result;
-      notifyListeners();
-    }).whenComplete(() => _probingTextLayer = false);
+    ).then(
+      (result) {
+        if (_disposed) return;
+        _hasTextLayer = result;
+        notifyListeners();
+      },
+      // Left unknown; the next empty search probes again.
+      onError: (Object _) {},
+    ).whenComplete(() => _probingTextLayer = false);
   }
 
   @override

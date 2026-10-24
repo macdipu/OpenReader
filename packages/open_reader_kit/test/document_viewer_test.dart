@@ -5,6 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:open_reader_kit/testing.dart';
 
+/// Lets the file read and parse finish in real time, then builds.
+Future<void> settle(WidgetTester tester) async {
+  for (var i = 0; i < 20 && find.byType(CircularProgressIndicator).evaluate().isNotEmpty; i++) {
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pump();
+  }
+}
+
 void main() {
   late Directory dir;
 
@@ -15,11 +23,7 @@ void main() {
     final path = '${dir.path}/$name';
     await tester.runAsync(() => File(path).writeAsBytes(bytes));
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: DocumentViewer.file(path))));
-    // Let the file read and parse finish in real time, then build.
-    for (var i = 0; i < 20 && find.byType(CircularProgressIndicator).evaluate().isNotEmpty; i++) {
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
-      await tester.pump();
-    }
+    await settle(tester);
   }
 
   testWidgets('opens text', (tester) async {
@@ -47,5 +51,25 @@ void main() {
   testWidgets('says when a file is damaged', (tester) async {
     await pumpViewer(tester, 'broken.xlsx', [1, 2, 3]);
     expect(find.text('This document may be damaged or incomplete.'), findsOneWidget);
+  });
+
+  testWidgets('reopens when the path changes', (tester) async {
+    await pumpViewer(tester, 'a.txt', 'from a'.codeUnits);
+    final second = '${dir.path}/b.txt';
+    await tester.runAsync(() => File(second).writeAsBytes('from b'.codeUnits));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: DocumentViewer.file(second))));
+    await settle(tester);
+    expect(find.text('from b'), findsOneWidget);
+    expect(find.text('from a'), findsNothing);
+  });
+
+  testWidgets('a load that outlives the viewer is dropped', (tester) async {
+    final path = '${dir.path}/late.txt';
+    await tester.runAsync(() => File(path).writeAsBytes('late'.codeUnits));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: DocumentViewer.file(path))));
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
   });
 }
