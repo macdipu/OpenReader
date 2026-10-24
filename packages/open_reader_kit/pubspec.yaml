@@ -6,7 +6,8 @@ version: 0.1.0
 publish_to: none # Until the user's first pub.dev release (see README).
 
 environment:
-  # The PDF engine code (from pdfrx 2.4.8) needs these.
+  # two_dimensional_scrollables 0.5.5 needs Dart ^3.11 and Flutter 3.41;
+  # hook/build.dart (native assets: hooks, code_assets) needs Dart 3.10+.
   sdk: ^3.11.4
   flutter: '>=3.41.0'
 
@@ -15,30 +16,16 @@ dependencies:
     sdk: flutter
   archive: ^4.3.0
   code_assets: ^2.1.0
-  collection: ^1.19.1
   crypto: ^3.0.7
-  equatable: ^2.1.0
   ffi: ^2.2.0
   hooks: ^2.2.0
-  html: ^0.15.7
-  http: ^1.6.0
-  image: ^4.9.2
-  markdown: ^7.3.1
-  meta: ^1.18.0
   path: ^1.9.1
-  path_provider: ^2.1.5
-  pointycastle: ^4.0.0
-  rxdart: ^0.28.0
-  synchronized: ^3.4.0
   # Flutter team's lazy 2D table (TableView) for SheetGrid: only on-screen
   # cells are built; variable row/column sizes, pinned panes, merged cells.
   two_dimensional_scrollables: ^0.5.5
   url_launcher: ^6.3.2
-  uuid: ^4.6.0
   vector_math: ^2.2.0
-  web: ^1.1.1
   xml: ^7.0.1
-  yaml: ^3.1.3
 
 dev_dependencies:
   flutter_test:
@@ -47,20 +34,3 @@ dev_dependencies:
   # headers in tool/pdfium (dart run ffigen --config tool/pdfium/ffigen.yaml).
   ffigen: ^23.0.0
 
-flutter:
-  plugin:
-    platforms:
-      # PDFium for iOS/macOS comes from the xcframework in darwin/; every
-      # other platform gets it from hook/build.dart.
-      ios:
-        pluginClass: OpenReaderKitPlugin
-        ffiPlugin: true
-        sharedDarwinSource: true
-      macos:
-        pluginClass: OpenReaderKitPlugin
-        ffiPlugin: true
-        sharedDarwinSource: true
-  assets:
-    # PDFium WASM build for the web PDF engine.
-    - path: assets/pdfium/
-      platforms: [web]
