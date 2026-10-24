@@ -505,6 +505,8 @@ abstract final class XlsxReader {
     var inInlineString = false;
     var phoneticDepth = 0;
 
+    var slots = 0;
+
     void putCell() {
       final style = styleIndex < styles.length ? styles[styleIndex] : CellStyle.plain;
       var cellFormula = formula;
@@ -515,7 +517,16 @@ abstract final class XlsxReader {
           cellFormula = shiftFormula(master, rowIndex - row, columnIndex - column);
         }
       }
-      final cellValue = _cellValue(cellType, value, cellFormula, sharedStrings, array: formulaType == 'array');
+      // Outside the grid Excel allows (a damaged or hostile file).
+      if (rowIndex < 0 || rowIndex >= _maxRows || columnIndex < 0 || columnIndex >= _maxColumns) return;
+      final cellValue = _cellValue(
+        cellType,
+        value,
+        cellFormula,
+        sharedStrings,
+        array: formulaType == 'array',
+        date1904: date1904,
+      );
       // Blank cells only matter when they're filled, bordered or noted.
       if (cellValue == null &&
           style.fillColor == null &&
@@ -524,6 +535,13 @@ abstract final class XlsxReader {
         return;
       }
       final row = rows.putIfAbsent(rowIndex, () => <SheetCell?>[]);
+      // Rows are padded up to their last cell; a sheet of scattered far-off
+      // cells would pad millions of empty slots, so stop at a budget.
+      final padding = columnIndex + 1 - row.length;
+      if (padding > 0) {
+        if (slots + padding > _maxCellSlots) return;
+        slots += padding;
+      }
       while (row.length <= columnIndex) {
         row.add(null);
       }
@@ -672,11 +690,13 @@ abstract final class XlsxReader {
       rows.putIfAbsent(address.row, () => <SheetCell?>[]);
     }
     final lastRow = rows.keys.fold(-1, (a, b) => a > b ? a : b);
+    // Rows without cells share one empty list.
+    const noCells = <SheetCell?>[];
     return Worksheet(
       name: name,
       visibility: visibility,
       rows: ConditionalFormatting.apply(
-        [for (var r = 0; r <= lastRow; r++) rows[r] ?? <SheetCell?>[]],
+        [for (var r = 0; r <= lastRow; r++) rows[r] ?? noCells],
         rules,
         date1904: date1904,
       ),
@@ -702,12 +722,19 @@ abstract final class XlsxReader {
     final parts = ref.split(':');
     final first = parts.first;
     final last = parts.length > 1 ? parts[1] : first;
-    if (!RegExp(r'^[A-Za-z]+\d+$').hasMatch(first) || !RegExp(r'^[A-Za-z]+\d+$').hasMatch(last)) return null;
+    if (!RegExp(r'^\$?[A-Za-z]{1,3}\$?\d{1,7}$').hasMatch(first) || !RegExp(r'^\$?[A-Za-z]{1,3}\$?\d{1,7}$').hasMatch(last)) {
+      return null;
+    }
+    final (firstRow, firstColumn) = (_rowOf(first), _columnOf(first.replaceAll(r'$', '')));
+    final (lastRow, lastColumn) = (_rowOf(last), _columnOf(last.replaceAll(r'$', '')));
+    // Row 0 (`A0`) and anything past Excel's grid don't exist.
+    if (firstRow < 0 || firstColumn < 0 || firstRow >= _maxRows || firstColumn >= _maxColumns) return null;
+    if (lastRow < firstRow || lastColumn < firstColumn) return null;
     return CellRange(
-      firstRow: _rowOf(first),
-      firstColumn: _columnOf(first),
-      lastRow: _rowOf(last),
-      lastColumn: _columnOf(last),
+      firstRow: firstRow,
+      firstColumn: firstColumn,
+      lastRow: lastRow < _maxRows ? lastRow : _maxRows - 1,
+      lastColumn: lastColumn < _maxColumns ? lastColumn : _maxColumns - 1,
     );
   }
 
@@ -755,6 +782,7 @@ abstract final class XlsxReader {
     String? formula,
     List<String> sharedStrings, {
     bool array = false,
+    bool date1904 = false,
   }) {
     CellValue? result;
     switch (type) {
@@ -771,10 +799,13 @@ abstract final class XlsxReader {
         result = raw == null ? null : ErrorValue(raw);
       case 'd':
         final date = DateTime.tryParse(raw ?? '');
-        result = date == null ? null : NumberValue(_dateToSerial(date));
+        result = date == null ? null : NumberValue(_dateToSerial(date) - (date1904 ? 1462 : 0));
       default:
-        final number = num.tryParse(raw?.trim() ?? '');
-        result = number == null ? null : NumberValue(number is double && number == number.truncateToDouble() && number.abs() < 1e15 ? number.toInt() : number);
+        // Plain decimals only: num.tryParse would also take NaN, Infinity
+        // and hex, which no spreadsheet writes as a number.
+        final text = raw?.trim() ?? '';
+        final number = _decimal.hasMatch(text) ? num.tryParse(text) : null;
+        result = number == null || !number.isFinite ? null : NumberValue(number is double && number == number.truncateToDouble() && number.abs() < 1e15 ? number.toInt() : number);
     }
     if (formula == null) return result;
     return FormulaValue(_unescapeOoxml(formula), cached: result, array: array);
@@ -785,6 +816,16 @@ abstract final class XlsxReader {
     final days = utc.difference(DateTime.utc(1899, 12, 30)).inMilliseconds / 86400000;
     return days < 61 ? days - 1 : days;
   }
+
+  /// Excel's grid: 1,048,576 rows by 16,384 columns (XFD).
+  static const _maxRows = 1048576;
+  static const _maxColumns = 16384;
+
+  /// Cell slots (cells plus the empty ones padding rows up to them) one
+  /// sheet may take.
+  static const _maxCellSlots = 10000000;
+
+  static final _decimal = RegExp(r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$');
 
   /// `B12` -> 1 (zero-based column).
   static int _columnOf(String ref) {

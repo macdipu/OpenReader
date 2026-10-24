@@ -14,6 +14,14 @@ String shiftFormula(String formula, int rows, int columns) {
   var i = 0;
   while (i < formula.length) {
     final char = formula[i];
+    // A structured reference (`Sales[Q1]`, `[@Q2]`, `Tbl[[#This Row],[A]]`)
+    // names table columns, not cells.
+    if (char == '[') {
+      final end = _bracketEnd(formula, i);
+      out.write(formula.substring(i, end));
+      i = end;
+      continue;
+    }
     if (char == '"' || char == "'") {
       final end = _quotedEnd(formula, i, char);
       out.write(formula.substring(i, end));
@@ -59,6 +67,24 @@ int _quotedEnd(String text, int start, String quote) {
       }
       return i + 1;
     }
+    i++;
+  }
+  return text.length;
+}
+
+/// The index just past the bracketed run starting at [start], nested
+/// brackets included; `'` escapes a bracket inside a column name.
+int _bracketEnd(String text, int start) {
+  var depth = 0;
+  var i = start;
+  while (i < text.length) {
+    final char = text[i];
+    if (char == "'") {
+      i += 2;
+      continue;
+    }
+    if (char == '[') depth++;
+    if (char == ']' && --depth == 0) return i + 1;
     i++;
   }
   return text.length;
