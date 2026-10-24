@@ -20,6 +20,17 @@ void main() {
     expect(doc.lines, ['café']);
   });
 
+  test('drops a UTF-8 byte order mark and decodes UTF-16 by its mark', () {
+    expect(decodeTextBytes(Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode('Name,Age')])), 'Name,Age');
+    final little = TextDocumentController()
+      ..load(Uint8List.fromList([0xFF, 0xFE, 0x68, 0, 0xE9, 0, 0x0A, 0, 0x34, 0x6C]));
+    expect(little.error, isNull);
+    expect(little.lines, ['hé', '水']);
+    final big = TextDocumentController()..load(Uint8List.fromList([0xFE, 0xFF, 0, 0x68, 0, 0x69]));
+    expect(big.error, isNull);
+    expect(big.lines, ['hi']);
+  });
+
   test('refuses binary content as corrupted', () {
     final doc = TextDocumentController()..load(Uint8List.fromList([0x50, 0x4B, 0x00, 0x01]));
     expect(doc.error, DocumentLoadError.corrupted);
