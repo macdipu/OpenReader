@@ -1,5 +1,5 @@
 name: open_reader_kit_example
-description: Shows open_reader_kit's DocumentViewer and a per-format reader.
+description: A test app for open_reader_kit - bundled sample documents in every format, opened with DocumentViewer and the per-format readers.
 publish_to: none
 version: 1.0.0
 
@@ -12,6 +12,18 @@ dependencies:
     sdk: flutter
   open_reader_kit:
     path: ../
+  # The example's own needs, not the kit's: a picker for your own files and
+  # app storage for the samples and saved positions.
+  file_selector: ^1.1.0
+  path_provider: ^2.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/samples/
