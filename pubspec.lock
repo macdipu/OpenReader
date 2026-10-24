@@ -1204,9 +1204,11 @@ packages:
   universal_document_viewer:
     dependency: "direct main"
     description:
-      path: "../universal_document_viewer"
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: c29c7e903d19ef94d497040a34f3ae4f21c325c4
+      url: "https://github.com/macdipu/universal_document_viewer.git"
+    source: git
     version: "0.1.0"
   universal_io:
     dependency: transitive
