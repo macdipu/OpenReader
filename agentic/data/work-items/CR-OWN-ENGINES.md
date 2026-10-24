@@ -197,6 +197,26 @@ Change request. CR_TASKS level (engine by engine), NO_REPLAN. There is no sprint
   - On the emulator, `features.pdf` renders with "Page 1 of 4", and searching "needle" gives "1 of 2 result(s)" with a highlight.
 - **The old pdfrx engine is still in the tree,** unused by the app. It's removed in the next session (see the plan below).
 
+## E3b part 2: device checks and fixes (2026-10-24, commit 58d2796)
+Emulator results:
+- **Search** across pages, including the rotated page 3: "2 of 2", with the highlight exactly on the word.
+- **Zoom:** at 2.5x (double-tap) and 6x the text stays sharp, because the tiles render; a stretched base image would blur.
+- **Thumbnail strip:** all pages render, including the rotated one; the current page is outlined, and a tap jumps.
+- **Horizontal layout:** the toggle works, and reopening restores both the layout and the page.
+- **Links:** "Go to the end" jumps to page 3, and the web link opens Chrome.
+- **Password:** a wrong password shows "Incorrect password."; the right one opens the file.
+- **Night mode** inverts the page. In fullscreen, a tap brings the controls back.
+- **Home thumbnails:** the fix was to add a render version to the cache key. Before it, the old engine's cropped PNGs (top-left corner only) were still being reused from disk.
+- **600-page PDF:** fast flinging keeps pages rendered; search found a line on page 550 and jumped there.
+Fixes:
+- **Faster open:** `FPDF_GetPageSizeByIndexF` reads sizes with `/Rotate` applied and without loading any page; each page's geometry is read lazily. Opening 600 pages on the host went from about 1.2 s to about 350 ms. On the host, searching all 600 pages takes about 0.7 s, and rendering a page about 9 ms.
+- **Horizontal snapping** at page width: a flick moves one page, and a slow drag settles on the nearest.
+
+## Parallel agents (user: "deploy multi agent for faster work", 2026-10-24)
+- **Agent A:** remove the old PDF engine, `darwin/`, the wasm assets and `link.dart`; enable iOS in the hook; NOTICE with PDFium and its bundled third-party licences; prune dependencies (this covers E4 dependency pruning); macOS and iOS builds.
+- **Agent B:** thumbnails for every type: a kit `lib/src/thumbnails/` API and the app's `DocumentThumbnailService`.
+- Each works in its own worktree; the results are merged after review.
+
 ## NEXT SESSION PLAN (saved 2026-10-24, at the user's request)
 Run: `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF` (IMPLEMENTATION). Do these in order:
 
