@@ -1,23 +1,41 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' as ui;
 
-import 'package:open_reader_kit/pdf.dart';
+import 'package:flutter/foundation.dart';
+import 'package:open_reader_kit/open_reader_kit.dart';
 
 import '../../core/domain/models/document_model.dart';
 import 'path_service.dart';
 
-/// Renders and disk-caches a small first-page preview for PDF documents
-/// (DocumentListTile thumbnail + format-badge overlay). Never throws -
-/// callers fall back to the plain badge when this returns null.
-class PdfThumbnailService {
-  PdfThumbnailService._({PathService? pathService}) : _pathService = pathService ?? PathService.instance;
+/// Draws [path]'s first page as PNG bytes [width] pixels wide; null when it
+/// can't.
+typedef ThumbnailRender = Future<Uint8List?> Function(String path, {required int width});
 
-  static final PdfThumbnailService instance = PdfThumbnailService._();
+/// Renders and disk-caches a small first-page preview for every format
+/// the kit reads - PDF, Word, Excel, CSV, PowerPoint and text - via
+/// open_reader_kit's [DocumentThumbnails] (DocumentListTile thumbnail +
+/// format-badge overlay). Never throws - callers fall back to the plain
+/// badge when this returns null.
+class DocumentThumbnailService {
+  DocumentThumbnailService._({PathService? pathService, ThumbnailRender? render})
+      : _pathService = pathService ?? PathService.instance,
+        _render = render ?? DocumentThumbnails.render;
+
+  /// For tests: a fake temp directory and/or renderer.
+  @visibleForTesting
+  DocumentThumbnailService.withDependencies({PathService? pathService, ThumbnailRender? render})
+      : this._(pathService: pathService, render: render);
+
+  static final DocumentThumbnailService instance = DocumentThumbnailService._();
 
   final PathService _pathService;
+  final ThumbnailRender _render;
 
   static const _thumbnailWidth = 160;
+
+  /// Part of the cache key: bump it when thumbnails start to look
+  /// different, so previews cached by an older build are redrawn.
+  static const _renderVersion = 2;
 
   /// In-memory dedupe so scrolling the same row repeatedly doesn't queue a
   /// second render while the first is still in flight; the on-disk file is
@@ -34,41 +52,23 @@ class PdfThumbnailService {
       final tempDir = tempResult.fold((_) => null, (dir) => dir);
       if (tempDir == null) return null;
 
-      final thumbnailDir = Directory('${tempDir.path}/pdf_thumbnails');
+      final thumbnailDir = Directory('${tempDir.path}/document_thumbnails');
       if (!await thumbnailDir.exists()) {
         await thumbnailDir.create(recursive: true);
       }
 
       // Keyed by path + modified time, so an edited/replaced file on disk
       // (same path, new content) doesn't serve a stale cached preview.
-      final cacheKey = '${document.id}_${document.modifiedAt.millisecondsSinceEpoch}'.hashCode;
+      final cacheKey = '${document.id}_${document.modifiedAt.millisecondsSinceEpoch}_v$_renderVersion'.hashCode;
       final cacheFile = File('${thumbnailDir.path}/$cacheKey.png');
       if (await cacheFile.exists()) return cacheFile;
 
-      return await _render(document, cacheFile);
+      final png = await _render(document.path, width: _thumbnailWidth);
+      if (png == null) return null;
+      await cacheFile.writeAsBytes(png);
+      return cacheFile;
     } catch (_) {
       return null;
-    }
-  }
-
-  /// The whole first page scaled down to [_thumbnailWidth] (the old
-  /// engine's call rendered at 72 dpi and kept only the top-left corner).
-  Future<File?> _render(DocumentModel document, File cacheFile) async {
-    final doc = await PdfiumDocument.openFile(document.path);
-    try {
-      if (doc.pageCount == 0 || doc.pageSizes.first.width <= 0) return null;
-      final rendered = await doc.renderThumbnail(0, width: _thumbnailWidth);
-      final image = await rendered.toImage();
-      try {
-        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-        if (byteData == null) return null;
-        await cacheFile.writeAsBytes(byteData.buffer.asUint8List());
-        return cacheFile;
-      } finally {
-        image.dispose();
-      }
-    } finally {
-      await doc.close();
     }
   }
 }
