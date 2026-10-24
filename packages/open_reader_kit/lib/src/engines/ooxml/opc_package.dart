@@ -40,9 +40,17 @@ class OpcRelationship {
 /// Part 2).
 ///
 /// Parts are looked up case-insensitively, as OPC requires. Each part is
-/// inflated only when read.
+/// inflated only when read, and never past the size the ZIP declares for it
+/// or [maxPartBytes]: `ZipSafetyGuard` vets only the declared sizes, so a
+/// part forged to declare 10 bytes must not be let inflate to hundreds of
+/// MB. `archive` 4.5 bounds this itself; the kit doesn't rely on it.
 class OpcPackage {
   OpcPackage._(this._parts);
+
+  /// Largest part read, whatever its declared size. Well past any real
+  /// slide, sheet or picture, and a first-pass, adjustable ceiling like
+  /// `ZipSafetyGuard`'s.
+  static const int maxPartBytes = 256 * 1024 * 1024;
 
   final Map<String, ArchiveFile> _parts;
 
@@ -64,14 +72,27 @@ class OpcPackage {
 
   bool contains(String partName) => _parts.containsKey(_key(partName));
 
+  /// The part's inflated bytes; null when it doesn't exist. Throws
+  /// [OpcFormatException] for a part that is damaged, or larger than its
+  /// declared size or [maxPartBytes].
   Uint8List? readBytes(String partName) {
-    final content = _parts[_key(partName)]?.readBytes();
-    return content == null ? null : Uint8List.fromList(content);
+    final file = _parts[_key(partName)];
+    if (file == null) return null;
+    if (file.size > maxPartBytes) throw OpcFormatException('$partName is too large');
+    // Inflated into a fresh buffer rather than through `ArchiveFile.readBytes`,
+    // which would also keep a copy cached on the archive for its lifetime.
+    final output = _BoundedOutput(file.size);
+    try {
+      file.decompress(output);
+    } catch (_) {
+      throw OpcFormatException('$partName is damaged or larger than it declares');
+    }
+    return output.getBytes();
   }
 
   /// The part as UTF-8 text (invalid bytes replaced, not fatal).
   String? readText(String partName) {
-    final content = _parts[_key(partName)]?.readBytes();
+    final content = readBytes(partName);
     return content == null ? null : utf8.decode(content, allowMalformed: true);
   }
 
@@ -119,4 +140,40 @@ class OpcPackage {
   /// The package's main part (`word/document.xml`, `xl/workbook.xml`,
   /// `ppt/presentation.xml`...), or null when the package names none.
   String? get mainPart => relationshipOfType('', 'officeDocument')?.target;
+}
+
+/// An in-memory output that refuses to grow past [_limit] bytes: each write
+/// is checked before the buffer is grown for it.
+class _BoundedOutput extends OutputMemoryStream {
+  _BoundedOutput(this._limit) : super(size: _limit.clamp(1, OutputMemoryStream.defaultBufferSize));
+
+  final int _limit;
+
+  void _reserve(int count) {
+    if (length + count > _limit) throw const OpcFormatException('Part inflates past its declared size');
+  }
+
+  @override
+  void writeByte(int value) {
+    _reserve(1);
+    super.writeByte(value);
+  }
+
+  @override
+  void writeBytes(List<int> bytes, {int? length}) {
+    _reserve(length ?? bytes.length);
+    super.writeBytes(bytes, length: length);
+  }
+
+  @override
+  void writeStream(InputStream stream) {
+    _reserve(stream.length);
+    super.writeStream(stream);
+  }
+
+  @override
+  void writeBackReference(int distance, int count) {
+    _reserve(count);
+    super.writeBackReference(distance, count);
+  }
 }

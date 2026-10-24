@@ -83,7 +83,7 @@ DocumentViewer.file(
 )
 ```
 
-`DocumentViewer` picks the reader by file type: PDF, Word, Excel (with sheet tabs), CSV, PowerPoint (with slide navigation) or text. It shows a short English message when a file can't be opened, unless you pass `errorBuilder`.
+`DocumentViewer` picks the reader by file type: PDF, Word, Excel (with sheet tabs), CSV, PowerPoint (with slide navigation) or text. It shows a short English message when a file can't be opened, unless you pass `errorBuilder`. Pass `passwordProvider` to ask for the password of an encrypted PDF; without one it shows `passwordRequired`.
 
 See [`example/`](example/) for a runnable app.
 
@@ -188,7 +188,7 @@ A position is a `ReadingPosition`, a plain `Map<String, Object?>` of JSON-safe v
 |---|---|
 | PDF | `pageNumber`, `pageCount`, `viewMode` |
 | Word | `scrollOffset`, `viewMode`, `paragraph` (the paragraph at the top) |
-| Spreadsheets | `sheetIndex`, `verticalOffset`, `horizontalOffset`, `row`, `column` |
+| Spreadsheets | `sheetIndex`, `verticalOffset`, `horizontalOffset`, `row`, `column`, `freezeTopRow` (the reader froze the header row) |
 | PowerPoint | `slideIndex`, `slideCount` |
 | Text | `scrollOffset`, `line` (the line at the top) |
 
@@ -202,7 +202,9 @@ The Word, spreadsheet, PowerPoint and text controllers expose `error` as a `Docu
 - `passwordRequired`: an encrypted PDF without (or with a wrong) password.
 - `unsupported`: not a format the kit reads.
 
-The wording is yours. `PdfDocumentController.error` holds the PDF engine's exception (`PdfOpenException` or `PdfEngineException`), and `DocumentViewer` maps every failure to a `DocumentLoadError` for its `errorBuilder`.
+The wording is yours. `PdfDocumentController.error` holds the PDF engine's exception (`PdfOpenException` or `PdfEngineException`), and `DocumentViewer` maps every failure to a `DocumentLoadError` for its `errorBuilder`: an encrypted PDF it couldn't unlock is `passwordRequired`, any other PDF failure `corrupted`.
+
+Office files are checked before they're parsed: a file over `ZipSafetyGuard.maxFileBytes` is not read at all, and `ZipSafetyGuard` refuses a ZIP whose declared contents are too large. A part that inflates past the size its ZIP declares is refused as it's read.
 
 ## Thumbnails
 

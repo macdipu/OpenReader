@@ -9,6 +9,11 @@ import 'package:archive/archive.dart';
 /// reading `archive` 4.3.0's source, not assumed from its README - so
 /// [check] never decompresses entry content and stays cheap even for a
 /// maliciously crafted archive.
+///
+/// It vets the sizes the archive *declares*. That an entry can't inflate
+/// past its declared size is enforced where it's read: by `archive` itself
+/// since 4.5.0 (hence the `^4.5.0` constraint) and, independently, by the
+/// kit's `OpcPackage`.
 enum ZipSafetyResult {
   /// Safe to decompress and parse.
   safe,
@@ -31,7 +36,13 @@ class ZipSafetyGuard {
   static const int maxEntryCount = 10000;
   static const int maxUncompressedBytes = 500 * 1024 * 1024;
 
+  /// Largest Office file read at all. Readers check the file's length
+  /// against it before reading it into memory - the guard can only look at
+  /// bytes already read.
+  static const int maxFileBytes = 200 * 1024 * 1024;
+
   static ZipSafetyResult check(Uint8List bytes) {
+    if (bytes.length > maxFileBytes) return ZipSafetyResult.tooLarge;
     final decoder = ZipDecoder();
     final Archive archive;
     try {

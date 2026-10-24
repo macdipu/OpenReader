@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
@@ -23,31 +22,17 @@ class SlideThumbnailRenderer implements ThumbnailRenderer {
   @override
   Future<ui.Image?> render(String path, {required int width, ReadingPosition? position}) async {
     final wanted = positionIndex(position, PositionKeys.slideIndex) ?? 0;
-    final result = await parseOfficeFile(path, (bytes) => _oneSlide(bytes, wanted));
+    // Only the wanted slide's XML and pictures are read, in the isolate, and
+    // only it crosses back.
+    final result = await parseOfficeFile(path, (bytes) => PptxParser.parseSlide(bytes, wanted));
     if (result == null) return null;
-    final (deck, index) = result;
+    final (:deck, :index) = result;
     if (deck.slides.isEmpty) return null;
     final aspect = (deck.slideHeight / deck.slideWidth).clamp(0.25, 4.0);
     return renderOffscreen(
       SlideCard(slide: deck.slides.first, number: index + 1),
       size: Size(_slideWidth, _slideWidth * aspect),
       width: width,
-    );
-  }
-
-  /// Just slide [wanted] (slide 1 when there's no such slide), its index
-  /// and the slide size come back from the parsing isolate, not every
-  /// slide's pictures.
-  static (PptxPresentation, int) _oneSlide(Uint8List bytes, int wanted) {
-    final deck = PptxParser.parse(bytes);
-    final index = wanted < deck.slides.length ? wanted : 0;
-    return (
-      PptxPresentation(
-        deck.slides.skip(index).take(1).toList(),
-        slideWidth: deck.slideWidth,
-        slideHeight: deck.slideHeight,
-      ),
-      index,
     );
   }
 }

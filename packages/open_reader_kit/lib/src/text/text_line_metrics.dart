@@ -32,6 +32,11 @@ class TextLineMetrics {
   /// `_offsets[i]` is the top of row `i`; grows as rows are measured.
   final List<double> _offsets = [0];
 
+  /// Most rows [lineAt] measures per call. It runs on every scroll event, and
+  /// a fling (or a restored offset) far into a long file would otherwise lay
+  /// out every line up to it in one frame - seconds for 200k lines.
+  static const int _measuredPerLookup = 200;
+
   late final double _singleRowHeight = _measure('', double.infinity) + verticalPadding;
 
   /// Whether this was measured for the same rows and layout inputs, i.e. its
@@ -60,13 +65,23 @@ class TextLineMetrics {
   }
 
   /// The line whose row is at [offset]: the last line starting at or
-  /// above it.
+  /// above it. Exact over the rows measured so far; further down, after
+  /// measuring a bounded number more, an estimate from their average height
+  /// - which later calls refine as they measure on.
   int lineAt(double offset) {
     if (lines.isEmpty || offset <= 0) return 0;
     if (!wrap) return (offset / _singleRowHeight).floor().clamp(0, lines.length - 1);
-    // Measure on until a row starts below the offset (or the lines run out).
-    while (_offsets.length <= lines.length && _offsets.last <= offset) {
+    // Measure on until a row starts below the offset (or the lines run out),
+    // within this call's budget.
+    var budget = _measuredPerLookup;
+    while (_offsets.length <= lines.length && _offsets.last <= offset && budget-- > 0) {
       offsetOf(_offsets.length);
+    }
+    if (_offsets.length <= lines.length && _offsets.last <= offset) {
+      final measured = _offsets.length - 1;
+      final averageRow = _offsets.last / measured;
+      if (averageRow <= 0) return measured.clamp(0, lines.length - 1);
+      return (measured + ((offset - _offsets.last) / averageRow).floor()).clamp(0, lines.length - 1);
     }
     var low = 0;
     var high = _offsets.length - 1;
