@@ -47,6 +47,18 @@ class _Field {
   String instruction = '';
   bool showingResult = false;
   WordLink? link;
+
+  /// For a PAGE/NUMPAGES field: which, and the saved result collected
+  /// instead of shown.
+  PageFieldKind? pageKind;
+  final saved = StringBuffer();
+  RunFormat format = RunFormat.plain;
+}
+
+/// `PAGE` / `NUMPAGES` (with any switches) -> their kind.
+PageFieldKind? _pageFieldKind(String instruction) {
+  final name = instruction.trim().split(RegExp(r'\s+')).first.toUpperCase();
+  return switch (name) { 'PAGE' => PageFieldKind.page, 'NUMPAGES' => PageFieldKind.pageCount, _ => null };
 }
 
 /// What the block parser needs about the part it's reading.
@@ -231,7 +243,19 @@ class _DocxParser {
           _inlines(child, part, paragraphRun, out, carried,
               link: target == null && anchor == null ? link : WordLink(url: target, anchor: anchor));
         case 'fldSimple':
-          _inlines(child, part, paragraphRun, out, carried, link: _hyperlinkField(wAttr(child, 'instr')) ?? link);
+          final instruction = wAttr(child, 'instr') ?? '';
+          if (_pageFieldKind(instruction) case final kind?) {
+            final saved = <WordInline>[];
+            _inlines(child, part, paragraphRun, saved, carried, link: link);
+            final texts = saved.whereType<WordText>();
+            out.add(WordPageField(
+              kind,
+              fallback: texts.map((t) => t.text).join(),
+              format: texts.firstOrNull?.format ?? paragraphRun.build(),
+            ));
+          } else {
+            _inlines(child, part, paragraphRun, out, carried, link: _hyperlinkField(instruction) ?? link);
+          }
         case 'ins' || 'smartTag' || 'customXml' || 'dir' || 'bdo' || 'moveTo':
           _inlines(child, part, paragraphRun, out, carried, link: link);
         case 'sdt':
@@ -275,7 +299,14 @@ class _DocxParser {
     }
 
     void text(String value) {
-      if (value.isNotEmpty && visible()) out.add(WordText(value, format: format, link: currentLink()));
+      if (value.isEmpty || !visible()) return;
+      // A page-number field's result is kept aside; the field itself is
+      // added when it ends.
+      if (_fields.lastOrNull case final field? when field.pageKind != null) {
+        field.saved.write(value);
+        return;
+      }
+      out.add(WordText(value, format: format, link: currentLink()));
     }
 
     void handle(XmlElement child) {
@@ -307,11 +338,18 @@ class _DocxParser {
             case 'separate':
               if (_fields.isNotEmpty) {
                 final field = _fields.last
-                  ..showingResult = true;
+                  ..showingResult = true
+                  ..format = format;
                 field.link = _hyperlinkField(field.instruction);
+                field.pageKind = _pageFieldKind(field.instruction);
               }
             case 'end':
-              if (_fields.isNotEmpty) _fields.removeLast();
+              if (_fields.isNotEmpty) {
+                final field = _fields.removeLast();
+                if (field.pageKind case final kind? when visible()) {
+                  out.add(WordPageField(kind, fallback: field.saved.toString(), format: field.format));
+                }
+              }
           }
         case 'instrText':
           if (_fields.isNotEmpty && !_fields.last.showingResult) _fields.last.instruction += child.innerText;

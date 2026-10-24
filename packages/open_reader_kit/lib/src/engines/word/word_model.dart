@@ -253,6 +253,21 @@ class WordNoteReference extends WordInline {
   String get plainText => label;
 }
 
+enum PageFieldKind { page, pageCount }
+
+/// A `PAGE` or `NUMPAGES` field: the page number (or count) where it's
+/// shown. [fallback] is the result Word saved, for views without pages.
+class WordPageField extends WordInline {
+  const WordPageField(this.kind, {this.fallback = '', this.format = RunFormat.plain});
+
+  final PageFieldKind kind;
+  final String fallback;
+  final RunFormat format;
+
+  @override
+  String get plainText => fallback;
+}
+
 /// A named place a link can jump to (`w:bookmarkStart`).
 class WordBookmark extends WordInline {
   const WordBookmark(this.name);
@@ -334,6 +349,27 @@ class ParagraphFormat {
   final bool pageBreakBefore;
   final bool keepWithNext;
   final bool rightToLeft;
+
+  /// The same formatting with different spacing (for the two pieces of a
+  /// paragraph split across pages).
+  ParagraphFormat withSpacing({double? before, double? after}) => ParagraphFormat(
+        alignment: alignment,
+        indentLeft: indentLeft,
+        indentRight: indentRight,
+        firstLineIndent: firstLineIndent,
+        spaceBefore: before ?? spaceBefore,
+        spaceAfter: after ?? spaceAfter,
+        lineSpacing: lineSpacing,
+        lineSpacingRule: lineSpacingRule,
+        fill: fill,
+        borderTop: borderTop,
+        borderBottom: borderBottom,
+        borderLeft: borderLeft,
+        borderRight: borderRight,
+        pageBreakBefore: pageBreakBefore,
+        keepWithNext: keepWithNext,
+        rightToLeft: rightToLeft,
+      );
 }
 
 enum UnderlineStyle { none, single, double, dotted, dashed, wavy }

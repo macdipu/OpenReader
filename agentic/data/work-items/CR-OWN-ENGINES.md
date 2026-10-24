@@ -125,6 +125,27 @@ Change request. CR_TASKS level (engine by engine), NO_REPLAN. There is no sprint
   - **Emulator:**
     - `features.docx` shows the header, styles, the link, lists, the merged table, the image and the page-break divider.
     - `qa-word.docx` reopens at its saved position, and search jumps to an unbuilt paragraph and highlights it.
-- **Remaining for E2:** E2c, the paged print layout from DECISIONS.md Q2: pages measured with `TextPainter`, real page breaks, and headers and footers on each page.
 - **Engine code left in the kit:** about 39.8k lines, down from about 120k. Only the PDF engine (E3) is still upstream code.
+
+## E2c Word print layout: done (2026-10-24)
+- **`WordParagraphStyler` + `ParagraphGeometry`** (`word_paragraph_styler.dart`): one builder of a paragraph's spans, inline-widget sizes, offset map and geometry. Both the paragraph widget and the page measurer use it, so what is measured is what is drawn.
+  - The root text style is explicit (`inherit: false`). Before, the app's Material letter spacing and font leaked into the widget but not into `TextPainter`, so a split piece measured 4 lines and drew 5.
+- **`WordMeasurer` + `WordPaginator`** (`word_pagination.dart`):
+  - Pages per section use that section's page size and margins.
+  - Explicit page breaks (an empty piece keeps the paragraph mark on the next page, as in Word), `pageBreakBefore` and section breaks all start new pages.
+  - Paragraphs split between lines (`TextPainter` line metrics mapped back to text offsets). Tables split between rows and repeat header rows.
+  - Never clips: a block that can't split goes on a page of its own, and the page grows.
+  - Notes go on pages after the body.
+- **Live page numbers:** `PAGE` and `NUMPAGES` fields are now `WordPageField`s. The paged view shows real numbers; the continuous view shows Word's saved result.
+- **Paged view:** pages on white paper (dark text, whatever the app theme), drawn at real size and scaled to fit the width. Each page shows its section's header and footer (the first-page ones when `titlePg` is set) in the margins.
+  - Search jumps work through `pageOfParagraph`.
+  - Switching layout keeps the top paragraph in view; a header falls back to the next body paragraph.
+- **Saved position:** `view_mode` is saved alongside `scroll_offset`, and `WordDocumentController.restore` reapplies both.
+- **App:** the menu toggles "Print layout" / "Continuous layout", and the app saves the kit's whole position map.
+- **Thin borders:** under 1 px they're drawn as hairlines (one device pixel at any scale). Before, 0.3 px lines on scaled-down pages vanished at random. Each cell draws top and left, plus bottom and right on the table's outer edge.
+- **Checks:**
+  - **Tests:** the kit has 100, adding pagination: no text lost or repeated across splits, breaks and sections, header-row repeat, footer page numbers, and rendered page bodies no taller than measured. The app has 209, adding a test that restores print layout with its offset and toggles it from the menu. All pass.
+  - **Emulator:**
+    - `features.docx`: print layout shows pages with headers and footers, the page break, the landscape section and full table borders, and it reopens in print layout.
+    - `qa-word.docx`: switching from continuous at paragraph 7 lands on paragraph 6 in print layout, and pages fill to the bottom margin.
 

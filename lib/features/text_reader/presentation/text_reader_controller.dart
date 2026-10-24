@@ -141,7 +141,7 @@ class TextReaderController extends BaseController {
 
   /// Takes the offset explicitly (rather than reading `scrollController`
   /// itself) so the debounce logic is testable without a real attached
-  /// `Scrollable`, the same shape `WordReaderController.onScrollOffsetChanged`
+  /// `Scrollable`, the same shape the Word reader's scroll reporting
   /// and the Excel/CSV readers' `onScrolled` use.
   void onScrolled(double offset) {
     _lastScrollOffset = offset;

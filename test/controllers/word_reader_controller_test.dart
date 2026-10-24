@@ -137,29 +137,38 @@ void main() {
   });
 
   group('reading position persistence', () {
-    test('onScrollOffsetChanged saves after a 2 second debounce', () {
+    test('a scroll saves after a 2 second debounce', () {
       fakeAsync((async) {
-        controller.onScrollOffsetChanged(120);
+        controller.word.onScrollOffsetChanged(120);
         expect(recents.markOpenedCalls, 0);
         async.elapse(const Duration(seconds: 1));
         expect(recents.markOpenedCalls, 0);
         async.elapse(const Duration(seconds: 1, milliseconds: 1));
         expect(recents.markOpenedCalls, 1);
-        expect(recents.lastReadingPosition, {'scroll_offset': 120.0});
+        expect(recents.lastReadingPosition, {'scroll_offset': 120.0, 'view_mode': 'continuous'});
       });
     });
 
     test('a later scroll resets the debounce; only the latest offset is saved', () {
       fakeAsync((async) {
-        controller.onScrollOffsetChanged(50);
+        controller.word.onScrollOffsetChanged(50);
         async.elapse(const Duration(seconds: 1));
-        controller.onScrollOffsetChanged(90);
+        controller.word.onScrollOffsetChanged(90);
         async.elapse(const Duration(seconds: 1, milliseconds: 1));
         expect(recents.markOpenedCalls, 0);
         async.elapse(const Duration(seconds: 1));
         expect(recents.markOpenedCalls, 1);
-        expect(recents.lastReadingPosition, {'scroll_offset': 90.0});
+        expect(recents.lastReadingPosition, {'scroll_offset': 90.0, 'view_mode': 'continuous'});
       });
+    });
+
+    test('restores print layout with its offset, and the menu toggles layout', () async {
+      recents.position = {'scroll_offset': 300.0, 'view_mode': 'paged'};
+      await loaded(controller);
+      expect(controller.isPaged.value, isTrue);
+      expect(controller.initialScrollOffset, 300.0);
+      controller.toggleLayout();
+      expect(controller.isPaged.value, isFalse);
     });
 
     test('onClose is a no-op when the document was never scrolled', () {
@@ -168,11 +177,11 @@ void main() {
     });
 
     test('onClose persists the last known scroll offset', () async {
-      controller.onScrollOffsetChanged(75);
+      controller.word.onScrollOffsetChanged(75);
       controller.onClose();
       await Future<void>.delayed(Duration.zero);
       expect(recents.markOpenedCalls, 1);
-      expect(recents.lastReadingPosition, {'scroll_offset': 75.0});
+      expect(recents.lastReadingPosition, {'scroll_offset': 75.0, 'view_mode': 'continuous'});
     });
   });
 

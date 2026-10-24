@@ -35,7 +35,7 @@ For your own app bar, search UI or saving, use the controller and view for each 
 | Import | Controller | View |
 |---|---|---|
 | `package:open_reader_kit/pdf.dart` | `PdfDocumentController` (pages, layout, zoom, search, text-layer check) | `PdfDocumentView` |
-| `package:open_reader_kit/docx.dart` | `WordDocumentController` (parsed off the UI isolate; search, scroll restore) | `WordDocumentView` (lazy continuous view: styles, lists, tables with merges, images, links, headers/footers, footnotes/endnotes) |
+| `package:open_reader_kit/docx.dart` | `WordDocumentController` (parsed off the UI isolate; continuous or print layout; search, position restore) | `WordDocumentView` (lazy continuous view, or print layout with measured pages, per-page headers/footers and live page numbers; styles, lists, tables with merges, images, links, footnotes/endnotes) |
 | `package:open_reader_kit/sheets.dart` | `SpreadsheetController` (.xlsx and CSV: sheets, hidden sheets, search, zoom, links) | `SheetGrid` (lazy 2D grid: file's column widths/row heights, hidden rows/columns, frozen panes, merged cells, text formatting; row/column selection with Count/Sum/Avg) |
 | `package:open_reader_kit/slides.dart` | `SlideDeckController` (.pptx: slides, search) | `SlideDeckView`, `SlideNavigationBar` |
 | `package:open_reader_kit/text.dart` | `TextDocumentController` (encoding, binary check, search) | `TextDocumentView` |

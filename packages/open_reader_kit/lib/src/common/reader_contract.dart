@@ -22,7 +22,7 @@ abstract final class PositionKeys {
   static const pageNumber = 'page_number';
   static const pageCount = 'page_count';
   static const zoom = 'zoom';
-  static const viewMode = 'view_mode';
+  static const viewMode = 'view_mode'; // also Word: continuous/paged
   // Word, Text
   static const scrollOffset = 'scroll_offset';
   // Excel, CSV

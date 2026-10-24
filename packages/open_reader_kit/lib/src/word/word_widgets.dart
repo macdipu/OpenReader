@@ -6,11 +6,12 @@ import 'package:flutter/rendering.dart';
 
 import '../engines/word/word_model.dart';
 import 'word_document_layout.dart';
+import 'word_paragraph_styler.dart';
 import 'word_search_controller.dart';
 
 /// What every block widget of a Word document needs, provided once above
-/// them: the layout (paragraph numbers), search highlights, images, and
-/// what tapping a link or a note mark does.
+/// them: the layout (paragraph numbers), search highlights, and what tapping
+/// a link or a note mark does.
 class WordScope extends InheritedWidget {
   const WordScope({
     super.key,
@@ -22,8 +23,8 @@ class WordScope extends InheritedWidget {
     required super.child,
   });
 
-  /// Points -> logical pixels (1 pt = 1/72 in, 1 px = 1/96 in).
-  static const double scale = 96 / 72;
+  /// Points -> logical pixels.
+  static const double scale = wordScale;
 
   final WordDocumentLayout layout;
   final WordSearchController search;
@@ -37,8 +38,32 @@ class WordScope extends InheritedWidget {
   static WordScope of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<WordScope>()!;
 
   @override
-  bool updateShouldNotify(WordScope oldWidget) =>
-      layout != oldWidget.layout || search != oldWidget.search;
+  bool updateShouldNotify(WordScope oldWidget) => layout != oldWidget.layout || search != oldWidget.search;
+}
+
+/// Set around a page in the paged view: the page's number (for `PAGE`
+/// fields) and the page count (for `NUMPAGES`).
+class WordPageInfo extends InheritedWidget {
+  const WordPageInfo({super.key, required this.number, required this.count, required super.child});
+
+  final int number;
+  final int count;
+
+  static WordPageInfo? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<WordPageInfo>();
+
+  @override
+  bool updateShouldNotify(WordPageInfo oldWidget) => number != oldWidget.number || count != oldWidget.count;
+}
+
+/// The styler for the current theme, document and page.
+WordParagraphStyler stylerOf(BuildContext context) {
+  final page = WordPageInfo.maybeOf(context);
+  return WordParagraphStyler(
+    scheme: Theme.of(context).colorScheme,
+    linkColor: WordScope.of(context).layout.document.linkColor,
+    pageNumber: page?.number,
+    pageCount: page?.count,
+  );
 }
 
 /// One block: a paragraph, a table, or a section break.
@@ -51,23 +76,28 @@ class WordBlockView extends StatelessWidget {
   Widget build(BuildContext context) => switch (block) {
         final WordParagraph paragraph => WordParagraphView(paragraph),
         final WordTable table => WordTableView(table),
-        WordSectionBreak() => const Divider(height: 24),
+        WordSectionBreak() => WordPageInfo.maybeOf(context) == null ? const Divider(height: 24) : const SizedBox.shrink(),
       };
 }
 
 // --- Paragraphs ----------------------------------------------------------------
 
 class WordParagraphView extends StatefulWidget {
-  const WordParagraphView(this.paragraph, {super.key});
+  /// [number] and [textOffset] are for a piece of a paragraph split across
+  /// pages: the whole paragraph's number, and where this piece starts in
+  /// its text.
+  const WordParagraphView(this.paragraph, {super.key, this.number, this.textOffset = 0});
 
   final WordParagraph paragraph;
+  final int? number;
+  final int textOffset;
 
   @override
   State<WordParagraphView> createState() => _WordParagraphViewState();
 }
 
 class _WordParagraphViewState extends State<WordParagraphView> {
-  /// Owned here and disposed: one per link or note mark in the paragraph.
+  /// Owned here and disposed: one per link in the paragraph.
   final _recognizers = <TapGestureRecognizer>[];
   int? _number;
   WordScope? _scope;
@@ -81,26 +111,35 @@ class _WordParagraphViewState extends State<WordParagraphView> {
   @override
   void didUpdateWidget(WordParagraphView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.paragraph != widget.paragraph) _register();
+    if (oldWidget.paragraph != widget.paragraph || oldWidget.number != widget.number) _register();
   }
 
   void _register() {
     _unregister();
     _scope = WordScope.of(context);
-    _number = _scope!.layout.numberOf(widget.paragraph);
-    if (_number != null) _scope!.anchors[_number!] = context;
+    _number = widget.number ?? _scope!.layout.numberOf(widget.paragraph);
+    // A later piece of a split paragraph doesn't replace the first as the
+    // jump target.
+    if (_number != null && (widget.textOffset == 0 || !_scope!.anchors.containsKey(_number))) {
+      _scope!.anchors[_number!] = context;
+    }
   }
 
   void _unregister() {
     if (_number != null && identical(_scope?.anchors[_number!], context)) _scope!.anchors.remove(_number);
   }
 
-  @override
-  void dispose() {
-    _unregister();
+  void _disposeRecognizers() {
     for (final recognizer in _recognizers) {
       recognizer.dispose();
     }
+    _recognizers.clear();
+  }
+
+  @override
+  void dispose() {
+    _unregister();
+    _disposeRecognizers();
     super.dispose();
   }
 
@@ -113,80 +152,63 @@ class _WordParagraphViewState extends State<WordParagraphView> {
   @override
   Widget build(BuildContext context) {
     final scope = WordScope.of(context);
+    final styler = stylerOf(context);
+    final paged = WordPageInfo.maybeOf(context) != null;
     return ListenableBuilder(
       listenable: scope.search,
       builder: (context, _) {
-        for (final recognizer in _recognizers) {
-          recognizer.dispose();
-        }
-        _recognizers.clear();
-        return _buildParagraph(context, scope);
+        _disposeRecognizers();
+        return LayoutBuilder(builder: (context, constraints) {
+          final width = constraints.maxWidth.isFinite ? constraints.maxWidth : 600.0;
+          return _buildParagraph(context, scope, styler, ParagraphGeometry(widget.paragraph, width), paged);
+        });
       },
     );
   }
 
-  Widget _buildParagraph(BuildContext context, WordScope scope) {
+  Widget _buildParagraph(
+    BuildContext context,
+    WordScope scope,
+    WordParagraphStyler styler,
+    ParagraphGeometry geometry,
+    bool paged,
+  ) {
     final paragraph = widget.paragraph;
     final format = paragraph.format;
-    final theme = Theme.of(context);
+    final fill = format.fill == null ? null : Color(format.fill!);
     final highlights = _number == null ? const <WordHighlight>[] : scope.search.highlightsOf(_number!);
-    final background = format.fill == null ? null : Color(format.fill!);
-    final firstSize = paragraph.inlines.whereType<WordText>().firstOrNull?.format.size ?? paragraph.marker?.format.size ?? 11;
-
-    final lineHeight = switch (format.lineSpacingRule) {
-      // Word's single spacing is about 1.15x the font size for its default
-      // fonts; multiples scale that.
-      LineSpacingRule.auto => 1.15 * format.lineSpacing,
-      LineSpacingRule.exact => (format.lineSpacing / firstSize).clamp(0.8, 4.0),
-      LineSpacingRule.atLeast => math.max(1.15, format.lineSpacing / firstSize).clamp(1.0, 4.0),
-    };
-
-    final spans = _spans(context, scope, highlights, background);
-    final markerInline = paragraph.marker != null && paragraph.marker!.suffix != ListMarkerSuffix.tab;
+    final spans = styler.spans(
+      paragraph,
+      highlights: highlights,
+      textOffset: widget.textOffset,
+      tap: _tap,
+      onLink: scope.onLink,
+      onNote: scope.onNote,
+      imageBuilder: (image) => WordImageView(image, maxWidth: geometry.textWidth),
+      imageWidth: geometry.textWidth,
+    );
     final text = Text.rich(
-      TextSpan(
-        style: TextStyle(height: lineHeight, color: theme.colorScheme.onSurface),
-        children: [
-          if (markerInline)
-            TextSpan(
-              text: paragraph.marker!.text + (paragraph.marker!.suffix == ListMarkerSuffix.space ? ' ' : ''),
-              style: _textStyle(context, paragraph.marker!.format, background, link: false),
-            ),
-          if (!markerInline && paragraph.marker == null && format.firstLineIndent > 0)
-            WidgetSpan(child: SizedBox(width: format.firstLineIndent * WordScope.scale)),
-          ...spans,
-          // An empty paragraph still takes a line, as in Word.
-          if (spans.isEmpty) const TextSpan(text: ' '),
-        ],
-      ),
-      textAlign: switch (format.alignment) {
-        ParagraphAlignment.left => TextAlign.start,
-        ParagraphAlignment.center => TextAlign.center,
-        ParagraphAlignment.right => TextAlign.end,
-        ParagraphAlignment.justify => TextAlign.justify,
-      },
+      spans.root,
+      textAlign: WordParagraphStyler.textAlignOf(format),
       textDirection: format.rightToLeft ? TextDirection.rtl : null,
     );
 
     Widget body = text;
     final marker = paragraph.marker;
-    var left = format.indentLeft;
-    if (marker != null && marker.suffix == ListMarkerSuffix.tab) {
-      // The marker hangs in the space the hanging indent leaves.
-      final hanging = format.firstLineIndent < 0 ? -format.firstLineIndent : 18.0;
-      left = math.max(0, format.indentLeft - hanging);
+    if (marker != null && WordParagraphStyler.markerInColumn(paragraph)) {
+      final lineHeight = WordParagraphStyler.lineHeightOf(format, WordParagraphStyler.firstSizeOf(paragraph));
       body = Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
           SizedBox(
-            width: hanging * WordScope.scale,
+            width: geometry.markerWidth,
             child: Text(
               marker.text,
               maxLines: 1,
               softWrap: false,
               overflow: TextOverflow.visible,
-              style: _textStyle(context, marker.format, background, link: false).copyWith(height: lineHeight),
+              style: styler.textStyle(marker.format, fill, link: false).copyWith(height: lineHeight),
             ),
           ),
           Expanded(child: text),
@@ -194,32 +216,22 @@ class _WordParagraphViewState extends State<WordParagraphView> {
       );
     }
 
-    final hasPageBreak = paragraph.inlines.any((i) => i is WordBreak && i.kind == BreakKind.page);
-    final borders = [format.borderTop, format.borderBottom, format.borderLeft, format.borderRight];
-    Widget result = LayoutBuilder(
-      builder: (context, constraints) {
-        // Deep indents are scaled for a page, not a phone: never let them
-        // take more than 40% of the width.
-        final maxIndent = constraints.maxWidth * 0.4;
-        return Padding(
-          padding: EdgeInsetsDirectional.only(
-            start: math.min(left * WordScope.scale, maxIndent),
-            end: math.min(format.indentRight * WordScope.scale, maxIndent / 2),
-          ),
-          child: body,
-        );
-      },
+    Widget result = Padding(
+      padding: EdgeInsetsDirectional.only(start: geometry.start, end: geometry.end),
+      child: body,
     );
-    if (background != null || borders.any((b) => b != null && b.width > 0)) {
+    if (geometry.decorated) {
+      final scheme = Theme.of(context).colorScheme;
       BorderSide side(BorderLine? line) => line == null || line.width == 0
           ? BorderSide.none
           : BorderSide(
-              width: math.max(0.5, line.width * WordScope.scale),
-              color: line.color == null ? theme.colorScheme.onSurface : Color(line.color!),
+              // Under 1 px, a hairline (see the table cells).
+              width: line.width * wordScale < 1 ? 0 : line.width * wordScale,
+              color: line.color == null ? scheme.onSurface : Color(line.color!),
             );
       result = DecoratedBox(
         decoration: BoxDecoration(
-          color: background,
+          color: fill,
           border: Border(
             top: side(format.borderTop),
             bottom: side(format.borderBottom),
@@ -231,210 +243,53 @@ class _WordParagraphViewState extends State<WordParagraphView> {
       );
     }
     result = Padding(
-      padding: EdgeInsets.only(
-        top: format.spaceBefore * WordScope.scale,
-        bottom: format.spaceAfter * WordScope.scale,
-      ),
+      padding: EdgeInsets.only(top: geometry.spaceBefore, bottom: geometry.spaceAfter),
       child: result,
     );
     if (paragraph.outlineLevel != null) result = Semantics(header: true, child: result);
-    if (hasPageBreak) result = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [result, const Divider(height: 24)]);
+    // Continuous view: a page break shows as a rule. Pages break for real.
+    if (!paged && paragraph.inlines.any((i) => i is WordBreak && i.kind == BreakKind.page)) {
+      result = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [result, const Divider(height: 24)]);
+    }
     return result;
   }
-
-  /// The paragraph's inline content as spans, split where search
-  /// highlights start and end. Offsets follow [WordParagraph.plainText].
-  List<InlineSpan> _spans(BuildContext context, WordScope scope, List<WordHighlight> highlights, Color? paragraphFill) {
-    final scheme = Theme.of(context).colorScheme;
-    final spans = <InlineSpan>[];
-    var offset = 0;
-
-    Color? highlightAt(int start, int end) {
-      for (final h in highlights) {
-        if (h.start < end && start < h.end) {
-          return h.current ? scheme.tertiaryContainer : scheme.secondaryContainer;
-        }
-      }
-      return null;
-    }
-
-    for (final inline in widget.paragraph.inlines) {
-      switch (inline) {
-        case WordText(:final text, :final format, :final link):
-          final style = _textStyle(context, format, paragraphFill, link: link != null);
-          final recognizer = link == null ? null : _tap(() => scope.onLink(link));
-          // Cut points: the run's ends and any highlight edge inside it.
-          final cuts = <int>{0, text.length};
-          for (final h in highlights) {
-            if (h.start > offset && h.start < offset + text.length) cuts.add(h.start - offset);
-            if (h.end > offset && h.end < offset + text.length) cuts.add(h.end - offset);
-          }
-          final points = cuts.toList()..sort();
-          for (var i = 0; i + 1 < points.length; i++) {
-            final piece = text.substring(points[i], points[i + 1]);
-            final mark = highlightAt(offset + points[i], offset + points[i + 1]);
-            final shown = format.allCaps ? piece.toUpperCase() : piece;
-            final pieceStyle = mark == null ? style : style.copyWith(backgroundColor: mark, color: scheme.onSurface);
-            if (format.verticalPosition == VerticalTextPosition.baseline) {
-              spans.add(TextSpan(text: shown, style: pieceStyle, recognizer: recognizer));
-            } else {
-              spans.add(_raised(shown, pieceStyle, superscript: format.verticalPosition == VerticalTextPosition.superscript));
-            }
-          }
-          offset += text.length;
-        case WordTab(:final format):
-          spans.add(TextSpan(text: '  ', style: _textStyle(context, format, paragraphFill, link: false)));
-          offset += 1;
-        case WordBreak():
-          spans.add(const TextSpan(text: '\n'));
-          offset += 1;
-        case WordNoteReference(:final label, :final format):
-          final mark = highlightAt(offset, offset + label.length);
-          final style = _textStyle(context, format, paragraphFill, link: true);
-          spans.add(WidgetSpan(
-            alignment: PlaceholderAlignment.top,
-            child: Semantics(
-              button: true,
-              label: 'Note $label',
-              child: GestureDetector(
-                onTap: () => scope.onNote(inline),
-                child: Text(
-                  label,
-                  style: style.copyWith(
-                    fontSize: (style.fontSize ?? 14) * 0.7,
-                    backgroundColor: mark,
-                    decoration: TextDecoration.none,
-                  ),
-                ),
-              ),
-            ),
-          ));
-          offset += label.length;
-        case WordImage():
-          spans.add(WidgetSpan(alignment: PlaceholderAlignment.bottom, child: WordImageView(inline)));
-        case WordBookmark():
-          break;
-      }
-    }
-    return spans;
-  }
-
-  /// Superscript or subscript text: smaller, and raised or lowered.
-  static InlineSpan _raised(String text, TextStyle style, {required bool superscript}) => WidgetSpan(
-        alignment: superscript ? PlaceholderAlignment.top : PlaceholderAlignment.bottom,
-        child: Text(text, style: style.copyWith(fontSize: (style.fontSize ?? 14) * 0.65)),
-      );
-}
-
-/// A run's formatting as a [TextStyle]. The file's colours are kept where
-/// they stay readable against what's behind them (fill, highlight, or the
-/// theme surface); otherwise the theme's text colour is used.
-TextStyle _textStyle(BuildContext context, RunFormat format, Color? paragraphFill, {required bool link}) {
-  final scheme = Theme.of(context).colorScheme;
-  final runBackground = format.highlight ?? format.fill;
-  final behind = runBackground != null ? Color(runBackground) : (paragraphFill ?? scheme.surface);
-  // A link without its own colour takes the document's hyperlink colour,
-  // as in Word; the theme's primary where that wouldn't be readable.
-  final own = format.color != null
-      ? Color(format.color!)
-      : (link ? Color(WordScope.of(context).layout.document.linkColor) : null);
-  Color color;
-  if (own != null && contrastRatio(own, behind) >= 3) {
-    color = own;
-  } else if (link && format.color == null) {
-    color = scheme.primary;
-  } else if (runBackground != null || paragraphFill != null) {
-    color = behind.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;
-  } else {
-    color = scheme.onSurface;
-  }
-  final decorations = [
-    if (format.underline != UnderlineStyle.none || link) TextDecoration.underline,
-    if (format.strike || format.doubleStrike) TextDecoration.lineThrough,
-  ];
-  return TextStyle(
-    fontSize: format.size * WordScope.scale,
-    fontWeight: format.bold ? FontWeight.bold : FontWeight.normal,
-    fontStyle: format.italic ? FontStyle.italic : FontStyle.normal,
-    color: color,
-    backgroundColor: runBackground == null ? null : Color(runBackground),
-    decoration: decorations.isEmpty ? null : TextDecoration.combine(decorations),
-    decorationStyle: switch (format.underline) {
-      UnderlineStyle.double => TextDecorationStyle.double,
-      UnderlineStyle.dotted => TextDecorationStyle.dotted,
-      UnderlineStyle.dashed => TextDecorationStyle.dashed,
-      UnderlineStyle.wavy => TextDecorationStyle.wavy,
-      _ => format.doubleStrike ? TextDecorationStyle.double : null,
-    },
-    decorationColor: color,
-    fontFamily: format.font,
-    fontFamilyFallback: _fallbackFonts(format.font),
-    letterSpacing: format.letterSpacing == 0 ? null : format.letterSpacing * WordScope.scale,
-    fontFeatures: format.smallCaps ? const [FontFeature.enable('smcp')] : null,
-  );
-}
-
-/// When a document's font isn't on the device, a family of the same kind.
-List<String>? _fallbackFonts(String? font) {
-  if (font == null) return null;
-  final name = font.toLowerCase();
-  const serif = ['times', 'cambria', 'georgia', 'garamond', 'book antiqua', 'palatino', 'serif', 'constantia'];
-  const mono = ['courier', 'consolas', 'mono', 'menlo', 'lucida console'];
-  if (mono.any(name.contains)) return const ['monospace', 'Courier'];
-  if (serif.any(name.contains)) return const ['serif', 'Times New Roman', 'Georgia'];
-  return const ['sans-serif', 'Roboto', 'Helvetica'];
-}
-
-/// WCAG contrast ratio between two colours (1-21).
-double contrastRatio(Color a, Color b) {
-  final la = a.computeLuminance();
-  final lb = b.computeLuminance();
-  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }
 
 // --- Images --------------------------------------------------------------------
 
-/// An image at its size in the document, shrunk to fit the width; a
-/// placeholder (with its alt text) when it can't be shown.
+/// An image at its size in the document, shrunk to fit; a placeholder
+/// (with its alt text) when it can't be shown.
 class WordImageView extends StatelessWidget {
-  const WordImageView(this.image, {super.key});
+  const WordImageView(this.image, {super.key, required this.maxWidth});
 
   final WordImage image;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
     final bytes = WordScope.of(context).layout.document.images[image.part];
-    return LayoutBuilder(builder: (context, constraints) {
-      final maxWidth = constraints.maxWidth.isFinite ? constraints.maxWidth : 400.0;
-      var width = image.width * WordScope.scale;
-      var height = image.height * WordScope.scale;
-      if (width <= 0 || height <= 0) (width, height) = (math.min(maxWidth, 200), 120);
-      if (width > maxWidth) {
-        height *= maxWidth / width;
-        width = maxWidth;
-      }
-      final placeholder = Container(
-        width: width,
-        height: height,
-        alignment: Alignment.center,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: Icon(Icons.image_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
-      );
-      return Semantics(
-        image: true,
-        label: image.description,
-        child: bytes == null
-            ? placeholder
-            : Image.memory(
-                bytes,
-                width: width,
-                height: height,
-                fit: BoxFit.contain,
-                cacheWidth: (width * MediaQuery.devicePixelRatioOf(context)).round(),
-                errorBuilder: (_, _, _) => placeholder,
-              ),
-      );
-    });
+    final size = WordParagraphStyler.imageSize(image, maxWidth);
+    final placeholder = Container(
+      width: size.width,
+      height: size.height,
+      alignment: Alignment.center,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(Icons.image_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
+    );
+    return Semantics(
+      image: true,
+      label: image.description,
+      child: bytes == null
+          ? placeholder
+          : Image.memory(
+              bytes,
+              width: size.width,
+              height: size.height,
+              fit: BoxFit.contain,
+              cacheWidth: (size.width * MediaQuery.devicePixelRatioOf(context)).round(),
+              errorBuilder: (_, _, _) => placeholder,
+            ),
+    );
   }
 }
 
@@ -451,21 +306,36 @@ class WordTableView extends StatelessWidget {
 
   static const double _minColumnWidth = 48;
 
+  /// Column widths in logical pixels for [available] width: the
+  /// document's, shrunk to fit with a minimum per column.
+  static List<double> columnWidthsFor(WordTable table, double available) {
+    final columnCount = columnCountOf(table);
+    var widths = [
+      for (var c = 0; c < columnCount; c++)
+        (c < table.columnWidths.length && table.columnWidths[c] > 0 ? table.columnWidths[c] : 72) * wordScale,
+    ];
+    final natural = widths.fold<double>(0, (a, b) => a + b);
+    if (natural > available) {
+      final factor = available / natural;
+      widths = [for (final w in widths) math.max(_minColumnWidth, w * factor)];
+    }
+    return widths;
+  }
+
+  /// Horizontal padding inside a cell.
+  static const double cellPaddingX = 7;
+  static const double cellPaddingY = 2;
+
+  /// Space above and below a table.
+  static const double tableMarginY = 6;
+
   @override
   Widget build(BuildContext context) {
-    final columnCount = _columnCount();
+    final columnCount = columnCountOf(table);
     if (columnCount == 0) return const SizedBox.shrink();
     return LayoutBuilder(builder: (context, constraints) {
       final available = constraints.maxWidth.isFinite ? constraints.maxWidth : 600.0;
-      var widths = [
-        for (var c = 0; c < columnCount; c++)
-          (c < table.columnWidths.length && table.columnWidths[c] > 0 ? table.columnWidths[c] : 72) * WordScope.scale,
-      ];
-      final natural = widths.fold<double>(0, (a, b) => a + b);
-      if (natural > available) {
-        final factor = available / natural;
-        widths = [for (final w in widths) math.max(_minColumnWidth, w * factor)];
-      }
+      final widths = columnWidthsFor(table, available);
       final total = widths.fold<double>(0, (a, b) => a + b);
       final cells = <Widget>[];
       for (var r = 0; r < table.rows.length; r++) {
@@ -493,11 +363,14 @@ class WordTableView extends StatelessWidget {
       Widget grid = _TableGrid(
         columnWidths: widths,
         rowCount: table.rows.length,
-        minRowHeights: [for (final row in table.rows) (row.height ?? 0) * WordScope.scale],
+        minRowHeights: [for (final row in table.rows) (row.height ?? 0) * wordScale],
         children: cells,
       );
       if (total > available) {
-        return SingleChildScrollView(scrollDirection: Axis.horizontal, child: grid);
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: WordTableView.tableMarginY),
+          child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: grid),
+        );
       }
       grid = Align(
         alignment: switch (table.alignment) {
@@ -507,11 +380,11 @@ class WordTableView extends StatelessWidget {
         },
         child: grid,
       );
-      return Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: grid);
+      return Padding(padding: const EdgeInsets.symmetric(vertical: WordTableView.tableMarginY), child: grid);
     });
   }
 
-  int _columnCount() {
+  static int columnCountOf(WordTable table) {
     var widest = table.columnWidths.length;
     for (final row in table.rows) {
       final count = row.cells.fold<int>(0, (a, cell) => a + cell.columnSpan);
@@ -526,8 +399,9 @@ class _WordTableCellView extends StatelessWidget {
 
   final WordTableCell cell;
 
-  /// Which sides are the table's outer edge: drawn in full there; inside,
-  /// each neighbour draws half, so shared borders aren't doubled.
+  /// Which sides are the table's outer edge. Every cell draws its top and
+  /// left borders; only cells on the outer edge also draw bottom and right,
+  /// so a border between two cells is drawn once.
   final bool top;
   final bool left;
   final bool bottom;
@@ -536,11 +410,13 @@ class _WordTableCellView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    BorderSide side(BorderLine? line, bool outer) {
-      if (line == null || line.width == 0) return BorderSide.none;
-      final width = math.max(0.5, line.width * WordScope.scale);
+    BorderSide side(BorderLine? line, bool draw) {
+      if (!draw || line == null || line.width == 0) return BorderSide.none;
+      final width = line.width * wordScale;
       return BorderSide(
-        width: outer ? width : width / 2,
+        // Under 1 px, a hairline: always one device pixel, even on a page
+        // scaled down to fit the screen (a 0.3 px line would vanish).
+        width: width < 1 ? 0 : width,
         color: line.color == null ? scheme.outline : Color(line.color!),
       );
     }
@@ -549,13 +425,13 @@ class _WordTableCellView extends StatelessWidget {
       decoration: BoxDecoration(
         color: cell.fill == null ? null : Color(cell.fill!),
         border: Border(
-          top: side(cell.borders.top, top),
-          left: side(cell.borders.left, left),
+          top: side(cell.borders.top, true),
+          left: side(cell.borders.left, true),
           bottom: side(cell.borders.bottom, bottom),
           right: side(cell.borders.right, right),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: WordTableView.cellPaddingX, vertical: WordTableView.cellPaddingY),
       alignment: switch (cell.verticalAlignment) {
         CellVerticalAlignment.top => AlignmentDirectional.topStart,
         CellVerticalAlignment.center => AlignmentDirectional.centerStart,
