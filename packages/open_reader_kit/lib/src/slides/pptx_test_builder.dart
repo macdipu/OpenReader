@@ -7,11 +7,13 @@ import 'package:archive/archive.dart';
 /// `PptxParser` reads - presentation.xml + its rels, the slides + their
 /// rels, and media. [slides] are slide-tree bodies (`p:spTree` children), in
 /// presentation order; they're stored in *reverse* file-name order so a test
-/// can tell `p:sldIdLst` order from file order.
+/// can tell `p:sldIdLst` order from file order. [slideSize] (EMUs) writes
+/// a `p:sldSz`.
 Uint8List buildPptx(
   List<String> slides, {
   Map<String, List<int>> media = const {},
   Map<int, String> slideRels = const {},
+  (int, int)? slideSize,
 }) {
   const ns =
       'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
@@ -27,7 +29,7 @@ Uint8List buildPptx(
     'ppt/presentation.xml',
     '<?xml version="1.0" encoding="UTF-8"?><p:presentation $ns><p:sldIdLst>'
         '${[for (var i = 0; i < slides.length; i++) '<p:sldId id="${256 + i}" r:id="rId${i + 1}"/>'].join()}'
-        '</p:sldIdLst></p:presentation>',
+        '</p:sldIdLst>${slideSize == null ? '' : '<p:sldSz cx="${slideSize.$1}" cy="${slideSize.$2}"/>'}</p:presentation>',
   );
   addText(
     'ppt/_rels/presentation.xml.rels',

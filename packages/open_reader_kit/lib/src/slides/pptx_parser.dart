@@ -50,9 +50,14 @@ class PptxSlide {
 }
 
 class PptxPresentation {
-  const PptxPresentation(this.slides);
+  const PptxPresentation(this.slides, {this.slideWidth = 12192000, this.slideHeight = 6858000});
 
   final List<PptxSlide> slides;
+
+  /// The slide size (`p:sldSz`) in EMUs; PowerPoint's 16:9 default when
+  /// the file doesn't say.
+  final int slideWidth;
+  final int slideHeight;
 }
 
 /// Not a readable PowerPoint (.pptx) package.
@@ -105,7 +110,11 @@ class PptxParser {
       if (xml == null) continue;
       slides.add(_slide(xml, _targets(package, path), package.readBytes));
     }
-    return PptxPresentation(slides);
+    final size = presentation.findAllElements('sldSz', namespaceUri: _ns.p).firstOrNull;
+    final width = int.tryParse(size?.getAttribute('cx') ?? '') ?? 0;
+    final height = int.tryParse(size?.getAttribute('cy') ?? '') ?? 0;
+    if (width <= 0 || height <= 0) return PptxPresentation(slides);
+    return PptxPresentation(slides, slideWidth: width, slideHeight: height);
   }
 
   /// Relationship id -> internal target part, for [part].
