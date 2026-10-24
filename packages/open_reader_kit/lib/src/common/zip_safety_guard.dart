@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
 /// BRD §12.5 zip-bomb/path-traversal guard for DOCX/XLSX ZIP containers
-/// (ODF-P5-03), run before handing bytes to `docx_file_viewer`/`excel_plus`.
+/// (ODF-P5-03), run before handing bytes to the Word and spreadsheet engines.
 ///
 /// `ZipDecoder.decodeBytes` only parses the central directory - confirmed by
 /// reading `archive` 4.3.0's source, not assumed from its README - so

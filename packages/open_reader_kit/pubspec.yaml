@@ -6,7 +6,7 @@ version: 0.1.0
 publish_to: none # Until the user's first pub.dev release (see README).
 
 environment:
-  # The engine code (from excel_plus 2.22.0 / pdfrx 2.4.8) needs these.
+  # The PDF engine code (from pdfrx 2.4.8) needs these.
   sdk: ^3.11.4
   flutter: '>=3.41.0'
 
@@ -30,6 +30,9 @@ dependencies:
   pointycastle: ^4.0.0
   rxdart: ^0.28.0
   synchronized: ^3.4.0
+  # Flutter team's lazy 2D table (TableView) for SheetGrid: only on-screen
+  # cells are built; variable row/column sizes, pinned panes, merged cells.
+  two_dimensional_scrollables: ^0.5.5
   url_launcher: ^6.3.2
   uuid: ^4.6.0
   vector_math: ^2.2.0

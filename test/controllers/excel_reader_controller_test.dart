@@ -13,7 +13,7 @@ import 'package:open_reader_kit/sheets.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
-import 'package:open_reader_kit/excel.dart' as xls;
+import 'package:open_reader_kit/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -74,17 +74,10 @@ void main() {
     Get.testMode = true;
     root = await Directory.systemTemp.createTemp('openreader-excel-reader-');
 
-    final workbook = xls.Excel.createExcel();
-    final defaultSheetName = workbook.getDefaultSheet()!;
-    final summary = workbook[defaultSheetName];
-    summary.cell(xls.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value = xls.TextCellValue('Name');
-    summary.cell(xls.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value = xls.TextCellValue('Score');
-    summary.cell(xls.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1)).value = xls.TextCellValue('Alice');
-    summary.cell(xls.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 1)).value = const xls.IntCellValue(97);
-    workbook.rename(defaultSheetName, 'Summary');
-    workbook['April'].cell(xls.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value = xls.TextCellValue('April data');
-
-    final bytes = workbook.encode()!;
+    final bytes = buildXlsx(const [
+      XlsxTestSheet('Summary', {'A1': 'Name', 'B1': 'Score', 'A2': 'Alice', 'B2': 97}),
+      XlsxTestSheet('April', {'A1': 'April data'}),
+    ]);
     final file = File(p.join(root.path, 'budget.xlsx'));
     await file.writeAsBytes(bytes);
 
@@ -124,20 +117,18 @@ void main() {
       await loaded(controller);
       expect(controller.status.value, StateStatus.success);
       expect(controller.sheetNames, ['Summary', 'April']);
-      expect(controller.currentRows[0][0]?.displayText, 'Name');
-      expect(controller.currentRows[1][0]?.displayText, 'Alice');
-      expect(controller.currentRows[1][1]?.displayText, '97');
+      expect(controller.currentRows[0][0]?.text, 'Name');
+      expect(controller.currentRows[1][0]?.text, 'Alice');
+      expect(controller.currentRows[1][1]?.text, '97');
     });
 
     test('leaves out sheets the author hid, as Excel does', () async {
-      final workbook = xls.Excel.createExcel();
-      final first = workbook.getDefaultSheet()!;
-      workbook[first].cell(xls.CellIndex.indexByString('A1')).value = xls.TextCellValue('shown');
-      workbook['Secret'].cell(xls.CellIndex.indexByString('A1')).value = xls.TextCellValue('hidden');
-      workbook['Secret'].visibility = xls.SheetVisibility.hidden;
-      workbook['Later'].cell(xls.CellIndex.indexByString('A1')).value = xls.TextCellValue('shown too');
       final file = File(p.join(root.path, 'hidden.xlsx'));
-      await file.writeAsBytes(workbook.encode()!);
+      await file.writeAsBytes(buildXlsx(const [
+        XlsxTestSheet('Sheet1', {'A1': 'shown'}),
+        XlsxTestSheet('Secret', {'A1': 'hidden'}, state: 'hidden'),
+        XlsxTestSheet('Later', {'A1': 'shown too'}),
+      ]));
       final c = ExcelReaderController(
         document: DocumentModel(
           id: file.path,
@@ -153,14 +144,14 @@ void main() {
         interactions: interactions,
       );
       await loaded(c);
-      expect(c.sheetNames, [first, 'Later']);
+      expect(c.sheetNames, ['Sheet1', 'Later']);
     });
 
     test('restores the saved sheet index', () async {
       recents.position = {'sheet_index': 1};
       await loaded(controller);
       expect(controller.activeSheetIndex.value, 1);
-      expect(controller.currentRows[0][0]?.displayText, 'April data');
+      expect(controller.currentRows[0][0]?.text, 'April data');
     });
 
     test('restores saved scroll offsets for later use by the view', () async {

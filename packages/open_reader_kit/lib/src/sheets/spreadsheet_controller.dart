@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
@@ -5,9 +6,11 @@ import 'package:flutter/widgets.dart';
 import '../common/reader_contract.dart';
 import '../common/text_decoding.dart';
 import '../common/zip_safety_guard.dart';
-import '../engines/excel/core/excel_plus.dart' as xls;
+import '../engines/sheets/csv_reader.dart';
+import '../engines/sheets/workbook.dart';
+import '../engines/sheets/xlsx_reader.dart';
 import 'cell_match.dart';
-import 'cell_text.dart';
+import 'sheet_geometry.dart';
 
 /// State for [SheetGrid]: a workbook's sheets (or a CSV's single sheet),
 /// the sheet on screen, search within it, zoom and scrolling.
@@ -17,8 +20,8 @@ import 'cell_text.dart';
 /// horizontal_offset}`, offsets at 1x zoom; saving it (and debouncing) is
 /// the app's business.
 ///
-/// Cells have a fixed size ([cellWidth] x [cellHeight]) rather than each
-/// column's/row's stored width/height - a deliberate simplification.
+/// Rows and columns take the sizes stored in the file, and hidden ones stay
+/// hidden ([geometry]).
 class SpreadsheetController extends ChangeNotifier {
   SpreadsheetController({ReadingPosition? initialPosition, this.onPositionChanged}) {
     final position = initialPosition ?? const {};
@@ -31,8 +34,9 @@ class SpreadsheetController extends ChangeNotifier {
     }
   }
 
-  static const double cellWidth = 110;
-  static const double cellHeight = 36;
+  /// A default-width column and default-height row; see [SheetGeometry].
+  static const double cellWidth = SheetGeometry.defaultColumnWidth;
+  static const double cellHeight = SheetGeometry.defaultRowHeight;
   static const double rowHeaderWidth = 48;
 
   static const double minZoom = 0.75;
@@ -68,29 +72,36 @@ class SpreadsheetController extends ChangeNotifier {
   DocumentLoadError? _error;
   DocumentLoadError? get error => _error;
 
-  xls.Excel? _workbook;
-  List<String> _sheetNames = const [];
+  List<Worksheet> _sheets = const [];
 
-  /// Visible sheets, in workbook order. A CSV has one.
-  List<String> get sheetNames => _sheetNames;
+  /// Visible sheets' names, in workbook order. A CSV has one.
+  List<String> get sheetNames => [for (final sheet in _sheets) sheet.name];
 
   int _activeSheet = 0;
   int get activeSheetIndex => _activeSheet;
 
-  xls.Sheet? get currentSheet {
-    final workbook = _workbook;
-    if (workbook == null || _sheetNames.isEmpty) return null;
-    return workbook.sheets[_sheetNames[_activeSheet]];
-  }
+  Worksheet? get currentSheet => _sheets.isEmpty ? null : _sheets[_activeSheet];
 
-  List<List<xls.Data?>> get currentRows => currentSheet?.rows ?? const [];
-  int get columnCount => currentSheet?.maxColumns ?? 0;
+  List<List<SheetCell?>> get currentRows => currentSheet?.rows ?? const [];
+
+  /// Cached per sheet: the grid asks on every build.
+  int? _columnCount;
+  int get columnCount => _columnCount ??= currentSheet?.columnCount ?? 0;
+
+  SheetGeometry? _geometry;
+
+  /// Where the current sheet's rows and columns sit; cached per sheet.
+  SheetGeometry get geometry => _geometry ??= SheetGeometry(
+        currentSheet ?? const Worksheet(name: '', rows: []),
+        rowCount: currentRows.length,
+        columnCount: columnCount,
+      );
   int get frozenRows => currentSheet?.frozenRows ?? 0;
   int get frozenColumns => currentSheet?.frozenColumns ?? 0;
 
-  /// Parses an `.xlsx` after [ZipSafetyGuard] has checked it. Sheets the
-  /// author hid stay hidden, as in Excel - unless every sheet is, when
-  /// showing nothing would be worse.
+  /// Parses an `.xlsx`, off the UI isolate, after [ZipSafetyGuard] has
+  /// checked it. Sheets the author hid stay hidden, as in Excel - unless
+  /// every sheet is, when showing nothing would be worse.
   Future<void> loadXlsx(Uint8List bytes) async {
     try {
       switch (ZipSafetyGuard.check(bytes)) {
@@ -99,13 +110,13 @@ class SpreadsheetController extends ChangeNotifier {
         case ZipSafetyResult.corrupted:
           _error = DocumentLoadError.corrupted;
         case ZipSafetyResult.safe:
-          final workbook = await xls.Excel.decodeBytesAsync(bytes);
+          final workbook = await Isolate.run(() => XlsxReader.read(bytes));
           if (_disposed) return;
           final visible = [
-            for (final name in workbook.sheetOrder)
-              if (workbook.sheets[name]?.visibility == xls.SheetVisibility.visible) name,
+            for (final sheet in workbook.sheets)
+              if (sheet.visibility == SheetVisibility.visible) sheet,
           ];
-          _setWorkbook(workbook, visible.isEmpty ? workbook.sheetOrder : visible);
+          _setSheets(visible.isEmpty ? workbook.sheets : visible);
       }
     } catch (_) {
       _error = DocumentLoadError.corrupted;
@@ -115,23 +126,21 @@ class SpreadsheetController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Parses CSV bytes (UTF-8, else Latin-1) into one sheet.
-  ///
-  /// Runs on the calling isolate: `Excel.fromCsv`'s result isn't
-  /// isolate-sendable (`Isolate.run` throws "object is unsendable"), unlike
-  /// `decodeBytesAsync`'s. [maxCsvBytes] is the only guard against jank on
-  /// a very large file.
-  void loadCsv(Uint8List bytes) {
+  /// Parses CSV bytes (UTF-8, else Latin-1) into one sheet, off the UI
+  /// isolate.
+  Future<void> loadCsv(Uint8List bytes) async {
     if (bytes.length > maxCsvBytes) {
       _error = DocumentLoadError.tooLarge;
     } else {
       try {
-        final workbook = xls.Excel.fromCsv(decodeTextBytes(bytes));
-        _setWorkbook(workbook, [workbook.getDefaultSheet()!]);
+        final workbook = await Isolate.run(() => CsvReader.read(decodeTextBytes(bytes)));
+        if (_disposed) return;
+        _setSheets(workbook.sheets);
       } catch (_) {
         _error = DocumentLoadError.corrupted;
       }
     }
+    if (_disposed) return;
     _loaded = true;
     notifyListeners();
   }
@@ -144,15 +153,16 @@ class SpreadsheetController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _setWorkbook(xls.Excel workbook, List<String> names) {
-    _workbook = workbook;
-    _sheetNames = names;
-    _activeSheet = _initialSheetIndex < names.length ? _initialSheetIndex : 0;
+  void _setSheets(List<Worksheet> sheets) {
+    _sheets = sheets;
+    _activeSheet = _initialSheetIndex < sheets.length ? _initialSheetIndex : 0;
+    _columnCount = null;
+    _geometry = null;
   }
 
   /// Shows another sheet; clears the search, which was for the old one.
   void switchSheet(int index) {
-    if (index < 0 || index >= _sheetNames.length) return;
+    if (index < 0 || index >= _sheets.length) return;
     if (index != _activeSheet) {
       // A different sheet gets a new grid, which jumps to the offsets
       // restored at open - reported as a scroll unless they're 0, when
@@ -163,6 +173,8 @@ class SpreadsheetController extends ChangeNotifier {
       _lastHorizontalOffset = 0;
     }
     _activeSheet = index;
+    _columnCount = null;
+    _geometry = null;
     _resetSearch();
     notifyListeners();
     onPositionChanged?.call(position);
@@ -194,15 +206,20 @@ class SpreadsheetController extends ChangeNotifier {
     onPositionChanged?.call(position);
   }
 
-  /// Stored at 1x zoom, so a position survives a zoom change.
+  /// Stored at 1x zoom, so a position survives a zoom change. `row` and
+  /// `column` are the sheet's (zero-based) row and column at the top left.
   ReadingPosition get position {
     _captureOffsets();
+    final grid = geometry;
+    final vertical = _lastVerticalOffset / _zoom;
+    final horizontal = _lastHorizontalOffset / _zoom;
     return {
       PositionKeys.sheetIndex: _activeSheet,
-      PositionKeys.row: (_lastVerticalOffset / (cellHeight * _zoom)).floor(),
-      PositionKeys.column: (_lastHorizontalOffset / (cellWidth * _zoom)).floor(),
-      PositionKeys.verticalOffset: _lastVerticalOffset / _zoom,
-      PositionKeys.horizontalOffset: _lastHorizontalOffset / _zoom,
+      PositionKeys.row: grid.visibleRows.isEmpty ? 0 : grid.visibleRows[grid.visibleRowAtScrollOffset(vertical)],
+      PositionKeys.column:
+          grid.visibleColumns.isEmpty ? 0 : grid.visibleColumns[grid.visibleColumnAtScrollOffset(horizontal)],
+      PositionKeys.verticalOffset: vertical,
+      PositionKeys.horizontalOffset: horizontal,
     };
   }
 
@@ -212,27 +229,43 @@ class SpreadsheetController extends ChangeNotifier {
   List<CellMatch> _matches = const [];
   List<CellMatch> get matches => _matches;
 
+  /// [matches] by row, for the grid's per-cell highlight lookup.
+  Map<int, Set<int>> _matchColumnsByRow = const {};
+
+  bool isMatch(int row, int column) => _matchColumnsByRow[row]?.contains(column) ?? false;
+
+  bool isCurrentMatch(int row, int column) {
+    if (_currentMatch < 0) return false;
+    final match = _matches[_currentMatch];
+    return match.row == row && match.column == column;
+  }
+
   int _currentMatch = -1;
 
   /// Position within [matches], or -1 when there are none.
   int get currentMatchIndex => _currentMatch;
 
   /// Linear scan of the sheet on screen (not the whole workbook), matching
-  /// each cell's shown text in any case; jumps to the first match.
+  /// each cell's shown text in any case; jumps to the first match. Hidden
+  /// rows and columns are skipped, as in Excel.
   void search(String query) {
     _query = query;
     final lower = query.toLowerCase();
     final found = <CellMatch>[];
+    final layout = currentSheet?.layout ?? SheetLayout.standard;
     if (query.isNotEmpty) {
       final rows = currentRows;
       for (var r = 0; r < rows.length; r++) {
+        if (layout.hiddenRows.contains(r)) continue;
         final row = rows[r];
         for (var c = 0; c < row.length; c++) {
-          if ((row[c]?.readerText ?? '').toLowerCase().contains(lower)) found.add(CellMatch(row: r, column: c));
+          if (layout.hiddenColumns.contains(c)) continue;
+          if ((row[c]?.text ?? '').toLowerCase().contains(lower)) found.add(CellMatch(row: r, column: c));
         }
       }
     }
     _matches = found;
+    _indexMatches();
     _currentMatch = found.isEmpty ? -1 : 0;
     notifyListeners();
     if (found.isNotEmpty) jumpToCell(found.first);
@@ -241,7 +274,16 @@ class SpreadsheetController extends ChangeNotifier {
   void _resetSearch() {
     _query = '';
     _matches = const [];
+    _matchColumnsByRow = const {};
     _currentMatch = -1;
+  }
+
+  void _indexMatches() {
+    final byRow = <int, Set<int>>{};
+    for (final match in _matches) {
+      (byRow[match.row] ??= <int>{}).add(match.column);
+    }
+    _matchColumnsByRow = byRow;
   }
 
   void clearSearch() {
@@ -263,13 +305,45 @@ class SpreadsheetController extends ChangeNotifier {
     jumpToCell(_matches[_currentMatch]);
   }
 
+  /// Follows a link to a place in the workbook: `Sheet2!B3`,
+  /// `'My Sheet'!B3:C4` or `B3` (this sheet). Switches sheet if needed, then
+  /// scrolls there once the sheet is on screen. Returns false when the
+  /// place isn't a visible sheet's cell (e.g. a defined name).
+  bool openInternalLink(String location) {
+    final match = RegExp(r"^(?:'((?:[^']|'')+)'|([^!]+))?!?\$?([A-Za-z]{1,3})\$?(\d+)").firstMatch(location.trim());
+    if (match == null) return false;
+    final sheetName = (match.group(1)?.replaceAll("''", "'") ?? match.group(2));
+    var column = 0;
+    for (final unit in match.group(3)!.toUpperCase().codeUnits) {
+      column = column * 26 + (unit - 0x40);
+    }
+    final cell = CellMatch(row: int.parse(match.group(4)!) - 1, column: column - 1);
+    final index = sheetName == null ? _activeSheet : _sheets.indexWhere((sheet) => sheet.name == sheetName);
+    if (index < 0) return false;
+    if (index != _activeSheet) {
+      switchSheet(index);
+      // The new sheet's grid attaches the scroll controllers after this frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_disposed) jumpToCell(cell);
+      });
+    } else {
+      jumpToCell(cell);
+    }
+    return true;
+  }
+
+  /// Scrolls [cell] to the top left (frozen rows/columns don't scroll).
   void jumpToCell(CellMatch cell) {
-    if (verticalController.hasClients) {
-      final target = (cell.row * cellHeight * _zoom).clamp(0.0, verticalController.position.maxScrollExtent);
+    final grid = geometry;
+    final row = grid.visibleIndexOfRow(cell.row);
+    final column = grid.visibleIndexOfColumn(cell.column);
+    if (row != null && verticalController.hasClients) {
+      final target = (grid.scrollOffsetOfRow(row) * _zoom).clamp(0.0, verticalController.position.maxScrollExtent);
       verticalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
     }
-    if (horizontalController.hasClients) {
-      final target = (cell.column * cellWidth * _zoom).clamp(0.0, horizontalController.position.maxScrollExtent);
+    if (column != null && horizontalController.hasClients) {
+      final target =
+          (grid.scrollOffsetOfColumn(column) * _zoom).clamp(0.0, horizontalController.position.maxScrollExtent);
       horizontalController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
     }
   }
