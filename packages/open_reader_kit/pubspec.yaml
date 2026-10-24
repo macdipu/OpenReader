@@ -3,7 +3,15 @@ description: >-
   Open and read PDF, Word (.docx), Excel (.xlsx), CSV, PowerPoint (.pptx)
   and text documents in Flutter, with its own document engines.
 version: 0.1.0
-publish_to: none # Until the user's first pub.dev release (see README).
+homepage: https://github.com/chowdhuryelab/open_reader_kit
+repository: https://github.com/chowdhuryelab/open_reader_kit
+issue_tracker: https://github.com/chowdhuryelab/open_reader_kit/issues
+topics:
+  - pdf
+  - docx
+  - xlsx
+  - document-viewer
+  - reader
 
 environment:
   # two_dimensional_scrollables 0.5.5 needs Dart ^3.11 and Flutter 3.41;
