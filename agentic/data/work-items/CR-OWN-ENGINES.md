@@ -252,8 +252,21 @@ Fixes:
    - **Done:** the licence is **MIT** (`LICENSE` added on 2026-10-24) and the README licence section is updated.
    - **Waits on the user:** run `gh auth login`, and have rights to create `chowdhuryelab/open_reader_kit` (fresh start).
    - Then: README `<repo-url>`; pubspec `homepage`/`repository`/`topics` with `publish_to: none` removed; `dart pub publish --dry-run`; push the kit to the new repo; switch the app to a git dependency. The publish itself needs release approval.
-2. **REVIEW, QA and RELEASE** for run `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF`. The release approval is the user's.
-3. **Optional follow-ups:**
+2. **NEXT PHASE (user's request, 2026-10-24): thumbnails show the resumed page.** "for resume, show thumbnail resumed page". The user asked to do it in the next phase.
+   - **Kit:** `DocumentThumbnails.render(path, width:, position:)`, with each renderer drawing the page at the saved `ReadingPosition`:
+     - **PDF:** `page_number`
+     - **PowerPoint:** `slide_index`
+     - **Excel/CSV:** `sheet_index`, plus `row`/`column` as the grid's top-left
+     - **Word:** add the top visible paragraph number to the Word position the view reports, then show the print-layout page containing it; long documents need a cap on how far to paginate
+     - **Text:** add the top visible line to the text position (via `lineOffsetResolver`), then show the page starting at that line
+   - **App:**
+     - `DocumentThumbnailService.getThumbnail(document, position:)`, with the position fingerprint in both the cache key and the in-flight key
+     - the Continue Reading cards on Home get a resumed-page thumbnail; today they show an icon
+     - `DocumentListTile` takes an optional `readingPosition`, which Home passes for recent documents
+   - Tests per format.
+   - The design was sketched in-session; no code yet.
+3. **REVIEW, QA and RELEASE** for run `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF`. The release approval is the user's.
+4. **Optional follow-ups:**
    - `DocumentViewer` maps PDF password failures to `corrupted`; it could pass `passwordRequired` through.
    - The Word thumbnail's `NUMPAGES` counts only the first 150 blocks.
    - A release-build memory check for large PDFs.
