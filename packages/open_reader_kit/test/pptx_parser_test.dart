@@ -14,6 +14,13 @@ void main() {
     expect(slides.map((s) => s.title), ['First', 'Second', 'Third']);
   });
 
+  test('reads the slide size, 16:9 when the file has none', () {
+    final standard = PptxParser.parse(buildPptx([titleShape('A')], slideSize: (9144000, 6858000)));
+    expect((standard.slideWidth, standard.slideHeight), (9144000, 6858000));
+    final unsized = PptxParser.parse(buildPptx([titleShape('A')]));
+    expect((unsized.slideWidth, unsized.slideHeight), (12192000, 6858000));
+  });
+
   test('separates the title from body paragraphs and keeps bullet levels', () {
     final bytes = buildPptx([
       titleShape('Agenda') + bodyShape([('Intro', 0), ('Details', 1), ('Wrap up', 0)]),
