@@ -217,49 +217,45 @@ Fixes:
 - **Agent B:** thumbnails for every type: a kit `lib/src/thumbnails/` API and the app's `DocumentThumbnailService`.
 - Each works in its own worktree; the results are merged after review.
 
-## NEXT SESSION PLAN (saved 2026-10-24, at the user's request)
-Run: `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF` (IMPLEMENTATION). Do these in order:
+## Parallel agents: merged (2026-10-24)
+- **Agent B, thumbnails for every type (merge 142df96):**
+  - **Kit:** `DocumentThumbnails.render(path, width:)` returns PNG bytes, or null instead of throwing. It's in `lib/src/thumbnails/`, with one `ThumbnailRenderer` per format and a shared offscreen-render helper.
+    - **PDF:** page 1, via `renderThumbnail`.
+    - **Word:** page 1 of the real print layout (`WordPaginator`, plus the paged view's page widget, renamed `WordPageView`).
+    - **PowerPoint:** slide 1 via `SlideCard`, in the deck's real slide size; `PptxParser` now reads `p:sldSz`.
+    - **Sheets/CSV:** the top-left grid of the first visible sheet.
+    - **Text:** the first 80 lines.
+  - **App:** `DocumentThumbnailService` replaces `PdfThumbnailService`. It keeps the disk cache, with a `_v2` render version in a new folder, and the in-flight dedupe; `DocumentListTile` shows a thumbnail for every type.
+  - **Merge conflict:** the old service was deleted, which also covers the render-version fix from 58d2796.
+- **Agent C, pub.dev material (merge ec11b19):**
+  - a standalone `example/` app (`DocumentViewer`, plus a Word controller/view demo with search and layout toggle); analyze clean
+  - `CHANGELOG.md` 0.1.0 (unreleased)
+  - the kit `README.md` rewritten for pub.dev; licence still marked TBD
+- **Agent A, old engine removal (merge after ec11b19):**
+  - **Removed** (about 39k lines): `lib/src/engines/pdf/` (the pdfrx family), `assets/pdfium/` (web wasm), `darwin/`, `hook/link.dart`, and the kit pubspec's `flutter:` plugin section. The kit is no longer a Flutter plugin; the hook supplies PDFium everywhere, iOS included.
+  - **NOTICE:** credits PDFium (BSD-3, chromium/8086) and its 18 bundled components, with licence texts in `licenses/pdfium/`. The pdfrx-family licences are gone.
+  - **Dependencies:**
+    - Pruned: collection, equatable, html, http, image, markdown, meta, path_provider, pointycastle, rxdart, synchronized, uuid, web, yaml.
+    - Kept: archive, code_assets, crypto, ffi, hooks, path, two_dimensional_scrollables, url_launcher, vector_math, xml.
+  - **Builds:** the APK, the macOS app (`pdfium.framework` via the hook) and the iOS simulator app (same) all built.
+  - The iOS build made the Flutter tool auto-migrate the iOS project (SwiftPM, iOS 15 minimum). That was **reverted and not committed**, so expect it again on the next iOS build.
+- **Integration fix after merging:** agent B's thumbnail test used the `image` package, which agent A had pruned (each worked blind to the other). The test now writes its small PNG by hand (zlib plus `getCrc32` from `archive`), so no dependency comes back. The README and CHANGELOG now document `DocumentThumbnails`. `.claude/worktrees/` is gitignored.
+- **Checks on the merged main:**
+  - **Kit:** `flutter analyze` reports no issues, and all 120 tests pass.
+  - **App:** all 213 tests pass; only the old `settings_view` warning remains.
+  - **APK:** builds.
+  - **Emulator:** list thumbnails show for .docx (page 1 with its table), .xlsx (grid with fills), .pdf, .pptx (slide 1) and .txt.
+- **This covers E3 (done), the thumbnails request (done) and E4** (dependency pruning, analyzer clean, no upstream engine names left in code).
 
-1. **E3b: finish the PDF switch.**
-   - **Device checks on the emulator, with fixes:**
-     - next/previous match moving to page 3 (rotated page highlight)
-     - zoom in/out, fit width, and tile sharpness at 2x, 4x and 8x
-     - horizontal layout toggle and position restore (page + `view_mode`)
-     - the password dialog flow (`test/fixtures/pdf/encrypted.pdf`, password `secret`)
-     - the thumbnail strip, link taps (web link and "Go to the end" → page 3), night-mode colour filter, fullscreen tap
-     - home-screen PDF thumbnails
-     - a large PDF (500+ pages) for memory and scrolling smoothness
-   - **Remove the old engine:**
-     - `lib/src/engines/pdf/` (pdfrx, pdfrx_engine, pdfium_dart, pdfium_flutter)
-     - `assets/pdfium/` (web wasm; web was dropped in DECISIONS Q1)
-     - `darwin/` (CocoaPods/SwiftPM xcframework), `hook/link.dart`
-     - pubspec `ffiPlugin`/`sharedDarwinSource` and the assets entry
-   - **iOS:** enable it in `hook/build.dart` by deleting the iOS skip.
-   - **macOS:** verify the macOS app build after `darwin/` goes, because the hook now supplies the dylib.
-   - **NOTICE.md:**
-     - drop the pdfrx-family rows and their `licenses/` files
-     - credit PDFium (BSD-3) and the third-party licences shipped in the archive (`licenses/*.txt` in pdfium-binaries: freetype, icu, libjpeg-turbo, lcms, libpng, zlib, abseil, harfbuzz, openjpeg, and others)
-     - list `lib/src/engines/pdfium/` as the kit's own code
-2. **NEW (user's request, 2026-10-24): thumbnails for every type.**
-   - **What:** today only PDFs get a home-list thumbnail. Add first-page previews for Word (.docx), Excel (.xlsx), CSV, PowerPoint (.pptx) and text.
-   - **Plan:** a kit API such as `DocumentThumbnails.render(path, width) -> PNG bytes`, per format:
-     - **PDF:** `renderThumbnail`
-     - **Word:** page 1 from `WordPaginator`, drawn offscreen to an image
-     - **PowerPoint:** slide 1
-     - **Sheets:** the top-left grid of the first visible sheet
-     - **Text/CSV:** the first lines
-   - **App:** generalise `PdfThumbnailService` into a `DocumentThumbnailService` (same disk cache keyed by path and modified time), and have `DocumentListTile` show it for all types.
-   - Tests per format.
-3. **E4: clean-up.**
-   - Prune kit dependencies the removed engines needed: check `equatable`, `html`, `markdown`, `pointycastle`, `uuid`, `yaml`, `image`, `web`, `rxdart`, `http`, `synchronized`, `collection`, `meta`.
-   - Analyzer clean for the kit.
-   - `grep -ri "pdfrx\|excel_plus\|docx_creator\|docx_file_viewer\|csv_plus\|pdfium_dart\|pdfium_flutter"` must return nothing.
-   - Refresh the kit README.
-4. **E5: repo split and pub.dev prep** (TECH-SPEC). It needs the user's licence choice (DECISIONS Q3: MIT recommended, Apache-2.0 or BSD-3), `gh auth login`, and creating `chowdhuryelab/open_reader_kit` (fresh start).
-   - `LICENSE`, `CHANGELOG`, a standalone `example/`, `dart pub publish --dry-run`.
-   - Switch the app to a git dependency.
-   - The publish itself needs release approval.
-5. **Then:** REVIEW, QA and RELEASE for the run. The release approval is the user's.
-
-**Still open:** BUG-OPENREADER-COLDSTART-INTENT (a crash when a file is opened from another app on a cold start; it predates this work).
-
+## NEXT STEPS (updated 2026-10-24)
+1. **E5, repo split and pub.dev.** Waits on the user:
+   - choose the licence (DECISIONS Q3: MIT recommended, Apache-2.0 or BSD-3)
+   - run `gh auth login`, and have rights to create `chowdhuryelab/open_reader_kit` (fresh start)
+   - Then: `LICENSE`; README licence section and `<repo-url>`; pubspec `homepage`/`repository`/`topics` with `publish_to: none` removed; `dart pub publish --dry-run`; push the kit to the new repo; switch the app to a git dependency. The publish itself needs release approval.
+2. **REVIEW, QA and RELEASE** for run `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF`. The release approval is the user's.
+3. **Optional follow-ups:**
+   - `DocumentViewer` maps PDF password failures to `corrupted`; it could pass `passwordRequired` through.
+   - The Word thumbnail's `NUMPAGES` counts only the first 150 blocks.
+   - A release-build memory check for large PDFs.
+   - Commit the iOS project migration when the user next builds for iOS.
+- **Still open:** BUG-OPENREADER-COLDSTART-INTENT, which predates this work.
