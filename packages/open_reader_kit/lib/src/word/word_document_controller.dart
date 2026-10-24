@@ -1,21 +1,20 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
 import '../common/reader_contract.dart';
 import '../common/zip_safety_guard.dart';
-import '../engines/docx/viewer/docx_file_viewer.dart';
+import '../engines/word/docx_reader.dart';
+import '../engines/word/word_model.dart';
+import 'word_document_layout.dart';
+import 'word_search_controller.dart';
 
-/// State for [WordDocumentView]: a `.docx` checked by [ZipSafetyGuard],
-/// search within it, and the scroll position.
+/// State for [WordDocumentView]: a `.docx` checked by [ZipSafetyGuard] and
+/// parsed off the UI isolate, search within it, and the scroll position.
 ///
-/// The Word engine's view has no scroll-controller or initial-offset
-/// parameter, but its vertical scroll view has no controller of its own,
-/// so it adopts the nearest `PrimaryScrollController`. [WordDocumentView]
-/// provides [scrollController] that way, which is how the position is both
-/// restored ([onDocumentLoaded]) and reported ([onScrollOffsetChanged] →
-/// [onPositionChanged] as `{scroll_offset}`); saving it is the app's
-/// business.
+/// The position is reported through [onPositionChanged] as
+/// `{scroll_offset}`; saving it (and debouncing) is the app's business.
 class WordDocumentController extends ChangeNotifier {
   WordDocumentController({ReadingPosition? initialPosition, this.onPositionChanged})
       : initialScrollOffset = switch (initialPosition?[PositionKeys.scrollOffset]) {
@@ -23,65 +22,69 @@ class WordDocumentController extends ChangeNotifier {
           _ => 0,
         };
 
-  /// Where the document scrolls to once loaded. Settable until then, for an
+  /// Where the document scrolls to once shown. Settable until then, for an
   /// app that reads the saved position after creating the controller.
   double initialScrollOffset;
 
   final ValueChanged<ReadingPosition>? onPositionChanged;
 
-  final searchController = DocxSearchController();
+  final searchController = WordSearchController();
   final scrollController = ScrollController();
 
   bool _disposed = false;
 
+  bool _loaded = false;
+
+  /// True once [load] finished, successfully or not.
+  bool get isLoaded => _loaded;
+
   DocumentLoadError? _error;
   DocumentLoadError? get error => _error;
 
-  Uint8List? _bytes;
+  WordDocumentLayout? _layout;
 
-  /// The checked bytes [WordDocumentView] renders; null until [load]
-  /// accepts them.
-  Uint8List? get validatedBytes => _bytes;
+  /// The parsed document laid out for display; null until [load] succeeds.
+  WordDocumentLayout? get layout => _layout;
+  WordDocument? get document => _layout?.document;
 
-  /// Checks [bytes] with [ZipSafetyGuard] before the engine decompresses
-  /// anything.
-  void load(Uint8List bytes) {
+  /// Checks [bytes] with [ZipSafetyGuard], then parses them in a background
+  /// isolate.
+  Future<void> load(Uint8List bytes) async {
     switch (ZipSafetyGuard.check(bytes)) {
-      case ZipSafetyResult.safe:
-        _bytes = bytes;
       case ZipSafetyResult.tooLarge:
         _error = DocumentLoadError.tooLarge;
       case ZipSafetyResult.corrupted:
         _error = DocumentLoadError.corrupted;
+      case ZipSafetyResult.safe:
+        try {
+          final document = await Isolate.run(() => DocxReader.read(bytes));
+          if (_disposed) return;
+          final layout = WordDocumentLayout(document);
+          _layout = layout;
+          searchController.setParagraphs([for (final p in layout.paragraphs) p.plainText]);
+        } catch (_) {
+          _error = DocumentLoadError.corrupted;
+        }
     }
+    if (_disposed) return;
+    _loaded = true;
     notifyListeners();
   }
 
-  /// The engine's `onError`: the package passed the ZIP check but the
-  /// document itself couldn't be read.
-  void onLoadError(Object error) {
-    _error ??= DocumentLoadError.corrupted;
+  /// For a caller whose own read failed (e.g. the file vanished).
+  void rejectAsCorrupted() {
+    _error = DocumentLoadError.corrupted;
+    _loaded = true;
     notifyListeners();
   }
 
-  /// The engine's `onLoaded`: once laid out, jump to the saved offset
-  /// (clamped - the document may have changed).
-  void onDocumentLoaded() {
-    if (initialScrollOffset <= 0) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_disposed || !scrollController.hasClients) return;
-      final position = scrollController.position;
-      scrollController.jumpTo(initialScrollOffset.clamp(0.0, position.maxScrollExtent));
-    });
-  }
-
-  /// The view reports the document's own vertical scroll here.
+  /// The view reports the document's vertical scroll here.
   void onScrollOffsetChanged(double offset) => onPositionChanged?.call({PositionKeys.scrollOffset: offset});
 
   void search(String query) => searchController.search(query);
   void clearSearch() => searchController.clear();
-  void nextMatch() => searchController.nextMatch();
-  void previousMatch() => searchController.previousMatch();
+  void nextMatch() => searchController.next();
+  void previousMatch() => searchController.previous();
 
   @override
   void dispose() {

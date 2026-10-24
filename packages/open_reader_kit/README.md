@@ -35,14 +35,14 @@ For your own app bar, search UI or saving, use the controller and view for each 
 | Import | Controller | View |
 |---|---|---|
 | `package:open_reader_kit/pdf.dart` | `PdfDocumentController` (pages, layout, zoom, search, text-layer check) | `PdfDocumentView` |
-| `package:open_reader_kit/docx.dart` | `WordDocumentController` (search, scroll restore) | `WordDocumentView` |
+| `package:open_reader_kit/docx.dart` | `WordDocumentController` (parsed off the UI isolate; search, scroll restore) | `WordDocumentView` (lazy continuous view: styles, lists, tables with merges, images, links, headers/footers, footnotes/endnotes) |
 | `package:open_reader_kit/sheets.dart` | `SpreadsheetController` (.xlsx and CSV: sheets, hidden sheets, search, zoom, links) | `SheetGrid` (lazy 2D grid: file's column widths/row heights, hidden rows/columns, frozen panes, merged cells, text formatting; row/column selection with Count/Sum/Avg) |
 | `package:open_reader_kit/slides.dart` | `SlideDeckController` (.pptx: slides, search) | `SlideDeckView`, `SlideNavigationBar` |
 | `package:open_reader_kit/text.dart` | `TextDocumentController` (encoding, binary check, search) | `TextDocumentView` |
 
 Lower-level pieces:
 - `open_reader_kit.dart`: `DocumentFormat` (file type from extension, path or MIME type), `ZipSafetyGuard`, `decodeTextBytes`.
-- `docx_core.dart`: the Word engine's document model.
+- `word.dart`: the Word engine on its own (`DocxReader`, the `WordDocument` model).
 - `testing.dart`: `buildPptx` and `buildXlsx` for tests.
 
 ## Layout
@@ -53,7 +53,7 @@ Lower-level pieces:
 | `lib/src/pdf_reader/`, `word/`, `sheets/`, `slides/`, `text/` | The readers: controllers and views |
 | `lib/src/common/` | Format detection, ZIP safety, text decoding, reader conventions |
 | `lib/src/engines/pdf/` | PDF: `viewer/` widgets, `core/` document API, `pdfium/` FFI bindings, `pdfium_flutter/` loader |
-| `lib/src/engines/docx/` | Word: `viewer/` widgets, `core/` .docx parser/builder |
+| `lib/src/engines/word/` | Word (own engine): `.docx` reader, document model, styles and numbering |
 | `lib/src/engines/ooxml/` | Office package layer (own): ZIP parts and relationships, shared by the .xlsx and .pptx readers |
 | `lib/src/engines/sheets/` | Spreadsheets (own engine): `.xlsx` and CSV readers, workbook model, number formats |
 | `hook/` | Native-asset hooks: download PDFium (Android, Windows, Linux) and drop it on iOS |

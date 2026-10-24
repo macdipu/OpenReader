@@ -38,7 +38,7 @@ Each desktop target must be built on its own OS. `.github/workflows/release.yml`
 - **State management:** GetX
 - **Architecture:** Clean Architecture (presentation / domain / data per feature)
 - **Local storage:** sqflite (document index), shared_preferences, flutter_secure_storage
-- **Document rendering:** open_reader_kit (`packages/open_reader_kit`): its own Excel/CSV engine; PDF and Word engines from pdfrx and docx_file_viewer/docx_creator, being replaced (CR-OWN-ENGINES)
+- **Document rendering:** open_reader_kit (`packages/open_reader_kit`): its own Excel/CSV and Word engines; PDF engine from pdfrx, being replaced (CR-OWN-ENGINES)
 - **File integration:** open_filex (Open With), receive_sharing_intent (Open From Other Apps)
 - **Push notifications:** firebase_core / firebase_messaging (currently disabled — see `TODO` in `lib/app/flavours/app_flavour.dart`)
 

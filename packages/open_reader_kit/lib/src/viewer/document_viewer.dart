@@ -90,7 +90,7 @@ class _DocumentViewerState extends State<DocumentViewer> {
         case DocumentFormat.word:
           final word = WordDocumentController(initialPosition: at, onPositionChanged: report);
           controller = word;
-          word.load(await file.readAsBytes());
+          await word.load(await file.readAsBytes());
           error = word.error;
         case DocumentFormat.excel:
           final sheet = SpreadsheetController(initialPosition: at, onPositionChanged: report);

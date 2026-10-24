@@ -12,19 +12,17 @@ import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
-import 'package:open_reader_kit/docx_core.dart';
+import 'package:open_reader_kit/testing.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
-// docx_file_viewer's DOCX parsing (via its docx_creator dependency) and
-// document generation are both pure Dart with no native binary dependency
-// (unlike pdfrx's PDFium), so - unlike the PDF reader - a real .docx file can
-// actually be built, parsed, and rendered in this test environment. These
-// tests build one in setUp and use it throughout, instead of relying only on
-// fixtures the way the PDF reader's tests had to.
+// open_reader_kit's Word engine is pure Dart with no native binary (unlike
+// PDFium), so - unlike the PDF reader - a real .docx file can be built and
+// parsed in this test environment. These tests build one in setUp
+// (`buildDocx`) and use it throughout.
 
 class FixtureFavorites implements FavoriteRepository {
   @override
@@ -72,8 +70,8 @@ void main() {
   }
 
   setUpAll(() async {
-    // docx_creator's font embedding touches Flutter binding APIs during
-    // export; ensureInitialized keeps that safe outside a widget test.
+    // The kit's controller uses the binding (scroll controllers); keep it
+    // available outside widget tests.
     TestWidgetsFlutterBinding.ensureInitialized();
   });
 
@@ -81,8 +79,10 @@ void main() {
     Get.testMode = true;
     root = await Directory.systemTemp.createTemp('openreader-word-reader-');
 
-    final built = DocxDocumentBuilder().h1('Report Title').p('The quick brown fox jumps over the lazy dog.').build();
-    final bytes = await DocxExporter().exportToBytes(built);
+    final bytes = buildDocx(
+      '<w:p><w:r><w:t>Report Title</w:t></w:r></w:p>'
+      '<w:p><w:r><w:t>The quick brown fox jumps over the lazy dog.</w:t></w:r></w:p>',
+    );
     final file = File(p.join(root.path, 'report.docx'));
     await file.writeAsBytes(bytes);
 
@@ -191,16 +191,16 @@ void main() {
   });
 
   group('error handling', () {
-    test('onLoadError flips hasError', () {
+    test('a failed load flips hasError', () {
       expect(controller.hasError.value, isFalse);
-      controller.onLoadError(Exception('boom'));
+      controller.word.rejectAsCorrupted();
       expect(controller.hasError.value, isTrue);
     });
 
-    test('a valid docx passes the ZIP-safety guard and exposes validatedBytes', () async {
+    test('a valid docx passes the ZIP-safety guard and is parsed', () async {
       await loaded(controller);
       expect(controller.hasError.value, isFalse);
-      expect(controller.validatedBytes, isNotNull);
+      expect(controller.word.document, isNotNull);
     });
 
     // ODF-P5-04: a real password-protected .docx isn't a ZIP at all - Office
@@ -227,11 +227,11 @@ void main() {
       await loaded(encryptedController);
       expect(encryptedController.hasError.value, isTrue);
       expect(encryptedController.errorMessage.value, 'This document may be damaged or incomplete.');
-      expect(encryptedController.validatedBytes, isNull);
+      expect(encryptedController.word.document, isNull);
     });
 
     // ODF-P5-03: the ZIP-safety guard rejects an oversized declared
-    // uncompressed size before `docx_file_viewer` ever decompresses it.
+    // uncompressed size before the Word engine ever decompresses it.
     test('surfaces the too-large error for a document exceeding the ZIP-safety ceiling', () async {
       final archive = Archive()
         ..addFile(ArchiveFile(
@@ -284,13 +284,6 @@ void main() {
     });
   });
 
-  // A `testWidgets` case that actually pumps `DocxView` was attempted here
-  // and dropped: pumping it hangs indefinitely in this test environment even
-  // with search/zoom disabled (isolated to the widget itself - parsing the
-  // same file via `DocxReader.loadFromBytes` directly, with no widget
-  // involved, completes instantly). Root cause not identified within the
-  // time this investigation could reasonably take; treated as a real,
-  // documented gap (see the Phase 3 task doc) rather than chased further -
-  // real on-device rendering of `DocxView` remains a device-verification
-  // item, the same posture already taken for `pdfrx`'s native rendering.
+  // Rendering is covered in open_reader_kit's own widget tests
+  // (word_document_view_test.dart), which pump the real view.
 }
