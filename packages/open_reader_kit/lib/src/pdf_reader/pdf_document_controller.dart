@@ -149,15 +149,49 @@ class PdfDocumentController extends ChangeNotifier {
 
   _PdfViewHandle? _view;
 
+  /// The file open or being opened.
+  String? _path;
+  Future<void>? _opening;
+
   /// Opens [path], asking [passwordProvider] for a password (once per try)
   /// while the PDF wants one. Errors end up in [error].
-  Future<void> open(String path, {PdfPasswordProvider? passwordProvider}) async {
-    if (_document != null) return;
+  ///
+  /// Opening the file that's already open does nothing, and while it's
+  /// still opening returns the same future, so a rebuilt view can't open
+  /// (and leak) a second copy. Another file replaces the open one, which is
+  /// closed.
+  Future<void> open(String path, {PdfPasswordProvider? passwordProvider}) {
+    if (path == _path && (_document != null || _opening != null)) return _opening ?? Future.value();
+    if (_path != null && path != _path) _discardDocument();
+    _path = path;
+    late final Future<void> opening;
+    opening = _open(path, passwordProvider).whenComplete(() {
+      if (identical(_opening, opening)) _opening = null;
+    });
+    return _opening = opening;
+  }
+
+  /// Forgets the open document (and its search) for another file.
+  void _discardDocument() {
+    unawaited(_document?.close());
+    _document = null;
+    _error = null;
+    _pageCount = 0;
+    _hasTextLayer = null;
+    searchController._reset(null);
+    searchController.notifyListeners();
+    notifyListeners();
+  }
+
+  Future<void> _open(String path, PdfPasswordProvider? passwordProvider) async {
+    _error = null;
     String? password;
+    // Superseded by disposal or by another file opened meanwhile.
+    bool stale() => _disposed || _path != path;
     while (true) {
       try {
         final document = await PdfiumDocument.openFile(path, password: password);
-        if (_disposed) {
+        if (stale() || _document != null) {
           unawaited(document.close());
           return;
         }
@@ -167,18 +201,21 @@ class PdfDocumentController extends ChangeNotifier {
         _currentPage = _initialPage;
         break;
       } on PdfOpenException catch (e) {
+        if (stale()) return;
         if (e.error == PdfOpenError.password && passwordProvider != null) {
           password = await passwordProvider();
-          if (password != null && !_disposed) continue;
+          if (stale()) return;
+          if (password != null) continue;
         }
         _error = e;
         break;
       } catch (e) {
+        if (stale()) return;
         _error = e;
         break;
       }
     }
-    if (!_disposed) notifyListeners();
+    notifyListeners();
   }
 
   /// Applies a saved position: the page to open on and, when saved, the
