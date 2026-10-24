@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vector_math/vector_math_64.dart' show Quad;
 
+import '../engines/pdfium/pdf_engine.dart' show PdfRenderTask;
 import '../engines/pdfium/pdf_types.dart';
 import 'pdf_document_controller.dart';
 import 'pdf_image_cache.dart';
@@ -100,6 +101,13 @@ class _PdfDocumentViewState extends State<PdfDocumentView> with SingleTickerProv
         jumpToPage: _jumpToPage,
         showMatch: _showMatch,
       );
+      // The old controller's images and links don't belong to this one.
+      _onControllerChanged();
+    }
+    // A new controller or file has to be opened, or the view would wait on
+    // it forever. (Opening what's already open, or opening, is a no-op.)
+    if (oldWidget.controller != controller || oldWidget.path != widget.path) {
+      controller.open(widget.path, passwordProvider: widget.passwordProvider);
     }
   }
 
@@ -116,9 +124,10 @@ class _PdfDocumentViewState extends State<PdfDocumentView> with SingleTickerProv
 
   void _onControllerChanged() {
     final document = controller.document;
-    if (document != null && _cache?.document != document) {
+    if (_cache?.document != document) {
       _cache?.dispose();
-      _cache = PdfImageCache(document);
+      _cache = document == null ? null : PdfImageCache(document);
+      _links.clear();
     }
     if (mounted) setState(() {});
   }
@@ -155,6 +164,16 @@ class _PdfDocumentViewState extends State<PdfDocumentView> with SingleTickerProv
     _transform.value = Matrix4.identity()
       ..translateByDouble(-x * s, -y * s, 0, 1)
       ..scaleByDouble(s, s, 1, 1);
+  }
+
+  /// The spot being read in [layout] (the one in use): the current page and
+  /// where the view's top-left sits on it, as fractions of its size.
+  (int, Offset)? _anchorIn(PdfLayout layout) {
+    if (layout.pages.isEmpty) return null;
+    final visible = _visibleRect();
+    final page = layout.currentPage(visible, previous: controller.currentPage - 1);
+    final rect = layout.pages[page];
+    return (page, Offset((visible.left - rect.left) / rect.width, (visible.top - rect.top) / rect.height));
   }
 
   void _setZoom(double zoom, {Offset? focus}) {
@@ -363,16 +382,34 @@ class _PdfDocumentViewState extends State<PdfDocumentView> with SingleTickerProv
         final viewport = constraints.biggest;
         final key = (viewport, controller.viewMode, document);
         if (key != _layoutKey) {
-          final restoring = _layoutKey == null || (_layoutKey as (Size, PdfReaderViewMode, Object)).$2 != controller.viewMode;
+          final previous = _layoutKey as (Size, PdfReaderViewMode, Object)?;
+          final restoring = previous == null || previous.$2 != controller.viewMode || previous.$3 != document;
           final reading = restoring ? controller.initialPageNumber - 1 : controller.currentPage - 1;
-          _layout = PdfLayout(pageSizes: document.pageSizes, viewport: viewport, mode: controller.viewMode);
+          // Only the viewport changed (the keyboard or search bar opened,
+          // the window was resized): in continuous mode the reader stays
+          // where they were, at the same zoom, rather than being sent back
+          // to the top of the page at zoom 1. Pages only change width, so
+          // a spot on a page maps across by proportion.
+          final oldLayout = _layout;
+          final anchor =
+              !restoring && _positioned && oldLayout != null && !oldLayout.isHorizontal ? _anchorIn(oldLayout) : null;
+          final scale = _scale;
+          final fresh =
+              _layout = PdfLayout(pageSizes: document.pageSizes, viewport: viewport, mode: controller.viewMode);
           _layoutKey = key;
           _positioned = false;
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || _positioned) return;
+            // Only the latest layout's positioning applies.
+            if (!mounted || _positioned || !identical(_layout, fresh)) return;
             _positioned = true;
-            _transform.value = Matrix4.identity();
-            _jumpToPage(reading);
+            if (anchor != null && anchor.$1 < fresh.pages.length) {
+              final (index, spot) = anchor;
+              final page = fresh.pages[index];
+              _setTransform(scale, Offset(page.left + spot.dx * page.width, page.top + spot.dy * page.height));
+            } else {
+              _transform.value = Matrix4.identity();
+              _jumpToPage(reading);
+            }
             _scheduleUpdate();
           });
         }
@@ -570,44 +607,75 @@ class PdfPageThumbnail extends StatefulWidget {
 class _PdfPageThumbnailState extends State<PdfPageThumbnail> {
   ui.Image? _image;
   Object? _requested;
+  double _devicePixelRatio = 1;
+
+  /// The render under way. Cancelled when the thumbnail goes away or wants
+  /// something else, so a strip scrolled past (or a closing document)
+  /// doesn't leave renders queued in the worker.
+  PdfRenderTask? _task;
+
+  @override
+  void initState() {
+    super.initState();
+    // Built before the document is open, it renders once it is.
+    widget.controller.addListener(_load);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     _load();
   }
 
   @override
   void didUpdateWidget(PdfPageThumbnail oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_load);
+      widget.controller.addListener(_load);
+    }
     _load();
   }
 
   Future<void> _load() async {
     final document = widget.controller.document;
-    if (document == null) return;
-    final width = (widget.width * MediaQuery.devicePixelRatioOf(context)).round();
-    final key = (document, widget.pageNumber, width);
+    final width = (widget.width * _devicePixelRatio).round();
+    final key = document == null ? null : (document, widget.pageNumber, width);
     if (key == _requested) return;
     _requested = key;
+    _task?.cancel();
+    _task = null;
+    if (document == null) {
+      if (_image != null) {
+        setState(() {
+          _image?.dispose();
+          _image = null;
+        });
+      }
+      return;
+    }
+    final task = _task = document.renderThumbnailTask(widget.pageNumber - 1, width: width);
     try {
-      final rendered = await document.renderThumbnail(widget.pageNumber - 1, width: width);
-      final image = await rendered.toImage();
-      if (!mounted || _requested != key) {
+      final image = await (await task.result).toImage();
+      if (!mounted || !identical(_task, task)) {
         image.dispose();
         return;
       }
+      _task = null;
       setState(() {
         _image?.dispose();
         _image = image;
       });
     } catch (_) {
-      // A thumbnail is optional: the slot stays blank.
+      // Cancelled, or failed: a thumbnail is optional, the slot stays blank.
     }
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_load);
+    _task?.cancel();
     _image?.dispose();
     super.dispose();
   }
