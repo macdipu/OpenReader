@@ -67,6 +67,10 @@ class WordReaderController extends BaseController {
   ReadingPosition? _lastKnownPosition;
   Timer? _positionSaveDebounce;
 
+  /// Set by [onClose]: the initial load may still be awaiting the saved
+  /// position or the file, and mustn't then use the disposed [word].
+  bool _closed = false;
+
   @override
   void onInit() {
     super.onInit();
@@ -76,13 +80,18 @@ class WordReaderController extends BaseController {
   Future<void> _loadInitialPosition() async {
     status.value = StateStatus.loading;
     final result = await _recentRepository.getPosition(document.id);
+    if (_closed) return;
     result.fold((_) {}, word.restore);
     isPaged.value = word.viewMode == WordViewMode.paged;
     try {
-      await word.load(await File(document.path).readAsBytes());
+      final bytes = await File(document.path).readAsBytes();
+      if (_closed) return;
+      await word.load(bytes);
     } catch (_) {
+      if (_closed) return;
       word.rejectAsCorrupted();
     }
+    if (_closed) return;
     status.value = StateStatus.success;
   }
 
@@ -117,6 +126,7 @@ class WordReaderController extends BaseController {
 
   @override
   void onClose() {
+    _closed = true;
     _positionSaveDebounce?.cancel();
     final last = _lastKnownPosition;
     _interactions.readerClosedAfter(last == null ? null : _savePosition(last));
