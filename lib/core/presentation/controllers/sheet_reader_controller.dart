@@ -37,6 +37,10 @@ abstract class SheetReaderController extends BaseController {
   /// Created in [onInit] with the saved position.
   SpreadsheetController get sheet => _sheet!;
 
+  /// The sheet once it's on screen, for the reader menu's Go to and Freeze
+  /// header row; null while loading or after a failure.
+  SpreadsheetController? get loadedSheet => status.value == StateStatus.success ? _sheet : null;
+
   final isSearching = false.obs;
 
   // Mirrors of the kit's state, for Obx widgets and tests.

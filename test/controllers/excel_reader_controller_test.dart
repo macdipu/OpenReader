@@ -308,6 +308,24 @@ void main() {
       });
     });
 
+    test('a frozen header row is saved and restored (reader menu)', () async {
+      expect(controller.loadedSheet, isNull, reason: 'no menu actions before the sheet loads');
+      await loaded(controller);
+      controller.loadedSheet!.freezeTopRow = true;
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition?['freeze_top_row'], isTrue);
+
+      recents.position = {'sheet_index': 0, 'freeze_top_row': true};
+      final reopened = await loaded(ExcelReaderController(
+        document: document,
+        recentRepository: recents,
+        interactions: interactions,
+      ));
+      expect(reopened.loadedSheet!.freezeTopRow, isTrue);
+      expect(reopened.loadedSheet!.geometry.frozenRowCount, 1);
+    });
+
     test('onClose with detached scroll views keeps the restored offsets, not zero (P2r1-review #2)', () async {
       recents.position = {'sheet_index': 0, 'vertical_offset': 300.0, 'horizontal_offset': 120.0};
       await loaded(controller);

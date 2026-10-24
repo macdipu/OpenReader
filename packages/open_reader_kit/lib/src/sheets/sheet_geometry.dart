@@ -9,7 +9,9 @@ import '../engines/sheets/workbook.dart';
 /// screen). Lookups by offset are binary searches over prefix sums, so they
 /// stay cheap on large sheets.
 class SheetGeometry {
-  SheetGeometry(Worksheet sheet, {required int rowCount, required int columnCount})
+  /// [minFrozenRows] freezes at least that many top rows, on top of what
+  /// the file froze (a reader's "freeze header row").
+  SheetGeometry(Worksheet sheet, {required int rowCount, required int columnCount, int minFrozenRows = 0})
       : visibleRows = [
           for (var r = 0; r < rowCount; r++)
             if (!sheet.layout.hiddenRows.contains(r)) r,
@@ -20,7 +22,8 @@ class SheetGeometry {
         ] {
     _rowStarts = _prefixSums([for (final r in visibleRows) rowHeightOf(sheet.layout.rowHeight(r))]);
     _columnStarts = _prefixSums([for (final c in visibleColumns) columnWidthOf(sheet.layout.columnWidth(c))]);
-    frozenRowCount = visibleRows.where((r) => r < sheet.frozenRows).length;
+    final frozenRows = sheet.frozenRows > minFrozenRows ? sheet.frozenRows : minFrozenRows;
+    frozenRowCount = visibleRows.where((r) => r < frozenRows).length;
     frozenColumnCount = visibleColumns.where((c) => c < sheet.frozenColumns).length;
   }
 

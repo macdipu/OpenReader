@@ -39,6 +39,10 @@ abstract final class PositionKeys {
   static const horizontalOffset = 'horizontal_offset';
   static const row = 'row';
   static const column = 'column';
+
+  /// Excel, CSV: the reader froze the header row itself (`true`), for a
+  /// sheet whose file froze none.
+  static const freezeTopRow = 'freeze_top_row';
   // PowerPoint
   static const slideIndex = 'slide_index';
   static const slideCount = 'slide_count';
