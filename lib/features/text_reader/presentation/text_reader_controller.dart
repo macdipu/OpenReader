@@ -39,7 +39,9 @@ class TextReaderController extends BaseController {
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>(),
         _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl() {
-    textDocument = TextDocumentController(onPositionChanged: (p) => onScrolled(p[PositionKeys.scrollOffset]! as double))
+    textDocument = TextDocumentController(
+      onPositionChanged: (p) => onScrolled(p[PositionKeys.scrollOffset]! as double, line: p[PositionKeys.line] as int?),
+    )
       ..addListener(_mirrorSearch);
   }
 
@@ -73,6 +75,10 @@ class TextReaderController extends BaseController {
   /// the list has detached from [scrollController], so reading it then lost
   /// any scrolling since the last debounced save (P2r1-review #2).
   double _lastScrollOffset = 0;
+
+  /// The top line reported with [_lastScrollOffset], saved with it for the
+  /// resumed-page thumbnail.
+  int? _lastLine;
 
   /// Whether the user scrolled this session, so a close saves even a
   /// return to the very top (offset 0) over an older saved position.
@@ -112,6 +118,7 @@ class TextReaderController extends BaseController {
         final offset = position[PositionKeys.scrollOffset];
         if (offset is num && offset > 0) {
           textDocument.initialScrollOffset = _lastScrollOffset = offset.toDouble();
+          if (position[PositionKeys.line] case final int line) _lastLine = line;
         }
       });
 
@@ -143,15 +150,18 @@ class TextReaderController extends BaseController {
   /// itself) so the debounce logic is testable without a real attached
   /// `Scrollable`, the same shape the Word reader's scroll reporting
   /// and the Excel/CSV readers' `onScrolled` use.
-  void onScrolled(double offset) {
+  void onScrolled(double offset, {int? line}) {
     _lastScrollOffset = offset;
+    _lastLine = line;
     _scrolledThisSession = true;
     _positionSaveDebounce?.cancel();
-    _positionSaveDebounce = Timer(const Duration(seconds: 2), () => _savePosition(offset));
+    _positionSaveDebounce = Timer(const Duration(seconds: 2), () => _savePosition(offset, line));
   }
 
-  Future<void> _savePosition(double offset) =>
-      _recentRepository.markOpened(document.id, readingPosition: {PositionKeys.scrollOffset: offset});
+  Future<void> _savePosition(double offset, int? line) => _recentRepository.markOpened(
+        document.id,
+        readingPosition: {PositionKeys.scrollOffset: offset, if (line != null) PositionKeys.line: line},
+      );
 
   static const double minFontSize = 10;
   static const double maxFontSize = 32;
@@ -191,7 +201,7 @@ class TextReaderController extends BaseController {
   void onClose() {
     _positionSaveDebounce?.cancel();
     final save = _scrolledThisSession || _lastScrollOffset > 0;
-    _interactions.readerClosedAfter(save ? _savePosition(_lastScrollOffset) : null);
+    _interactions.readerClosedAfter(save ? _savePosition(_lastScrollOffset, _lastLine) : null);
     textDocument.dispose();
     super.onClose();
   }

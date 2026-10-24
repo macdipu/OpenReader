@@ -111,6 +111,102 @@ void main() {
     expect(await renderSize(text, sample: 'text.png'), (160, 227));
   });
 
+  group('resumed: the page a saved position is on', () {
+    /// [path]'s thumbnail at [position], which must differ from its first
+    /// page's; a position past the end of the file must give the first.
+    Future<void> expectResumed(String path, ReadingPosition position, ReadingPosition pastTheEnd) async {
+      final first = await DocumentThumbnails.render(path, width: 160);
+      final resumed = await DocumentThumbnails.render(path, width: 160, position: position);
+      expect(first, isNotNull, reason: path);
+      expect(resumed, isNotNull, reason: path);
+      expect(resumed, isNot(first), reason: '$path at $position');
+      expect(await DocumentThumbnails.render(path, width: 160, position: pastTheEnd), first, reason: '$path at $pastTheEnd');
+    }
+
+    test('PDF: the saved page', () async {
+      await expectResumed(
+        'test/fixtures/pdf/features.pdf',
+        {PositionKeys.pageNumber: 3, PositionKeys.pageCount: 4},
+        {PositionKeys.pageNumber: 99},
+      );
+    });
+
+    test('PowerPoint: the saved slide', () async {
+      final deck = file('resume.pptx', buildPptx([titleShape('One'), titleShape('Second slide, a longer title')]));
+      await expectResumed(deck, {PositionKeys.slideIndex: 1}, {PositionKeys.slideIndex: 5});
+    });
+
+    test('Excel and CSV: the saved sheet from its saved top-left cell', () async {
+      final workbook = file(
+        'resume.xlsx',
+        buildXlsx([
+          const XlsxTestSheet('First', {'A1': 'a'}),
+          const XlsxTestSheet('Second', {'A1': XlsxTestCell('Total', bold: true, fill: 'FFC000')}),
+        ]),
+      );
+      await expectResumed(workbook, {PositionKeys.sheetIndex: 1}, {PositionKeys.sheetIndex: 7});
+      final far = file(
+        'far.xlsx',
+        buildXlsx([
+          const XlsxTestSheet('Only', {'A1': 'a', 'D60': XlsxTestCell('Here', fill: 'FFC000')}),
+        ]),
+      );
+      final top = await DocumentThumbnails.render(far, width: 160);
+      final scrolled = await DocumentThumbnails.render(
+        far,
+        width: 160,
+        position: {PositionKeys.sheetIndex: 0, PositionKeys.row: 55, PositionKeys.column: 2},
+      );
+      expect(scrolled, isNot(top));
+
+      final csv = file('resume.csv', [
+        for (var i = 1; i <= 300; i++) ...(i < 200 ? 'a,b\n' : 'a much longer cell,another long one,third\n').codeUnits,
+      ]);
+      final csvTop = await DocumentThumbnails.render(csv, width: 160);
+      final csvResumed = await DocumentThumbnails.render(csv, width: 160, position: {PositionKeys.row: 250});
+      expect(csvResumed, isNotNull);
+      expect(csvResumed, isNot(csvTop));
+    });
+
+    test('Word: the print-layout page holding the saved paragraph', () async {
+      // 120 short paragraphs fill a few pages; the long ones after them
+      // look different from page 1.
+      final body = StringBuffer();
+      for (var i = 0; i < 120; i++) {
+        body.write('<w:p><w:r><w:t>Short $i</w:t></w:r></w:p>');
+      }
+      for (var i = 0; i < 40; i++) {
+        body.write('<w:p><w:r><w:t>${'A much longer paragraph that wraps over several lines. ' * 4}</w:t></w:r></w:p>');
+      }
+      final document = file('resume.docx', buildDocx(body.toString()));
+      await expectResumed(document, {PositionKeys.paragraph: 130}, {PositionKeys.paragraph: 10000});
+      // Saved before paragraphs were reported: page 1.
+      expect(
+        await DocumentThumbnails.render(document, width: 160, position: {PositionKeys.scrollOffset: 900.0}),
+        await DocumentThumbnails.render(document, width: 160),
+      );
+    });
+
+    test('Word: past how far it paginates, the page starting at the paragraph', () async {
+      final body = StringBuffer();
+      for (var i = 0; i < 1300; i++) {
+        body.write('<w:p><w:r><w:t>${i < 1200 ? 'Short $i' : 'A much longer paragraph that wraps over several lines. ' * 4}</w:t></w:r></w:p>');
+      }
+      final document = file('long.docx', buildDocx(body.toString()));
+      final first = await DocumentThumbnails.render(document, width: 160);
+      final resumed = await DocumentThumbnails.render(document, width: 160, position: {PositionKeys.paragraph: 1250});
+      expect(resumed, isNotNull);
+      expect(resumed, isNot(first));
+    });
+
+    test('Text: the lines from the saved one on', () async {
+      final text = file('resume.txt', [
+        for (var i = 1; i <= 2000; i++) ...(i < 1500 ? 'Short $i\n' : 'A much longer line that wraps on the page, line $i.\n').codeUnits,
+      ]);
+      await expectResumed(text, {PositionKeys.line: 1600, PositionKeys.scrollOffset: 32000.0}, {PositionKeys.line: 99999});
+    });
+  });
+
   group('null, never an error, when there is nothing to show', () {
     test('damaged, password-protected and missing files', () async {
       expect(await DocumentThumbnails.render('test/fixtures/pdf/broken.pdf', width: 160), isNull);

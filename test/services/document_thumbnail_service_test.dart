@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
@@ -46,7 +47,7 @@ void main() {
     final rendered = <String>[];
     DocumentThumbnailService service() => DocumentThumbnailService.withDependencies(
           pathService: _FakePathService(temp),
-          render: (path, {required width}) async {
+          render: (path, {required width, position}) async {
             rendered.add('$path@$width');
             return Uint8List.fromList([1, 2, 3]);
           },
@@ -68,7 +69,7 @@ void main() {
     var renders = 0;
     final service = DocumentThumbnailService.withDependencies(
       pathService: _FakePathService(temp),
-      render: (path, {required width}) async {
+      render: (path, {required width, position}) async {
         renders++;
         return Uint8List.fromList([1]);
       },
@@ -78,16 +79,43 @@ void main() {
     expect(renders, 1);
   });
 
+  test('a reading position draws its page, cached per page rather than per scroll', () async {
+    final rendered = <ReadingPosition?>[];
+    final service = DocumentThumbnailService.withDependencies(
+      pathService: _FakePathService(temp),
+      render: (path, {required width, position}) async {
+        rendered.add(position);
+        return Uint8List.fromList([rendered.length]);
+      },
+    );
+    final document = _document('/docs/report.pdf');
+
+    final first = await service.getThumbnail(document);
+    final page3 = await service.getThumbnail(
+      document,
+      position: {PositionKeys.pageNumber: 3, PositionKeys.pageCount: 9, PositionKeys.zoom: 1.5},
+    );
+    // Same page, another zoom: the cached picture.
+    final page3Again = await service.getThumbnail(document, position: {PositionKeys.pageNumber: 3, PositionKeys.zoom: 2.0});
+    // Only scroll offsets saved (an older position): the first page.
+    final offsetOnly = await service.getThumbnail(document, position: {PositionKeys.scrollOffset: 400.0});
+
+    expect(rendered, [null, {PositionKeys.pageNumber: 3}]);
+    expect(page3!.path, isNot(first!.path));
+    expect(page3Again!.path, page3.path);
+    expect(offsetOnly!.path, first.path);
+  });
+
   test('null when the kit has no preview or rendering fails', () async {
     final none = DocumentThumbnailService.withDependencies(
       pathService: _FakePathService(temp),
-      render: (path, {required width}) async => null,
+      render: (path, {required width, position}) async => null,
     );
     expect(await none.getThumbnail(_document('/docs/broken.xlsx')), isNull);
 
     final failing = DocumentThumbnailService.withDependencies(
       pathService: _FakePathService(temp),
-      render: (path, {required width}) async => throw StateError('boom'),
+      render: (path, {required width, position}) async => throw StateError('boom'),
     );
     expect(await failing.getThumbnail(_document('/docs/notes.txt')), isNull);
   });

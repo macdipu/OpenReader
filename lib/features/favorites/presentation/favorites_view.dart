@@ -187,6 +187,7 @@ class _HistoryTab extends StatelessWidget {
                       onRemoveFromRecent: () => controller.removeOne(recent.document.id),
                       trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                       progress: recent.progress,
+                      readingPosition: recent.readingPosition,
                     ));
               },
             );

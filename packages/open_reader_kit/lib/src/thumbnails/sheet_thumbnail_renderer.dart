@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../common/reader_contract.dart';
 import '../common/text_decoding.dart';
 import '../engines/sheets/csv_reader.dart';
 import '../engines/sheets/workbook.dart';
@@ -15,9 +16,12 @@ import 'thumbnail_sources.dart';
 
 /// The top-left corner of a spreadsheet's first visible sheet as a small
 /// grid on a portrait card, like the sheet reader's: column letters, row
-/// numbers, cell text with its fill, colour, bold and italic. Excel files
-/// pass [ZipSafetyGuard]; a CSV the reader would refuse (too large) gets no
-/// thumbnail, and only its first lines are read.
+/// numbers, cell text with its fill, colour, bold and italic. With a saved
+/// position, the saved sheet (`sheet_index`, among the sheets the reader
+/// shows) from its saved top-left cell (`row`, `column`) instead. Excel
+/// files pass [ZipSafetyGuard]; a CSV the reader would refuse (too large)
+/// gets no thumbnail, and only its first lines are read unless the saved
+/// row is below the first.
 class SheetThumbnailRenderer implements ThumbnailRenderer {
   const SheetThumbnailRenderer.xlsx() : _csv = false;
   const SheetThumbnailRenderer.csv() : _csv = true;
@@ -28,19 +32,40 @@ class SheetThumbnailRenderer implements ThumbnailRenderer {
   static const Size _card = Size(420, 560);
 
   @override
-  Future<ui.Image?> render(String path, {required int width}) async {
-    final corner = _csv ? await _csvCorner(path) : await parseOfficeFile(path, _xlsxCorner);
+  Future<ui.Image?> render(String path, {required int width, ReadingPosition? position}) async {
+    final at = SheetPosition(
+      sheet: positionIndex(position, PositionKeys.sheetIndex) ?? 0,
+      row: positionIndex(position, PositionKeys.row) ?? 0,
+      column: positionIndex(position, PositionKeys.column) ?? 0,
+    );
+    final corner = _csv ? await _csvCorner(path, at) : await parseOfficeFile(path, (bytes) => _xlsxCorner(bytes, at));
     if (corner == null) return null;
     return renderOffscreen(_SheetCornerView(corner), size: _card, width: width);
   }
 
-  static Future<SheetCorner?> _csvCorner(String path) async {
+  static Future<SheetCorner?> _csvCorner(String path, SheetPosition at) async {
+    SheetCorner? corner(Uint8List bytes) => SheetCorner.of(CsvReader.read(decodeTextBytes(bytes)), at: at);
+    // A corner further down than the first row needs the whole file: the
+    // head may not reach it.
+    if (at.row > 0) {
+      return parseTextFile<SheetCorner?>(path, maxBytes: SpreadsheetController.maxCsvBytes, parse: corner);
+    }
     final head = await readTextHead(path, maxBytes: SpreadsheetController.maxCsvBytes);
     if (head == null) return null;
-    return Isolate.run(() => SheetCorner.of(CsvReader.read(decodeTextBytes(head))));
+    return Isolate.run(() => corner(head));
   }
 
-  static SheetCorner? _xlsxCorner(Uint8List bytes) => SheetCorner.of(XlsxReader.read(bytes));
+  static SheetCorner? _xlsxCorner(Uint8List bytes, SheetPosition at) => SheetCorner.of(XlsxReader.read(bytes), at: at);
+}
+
+/// Where a sheet thumbnail starts: a sheet among those the reader shows,
+/// and the zero-based row and column at its top left.
+class SheetPosition {
+  const SheetPosition({this.sheet = 0, this.row = 0, this.column = 0});
+
+  final int sheet;
+  final int row;
+  final int column;
 }
 
 /// The cells of a sheet that fit on the thumbnail card - all that comes
@@ -69,16 +94,22 @@ class SheetCorner {
   static const double rowHeaderWidth = 30;
   static const double headerHeight = 20;
 
-  /// The first visible sheet's top-left corner, as much of it as fills
-  /// [SheetThumbnailRenderer]'s card; null without a visible sheet.
-  static SheetCorner? of(Workbook workbook) {
-    final sheet = workbook.sheets.where((s) => s.visibility == SheetVisibility.visible).firstOrNull;
-    if (sheet == null) return null;
+  /// The corner of a sheet at [at], as much of it as fills
+  /// [SheetThumbnailRenderer]'s card. The sheet is counted as the reader
+  /// counts them - the visible ones, or all when none is visible - and is
+  /// the first sheet's top left when [at] names none of them. Null without
+  /// a sheet.
+  static SheetCorner? of(Workbook workbook, {SheetPosition at = const SheetPosition()}) {
+    final visible = workbook.sheets.where((s) => s.visibility == SheetVisibility.visible).toList();
+    final shown = visible.isEmpty ? workbook.sheets : visible;
+    if (shown.isEmpty) return null;
+    if (at.sheet >= shown.length) at = const SheetPosition();
+    final sheet = shown[at.sheet];
     final layout = sheet.layout;
     final columns = <int>[];
     final columnWidths = <double>[];
     var x = rowHeaderWidth;
-    for (var c = 0; x < SheetThumbnailRenderer._card.width && c < 100; c++) {
+    for (var c = at.column; x < SheetThumbnailRenderer._card.width && c < at.column + 100; c++) {
       if (layout.hiddenColumns.contains(c)) continue;
       final characters = layout.columnWidth(c);
       if (characters <= 0) continue;
@@ -90,7 +121,7 @@ class SheetCorner {
     final rows = <int>[];
     final rowHeights = <double>[];
     var y = headerHeight;
-    for (var r = 0; y < SheetThumbnailRenderer._card.height && r < 200; r++) {
+    for (var r = at.row; y < SheetThumbnailRenderer._card.height && r < at.row + 200; r++) {
       if (layout.hiddenRows.contains(r)) continue;
       final points = layout.rowHeight(r);
       if (points <= 0) continue;

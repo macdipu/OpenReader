@@ -32,3 +32,11 @@ Future<Uint8List?> readTextHead(String path, {required int maxBytes, int headByt
     await handle.close();
   }
 }
+
+/// Reads the whole text file at [path] and [parse]s it in a background
+/// isolate - for a page past the head [readTextHead] reads - so only
+/// [parse]'s result crosses back. Null for a file over [maxBytes].
+Future<T?> parseTextFile<T>(String path, {required int maxBytes, required T Function(Uint8List bytes) parse}) async {
+  if (await File(path).length() > maxBytes) return null;
+  return Isolate.run(() => parse(File(path).readAsBytesSync()));
+}

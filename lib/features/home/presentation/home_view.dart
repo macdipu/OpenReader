@@ -149,6 +149,7 @@ class HomeView extends GetView<HomeController> {
                           },
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                         progress: recent.progress,
+                        readingPosition: recent.readingPosition,
                       )),
               ] else
                 _EmptyState(
@@ -207,8 +208,6 @@ class _ContinueReadingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final document = recent.document;
-    final accent = document.category.accentColor(context);
-    final tint = document.category.tintColor(context);
 
     return InkWell(
       onTap: onTap,
@@ -224,21 +223,28 @@ class _ContinueReadingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(6)),
-              child: Icon(document.category.icon, size: 16, color: accent),
-            ),
-            const SizedBox(height: 10),
-            Text(document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.titleSmall),
-            const SizedBox(height: 2),
-            Text(
-              '${document.category.label} • ${formatFileSize(document.sizeBytes)}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
+            Row(
+              children: [
+                // The page reading resumes on.
+                DocumentThumbnail(document: document, size: 44, readingPosition: recent.readingPosition),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.titleSmall),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${document.category.label} • ${formatFileSize(document.sizeBytes)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             const Spacer(),
             if (recent.progress case final progress?) ...[

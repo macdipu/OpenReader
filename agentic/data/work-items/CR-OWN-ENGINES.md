@@ -247,24 +247,40 @@ Fixes:
   - **Emulator:** list thumbnails show for .docx (page 1 with its table), .xlsx (grid with fills), .pdf, .pptx (slide 1) and .txt.
 - **This covers E3 (done), the thumbnails request (done) and E4** (dependency pruning, analyzer clean, no upstream engine names left in code).
 
+## Resumed-page thumbnails: done (2026-10-24)
+User request: "for resume, show thumbnail resumed page".
+- **Kit:**
+  - `DocumentThumbnails.render(path, width:, position:)` draws the page a saved `ReadingPosition` is on. A position that doesn't fit the file, or one without these keys, gives page 1.
+    - **PDF:** `page_number`.
+    - **PowerPoint:** `slide_index`.
+    - **Excel/CSV:** `sheet_index` (counted among the sheets the reader shows), from `row`/`column` at the top left. A CSV with a saved row below the first is read whole, in an isolate, within the 20 MB ceiling.
+    - **Word:** the print-layout page where the saved `paragraph` starts. It paginates at most 1,000 body blocks before that paragraph; past that, it shows a page starting at the paragraph's block, in that paragraph's section. A header or note paragraph gives page 1.
+    - **Text:** the lines from the saved `line` on (the whole file is read when the line is past the first).
+  - **New position keys:** `PositionKeys.paragraph` (Word) and `PositionKeys.line` (Text).
+    - **Word:** the view finds the top paragraph after the frame that follows a scroll's end, then reports the position again.
+    - **Text:** the view sets `lineAtOffsetResolver` (`TextLineMetrics.lineAt`).
+  - **Tests:** 9 new, so 129 in all, passing.
+    - per-format resumed thumbnails, including the Word fallback past 1,000 blocks
+    - `lineAt`
+    - the Word view reporting the top paragraph
+  - I looked at Roboto samples of the Word, text and sheet thumbnails, and each showed the expected page.
+- **App:**
+  - `DocumentThumbnailService.getThumbnail(document, position:)`. The cache key and the in-flight key include only the keys that pick the page, so scrolling within a page doesn't redraw it. The key without a position is unchanged, so existing cached files stay valid.
+  - `DocumentThumbnail` is now a public widget. The Continue Reading cards show it, in place of the format icon, beside the title.
+  - Home's recent rows and the History tab pass `readingPosition` to `DocumentListTile`.
+  - The text reader saves `line` along with `scroll_offset`.
+  - **Tests:** 216 in all (3 new, plus a check on the Home card), all passing. The only analyzer warning is the old `settings_view` one.
+- **Not done:**
+  - checked on the emulator (Pixel_4a): the text card showed the lines the reader had at the top (L39x), and the Word card the page holding paragraph 78
+  - thumbnails of earlier pages stay in the temp cache, and the OS clears them
+  - Word and text positions saved before this change have no paragraph or line, so they show page 1 until the document is read again
+
 ## NEXT STEPS (updated 2026-10-24)
 1. **E5, repo split and pub.dev.**
    - **Done:** the licence is **MIT** (`LICENSE` added on 2026-10-24) and the README licence section is updated.
    - **Waits on the user:** run `gh auth login`, and have rights to create `chowdhuryelab/open_reader_kit` (fresh start).
    - Then: README `<repo-url>`; pubspec `homepage`/`repository`/`topics` with `publish_to: none` removed; `dart pub publish --dry-run`; push the kit to the new repo; switch the app to a git dependency. The publish itself needs release approval.
-2. **NEXT PHASE (user's request, 2026-10-24): thumbnails show the resumed page.** "for resume, show thumbnail resumed page". The user asked to do it in the next phase.
-   - **Kit:** `DocumentThumbnails.render(path, width:, position:)`, with each renderer drawing the page at the saved `ReadingPosition`:
-     - **PDF:** `page_number`
-     - **PowerPoint:** `slide_index`
-     - **Excel/CSV:** `sheet_index`, plus `row`/`column` as the grid's top-left
-     - **Word:** add the top visible paragraph number to the Word position the view reports, then show the print-layout page containing it; long documents need a cap on how far to paginate
-     - **Text:** add the top visible line to the text position (via `lineOffsetResolver`), then show the page starting at that line
-   - **App:**
-     - `DocumentThumbnailService.getThumbnail(document, position:)`, with the position fingerprint in both the cache key and the in-flight key
-     - the Continue Reading cards on Home get a resumed-page thumbnail; today they show an icon
-     - `DocumentListTile` takes an optional `readingPosition`, which Home passes for recent documents
-   - Tests per format.
-   - The design was sketched in-session; no code yet.
+2. **Resumed-page thumbnails: done** (see the section above). Checked on the Pixel_4a emulator: the PDF, text and Word cards and rows show the resumed page.
 3. **REVIEW, QA and RELEASE** for run `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF`. The release approval is the user's.
 4. **Optional follow-ups:**
    - `DocumentViewer` maps PDF password failures to `corrupted`; it could pass `passwordRequired` through.

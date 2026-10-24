@@ -52,6 +52,28 @@ void main() {
     expect(tester.getTopLeft(find.textContaining('Line 250', findRichText: true)).dy, lessThan(600));
   });
 
+  testWidgets('reports the paragraph at the top once a scroll settles', (tester) async {
+    final reported = <ReadingPosition>[];
+    final controller = WordDocumentController(onPositionChanged: reported.add);
+    addTearDown(controller.dispose);
+    await tester.runAsync(
+      () => controller.load(buildDocx([for (var i = 0; i < 300; i++) '<w:p><w:r><w:t>Line $i</w:t></w:r></w:p>'].join())),
+    );
+    await pumpView(tester, controller);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -1500));
+    await tester.pumpAndSettle();
+    final last = reported.last;
+    expect(last[PositionKeys.viewMode], 'continuous');
+    final paragraph = last[PositionKeys.paragraph]! as int;
+    expect(paragraph, greaterThan(20));
+    // The first paragraph still showing at the top: the one before it has
+    // scrolled off.
+    final top = tester.getTopLeft(find.byType(WordDocumentView)).dy;
+    expect(tester.getBottomLeft(find.textContaining('Line $paragraph', findRichText: true)).dy, greaterThan(top));
+    final previous = find.textContaining('Line ${paragraph - 1}', findRichText: true);
+    if (previous.evaluate().isNotEmpty) expect(tester.getBottomLeft(previous).dy, lessThanOrEqualTo(top));
+  });
+
   testWidgets('a note mark opens the note', (tester) async {
     final controller = await load(
       tester,

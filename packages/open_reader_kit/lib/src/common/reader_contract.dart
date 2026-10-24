@@ -25,6 +25,14 @@ abstract final class PositionKeys {
   static const viewMode = 'view_mode'; // also Word: continuous/paged
   // Word, Text
   static const scrollOffset = 'scroll_offset';
+
+  /// Word: the number of the paragraph at the top of the view, in the
+  /// reading order of `WordDocumentLayout` (for a resumed-page thumbnail;
+  /// the offset is what the reader restores).
+  static const paragraph = 'paragraph';
+
+  /// Text: the zero-based line at the top of the view.
+  static const line = 'line';
   // Excel, CSV
   static const sheetIndex = 'sheet_index';
   static const verticalOffset = 'vertical_offset';

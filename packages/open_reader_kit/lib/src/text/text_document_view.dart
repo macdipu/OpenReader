@@ -41,6 +41,7 @@ class _TextDocumentViewState extends State<TextDocumentView> {
   void dispose() {
     widget.controller.scrollController.removeListener(_onScroll);
     widget.controller.lineOffsetResolver = null;
+    widget.controller.lineAtOffsetResolver = null;
     super.dispose();
   }
 
@@ -70,7 +71,9 @@ class _TextDocumentViewState extends State<TextDocumentView> {
         verticalPadding: _rowPadding.vertical,
       );
     }
-    widget.controller.lineOffsetResolver = _metrics!.offsetOf;
+    widget.controller
+      ..lineOffsetResolver = _metrics!.offsetOf
+      ..lineAtOffsetResolver = _metrics!.lineAt;
   }
 
   @override

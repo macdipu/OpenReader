@@ -42,6 +42,10 @@ class _WordDocumentViewState extends State<WordDocumentView> {
   final _itemHeights = <int, double>{};
   int? _lastMatchKey;
   bool _restored = false;
+
+  /// The paragraph at the top when scrolling last settled; see
+  /// [_reportTopParagraph].
+  int? _readingParagraph;
   late WordViewMode _mode;
 
   WordPagination? _pagination;
@@ -111,6 +115,21 @@ class _WordDocumentViewState extends State<WordDocumentView> {
       }
     });
     return best;
+  }
+
+  /// Once a scroll settles, finds the paragraph at the top - after the
+  /// next layout, which puts the paragraphs where the scroll left them - and
+  /// reports the position again with it. Finding it walks the built
+  /// paragraphs, so reports during a scroll carry the last one found.
+  void _reportTopParagraph() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !controller.scrollController.hasClients) return;
+      final paragraph = _topParagraph();
+      if (paragraph == null || paragraph == _readingParagraph) return;
+      _readingParagraph = paragraph;
+      controller.onScrollOffsetChanged(controller.scrollController.offset, topParagraph: paragraph);
+    });
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   /// How much a box is scaled on screen (pages are drawn scaled down).
@@ -261,7 +280,8 @@ class _WordDocumentViewState extends State<WordDocumentView> {
         // sideways inside it.
         onNotification: (notification) {
           if (notification.depth == 0 && notification.metrics.axis == Axis.vertical && _restored) {
-            controller.onScrollOffsetChanged(notification.metrics.pixels);
+            controller.onScrollOffsetChanged(notification.metrics.pixels, topParagraph: _readingParagraph);
+            if (notification is ScrollEndNotification) _reportTopParagraph();
           }
           return false;
         },

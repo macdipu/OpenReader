@@ -41,6 +41,10 @@ class DocumentListTile extends StatelessWidget {
   /// row (Home / Favorites / Search).
   final bool dense;
 
+  /// The saved reading position, for a recent document: the thumbnail then
+  /// shows the page reading resumes on instead of the first.
+  final Map<String, Object?>? readingPosition;
+
   const DocumentListTile({
     super.key,
     required this.document,
@@ -57,12 +61,11 @@ class DocumentListTile extends StatelessWidget {
     this.highlight,
     this.progress,
     this.dense = false,
+    this.readingPosition,
   });
 
   @override
   Widget build(BuildContext context) {
-    final accent = document.category.accentColor(context);
-    final tint = document.category.tintColor(context);
     final badgeSize = dense ? 40.0 : 44.0;
 
     return InkWell(
@@ -75,7 +78,7 @@ class DocumentListTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _DocumentThumbnail(document: document, size: badgeSize, accent: accent, tint: tint),
+            DocumentThumbnail(document: document, size: badgeSize, readingPosition: readingPosition),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -185,24 +188,27 @@ class DocumentListTile extends StatelessWidget {
 
 enum _DocumentAction { share, info, openWith, removeFromRecent, delete }
 
-/// First-page preview with the format icon stacked on its corner, per
+/// First-page preview - or, with a [readingPosition], the page reading
+/// resumes on - with the format icon stacked on its corner, per
 /// DocumentThumbnailService (every format the app opens); a file it can't
 /// preview (damaged, protected, too large, unknown type) falls back to the
-/// plain code badge.
-class _DocumentThumbnail extends StatelessWidget {
+/// plain code badge. Used by DocumentListTile and Home's Continue Reading
+/// cards.
+class DocumentThumbnail extends StatelessWidget {
   final DocumentModel document;
   final double size;
-  final Color accent;
-  final Color tint;
+  final Map<String, Object?>? readingPosition;
 
-  const _DocumentThumbnail({required this.document, required this.size, required this.accent, required this.tint});
+  const DocumentThumbnail({super.key, required this.document, required this.size, this.readingPosition});
 
   @override
   Widget build(BuildContext context) {
+    final accent = document.category.accentColor(context);
+    final tint = document.category.tintColor(context);
     if (document.category == DocumentCategory.unknown) return _badge(context);
 
     return FutureBuilder<File?>(
-      future: DocumentThumbnailService.instance.getThumbnail(document),
+      future: DocumentThumbnailService.instance.getThumbnail(document, position: readingPosition),
       builder: (context, snapshot) {
         final file = snapshot.data;
         if (file == null) return _badge(context);
@@ -249,6 +255,8 @@ class _DocumentThumbnail extends StatelessWidget {
   }
 
   Widget _badge(BuildContext context) {
+    final accent = document.category.accentColor(context);
+    final tint = document.category.tintColor(context);
     return Container(
       width: size,
       height: size,

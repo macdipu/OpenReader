@@ -59,6 +59,28 @@ class TextLineMetrics {
     return _offsets[index];
   }
 
+  /// The line whose row is at [offset]: the last line starting at or
+  /// above it.
+  int lineAt(double offset) {
+    if (lines.isEmpty || offset <= 0) return 0;
+    if (!wrap) return (offset / _singleRowHeight).floor().clamp(0, lines.length - 1);
+    // Measure on until a row starts below the offset (or the lines run out).
+    while (_offsets.length <= lines.length && _offsets.last <= offset) {
+      offsetOf(_offsets.length);
+    }
+    var low = 0;
+    var high = _offsets.length - 1;
+    while (low < high) {
+      final mid = (low + high + 1) ~/ 2;
+      if (_offsets[mid] <= offset) {
+        low = mid;
+      } else {
+        high = mid - 1;
+      }
+    }
+    return low.clamp(0, lines.length - 1);
+  }
+
   double _measure(String text, double maxWidth) {
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),

@@ -187,10 +187,10 @@ A position is a `ReadingPosition`, a plain `Map<String, Object?>` of JSON-safe v
 | Reader | Keys |
 |---|---|
 | PDF | `pageNumber`, `pageCount`, `viewMode` |
-| Word | `scrollOffset`, `viewMode` |
+| Word | `scrollOffset`, `viewMode`, `paragraph` (the paragraph at the top) |
 | Spreadsheets | `sheetIndex`, `verticalOffset`, `horizontalOffset`, `row`, `column` |
 | PowerPoint | `slideIndex`, `slideCount` |
-| Text | `scrollOffset` |
+| Text | `scrollOffset`, `line` (the line at the top) |
 
 Positions are reported as the reader moves; debouncing the saves is up to you.
 
@@ -216,6 +216,19 @@ The wording is yours. `PdfDocumentController.error` holds the PDF engine's excep
 ```dart
 final Uint8List? png = await DocumentThumbnails.render('/path/to/report.docx', width: 160);
 ```
+
+Pass a saved position to draw where reading left off instead:
+- **PDF:** the saved page.
+- **Word:** the print-layout page holding the paragraph that was at the top. Past 1,000 blocks into the body, it shows a page starting at that paragraph instead.
+- **PowerPoint:** the saved slide.
+- **Spreadsheets and CSV:** the saved sheet, from the saved top-left cell.
+- **Text:** the lines from the one that was at the top.
+
+```dart
+final Uint8List? resumed = await DocumentThumbnails.render(path, width: 160, position: savedPosition);
+```
+
+A position that doesn't fit the file, or one saved without these keys, gives the first page.
 
 It returns null rather than throwing for unsupported, damaged, encrypted or too-large files. Caching is up to you; the OpenReader app keeps them on disk.
 
