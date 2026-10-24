@@ -756,13 +756,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.7.0"
-  open_reader_kit:
-    dependency: "direct main"
-    description:
-      path: "packages/open_reader_kit"
-      relative: true
-    source: path
-    version: "0.1.0"
   package_info_plus:
     dependency: "direct main"
     description:
@@ -1208,6 +1201,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  universal_document_viewer:
+    dependency: "direct main"
+    description:
+      path: "packages/universal_document_viewer"
+      relative: true
+    source: path
+    version: "0.1.0"
   universal_io:
     dependency: transitive
     description:

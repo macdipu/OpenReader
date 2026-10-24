@@ -13,11 +13,11 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
-import 'package:open_reader_kit/text.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
+import 'package:universal_document_viewer/text.dart';
 
 /// Drives the Text reader (BRD §9.14, ODF-019, ODF-008 for TXT) on top of
-/// open_reader_kit's [TextDocumentController], which owns the lines,
+/// universal_document_viewer's [TextDocumentController], which owns the lines,
 /// search and scrolling. This adds what's OpenReader's: the saved position
 /// (restored on open, saved 2 s after scrolling and once more on close),
 /// font size and wrap remembered across files (UX-20), favourites/share/

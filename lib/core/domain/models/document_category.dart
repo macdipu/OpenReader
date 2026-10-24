@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
 
 import '../../presentation/theme/color_schemes.dart';
 
@@ -12,7 +12,7 @@ enum DocumentCategory {
   csv,
   unknown;
 
-  /// What open_reader_kit reads decides what the app lists and opens: one
+  /// What universal_document_viewer reads decides what the app lists and opens: one
   /// source of truth (legacy `.doc`/`.xls`/`.ppt` are not among them -
   /// CR-OPENREADER-UX, UX-06; see `DocumentFormat`).
   static DocumentCategory fromExtension(String extension) => switch (DocumentFormat.fromExtension(extension)) {

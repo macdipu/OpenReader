@@ -1,5 +1,0 @@
-package com.chowdhuryelab.open_reader_kit_example
-
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity : FlutterActivity()

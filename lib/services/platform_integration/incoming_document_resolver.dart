@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:open_reader_kit/open_reader_kit.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/data/repositories/document_repository_impl.dart';

@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import 'package:open_reader_kit/sheets.dart';
+import 'package:universal_document_viewer/sheets.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import 'excel_reader_controller.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
@@ -12,7 +12,7 @@ import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.12 Excel Reader Screen.
 ///
-/// Renders open_reader_kit's spreadsheet engine (see `ExcelReaderController`'s
+/// Renders universal_document_viewer's spreadsheet engine (see `ExcelReaderController`'s
 /// own doc comment) through [SheetGrid] - shared with the CSV reader since
 /// `FEATURE-OPENREADER-P4` - built directly on the engine's parsed cell model.
 ///

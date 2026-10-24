@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
-// open_reader_kit's CSV parsing is pure Dart with no native binary dependency, so
+// universal_document_viewer's CSV parsing is pure Dart with no native binary dependency, so
 // a real .csv file - including one exercising BRD's own hard corner cases
 // (quoted commas, multi-line quoted values) - can be built and parsed end to
 // end in this test environment.

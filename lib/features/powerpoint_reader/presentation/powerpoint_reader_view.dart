@@ -7,7 +7,7 @@ import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
-import 'package:open_reader_kit/slides.dart';
+import 'package:universal_document_viewer/slides.dart';
 import 'powerpoint_reader_controller.dart';
 
 /// PowerPoint reader (CR-OPENREADER-PPTX): one slide at a time - swipe, the

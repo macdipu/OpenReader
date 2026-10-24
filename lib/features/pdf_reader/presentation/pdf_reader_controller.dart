@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
-import 'package:open_reader_kit/pdf.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
+import 'package:universal_document_viewer/pdf.dart';
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
@@ -42,7 +42,7 @@ class PdfReaderController extends BaseController {
     pdf = PdfDocumentController(onPositionChanged: _onPositionChanged)..addListener(_mirror);
   }
 
-  /// open_reader_kit's PDF state: pages, layout, zoom, search, text layer.
+  /// universal_document_viewer's PDF state: pages, layout, zoom, search, text layer.
   late final PdfDocumentController pdf;
 
   int get initialPageNumber => pdf.initialPageNumber;

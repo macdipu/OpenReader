@@ -8,18 +8,18 @@ import 'package:openreader/core/domain/repositories/favorite_repository.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
-import 'package:open_reader_kit/open_reader_kit.dart';
+import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
-import 'package:open_reader_kit/testing.dart';
+import 'package:universal_document_viewer/testing.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
-// open_reader_kit's Word engine is pure Dart with no native binary (unlike
+// universal_document_viewer's Word engine is pure Dart with no native binary (unlike
 // PDFium), so - unlike the PDF reader - a real .docx file can be built and
 // parsed in this test environment. These tests build one in setUp
 // (`buildDocx`) and use it throughout.
@@ -303,6 +303,6 @@ void main() {
     });
   });
 
-  // Rendering is covered in open_reader_kit's own widget tests
+  // Rendering is covered in universal_document_viewer's own widget tests
   // (word_document_view_test.dart), which pump the real view.
 }

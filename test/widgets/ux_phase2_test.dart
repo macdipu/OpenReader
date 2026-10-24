@@ -25,8 +25,8 @@ import 'package:openreader/features/text_reader/presentation/text_reader_view.da
 import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
-import 'package:open_reader_kit/docx.dart';
-import 'package:open_reader_kit/testing.dart';
+import 'package:universal_document_viewer/docx.dart';
+import 'package:universal_document_viewer/testing.dart';
 
 /// CR-OPENREADER-UX Phase 2 regressions not covered by document_views_test.
 

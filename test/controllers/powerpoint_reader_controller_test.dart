@@ -16,10 +16,10 @@ import 'package:openreader/core/presentation/controllers/document_interaction_co
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/powerpoint_reader/presentation/powerpoint_reader_controller.dart';
 import 'package:openreader/features/powerpoint_reader/presentation/powerpoint_reader_view.dart';
-import 'package:open_reader_kit/slides.dart';
+import 'package:universal_document_viewer/slides.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:open_reader_kit/testing.dart';
+import 'package:universal_document_viewer/testing.dart';
 
 class FixtureFavorites implements FavoriteRepository {
   @override
