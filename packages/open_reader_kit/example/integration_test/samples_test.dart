@@ -57,6 +57,16 @@ void main() {
       if (!name.endsWith('.pdf')) {
         expect(find.textContaining(text, findRichText: true), findsWidgets, reason: name);
       }
+      // Readers report where they are once moved: scroll down (or swipe a
+      // slide), then the position is saved.
+      if (name == 'sales.xlsx') {
+        // The first sheet fits on screen; the long one scrolls.
+        await tester.tap(find.text('Orders'));
+        await settle(tester);
+      }
+      final centre = tester.getCenter(find.byType(DocumentViewer));
+      await tester.dragFrom(centre, name.endsWith('.pptx') ? const Offset(-300, 0) : const Offset(0, -600));
+      await settle(tester);
       expect(library.positionOf(sample(name)), isNotNull, reason: '$name reports a position');
     });
   }
@@ -95,7 +105,7 @@ void main() {
     expect(find.text('Customer 1'), findsWidgets, reason: 'row 150 is Customer 149 % 37 = 1');
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Freeze header row'));
+    await tester.tap(find.byType(CheckedPopupMenuItem<String>));
     await settle(tester);
     expect(find.text('Order'), findsOneWidget, reason: 'the header row stays on screen');
   });

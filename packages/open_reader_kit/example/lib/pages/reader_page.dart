@@ -40,24 +40,43 @@ class ReaderPage extends StatelessWidget {
   }
 
   /// The PDF's password, or null to give up; asked again after a wrong one.
-  static Future<String?> _askPassword(BuildContext context) {
-    final field = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Password'),
-        content: TextField(
-          controller: field,
-          autofocus: true,
-          obscureText: true,
-          decoration: const InputDecoration(labelText: 'This PDF is protected'),
-          onSubmitted: (text) => Navigator.of(dialogContext).pop(text),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(field.text), child: const Text('Open')),
-        ],
+  static Future<String?> _askPassword(BuildContext context) =>
+      showDialog<String>(context: context, builder: (_) => const _PasswordDialog());
+}
+
+/// Owns its text field's controller: disposing it when the dialog's future
+/// completes would be too early, as the dialog still animates out.
+class _PasswordDialog extends StatefulWidget {
+  const _PasswordDialog();
+
+  @override
+  State<_PasswordDialog> createState() => _PasswordDialogState();
+}
+
+class _PasswordDialogState extends State<_PasswordDialog> {
+  final _field = TextEditingController();
+
+  @override
+  void dispose() {
+    _field.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Password'),
+      content: TextField(
+        controller: _field,
+        autofocus: true,
+        obscureText: true,
+        decoration: const InputDecoration(labelText: 'This PDF is protected'),
+        onSubmitted: (text) => Navigator.of(context).pop(text),
       ),
-    ).whenComplete(field.dispose);
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.of(context).pop(_field.text), child: const Text('Open')),
+      ],
+    );
   }
 }
