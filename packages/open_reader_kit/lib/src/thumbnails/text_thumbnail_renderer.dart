@@ -1,7 +1,9 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../common/reader_contract.dart';
 import '../common/text_decoding.dart';
 import '../text/text_document_controller.dart';
 import 'offscreen_render.dart';
@@ -9,8 +11,10 @@ import 'thumbnail_renderer.dart';
 import 'thumbnail_sources.dart';
 
 /// The first lines of a text file on a white, A4-shaped page, wrapped as
-/// the text reader wraps them. Only the start of the file is read; a file
-/// the reader would refuse (too large, or binary) gets no thumbnail.
+/// the text reader wraps them - or, with a saved `line`, the lines from
+/// that one on. Only the start of the file is read unless the saved line is
+/// past the first; a file the reader would refuse (too large, or binary)
+/// gets no thumbnail.
 class TextThumbnailRenderer implements ThumbnailRenderer {
   const TextThumbnailRenderer();
 
@@ -19,11 +23,30 @@ class TextThumbnailRenderer implements ThumbnailRenderer {
   static const int _maxLines = 80;
 
   @override
-  Future<ui.Image?> render(String path, {required int width}) async {
-    final head = await readTextHead(path, maxBytes: TextDocumentController.maxBytes);
-    if (head == null || TextDocumentController.looksBinary(head)) return null;
-    final lines = decodeTextBytes(head).split('\n').take(_maxLines).join('\n');
+  Future<ui.Image?> render(String path, {required int width, ReadingPosition? position}) async {
+    final line = positionIndex(position, PositionKeys.line) ?? 0;
+    final String? lines;
+    if (line > 0) {
+      lines = await parseTextFile<String?>(
+        path,
+        maxBytes: TextDocumentController.maxBytes,
+        parse: (bytes) => _linesFrom(bytes, line),
+      );
+    } else {
+      final head = await readTextHead(path, maxBytes: TextDocumentController.maxBytes);
+      lines = head == null ? null : _linesFrom(head, 0);
+    }
+    if (lines == null) return null;
     return renderOffscreen(_TextPage(lines), size: _page, width: width);
+  }
+
+  /// The page's lines, from [first] on (from the top when the text is
+  /// shorter); null for bytes that don't look like text.
+  static String? _linesFrom(Uint8List bytes, int first) {
+    if (TextDocumentController.looksBinary(bytes)) return null;
+    final lines = decodeTextBytes(bytes).split('\n');
+    final start = first < lines.length ? first : 0;
+    return lines.skip(start).take(_maxLines).join('\n');
   }
 }
 

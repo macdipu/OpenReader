@@ -174,6 +174,24 @@ void main() {
       });
     });
 
+    test('saves the top line the view reports, for the resumed-page thumbnail', () {
+      fakeAsync((async) {
+        controller.textDocument
+          ..lineAtOffsetResolver = ((offset) => offset ~/ 20)
+          ..onScrolled(400);
+        async.elapse(const Duration(seconds: 2, milliseconds: 1));
+        expect(recents.lastReadingPosition, {'scroll_offset': 400.0, 'line': 20});
+      });
+    });
+
+    test('closing without scrolling keeps the saved top line', () async {
+      recents.position = {'scroll_offset': 88.0, 'line': 4};
+      await loaded(controller);
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.lastReadingPosition, {'scroll_offset': 88.0, 'line': 4});
+    });
+
     test('onClose is a no-op when the reader was never scrolled', () {
       expect(controller.onClose, returnsNormally);
       expect(recents.markOpenedCalls, 0);

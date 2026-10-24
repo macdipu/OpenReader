@@ -16,6 +16,7 @@ import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
+import 'package:openreader/core/presentation/widgets/document/document_list_tile.dart';
 import 'package:openreader/core/presentation/widgets/loading_view/loading_view.dart';
 import 'package:openreader/features/browse/presentation/browse_controller.dart';
 import 'package:openreader/features/browse/presentation/browse_view.dart';
@@ -260,6 +261,11 @@ void main() {
       access.response.complete(true);
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => w is LinearProgressIndicator && w.value == 0.25), findsOneWidget);
+      // The card's preview is of the page reading resumes on.
+      expect(
+        find.byWidgetPredicate((w) => w is DocumentThumbnail && w.readingPosition?['page_number'] == 5),
+        findsOneWidget,
+      );
     });
 
     testWidgets('reloads when a reader closes (HOME-RECENTS)', (tester) async {

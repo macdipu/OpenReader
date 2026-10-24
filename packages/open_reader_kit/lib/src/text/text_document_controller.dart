@@ -8,9 +8,10 @@ import '../common/text_decoding.dart';
 /// State for [TextDocumentView]: a plain-text file's lines, search across
 /// them, and the scroll position.
 ///
-/// The scroll offset is reported through [onPositionChanged] as
-/// `{scroll_offset}` on every scroll; saving it (and debouncing) is the
-/// app's business.
+/// The position is reported through [onPositionChanged] as
+/// `{scroll_offset, line}` on every scroll (`line`, the top visible line,
+/// once the view has measured its lines); saving it (and debouncing) is
+/// the app's business.
 class TextDocumentController extends ChangeNotifier {
   TextDocumentController({ReadingPosition? initialPosition, this.onPositionChanged})
     : initialScrollOffset = switch (initialPosition?[PositionKeys.scrollOffset]) {
@@ -38,6 +39,10 @@ class TextDocumentController extends ChangeNotifier {
   /// Scroll offset of a line's top, measured by the view against the real
   /// font, width and wrap. Null until the view lays out.
   double Function(int lineIndex)? lineOffsetResolver;
+
+  /// The line at a scroll offset: the inverse of [lineOffsetResolver], set
+  /// by the view alongside it.
+  int Function(double offset)? lineAtOffsetResolver;
 
   bool _loaded = false;
   bool get isLoaded => _loaded;
@@ -81,7 +86,10 @@ class TextDocumentController extends ChangeNotifier {
   }
 
   /// The view reports every scroll here.
-  void onScrolled(double offset) => onPositionChanged?.call({PositionKeys.scrollOffset: offset});
+  void onScrolled(double offset) => onPositionChanged?.call({
+    PositionKeys.scrollOffset: offset,
+    if (lineAtOffsetResolver?.call(offset) case final line?) PositionKeys.line: line,
+  });
 
   String _query = '';
   String get searchQuery => _query;

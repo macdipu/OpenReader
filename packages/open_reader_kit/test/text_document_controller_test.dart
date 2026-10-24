@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:open_reader_kit/text.dart';
@@ -33,6 +34,37 @@ void main() {
     expect(doc.initialScrollOffset, 120.5);
     doc.onScrolled(40);
     expect(reported, {PositionKeys.scrollOffset: 40.0});
+  });
+
+  test('reports the line at the top once the view measures lines', () {
+    ReadingPosition? reported;
+    final doc = TextDocumentController(onPositionChanged: (p) => reported = p)
+      ..lineAtOffsetResolver = (offset) => offset ~/ 20;
+    doc.onScrolled(410);
+    expect(reported, {PositionKeys.scrollOffset: 410.0, PositionKeys.line: 20});
+  });
+
+  group('TextLineMetrics.lineAt', () {
+    TextLineMetrics metrics({required bool wrap}) => TextLineMetrics(
+          lines: [for (var i = 0; i < 50; i++) i.isEven ? 'short' : 'a longer line ' * 8],
+          style: const TextStyle(fontSize: 10),
+          textScaler: TextScaler.noScaling,
+          contentWidth: 200,
+          wrap: wrap,
+          verticalPadding: 4,
+        );
+
+    test('is the inverse of offsetOf, wrapped or not', () {
+      for (final wrap in [true, false]) {
+        final m = metrics(wrap: wrap);
+        for (final line in [0, 1, 7, 30, 49]) {
+          expect(m.lineAt(m.offsetOf(line)), line, reason: 'wrap $wrap, line $line');
+          expect(m.lineAt(m.offsetOf(line) + 1), line, reason: 'wrap $wrap, inside line $line');
+        }
+        expect(m.lineAt(-5), 0);
+        expect(m.lineAt(1e9), 49);
+      }
+    });
   });
 
   test('search matches lines in any case and cycles', () {

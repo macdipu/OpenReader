@@ -24,8 +24,10 @@ enum WordViewMode {
 /// the scroll position.
 ///
 /// The position is reported through [onPositionChanged] as
-/// `{scroll_offset, view_mode}` (the offset belongs to that layout); saving
-/// it (and debouncing) is the app's business.
+/// `{scroll_offset, view_mode, paragraph}` (the offset belongs to that
+/// layout; `paragraph`, the number of the paragraph at the top, is there
+/// once the view has found it); saving it (and debouncing) is the app's
+/// business.
 class WordDocumentController extends ChangeNotifier {
   WordDocumentController({ReadingPosition? initialPosition, this.onPositionChanged}) {
     if (initialPosition != null) restore(initialPosition);
@@ -110,9 +112,13 @@ class WordDocumentController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The view reports the document's vertical scroll here.
-  void onScrollOffsetChanged(double offset) =>
-      onPositionChanged?.call({PositionKeys.scrollOffset: offset, PositionKeys.viewMode: _viewMode.name});
+  /// The view reports the document's vertical scroll here, with the
+  /// number of the paragraph at the top when it knows it.
+  void onScrollOffsetChanged(double offset, {int? topParagraph}) => onPositionChanged?.call({
+    PositionKeys.scrollOffset: offset,
+    PositionKeys.viewMode: _viewMode.name,
+    PositionKeys.paragraph: ?topParagraph,
+  });
 
   void search(String query) => searchController.search(query);
   void clearSearch() => searchController.clear();
