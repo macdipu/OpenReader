@@ -18,10 +18,13 @@
 /// ```dart
 /// DocumentViewer.file(path, onPositionChanged: save, initialPosition: saved)
 /// ```
+///
+/// And [DocumentThumbnails] draws a first-page preview of any of them.
 library;
 
 export 'src/common/document_format.dart';
 export 'src/common/reader_contract.dart';
 export 'src/common/text_decoding.dart';
 export 'src/common/zip_safety_guard.dart';
+export 'src/thumbnails/document_thumbnails.dart';
 export 'src/viewer/document_viewer.dart';
