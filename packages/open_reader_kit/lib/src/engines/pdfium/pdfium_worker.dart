@@ -17,10 +17,26 @@ import 'pdfium_bindings.g.dart';
 /// back to its event loop, so a request that arrives meanwhile - or a
 /// cancel - is seen before the next task starts. Replies are
 /// `[id, result]` or `[id, null, errorCode, message]`.
-void pdfiumWorkerMain(SendPort replies) {
+void pdfiumWorkerMain(SendPort replies) => runPdfiumWorker(replies, FPDF_InitLibrary);
+
+/// The worker loop, with [init] standing for `FPDF_InitLibrary` (tests pass
+/// one that fails).
+///
+/// The request port is sent before [init] runs, and a failing [init] (the
+/// usual cause: libpdfium missing or unloadable, which throws on the first
+/// call into it) doesn't end the isolate: every request is then answered
+/// with an `engine` error, so callers fail at once instead of waiting on a
+/// worker that will never reply.
+void runPdfiumWorker(SendPort replies, void Function() init) {
   final requests = ReceivePort();
   replies.send(requests.sendPort);
-  final worker = _Worker(replies);
+  String? initError;
+  try {
+    init();
+  } catch (e) {
+    initError = 'PDFium could not be loaded: $e';
+  }
+  final worker = _Worker(replies, initError);
   requests.listen((message) => worker.receive(message as List<Object?>));
 }
 
@@ -164,11 +180,12 @@ class _WorkerError implements Exception {
 }
 
 class _Worker {
-  _Worker(this._replies) {
-    FPDF_InitLibrary();
-  }
+  _Worker(this._replies, this._initError);
 
   final SendPort _replies;
+
+  /// Why PDFium isn't usable; while set, requests fail without touching it.
+  final String? _initError;
   final _queue = <_Task>[];
   final _documents = <int, _Document>{};
   var _nextDocument = 1;
@@ -183,7 +200,24 @@ class _Worker {
       _queue.removeWhere((task) => task.id == target);
       return;
     }
-    _queue.add(_Task(id, op, message[2]! as int, message.sublist(3), _order++));
+    if (_initError case final error?) {
+      _replies.send([id, null, 'engine', error]);
+      return;
+    }
+    var priority = message[2]! as int;
+    if (op == PdfiumOp.close) {
+      // Closing frees the document now rather than after every queued
+      // request for it (a thumbnail strip can queue many): those are
+      // answered as closed, and the close runs before anything else.
+      final document = message[3];
+      _queue.removeWhere((task) {
+        if (task.op == PdfiumOp.open || task.args.first != document) return false;
+        _replies.send([task.id, null, 'closed', 'Document is closed']);
+        return true;
+      });
+      priority = -1;
+    }
+    _queue.add(_Task(id, op, priority, message.sublist(3), _order++));
     _schedule();
   }
 

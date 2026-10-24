@@ -3,27 +3,36 @@ import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 import 'pdf_types.dart';
 import 'pdfium_worker.dart';
 
 /// The connection to the PDFium worker isolate, started on first use and
 /// shared by every open document.
 class _Worker {
-  _Worker._();
+  _Worker._(this._entryPoint);
 
   static _Worker? _instance;
-  static _Worker get instance => _instance ??= _Worker._();
+  static _Worker get instance => _instance ??= _Worker._(pdfiumWorkerMain);
 
+  final void Function(SendPort) _entryPoint;
   Future<SendPort>? _port;
   final _replies = ReceivePort();
+  final _exits = RawReceivePort();
+  final _ready = Completer<SendPort>();
   final _pending = <int, Completer<Object?>>{};
   var _nextId = 1;
 
+  /// Set once the isolate has died (or never started). Nothing will answer
+  /// after that, so every waiting and later call fails with it at once
+  /// rather than waiting forever.
+  PdfEngineException? _stopped;
+
   Future<SendPort> _start() => _port ??= () async {
-        final ready = Completer<SendPort>();
         _replies.listen((message) {
           if (message is SendPort) {
-            ready.complete(message);
+            if (!_ready.isCompleted) _ready.complete(message);
             return;
           }
           final reply = message as List<Object?>;
@@ -35,15 +44,38 @@ class _Worker {
             completer.complete(reply[1]);
           }
         });
-        final isolate = await Isolate.spawn(pdfiumWorkerMain, _replies.sendPort, debugName: 'pdfium');
-        isolate.addErrorListener(RawReceivePort((Object? error) {
-          for (final completer in _pending.values) {
-            completer.completeError(PdfEngineException('PDF engine stopped: $error'));
-          }
-          _pending.clear();
-        }).sendPort);
-        return ready.future;
+        // Error and exit ports are given to spawn itself, so a death even
+        // before the isolate sends its port (or before a listener could be
+        // attached) is still seen. An error message is `[error, stack]`;
+        // the exit message is null.
+        _exits.handler = (Object? message) =>
+            _stop(message is List ? 'PDF engine stopped: ${message.first}' : 'PDF engine stopped');
+        try {
+          await Isolate.spawn(
+            _entryPoint,
+            _replies.sendPort,
+            debugName: 'pdfium',
+            onError: _exits.sendPort,
+            onExit: _exits.sendPort,
+          );
+        } catch (e) {
+          _stop('PDF engine could not start: $e');
+        }
+        return _ready.future;
       }();
+
+  void _stop(String reason) {
+    if (_stopped != null) return;
+    final stopped = _stopped = PdfEngineException(reason);
+    if (!_ready.isCompleted) _ready.completeError(stopped);
+    final pending = [..._pending.values];
+    _pending.clear();
+    for (final completer in pending) {
+      completer.completeError(stopped);
+    }
+    _replies.close();
+    _exits.close();
+  }
 
   static Exception _error(String code, String message) => switch (code) {
         'open' => PdfOpenException(switch (int.tryParse(message)) {
@@ -53,12 +85,16 @@ class _Worker {
             5 => PdfOpenError.security,
             _ => PdfOpenError.unknown,
           }),
+        'engine' => PdfEngineException(message),
         _ => PdfEngineException('$code: $message'),
       };
 
   /// Sends a request; [onId] receives its id (for [cancel]).
   Future<Object?> call(String op, List<Object?> args, {PdfPriority priority = PdfPriority.visible, void Function(int)? onId}) async {
+    if (_stopped case final stopped?) throw stopped;
     final port = await _start();
+    // It may have died while starting, after this request was made.
+    if (_stopped case final stopped?) throw stopped;
     final id = _nextId++;
     final completer = Completer<Object?>();
     _pending[id] = completer;
@@ -74,8 +110,22 @@ class _Worker {
     final completer = _pending.remove(id);
     if (completer == null) return;
     completer.completeError(const PdfCancelledException());
-    (await _start()).send([0, PdfiumOp.cancel, 0, id]);
+    // A stopped worker has nothing queued to drop.
+    if (_stopped != null) return;
+    try {
+      (await _start()).send([0, PdfiumOp.cancel, 0, id]);
+    } on PdfEngineException {
+      // Stopped meanwhile: likewise.
+    }
   }
+}
+
+/// Test hook: makes later PDF calls use a fresh worker started from
+/// [entryPoint] (e.g. [runPdfiumWorker] with a failing init, or one that
+/// dies), or the real one when null. The previous worker is left running.
+@visibleForTesting
+void debugResetPdfWorker([void Function(SendPort replies)? entryPoint]) {
+  _Worker._instance = entryPoint == null ? null : _Worker._(entryPoint);
 }
 
 /// A rendered region of a page, as RGBA pixels.
@@ -105,7 +155,13 @@ class PdfRenderedImage {
 /// A cancellable render request. [cancel] drops it if it hasn't started,
 /// and [result] then fails with [PdfCancelledException].
 class PdfRenderTask {
-  PdfRenderTask._(this.result);
+  /// A task that is cancelled (or fails) with nobody waiting on [result]
+  /// mustn't surface as an uncaught error: render-and-forget and
+  /// cancel-without-awaiting are both normal uses. Anyone awaiting
+  /// [result] still gets its error.
+  PdfRenderTask._(this.result) {
+    result.ignore();
+  }
 
   final Future<PdfRenderedImage> result;
   int? _id;
@@ -185,10 +241,24 @@ class PdfiumDocument {
   }
 
   /// A whole page scaled down to [width] pixels wide.
-  Future<PdfRenderedImage> renderThumbnail(int page, {required int width, PdfPriority priority = PdfPriority.background}) {
+  Future<PdfRenderedImage> renderThumbnail(
+    int page, {
+    required int width,
+    PdfPriority priority = PdfPriority.background,
+  }) =>
+      renderThumbnailTask(page, width: width, priority: priority).result;
+
+  /// [renderThumbnail] as a cancellable task, for a thumbnail that may
+  /// scroll away (or whose document may close) before it's drawn. A page
+  /// out of range fails the task with [PdfEngineException], like any other
+  /// render error, rather than throwing here.
+  PdfRenderTask renderThumbnailTask(int page, {required int width, PdfPriority priority = PdfPriority.background}) {
+    if (page < 0 || page >= pageCount) {
+      return PdfRenderTask._(Future.error(PdfEngineException('page: Page ${page + 1} is out of range (1-$pageCount)')));
+    }
     final size = pageSizes[page];
     final height = (width * size.height / size.width).round().clamp(1, 1 << 14);
-    return render(page, fullWidth: width, fullHeight: height, priority: priority).result;
+    return render(page, fullWidth: width, fullHeight: height, priority: priority);
   }
 
   /// The page's text with each character's box.
@@ -245,10 +315,13 @@ class PdfiumDocument {
     ];
   }
 
+  /// Frees the document. The worker runs this ahead of anything queued and
+  /// drops the document's queued requests (their futures fail), so closing
+  /// isn't held up behind a strip of thumbnails.
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
-    await _Worker.instance.call(PdfiumOp.close, [_id], priority: PdfPriority.background);
+    await _Worker.instance.call(PdfiumOp.close, [_id]);
   }
 
   void _checkOpen() {
