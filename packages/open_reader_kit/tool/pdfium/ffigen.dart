@@ -22,6 +22,7 @@ const _functions = {
   'FPDF_GetPageWidthF',
   'FPDF_GetPageHeightF',
   'FPDF_GetPageBoundingBox',
+  'FPDF_GetPageSizeByIndexF',
   'FPDFBitmap_CreateEx',
   'FPDFBitmap_FillRect',
   'FPDFBitmap_Destroy',
@@ -49,7 +50,7 @@ const _functions = {
 };
 
 /// Structs the engine reads; other handle types stay opaque.
-const _structs = {'_FS_RECTF_': 'FS_RECTF'};
+const _structs = {'_FS_RECTF_': 'FS_RECTF', 'FS_SIZEF_': 'FS_SIZEF'};
 
 final _macros = RegExp(r'^(FPDF_ANNOT|FPDF_LCD_TEXT|FPDF_REVERSE_BYTE_ORDER|FPDFBitmap_BGRA|FPDF_ERR_\w+|PDFACTION_\w+)$');
 

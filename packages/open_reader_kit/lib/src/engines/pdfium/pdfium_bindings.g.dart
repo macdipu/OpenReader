@@ -246,6 +246,19 @@ external int FPDF_GetPageCount(ffi.Pointer<fpdf_document_t__> document);
 @ffi.Native<ffi.Float Function(ffi.Pointer<fpdf_page_t__>)>()
 external double FPDF_GetPageHeightF(ffi.Pointer<fpdf_page_t__> page);
 
+@ffi.Native<
+  ffi.Int Function(
+    ffi.Pointer<fpdf_document_t__>,
+    ffi.Int,
+    ffi.Pointer<FS_SIZEF>,
+  )
+>()
+external int FPDF_GetPageSizeByIndexF(
+  ffi.Pointer<fpdf_document_t__> document,
+  int page_index,
+  ffi.Pointer<FS_SIZEF> size,
+);
+
 @ffi.Native<ffi.Float Function(ffi.Pointer<fpdf_page_t__>)>()
 external double FPDF_GetPageWidthF(ffi.Pointer<fpdf_page_t__> page);
 
@@ -353,6 +366,22 @@ final class FS_RECTF extends ffi.Struct {
     ..ref.top = top
     ..ref.right = right
     ..ref.bottom = bottom;
+}
+
+final class FS_SIZEF extends ffi.Struct {
+  @ffi.Float()
+  external double width;
+
+  @ffi.Float()
+  external double height;
+
+  static ffi.Pointer<FS_SIZEF> $allocate(
+    ffi.Allocator $allocator, {
+    required double width,
+    required double height,
+  }) => $allocator<FS_SIZEF>()
+    ..ref.width = width
+    ..ref.height = height;
 }
 
 const int PDFACTION_EMBEDDEDGOTO = 5;
