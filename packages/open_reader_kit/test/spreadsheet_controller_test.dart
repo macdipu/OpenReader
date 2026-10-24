@@ -2,21 +2,16 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_reader_kit/excel.dart' as xls;
 import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:open_reader_kit/sheets.dart';
+import 'package:open_reader_kit/testing.dart';
 
 void main() {
-  Uint8List workbook() {
-    final book = xls.Excel.createExcel();
-    final first = book.getDefaultSheet()!;
-    book[first].cell(xls.CellIndex.indexByString('A1')).value = xls.TextCellValue('Name');
-    book[first].cell(xls.CellIndex.indexByString('A2')).value = xls.TextCellValue('Alice');
-    book['Secret'].cell(xls.CellIndex.indexByString('A1')).value = xls.TextCellValue('hidden');
-    book['Secret'].visibility = xls.SheetVisibility.hidden;
-    book['Later'].cell(xls.CellIndex.indexByString('B3')).value = xls.TextCellValue('alice again');
-    return Uint8List.fromList(book.encode()!);
-  }
+  Uint8List workbook() => buildXlsx(const [
+        XlsxTestSheet('Sheet1', {'A1': 'Name', 'A2': 'Alice'}),
+        XlsxTestSheet('Secret', {'A1': 'hidden'}, state: 'hidden'),
+        XlsxTestSheet('Later', {'B3': 'alice again'}),
+      ]);
 
   test('loads an .xlsx, leaving out hidden sheets', () async {
     final sheet = SpreadsheetController();
@@ -24,7 +19,7 @@ void main() {
     expect(sheet.error, isNull);
     expect(sheet.sheetNames.length, 2);
     expect(sheet.sheetNames, isNot(contains('Secret')));
-    expect(sheet.currentRows[1][0]?.readerText, 'Alice');
+    expect(sheet.currentRows[1][0]?.text, 'Alice');
   });
 
   test('restores the saved sheet and offsets', () async {
@@ -45,12 +40,12 @@ void main() {
     expect(sheet.activeSheetIndex, 0);
   });
 
-  test('loads CSV, including quoted commas and new lines', () {
-    final sheet = SpreadsheetController()
-      ..loadCsv(Uint8List.fromList(utf8.encode('Name,Note\n"Doe, Jane","two\nlines"\n')));
+  test('loads CSV, including quoted commas and new lines', () async {
+    final sheet = SpreadsheetController();
+    await sheet.loadCsv(Uint8List.fromList(utf8.encode('Name,Note\n"Doe, Jane","two\nlines"\n')));
     expect(sheet.error, isNull);
-    expect(sheet.currentRows[1][0]?.readerText, 'Doe, Jane');
-    expect(sheet.currentRows[1][1]?.readerText, 'two\nlines');
+    expect(sheet.currentRows[1][0]?.text, 'Doe, Jane');
+    expect(sheet.currentRows[1][1]?.text, 'two\nlines');
   });
 
   test('typed errors', () async {

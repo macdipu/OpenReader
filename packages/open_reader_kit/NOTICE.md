@@ -17,9 +17,11 @@ The full original license texts are in `licenses/`. They still apply to the code
 | `lib/src/engines/pdf/pdfium_flutter/`, `darwin/` | [pdfium_flutter](https://pub.dev/packages/pdfium_flutter) | 0.2.3 | MIT | Takashi Kawasaki |
 | `lib/src/engines/docx/viewer/` | [docx_file_viewer](https://pub.dev/packages/docx_file_viewer) | 1.0.4 | Apache-2.0 | 2021 Mixin |
 | `lib/src/engines/docx/core/` | [docx_creator](https://pub.dev/packages/docx_creator) | 1.3.3 | MIT | 2024 Ali Hassan |
-| `lib/src/engines/excel/core/` | [excel_plus](https://pub.dev/packages/excel_plus) | 2.22.0 | MIT | Masum |
-| `lib/src/engines/excel/csv/` | [csv_plus](https://pub.dev/packages/csv_plus) | 1.9.0 | MIT | 2025 csv_plus contributors |
 
 PDFium itself (Google, BSD-3-Clause) is not part of this source tree. It is downloaded as a prebuilt binary:
 - **Android, Windows, Linux:** from `bblanchon/pdfium-binaries`, by `hook/build.dart`.
 - **iOS, macOS:** from `espresso3389/pdfium-xcframework`, by `darwin/`.
+
+## open_reader_kit's own engines
+Engines written for open_reader_kit from the published file-format specifications (CR-OWN-ENGINES). They contain no code from the packages above:
+- `lib/src/engines/sheets/`: `.xlsx` (ECMA-376 SpreadsheetML) and CSV (RFC 4180). These replaced excel_plus and csv_plus on 2026-10-24.

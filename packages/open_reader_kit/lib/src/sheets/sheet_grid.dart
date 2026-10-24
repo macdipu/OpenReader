@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../engines/excel/core/excel_plus.dart' as xls;
-import 'cell_text.dart';
+import '../engines/sheets/workbook.dart';
+import 'sheet_geometry.dart';
 import 'spreadsheet_controller.dart';
 
-/// A spreadsheet grid: a frozen header row and row-number column, a body
-/// that scrolls both axes (synced to the controller's
-/// `verticalController`/`horizontalController`), a −/+ zoom pill, search
-/// highlights, row/column selection with Count/Sum/Avg and Copy, and a
-/// cell's full value on tap. Serves Excel and CSV alike.
+/// A spreadsheet grid built lazily (only the cells on screen exist), with
+/// the sheet's own column widths and row heights, hidden rows/columns left
+/// out, its frozen panes pinned along with the header row and row-number
+/// column, merged cells, and its text formatting. Also: a −/+ zoom pill,
+/// search highlights, row/column selection with Count/Sum/Avg and Copy, a
+/// cell's full value (and its link) on tap. Scrolls through the
+/// controller's `verticalController`/`horizontalController`. Serves Excel
+/// and CSV alike.
 class SheetGrid extends StatefulWidget {
   final SpreadsheetController controller;
   final String emptyMessage;
@@ -21,11 +26,6 @@ class SheetGrid extends StatefulWidget {
 }
 
 class _SheetGridState extends State<SheetGrid> {
-  final _headerHorizontalController = ScrollController();
-  final _frozenColumnVerticalController = ScrollController();
-  bool _syncingHeader = false;
-  bool _syncingFrozenColumn = false;
-
   /// The row or column picked by tapping its header; null when none.
   final _selection = ValueNotifier<GridSelection?>(null);
 
@@ -33,12 +33,17 @@ class _SheetGridState extends State<SheetGrid> {
       _selection.value = _selection.value == selection ? null : selection;
   late double _zoom;
 
+  /// Merged areas in table coordinates, for the geometry they were built
+  /// from.
+  SheetGeometry? _mergesFor;
+  Map<(int, int), _Merge> _merges = const {};
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _restoreInitialOffsets());
-    widget.controller.horizontalController.addListener(_onMainHorizontalScroll);
-    widget.controller.verticalController.addListener(_onMainVerticalScroll);
+    widget.controller.horizontalController.addListener(widget.controller.onScrolled);
+    widget.controller.verticalController.addListener(widget.controller.onScrolled);
     // Read now, not lazily: the first read used to happen inside the zoom
     // handler, after the change, so the first zoom wasn't anchored.
     _zoom = widget.controller.zoom;
@@ -79,33 +84,11 @@ class _SheetGridState extends State<SheetGrid> {
     }
   }
 
-  void _onMainHorizontalScroll() {
-    if (_syncingHeader) return;
-    _syncingHeader = true;
-    if (_headerHorizontalController.hasClients) {
-      _headerHorizontalController.jumpTo(widget.controller.horizontalController.offset);
-    }
-    _syncingHeader = false;
-    widget.controller.onScrolled();
-  }
-
-  void _onMainVerticalScroll() {
-    if (_syncingFrozenColumn) return;
-    _syncingFrozenColumn = true;
-    if (_frozenColumnVerticalController.hasClients) {
-      _frozenColumnVerticalController.jumpTo(widget.controller.verticalController.offset);
-    }
-    _syncingFrozenColumn = false;
-    widget.controller.onScrolled();
-  }
-
   @override
   void dispose() {
     widget.controller.removeListener(_onControllerChanged);
-    widget.controller.horizontalController.removeListener(_onMainHorizontalScroll);
-    widget.controller.verticalController.removeListener(_onMainVerticalScroll);
-    _headerHorizontalController.dispose();
-    _frozenColumnVerticalController.dispose();
+    widget.controller.horizontalController.removeListener(widget.controller.onScrolled);
+    widget.controller.verticalController.removeListener(widget.controller.onScrolled);
     _selection.dispose();
     super.dispose();
   }
@@ -120,111 +103,169 @@ class _SheetGridState extends State<SheetGrid> {
 
     return Stack(
       children: [
-        _buildGrid(rows, columnCount),
+        ListenableBuilder(
+          listenable: Listenable.merge([widget.controller, _selection]),
+          builder: (context, _) => Column(
+            children: [
+              if (_selection.value case final selection?)
+                _SelectionBar(
+                  summary: SelectionSummary.of(rows, columnCount, selection),
+                  onClear: () => _selection.value = null,
+                ),
+              Expanded(child: _buildTable(context)),
+            ],
+          ),
+        ),
         Positioned(right: 12, bottom: 12, child: _ZoomControls(controller: widget.controller)),
       ],
     );
   }
 
-  Widget _buildGrid(List<List<xls.Data?>> rows, int columnCount) {
-    return ListenableBuilder(listenable: widget.controller, builder: (context, _) {
-      final zoom = widget.controller.zoom;
-      final metrics = _CellMetrics(zoom);
-      return Column(
-      children: [
-        ValueListenableBuilder<GridSelection?>(
-          valueListenable: _selection,
-          builder: (context, selection, _) => selection == null
-              ? const SizedBox.shrink()
-              : _SelectionBar(
-                  summary: SelectionSummary.of(rows, columnCount, selection),
-                  onClear: () => _selection.value = null,
-                ),
+  /// Table row 0 is the column-letter header and table column 0 the row
+  /// numbers; the sheet's visible rows/columns follow.
+  Widget _buildTable(BuildContext context) {
+    final controller = widget.controller;
+    final geometry = controller.geometry;
+    final zoom = controller.zoom;
+    final merges = _mergesOf(geometry);
+    final rows = controller.currentRows;
+    final selection = _selection.value;
+
+    return TableView.builder(
+      verticalDetails: ScrollableDetails.vertical(controller: controller.verticalController),
+      horizontalDetails: ScrollableDetails.horizontal(controller: controller.horizontalController),
+      rowCount: geometry.visibleRows.length + 1,
+      columnCount: geometry.visibleColumns.length + 1,
+      pinnedRowCount: geometry.frozenRowCount + 1,
+      pinnedColumnCount: geometry.frozenColumnCount + 1,
+      rowBuilder: (i) => TableSpan(
+        extent: FixedTableSpanExtent((i == 0 ? SpreadsheetController.cellHeight : geometry.rowHeight(i - 1)) * zoom),
+      ),
+      columnBuilder: (i) => TableSpan(
+        extent: FixedTableSpanExtent(
+          (i == 0 ? SpreadsheetController.rowHeaderWidth : geometry.columnWidth(i - 1)) * zoom,
         ),
-        // Column-letter header row.
-        Row(
-          children: [
-            SizedBox(width: metrics.rowHeaderWidth, height: metrics.height),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _headerHorizontalController,
-                scrollDirection: Axis.horizontal,
-                physics: const NeverScrollableScrollPhysics(),
-                child: ValueListenableBuilder<GridSelection?>(
-                  valueListenable: _selection,
-                  builder: (context, selection, _) => Row(
-                    children: List.generate(
-                      columnCount,
-                      (c) => _HeaderCell(
-                        label: _columnLabel(c),
-                        metrics: metrics,
-                        selected: selection == GridSelection.column(c),
-                        semanticsLabel: 'Column ${_columnLabel(c)}',
-                        onTap: () => _toggleSelection(GridSelection.column(c)),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+      ),
+      cellBuilder: (context, vicinity) {
+        final r = vicinity.row;
+        final c = vicinity.column;
+        if (r == 0 && c == 0) return const TableViewCell(child: _Corner());
+        if (r == 0) {
+          final column = geometry.visibleColumns[c - 1];
+          return TableViewCell(
+            child: _HeaderCell(
+              label: _columnLabel(column),
+              zoom: zoom,
+              selected: selection == GridSelection.column(column),
+              semanticsLabel: 'Column ${_columnLabel(column)}',
+              onTap: () => _toggleSelection(GridSelection.column(column)),
             ),
-          ],
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Frozen row-number column.
-              SizedBox(
-                width: metrics.rowHeaderWidth,
-                child: ListView.builder(
-                  controller: _frozenColumnVerticalController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: rows.length,
-                  itemBuilder: (context, r) => ValueListenableBuilder<GridSelection?>(
-                    valueListenable: _selection,
-                    builder: (context, selection, _) => _HeaderCell(
-                      label: '${r + 1}',
-                      metrics: metrics,
-                      width: metrics.rowHeaderWidth,
-                      selected: selection == GridSelection.row(r),
-                      semanticsLabel: 'Row ${r + 1}',
-                      onTap: () => _toggleSelection(GridSelection.row(r)),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: widget.controller.horizontalController,
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: columnCount * metrics.width,
-                    child: ListView.builder(
-                      controller: widget.controller.verticalController,
-                      itemCount: rows.length,
-                      itemBuilder: (context, r) => ValueListenableBuilder<GridSelection?>(
-                        valueListenable: _selection,
-                        builder: (context, selection, _) => _DataRow(
-                          controller: widget.controller,
-                          row: rows[r],
-                          rowIndex: r,
-                          columnCount: columnCount,
-                          metrics: metrics,
-                          selection: selection,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          );
+        }
+        if (c == 0) {
+          final row = geometry.visibleRows[r - 1];
+          return TableViewCell(
+            child: _HeaderCell(
+              label: '${row + 1}',
+              zoom: zoom,
+              selected: selection == GridSelection.row(row),
+              semanticsLabel: 'Row ${row + 1}',
+              onTap: () => _toggleSelection(GridSelection.row(row)),
+            ),
+          );
+        }
+        final merge = merges[(r, c)];
+        // A merged area shows its top-left cell.
+        final row = merge?.sheetRow ?? geometry.visibleRows[r - 1];
+        final column = merge?.sheetColumn ?? geometry.visibleColumns[c - 1];
+        final data = row < rows.length && column < rows[row].length ? rows[row][column] : null;
+        final link = controller.currentSheet?.hyperlinks[(row: row, column: column)];
+        final highlight = controller.isCurrentMatch(row, column)
+            ? _CellHighlight.current
+            : controller.isMatch(row, column)
+                ? _CellHighlight.match
+                : selection?.contains(row, column) ?? false
+                    ? _CellHighlight.selected
+                    : _CellHighlight.none;
+        return TableViewCell(
+          rowMergeStart: merge?.rowStart,
+          rowMergeSpan: merge?.rowSpan,
+          columnMergeStart: merge?.columnStart,
+          columnMergeSpan: merge?.columnSpan,
+          child: _DataCell(
+            data: data,
+            highlight: highlight,
+            zoom: zoom,
+            isLink: link != null,
+            onTap: () => showCellDetail(
+              context,
+              address: '${_columnLabel(column)}${row + 1}',
+              value: data?.text ?? '',
+              link: link,
+              onOpenInternalLink: controller.openInternalLink,
+            ),
           ),
-        ),
-      ],
+        );
+      },
     );
-    });
   }
+
+  /// Every table cell a merged area covers -> the merge, in table
+  /// coordinates. Hidden rows/columns inside a merge are skipped; a merge
+  /// that would straddle the frozen panes' edge is left unmerged (the table
+  /// can't merge across it).
+  Map<(int, int), _Merge> _mergesOf(SheetGeometry geometry) {
+    if (identical(_mergesFor, geometry)) return _merges;
+    final merges = <(int, int), _Merge>{};
+    for (final range in widget.controller.currentSheet?.merges ?? const <CellRange>[]) {
+      final rows = [
+        for (var r = range.firstRow; r <= range.lastRow; r++)
+          if (geometry.visibleIndexOfRow(r) case final v?) v,
+      ];
+      final columns = [
+        for (var c = range.firstColumn; c <= range.lastColumn; c++)
+          if (geometry.visibleIndexOfColumn(c) case final v?) v,
+      ];
+      if (rows.isEmpty || columns.isEmpty || (rows.length == 1 && columns.length == 1)) continue;
+      bool straddles(List<int> indices, int frozen) => indices.first < frozen && indices.last >= frozen;
+      if (straddles(rows, geometry.frozenRowCount) || straddles(columns, geometry.frozenColumnCount)) continue;
+      final merge = _Merge(
+        rowStart: rows.first + 1,
+        rowSpan: rows.last - rows.first + 1,
+        columnStart: columns.first + 1,
+        columnSpan: columns.last - columns.first + 1,
+        sheetRow: range.firstRow,
+        sheetColumn: range.firstColumn,
+      );
+      for (var r = rows.first; r <= rows.last; r++) {
+        for (var c = columns.first; c <= columns.last; c++) {
+          merges[(r + 1, c + 1)] = merge;
+        }
+      }
+    }
+    _mergesFor = geometry;
+    return _merges = merges;
+  }
+}
+
+class _Merge {
+  const _Merge({
+    required this.rowStart,
+    required this.rowSpan,
+    required this.columnStart,
+    required this.columnSpan,
+    required this.sheetRow,
+    required this.sheetColumn,
+  });
+
+  final int rowStart;
+  final int rowSpan;
+  final int columnStart;
+  final int columnSpan;
+
+  /// The sheet cell whose value the merged area shows.
+  final int sheetRow;
+  final int sheetColumn;
 }
 
 /// Floating −/+ zoom pill over the grid's corner (UX-32) - kept off the app
@@ -262,20 +303,20 @@ class _ZoomControls extends StatelessWidget {
   }
 }
 
-/// Cell geometry and text size at a zoom factor (UX-32).
-class _CellMetrics {
-  _CellMetrics(this.zoom);
-
-  final double zoom;
-
-  double get width => SpreadsheetController.cellWidth * zoom;
-  double get height => SpreadsheetController.cellHeight * zoom;
-  double get rowHeaderWidth => SpreadsheetController.rowHeaderWidth * zoom;
-  double get fontSize => 13 * zoom;
-}
-
-/// Full value of a cell, which the grid truncates to one line (UX-32).
-Future<void> showCellDetail(BuildContext context, {required String address, required String value}) {
+/// Full value of a cell, which the grid truncates (UX-32), with Copy and,
+/// for a linked cell, Open link. Web links open outside the app (`http`,
+/// `https` and `mailto` only); a link to a place in the workbook
+/// (`#Sheet2!A1`) goes to [onOpenInternalLink].
+Future<void> showCellDetail(
+  BuildContext context, {
+  required String address,
+  required String value,
+  String? link,
+  void Function(String location)? onOpenInternalLink,
+}) {
+  final external = link != null && !link.startsWith('#') ? Uri.tryParse(link) : null;
+  final canOpenExternal = external != null && const {'http', 'https', 'mailto'}.contains(external.scheme);
+  final internal = link != null && link.startsWith('#') && onOpenInternalLink != null ? link.substring(1) : null;
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -295,19 +336,39 @@ Future<void> showCellDetail(BuildContext context, {required String address, requ
                 child: SelectableText(value.isEmpty ? '(empty)' : value, style: Theme.of(sheetContext).textTheme.bodyLarge),
               ),
             ),
+            if (link != null) ...[
+              const SizedBox(height: 8),
+              Text(link, style: Theme.of(sheetContext).textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+            ],
             const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: value.isEmpty
-                    ? null
-                    : () {
-                        Clipboard.setData(ClipboardData(text: value));
-                        Navigator.of(sheetContext).pop();
-                      },
-                icon: const Icon(Icons.copy_rounded),
-                label: const Text('Copy'),
-              ),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              children: [
+                if (canOpenExternal || internal != null)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      if (internal != null) {
+                        onOpenInternalLink!(internal);
+                      } else {
+                        launchUrl(external!, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    icon: const Icon(Icons.open_in_new_rounded),
+                    label: const Text('Open link'),
+                  ),
+                FilledButton.icon(
+                  onPressed: value.isEmpty
+                      ? null
+                      : () {
+                          Clipboard.setData(ClipboardData(text: value));
+                          Navigator.of(sheetContext).pop();
+                        },
+                  icon: const Icon(Icons.copy_rounded),
+                  label: const Text('Copy'),
+                ),
+              ],
             ),
           ],
         ),
@@ -326,18 +387,23 @@ String _columnLabel(int index) {
   return label;
 }
 
+class _Corner extends StatelessWidget {
+  const _Corner();
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(color: Theme.of(context).colorScheme.surfaceContainer);
+}
+
 class _HeaderCell extends StatelessWidget {
   final String label;
-  final _CellMetrics metrics;
-  final double? width;
+  final double zoom;
   final bool selected;
   final String semanticsLabel;
   final VoidCallback onTap;
 
   const _HeaderCell({
     required this.label,
-    required this.metrics,
-    this.width,
+    required this.zoom,
     required this.selected,
     required this.semanticsLabel,
     required this.onTap,
@@ -345,6 +411,7 @@ class _HeaderCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       selected: selected,
@@ -353,17 +420,19 @@ class _HeaderCell extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          width: width ?? metrics.width,
-          height: metrics.height,
           alignment: Alignment.center,
-          color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainer,
+          decoration: BoxDecoration(
+            color: selected ? scheme.primary : scheme.surfaceContainer,
+            border: Border.all(color: scheme.outlineVariant, width: 0.5),
+          ),
           child: Text(
             label,
+            maxLines: 1,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 12 * metrics.zoom,
-              color: selected ? Theme.of(context).colorScheme.onPrimary : null,
-            ),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12 * zoom,
+                  color: selected ? scheme.onPrimary : null,
+                ),
           ),
         ),
       ),
@@ -393,14 +462,14 @@ class GridSelection {
 class SelectionSummary {
   const SelectionSummary({required this.label, required this.values, required this.numbers});
 
-  factory SelectionSummary.of(List<List<xls.Data?>> rows, int columnCount, GridSelection selection) {
+  factory SelectionSummary.of(List<List<SheetCell?>> rows, int columnCount, GridSelection selection) {
     final cells = selection.isRow
         ? [for (var c = 0; c < columnCount; c++) selection.index < rows.length && c < rows[selection.index].length ? rows[selection.index][c] : null]
         : [for (final row in rows) selection.index < row.length ? row[selection.index] : null];
     return SelectionSummary(
       label: selection.isRow ? 'Row ${selection.index + 1}' : 'Column ${_columnLabel(selection.index)}',
-      values: [for (final cell in cells) cell?.readerText ?? ''],
-      numbers: [for (final cell in cells) if (cell?.numericValue case final n?) n],
+      values: [for (final cell in cells) cell?.text ?? ''],
+      numbers: [for (final cell in cells) if (cell?.number case final n?) n],
     );
   }
 
@@ -485,113 +554,124 @@ class _SelectionBar extends StatelessWidget {
   }
 }
 
-class _DataRow extends StatelessWidget {
-  final SpreadsheetController controller;
-  final List<xls.Data?> row;
-  final int rowIndex;
-  final int columnCount;
-
-  final _CellMetrics metrics;
-  final GridSelection? selection;
-
-  const _DataRow({
-    required this.controller,
-    required this.row,
-    required this.rowIndex,
-    required this.columnCount,
-    required this.metrics,
-    this.selection,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(listenable: controller, builder: (context, _) {
-      final current = controller.matches.isEmpty ? null : controller.matches[controller.currentMatchIndex];
-      final matchedColumns = {for (final m in controller.matches) if (m.row == rowIndex) m.column};
-      return Row(
-        children: List.generate(columnCount, (c) {
-          final data = c < row.length ? row[c] : null;
-          final highlight = current != null && current.row == rowIndex && current.column == c
-              ? _CellHighlight.current
-              : matchedColumns.contains(c)
-                  ? _CellHighlight.match
-                  : selection?.contains(rowIndex, c) ?? false
-                      ? _CellHighlight.selected
-                      : _CellHighlight.none;
-          return _DataCell(
-            data: data,
-            highlight: highlight,
-            metrics: metrics,
-            onTap: () => showCellDetail(context, address: '${_columnLabel(c)}${rowIndex + 1}', value: data?.readerText ?? ''),
-          );
-        }),
-      );
-    });
-  }
-}
-
 enum _CellHighlight { none, match, current, selected }
 
 class _DataCell extends StatelessWidget {
-  final xls.Data? data;
+  final SheetCell? data;
   final _CellHighlight highlight;
-  final _CellMetrics metrics;
+  final double zoom;
+  final bool isLink;
   final VoidCallback onTap;
 
-  const _DataCell({required this.data, required this.highlight, required this.metrics, required this.onTap});
+  const _DataCell({
+    required this.data,
+    required this.highlight,
+    required this.zoom,
+    required this.isLink,
+    required this.onTap,
+  });
+
+  /// Office's default font size; the grid draws it at 13 logical px.
+  static const _defaultPoints = 11.0;
+  static const _defaultFontSize = 13.0;
 
   @override
   Widget build(BuildContext context) {
-    final backgroundHex = data?.cellStyle?.backgroundColor.colorHex;
-    Color? background;
-    if (backgroundHex != null && backgroundHex != 'none') {
-      try {
-        background = Color(int.parse(backgroundHex, radix: 16));
-      } catch (_) {
-        background = null;
-      }
-    }
+    final scheme = Theme.of(context).colorScheme;
+    final style = data?.style ?? CellStyle.plain;
+    final background = style.fillColor == null ? null : Color(style.fillColor!);
     // Theme colours, not a hard-coded orange (UX-32): the current match
     // stands out, other matches are marked lightly.
     final fill = switch (highlight) {
-      _CellHighlight.current => Theme.of(context).colorScheme.tertiaryContainer,
-      _CellHighlight.match => Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5),
-      _CellHighlight.selected => Theme.of(context).colorScheme.primaryContainer,
+      _CellHighlight.current => scheme.tertiaryContainer,
+      _CellHighlight.match => scheme.secondaryContainer.withValues(alpha: 0.5),
+      _CellHighlight.selected => scheme.primaryContainer,
       _CellHighlight.none => background,
     };
-    // Readable on the file's own fill colour as well as on the theme surface.
-    final textColor = highlight == _CellHighlight.current
-        ? Theme.of(context).colorScheme.onTertiaryContainer
-        : highlight == _CellHighlight.selected
-            ? Theme.of(context).colorScheme.onPrimaryContainer
-            : fill == null || highlight == _CellHighlight.match
-            ? Theme.of(context).colorScheme.onSurface
-            : (fill.computeLuminance() > 0.5 ? Colors.black87 : Colors.white);
+    final textColor = switch (highlight) {
+      _CellHighlight.current => scheme.onTertiaryContainer,
+      _CellHighlight.selected => scheme.onPrimaryContainer,
+      _CellHighlight.match => scheme.onSurface,
+      _CellHighlight.none => _ownTextColor(style, fill, scheme),
+    };
+    final decorations = [
+      if (style.underline || isLink) TextDecoration.underline,
+      if (style.strikethrough) TextDecoration.lineThrough,
+    ];
     return InkWell(
       onTap: onTap,
       child: Container(
-        width: metrics.width,
-        height: metrics.height,
-        padding: EdgeInsets.symmetric(horizontal: 6 * metrics.zoom),
-        alignment: Alignment.centerLeft,
+        padding: EdgeInsets.symmetric(horizontal: 6 * zoom, vertical: 2 * zoom),
+        alignment: _alignment(style, data?.value),
+        clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           color: fill,
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 0.5),
+          border: Border.all(color: scheme.outlineVariant, width: 0.5),
         ),
         child: Text(
-          data?.readerText ?? '',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          data?.text ?? '',
+          maxLines: style.wrapText ? null : 1,
+          softWrap: style.wrapText,
+          overflow: style.wrapText ? TextOverflow.clip : TextOverflow.ellipsis,
+          textAlign: _textAlign(style, data?.value),
           style: TextStyle(
             color: textColor,
-            fontSize: metrics.fontSize,
-            fontWeight: (data?.cellStyle?.isBold ?? false) ? FontWeight.bold : FontWeight.normal,
-            fontStyle: (data?.cellStyle?.isItalic ?? false) ? FontStyle.italic : FontStyle.normal,
+            fontSize: (style.fontSize ?? _defaultPoints) * _defaultFontSize / _defaultPoints * zoom,
+            fontWeight: style.bold ? FontWeight.bold : FontWeight.normal,
+            fontStyle: style.italic ? FontStyle.italic : FontStyle.normal,
+            decoration: decorations.isEmpty ? null : TextDecoration.combine(decorations),
           ),
         ),
       ),
     );
   }
+
+  /// The file's text colour where it stays readable; otherwise one chosen
+  /// for the fill (or the theme surface). Links take the theme's link
+  /// colour unless the file set one.
+  Color _ownTextColor(CellStyle style, Color? fill, ColorScheme scheme) {
+    final onFill = fill == null ? scheme.onSurface : (fill.computeLuminance() > 0.5 ? Colors.black87 : Colors.white);
+    final own = style.textColor == null ? (isLink ? scheme.primary : null) : Color(style.textColor!);
+    if (own == null) return onFill;
+    final behind = fill ?? scheme.surface;
+    final contrast = (own.computeLuminance() + 0.05) / (behind.computeLuminance() + 0.05);
+    final ratio = contrast >= 1 ? contrast : 1 / contrast;
+    return ratio >= 3 ? own : onFill;
+  }
+
+  /// Excel's General alignment: numbers right, booleans and errors centred,
+  /// text left.
+  static HorizontalAlignment _horizontal(CellStyle style, CellValue? value) {
+    if (style.horizontalAlignment != HorizontalAlignment.general) return style.horizontalAlignment;
+    final shown = value is FormulaValue ? value.cached : value;
+    return switch (shown) {
+      NumberValue() => HorizontalAlignment.right,
+      BoolValue() || ErrorValue() => HorizontalAlignment.center,
+      _ => HorizontalAlignment.left,
+    };
+  }
+
+  static Alignment _alignment(CellStyle style, CellValue? value) {
+    final x = switch (_horizontal(style, value)) {
+      HorizontalAlignment.right => 1.0,
+      HorizontalAlignment.center || HorizontalAlignment.centerContinuous => 0.0,
+      _ => -1.0,
+    };
+    // Bottom (Excel's default) is drawn centred: rows here are taller than
+    // Excel's for touch, and bottom-aligned text would look dropped.
+    final y = switch (style.verticalAlignment) {
+      VerticalAlignment.top => -1.0,
+      _ => 0.0,
+    };
+    return Alignment(x, y);
+  }
+
+  static TextAlign _textAlign(CellStyle style, CellValue? value) => switch (_horizontal(style, value)) {
+        HorizontalAlignment.right => TextAlign.right,
+        HorizontalAlignment.center || HorizontalAlignment.centerContinuous => TextAlign.center,
+        HorizontalAlignment.justify || HorizontalAlignment.distributed => TextAlign.justify,
+        _ => TextAlign.left,
+      };
 }
 
 class _EmptySheet extends StatelessWidget {

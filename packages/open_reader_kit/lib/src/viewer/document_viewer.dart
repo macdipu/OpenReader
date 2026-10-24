@@ -103,7 +103,7 @@ class _DocumentViewerState extends State<DocumentViewer> {
           if (await file.length() > SpreadsheetController.maxCsvBytes) {
             sheet.rejectAsTooLarge();
           } else {
-            sheet.loadCsv(await file.readAsBytes());
+            await sheet.loadCsv(await file.readAsBytes());
           }
           error = sheet.error;
         case DocumentFormat.powerpoint:

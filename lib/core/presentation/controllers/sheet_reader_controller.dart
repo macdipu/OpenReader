@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:open_reader_kit/excel.dart' as xls;
 import 'package:open_reader_kit/open_reader_kit.dart';
 import 'package:open_reader_kit/sheets.dart';
 
@@ -48,7 +47,7 @@ abstract class SheetReaderController extends BaseController {
   final currentMatchIndex = (-1).obs;
   final zoom = 1.0.obs;
 
-  List<List<xls.Data?>> get currentRows => _sheet?.currentRows ?? const [];
+  List<List<SheetCell?>> get currentRows => _sheet?.currentRows ?? const [];
   int get columnCount => _sheet?.columnCount ?? 0;
   double get initialVerticalOffset => _sheet?.initialVerticalOffset ?? 0;
   double get initialHorizontalOffset => _sheet?.initialHorizontalOffset ?? 0;

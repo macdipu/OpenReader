@@ -102,10 +102,10 @@ void main() {
     test('parses rows, honoring quoted commas and multi-line quoted values', () async {
       await loaded(controller);
       expect(controller.status.value, StateStatus.success);
-      expect(controller.currentRows[0][0]?.displayText, 'Name');
-      expect(controller.currentRows[1][0]?.displayText, 'Doe, Jane');
-      expect(controller.currentRows[1][1]?.displayText, 'Great\nwork');
-      expect(controller.currentRows[2][0]?.displayText, 'Alice');
+      expect(controller.currentRows[0][0]?.text, 'Name');
+      expect(controller.currentRows[1][0]?.text, 'Doe, Jane');
+      expect(controller.currentRows[1][1]?.text, 'Great\nwork');
+      expect(controller.currentRows[2][0]?.text, 'Alice');
     });
 
     test('surfaces the generic corrupted-file error when parsing throws', () async {

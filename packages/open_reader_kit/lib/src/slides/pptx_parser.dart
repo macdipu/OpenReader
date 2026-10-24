@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import 'package:xml/xml.dart';
+
+import '../engines/ooxml/opc_package.dart';
 
 /// One piece of slide content, in reading order.
 sealed class PptxBlock {
@@ -81,28 +81,18 @@ class PptxParser {
   static const _imageExtensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'};
 
   static PptxPresentation parse(Uint8List bytes) {
-    final Archive archive;
     try {
-      archive = ZipDecoder().decodeBytes(bytes);
-    } catch (_) {
-      throw const PptxFormatException('Not a ZIP package');
+      return _parse(OpcPackage.decode(bytes));
+    } on OpcFormatException catch (e) {
+      throw PptxFormatException(e.message);
     }
-    final files = {
-      for (final f in archive.files)
-        if (f.isFile) f.name: f,
-    };
+  }
 
-    String? readText(String name) {
-      final file = files[name];
-      if (file == null) return null;
-      final content = file.readBytes();
-      return content == null ? null : utf8.decode(content, allowMalformed: true);
-    }
-
-    final presentationXml = readText('ppt/presentation.xml');
-    if (presentationXml == null) throw const PptxFormatException('No ppt/presentation.xml');
-    final presentation = _xml(presentationXml);
-    final presentationRels = _relationships(readText('ppt/_rels/presentation.xml.rels'), 'ppt');
+  static PptxPresentation _parse(OpcPackage package) {
+    final presentationPath = package.mainPart ?? 'ppt/presentation.xml';
+    final presentation = package.readXml(presentationPath);
+    if (presentation == null) throw const PptxFormatException('No ppt/presentation.xml');
+    final presentationRels = _targets(package, presentationPath);
 
     final slidePaths = <String>[
       for (final id in presentation.findAllElements('sldId', namespaceUri: _ns.p))
@@ -111,38 +101,18 @@ class PptxParser {
 
     final slides = <PptxSlide>[];
     for (final path in slidePaths) {
-      final xml = readText(path);
+      final xml = package.readXml(path);
       if (xml == null) continue;
-      final rels = _relationships(readText(_relsPathFor(path)), p.posix.dirname(path));
-      slides.add(_slide(_xml(xml), rels, (name) => files[name]?.readBytes()));
+      slides.add(_slide(xml, _targets(package, path), package.readBytes));
     }
     return PptxPresentation(slides);
   }
 
-  static XmlDocument _xml(String source) {
-    try {
-      return XmlDocument.parse(source);
-    } on XmlException {
-      throw const PptxFormatException('Malformed slide XML');
-    }
-  }
-
-  /// `ppt/slides/slide1.xml` -> `ppt/slides/_rels/slide1.xml.rels`
-  static String _relsPathFor(String part) =>
-      p.posix.join(p.posix.dirname(part), '_rels', '${p.posix.basename(part)}.rels');
-
-  /// Relationship id -> package path, resolved against [baseDir].
-  static Map<String, String> _relationships(String? source, String baseDir) {
-    if (source == null) return const {};
-    final doc = _xml(source);
-    return {
-      for (final rel in doc.findAllElements('Relationship'))
-        if (rel.getAttribute('Id') case final id?)
-          if (rel.getAttribute('Target') case final target?)
-            if (rel.getAttribute('TargetMode') != 'External')
-              id: p.posix.normalize(target.startsWith('/') ? target.substring(1) : p.posix.join(baseDir, target)),
-    };
-  }
+  /// Relationship id -> internal target part, for [part].
+  static Map<String, String> _targets(OpcPackage package, String part) => {
+        for (final rel in package.relationshipsOf(part))
+          if (!rel.external) rel.id: rel.target,
+      };
 
   static PptxSlide _slide(XmlDocument doc, Map<String, String> rels, List<int>? Function(String) read) {
     String? title;
