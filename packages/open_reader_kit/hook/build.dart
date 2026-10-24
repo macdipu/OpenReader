@@ -17,10 +17,6 @@ void main(List<String> args) async {
   await build(args, (input, output) async {
     if (!input.config.buildCodeAssets) return;
     final code = input.config.code;
-    // Until the old engine's iOS xcframework (darwin/) is removed, it
-    // supplies PDFium on iOS.
-    if (code.targetOS == OS.iOS) return;
-
     final binary = _Binary.forTarget(code);
     final library = File.fromUri(
       input.outputDirectoryShared.resolve('pdfium-$_build/${binary.archive}/${binary.libraryName}'),

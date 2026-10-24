@@ -20,10 +20,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
-// excel_plus is a pure-Dart parser with no native binary dependency (unlike
-// pdfrx's PDFium), so a real .xlsx workbook can be built, encoded, and
-// re-parsed end to end in this test environment - unlike the PDF reader,
-// whose native rendering stays an out-of-environment gap.
+// open_reader_kit's spreadsheet engine is pure Dart with no native binary
+// dependency (unlike the PDF engine's PDFium), so a real .xlsx workbook can
+// be built, encoded, and re-parsed end to end in this test environment -
+// unlike the PDF reader, whose native rendering stays an out-of-environment
+// gap.
 
 class FixtureFavorites implements FavoriteRepository {
   @override
@@ -207,7 +208,7 @@ void main() {
     });
 
     // ODF-P5-03: the ZIP-safety guard rejects an oversized declared
-    // uncompressed size before `excel_plus` ever decompresses it.
+    // uncompressed size before the spreadsheet engine ever decompresses it.
     test('surfaces the too-large error for a workbook exceeding the ZIP-safety ceiling', () async {
       final archive = Archive()
         ..addFile(ArchiveFile(
