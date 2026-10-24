@@ -1,10 +1,12 @@
 /// Word (.docx): [WordDocumentView] driven by a [WordDocumentController],
-/// plus the underlying engine (`DocxView`, `DocxSearchController`).
-///
-/// The engine was originally docx_file_viewer 1.0.4 (see NOTICE.md); now
-/// maintained in open_reader_kit.
+/// on open_reader_kit's own engine (`word.dart`: [DocxReader] and the
+/// [WordDocument] model).
 library;
 
-export 'src/engines/docx/viewer/docx_file_viewer.dart';
+export 'src/engines/word/docx_reader.dart';
+export 'src/engines/word/word_model.dart';
 export 'src/word/word_document_controller.dart';
+export 'src/word/word_document_layout.dart';
 export 'src/word/word_document_view.dart';
+export 'src/word/word_search_controller.dart';
+export 'src/word/word_widgets.dart' show WordBlockView, WordScope;

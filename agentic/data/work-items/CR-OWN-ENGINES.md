@@ -82,3 +82,49 @@ Change request. CR_TASKS level (engine by engine), NO_REPLAN. There is no sprint
   - **Emulator:** `features.xlsx` shows the file's widths, the tall row 8, hidden row 9, the frozen row and column, fills, coloured underlined text and the link.
 - **Next:** E2, the Word engine. Its scope includes footnotes and endnotes and a paged layout (see DECISIONS.md).
 
+## E2a + E2b Word engine: done (2026-10-24)
+- **New code:** `lib/src/engines/word/`. Old-engine ideas came from E2-WORD-NOTES.md; the code itself is new.
+  - `word_model.dart`: a plain, sendable model. Blocks are paragraphs, tables and section breaks. Inlines are text, tab, break, image, note reference and bookmark. Formatting is resolved, list markers are numbered, and there are sections with headers and footers, notes and images.
+  - `word_styles.dart`:
+    - the theme's fonts and colours (tint and shade)
+    - run and paragraph property bags
+    - styles following the §17.7 cascade: the `w:default` paragraph style, cycle-safe and memoised `basedOn` walks, and toggle properties XOR'd between paragraph and character styles
+    - table styles with conditional formats
+    - numbering: counters per abstract list, `w:start`, `startOverride`, `lvlText` templates, and Symbol-font bullets
+  - `docx_reader.dart`: one block parser for the body, cells, headers, footers, notes and text boxes.
+    - Runs keep every child in order, so a tab or break no longer drops text.
+    - Fields: results are shown and instructions hidden; HYPERLINK fields become links.
+    - Links: web links, and bookmarks within the document.
+    - Images: inline, anchored and VML.
+    - Tables: grid spans, vMerge row spans, borders and shading, `tblLook` in both forms.
+    - Sections with page setup; headers and footers inherited across sections.
+    - Footnotes and endnotes numbered by first reference. Tracked changes show as accepted; hidden text is left out; equations show as text.
+  - `docx_test_builder.dart` (`buildDocx`).
+- **View (`lib/src/word/`):**
+  - `WordDocumentLayout` numbers paragraphs in reading order.
+  - `WordSearchController` indexes the text once. Case folding keeps offsets valid, and each paragraph looks up its own highlights in O(1).
+  - `WordDocumentView` is a lazy `ListView`.
+    - Search jumps directly when the paragraph is built, otherwise to an estimate first.
+    - The saved offset is restored over a few frames.
+    - Note marks open a bottom sheet, and the notes are listed at the end.
+    - Web links open only for http, https and mailto; bookmark links jump.
+  - Widgets:
+    - Paragraphs own and dispose their tap recognizers.
+    - Text keeps the file's colours where they stay readable. Links use the document's hyperlink colour.
+    - Tables use a custom grid layout (no `IntrinsicHeight`), so cells spanning rows take the full height and shared borders aren't doubled.
+  - The controller parses in `Isolate.run`.
+- **Removed:**
+  - the old Word engine, `lib/src/engines/docx/` (about 48k lines)
+  - `docx_core.dart`
+  - the docx_file_viewer and docx_creator license files and NOTICE rows
+- **Checks:**
+  - Text parity with each document's own `w:t` text is exact on four files: the python-docx fixture, two real QA documents, and one written by the old engine's writer.
+  - Tests: the kit has 96, adding the reader, styles, numbering, fields, notes and view widgets. The app has 208, including a real view scroll-restore test that replaced the old stand-in. All pass.
+  - Analyze: the kit's inherited warnings went from 35 to 4, all in the PDF engine. The app shows only the old `settings_view` warning.
+  - The APK builds.
+  - **Emulator:**
+    - `features.docx` shows the header, styles, the link, lists, the merged table, the image and the page-break divider.
+    - `qa-word.docx` reopens at its saved position, and search jumps to an unbuilt paragraph and highlights it.
+- **Remaining for E2:** E2c, the paged print layout from DECISIONS.md Q2: pages measured with `TextPainter`, real page breaks, and headers and footers on each page.
+- **Engine code left in the kit:** about 39.8k lines, down from about 120k. Only the PDF engine (E3) is still upstream code.
+

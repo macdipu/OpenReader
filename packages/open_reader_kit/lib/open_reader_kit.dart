@@ -2,15 +2,12 @@
 /// and text documents.
 ///
 /// This library has what every format shares: format detection, the ZIP
-/// safety check for Office files and text decoding. Each format's engine is
-/// its own library, because their names overlap (e.g. both the Word and
-/// spreadsheet models have a `Border`):
+/// safety check for Office files and text decoding. Each format has its own
+/// library:
 ///
 /// ```dart
 /// import 'package:open_reader_kit/pdf.dart';
 /// import 'package:open_reader_kit/docx.dart';
-/// import 'package:open_reader_kit/docx_core.dart';
-/// import 'package:open_reader_kit/excel.dart' as xls;
 /// import 'package:open_reader_kit/slides.dart';
 /// import 'package:open_reader_kit/sheets.dart';
 /// import 'package:open_reader_kit/text.dart';

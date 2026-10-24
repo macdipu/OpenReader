@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
@@ -37,19 +36,14 @@ class WordReaderController extends BaseController {
 
   late final WordDocumentController word;
 
-  DocxSearchController get searchController => word.searchController;
+  WordSearchController get searchController => word.searchController;
   ScrollController get scrollController => word.scrollController;
-  Uint8List? get validatedBytes => word.validatedBytes;
   double get initialScrollOffset => word.initialScrollOffset;
 
   final isSearching = false.obs;
 
-  /// The engine has no error-builder hook, only an `onError` callback, so a
-  /// load failure swaps the whole body for the error view. The engine's own
-  /// "Failed to load document" text may flash briefly first.
+  /// A load failure swaps the whole body for the error view.
   final hasError = false.obs;
-
-  void onLoadError(Object error) => word.onLoadError(error);
 
   void _onWordChanged() {
     switch (word.error) {
@@ -81,9 +75,9 @@ class WordReaderController extends BaseController {
       if (offset is num && offset > 0) word.initialScrollOffset = offset.toDouble();
     });
     try {
-      word.load(await File(document.path).readAsBytes());
+      await word.load(await File(document.path).readAsBytes());
     } catch (_) {
-      word.onLoadError(const FileSystemException());
+      word.rejectAsCorrupted();
     }
     status.value = StateStatus.success;
   }

@@ -25,6 +25,8 @@ import 'package:openreader/features/text_reader/presentation/text_reader_view.da
 import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
+import 'package:open_reader_kit/docx.dart';
+import 'package:open_reader_kit/testing.dart';
 
 /// CR-OPENREADER-UX Phase 2 regressions not covered by document_views_test.
 
@@ -242,14 +244,18 @@ void main() {
     }
   });
 
-  testWidgets('Word reader restores its saved offset through the primary scroll controller (UX-22)',
-      (tester) async {
+  testWidgets('Word reader restores its saved offset (UX-22)', (tester) async {
     recents.position = {'scroll_offset': 1200.0};
+    final dir = await tester.runAsync(() => Directory.systemTemp.createTemp('openreader-word-restore-'));
+    addTearDown(() => dir!.delete(recursive: true));
+    final file = File('${dir!.path}/long.docx');
+    await tester.runAsync(() => file.writeAsBytes(buildDocx([
+          for (var i = 0; i < 200; i++) '<w:p><w:r><w:t>Paragraph $i of a long document</w:t></w:r></w:p>',
+        ].join())));
     final document = DocumentModel(
-      // Never read successfully - only the saved position matters here.
-      id: '/fixtures/missing.docx',
-      path: '/fixtures/missing.docx',
-      displayName: 'missing.docx',
+      id: file.path,
+      path: file.path,
+      displayName: 'long.docx',
       extension: 'docx',
       category: DocumentCategory.word,
       sizeBytes: 1,
@@ -259,21 +265,16 @@ void main() {
     final controller = WordReaderController(document: document, recentRepository: recents);
     await tester.runAsync(() async {
       controller.onInit();
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      for (var i = 0; i < 100 && !controller.word.isLoaded; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
     });
     expect(controller.initialScrollOffset, 1200.0);
 
-    // Stands in for DocxView: a vertical scroll view with no controller of
-    // its own, as docx_file_viewer 1.0.4 builds it.
-    await tester.pumpWidget(MaterialApp(
-      home: PrimaryScrollController(
-        controller: controller.scrollController,
-        automaticallyInheritForPlatforms: TargetPlatform.values.toSet(),
-        child: const SingleChildScrollView(child: SizedBox(height: 5000)),
-      ),
-    ));
-    controller.word.onDocumentLoaded();
-    await tester.pump();
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: WordDocumentView(controller: controller.word))));
+    for (var i = 0; i < 15; i++) {
+      await tester.pump();
+    }
     expect(controller.scrollController.offset, 1200.0);
   });
 }
