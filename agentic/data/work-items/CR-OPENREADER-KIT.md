@@ -14,7 +14,7 @@
 See `features/CR-OPENREADER-KIT/TECH-SPEC.md`.
 
 ## Run
-`RUN-D7532679987249979346FE2D4A723869` (technical approval recorded; REVIEW and QA recorded 2026-10-24, waiting at QA → RELEASE for the user's release approval). Context scoped to the frozen TECH-SPEC only.
+`RUN-D7532679987249979346FE2D4A723869` (COMPLETED 2026-10-24: review, QA and release readiness recorded; release approved by the user in-session). Context scoped to the frozen TECH-SPEC only.
 
 ## Phase A: done (2026-10-23)
 - **What was copied:** the 8 engines, verbatim, into `packages/open_reader_kit/third_party/` (see `VENDORED.md`).
@@ -95,6 +95,9 @@ The parallel agents hit the usage limit before saving any work, so B2–B5 were 
 - The emulator smoke test from Phase B was not repeated: the app doesn't use `DocumentViewer`.
 - Evidence: `validation/qa.json`.
 
+## Release: done (2026-10-24)
+- Approved by the user in-session. This closes the CR; nothing was published to the Play Store or pub.dev.
+- Evidence: `validation/release.json`.
+
 ## Remaining
-- **RELEASE:** needs the user's approval. Closes this CR; it does not publish to pub.dev.
 - **Phase C (later):** `example/`, `CHANGELOG.md`, the Apache list of changes to `docx_file_viewer`, the 35 upstream analyzer warnings, `dart pub publish --dry-run`, and removing `publish_to: none`.
