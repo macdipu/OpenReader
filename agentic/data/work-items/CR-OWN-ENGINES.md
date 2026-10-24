@@ -301,13 +301,24 @@ User request: "plan such a feature need for person who is trying to read it", th
   - The cold-start bug (BUG-OPENREADER-COLDSTART-INTENT): opening a file while the app isn't running lands on Home. It was already open before this work.
 - **Tier 2 is next, not started:** go to a cell or sheet; freezing the header row yourself.
 
+## E1d: Tier 2 for reading sheets on a phone (2026-10-24)
+User: "continue" (Tier 2 as planned: go to a cell or sheet; freeze the header row yourself).
+- **Kit:**
+  - `SpreadsheetController.goTo(reference)` takes `D120`, `Sheet2!B3`, `'My Sheet'!B3` or a sheet name, with sheet names matched in any case. It scrolls the cell to the top left and marks it (`goToTarget`, drawn like the current search match). A sheet switch or a new search clears the mark.
+  - `showGoToDialog(context, controller)`: a field with an error message when nothing matches, plus sheet chips for multi-sheet workbooks.
+  - `freezeTopRow`: `SheetGeometry(minFrozenRows:)`. It's saved in the position as `PositionKeys.freezeTopRow` and restored on open. `sheetFreezesRows` says when the file already froze rows.
+- **App:** the Excel and CSV reader menus get "Go to cell" and a "Freeze header row" checkbox. The checkbox is hidden on a sheet whose file froze rows. `SheetReaderController.loadedSheet` is null until the sheet loads.
+- **Tests:** kit 144 (3 new: goTo, the dialog, freeze); app 217 (1 new: freeze saved and restored). Analyze reports no new issues.
+- **Emulator check:** `qa-tier2.xlsx` (300 rows, 2 sheets). After freezing, row 1 stays pinned at row 150; "Go to cell" B150 lands at the top left with the cell marked.
+- **Tier 3 is not started:** filter/table header styling, view-only sort/filter, pictures, charts, rotated text.
+
 ## NEXT STEPS (updated 2026-10-24)
 1. **E5, repo split and pub.dev.**
    - **Done:** the licence is **MIT** (`LICENSE` added on 2026-10-24) and the README licence section is updated.
    - **Waits on the user:** run `gh auth login`, and have rights to create `chowdhuryelab/open_reader_kit` (fresh start).
    - Then: README `<repo-url>`; pubspec `homepage`/`repository`/`topics` with `publish_to: none` removed; `dart pub publish --dry-run`; push the kit to the new repo; switch the app to a git dependency. The publish itself needs release approval.
 2. **Resumed-page thumbnails: done** (see the section above). Checked on the Pixel_4a emulator: the PDF, text and Word cards and rows show the resumed page.
-2b. **Sheet-reading features:** Tier 1 is done (E1c above). Tier 2 (go to cell; freeze the header row yourself) and Tier 3 (pictures, charts, rotated text) are planned in-session, and the user hasn't scheduled them.
+2b. **Sheet-reading features:** Tiers 1 and 2 are done (E1c, E1d above). Still planned and not scheduled: filter/table header styling, view-only sort/filter, pictures, charts, rotated text, and a small formula evaluator for files saved without results.
 3. **REVIEW, QA and RELEASE** for run `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF`. The release approval is the user's.
 4. **Optional follow-ups:**
    - `DocumentViewer` maps PDF password failures to `corrupted`; it could pass `passwordRequired` through.

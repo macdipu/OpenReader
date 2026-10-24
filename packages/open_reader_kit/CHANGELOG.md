@@ -14,6 +14,8 @@ open_reader_kit reads every format with its own engines: PDF through its own bin
     - **Conditional formatting:** comparisons, text matches, blanks, errors, top/bottom N, above/below average, duplicates, colour scales and data bars. Rules that need a formula evaluated are left out.
     - **Comments:** shown as notes, with a corner marker.
   - Tapping a cell shows its formula, as Excel's formula bar does, and its note. A formula filled down a column shows in each cell with its references moved.
+  - `SpreadsheetController.goTo` and `showGoToDialog` jump to a cell (`D120`, `Sheet2!B3`) or a sheet by name, and mark the cell.
+  - `freezeTopRow` keeps the header row on screen in a sheet whose file froze none. It's saved in the position as `freeze_top_row`.
 - **Thumbnails:** `DocumentThumbnails.render(path, width:)` draws the first page of any supported file as a PNG. Given a saved `position:`, it draws the page reading resumes on. The Word and text readers report the paragraph or line at the top (`PositionKeys.paragraph`, `PositionKeys.line`) for this.
 - **PowerPoint (.pptx):** `SlideDeckController`, `SlideDeckView` and `SlideNavigationBar`. Titles, paragraphs, tables and pictures; search.
 - **Text (.txt, .md):** `TextDocumentController` and `TextDocumentView`. UTF-8 with a Latin-1 fallback, binary-file check, search.

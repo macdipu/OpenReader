@@ -21,7 +21,9 @@ import 'sheet_geometry.dart';
 /// the app's business.
 ///
 /// Rows and columns take the sizes stored in the file, and hidden ones stay
-/// hidden ([geometry]).
+/// hidden ([geometry]). [goTo] jumps to a cell or sheet; [freezeTopRow]
+/// keeps the header row on screen in a sheet whose file froze none.
+/// `freeze_top_row` is in the position when it's on.
 class SpreadsheetController extends ChangeNotifier {
   SpreadsheetController({ReadingPosition? initialPosition, this.onPositionChanged}) {
     final position = initialPosition ?? const {};
@@ -32,6 +34,7 @@ class SpreadsheetController extends ChangeNotifier {
     if (position[PositionKeys.horizontalOffset] case final num h when h > 0) {
       initialHorizontalOffset = _lastHorizontalOffset = h.toDouble();
     }
+    _freezeTopRow = position[PositionKeys.freezeTopRow] == true;
   }
 
   /// A default-width column and default-height row; see [SheetGeometry].
@@ -95,7 +98,70 @@ class SpreadsheetController extends ChangeNotifier {
         currentSheet ?? const Worksheet(name: '', rows: []),
         rowCount: currentRows.length,
         columnCount: columnCount,
+        minFrozenRows: _freezeTopRow ? 1 : 0,
       );
+
+  bool _freezeTopRow = false;
+
+  /// Whether the reader keeps the sheet's top row on screen, whatever the
+  /// file froze. Applies to every sheet; reported in the position.
+  bool get freezeTopRow => _freezeTopRow;
+  set freezeTopRow(bool value) {
+    if (value == _freezeTopRow) return;
+    _freezeTopRow = value;
+    _geometry = null;
+    notifyListeners();
+    onPositionChanged?.call(position);
+  }
+
+  /// Whether the current sheet's file already froze rows at the top, so
+  /// [freezeTopRow] changes nothing on it.
+  bool get sheetFreezesRows => frozenRows > 0;
+
+  CellMatch? _target;
+
+  /// The cell [goTo] went to, marked until the next search or sheet
+  /// switch.
+  CellMatch? get goToTarget => _target;
+
+  bool isGoToTarget(int row, int column) => _target?.row == row && _target?.column == column;
+
+  /// Goes to what [reference] names: a cell on this sheet (`D120`), a cell
+  /// on another (`Sheet2!B3`, `'My Sheet'!B3`), or a sheet by name. Sheet
+  /// names match in any case. The cell is scrolled to the top left and
+  /// marked ([goToTarget]). False when there's no such cell or sheet.
+  bool goTo(String reference) {
+    final text = reference.trim();
+    if (text.isEmpty) return false;
+    final sheetOnly = _sheetIndexNamed(text.replaceAll(RegExp(r"^'|'$"), '').replaceAll("''", "'"));
+    if (sheetOnly != null) {
+      switchSheet(sheetOnly);
+      return true;
+    }
+    final bang = text.lastIndexOf('!');
+    var location = text;
+    if (bang > 0) {
+      final name = text.substring(0, bang).replaceAll(RegExp(r"^'|'$"), '').replaceAll("''", "'");
+      final index = _sheetIndexNamed(name);
+      if (index == null) return false;
+      location = "'${_sheets[index].name.replaceAll("'", "''")}'${text.substring(bang)}";
+    }
+    final cell = RegExp(r'!?\$?([A-Za-z]{1,3})\$?(\d+)$').firstMatch(location);
+    if (cell == null || !openInternalLink(location)) return false;
+    var column = 0;
+    for (final unit in cell.group(1)!.toUpperCase().codeUnits) {
+      column = column * 26 + (unit - 0x40);
+    }
+    _target = CellMatch(row: int.parse(cell.group(2)!) - 1, column: column - 1);
+    notifyListeners();
+    return true;
+  }
+
+  int? _sheetIndexNamed(String name) {
+    final lower = name.toLowerCase();
+    final index = _sheets.indexWhere((sheet) => sheet.name.toLowerCase() == lower);
+    return index < 0 ? null : index;
+  }
   int get frozenRows => currentSheet?.frozenRows ?? 0;
   int get frozenColumns => currentSheet?.frozenColumns ?? 0;
 
@@ -175,6 +241,7 @@ class SpreadsheetController extends ChangeNotifier {
     _activeSheet = index;
     _columnCount = null;
     _geometry = null;
+    _target = null;
     _resetSearch();
     notifyListeners();
     onPositionChanged?.call(position);
@@ -220,6 +287,7 @@ class SpreadsheetController extends ChangeNotifier {
           grid.visibleColumns.isEmpty ? 0 : grid.visibleColumns[grid.visibleColumnAtScrollOffset(horizontal)],
       PositionKeys.verticalOffset: vertical,
       PositionKeys.horizontalOffset: horizontal,
+      if (_freezeTopRow) PositionKeys.freezeTopRow: true,
     };
   }
 
@@ -250,6 +318,7 @@ class SpreadsheetController extends ChangeNotifier {
   /// rows and columns are skipped, as in Excel.
   void search(String query) {
     _query = query;
+    _target = null;
     final lower = query.toLowerCase();
     final found = <CellMatch>[];
     final layout = currentSheet?.layout ?? SheetLayout.standard;
