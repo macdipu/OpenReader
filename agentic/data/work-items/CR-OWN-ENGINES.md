@@ -384,3 +384,4 @@ User: the package needs its own test app, since OpenReader will gain features th
    - A release-build memory check for large PDFs.
    - Commit the iOS project migration when the user next builds for iOS.
 - **Still open:** BUG-OPENREADER-COLDSTART-INTENT, which predates this work.
+- **Backlog:** legacy `.xls`, `.doc` and `.ppt` support is `CR-LEGACY-OFFICE` ("Coming soon" in the package README; package commit 63ddce2, part of the unpublished 0.1.1).
