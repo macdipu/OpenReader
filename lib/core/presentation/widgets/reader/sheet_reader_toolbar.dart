@@ -40,6 +40,7 @@ class SheetReaderToolbar extends StatelessWidget {
               selected: controller.freezeTopRow.value,
               onPressed: controller.toggleFreezeTopRow,
             ),
+          ReaderNightModeButton(on: controller.nightMode.value, onPressed: controller.toggleNightMode),
           ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
         ],
       );

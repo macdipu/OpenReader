@@ -147,6 +147,22 @@ class ReaderZoomButtons extends StatelessWidget {
   }
 }
 
+/// Night mode, just before full screen in every [ReaderToolbar].
+class ReaderNightModeButton extends StatelessWidget {
+  final bool on;
+  final VoidCallback onPressed;
+
+  const ReaderNightModeButton({super.key, required this.on, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) => ReaderToolbarButton(
+        icon: on ? Icons.dark_mode_rounded : Icons.dark_mode_outlined,
+        tooltip: on ? 'Turn off night mode' : 'Night mode',
+        selected: on,
+        onPressed: onPressed,
+      );
+}
+
 /// The last tool in every [ReaderToolbar].
 class ReaderFullscreenButton extends StatelessWidget {
   final VoidCallback onPressed;
