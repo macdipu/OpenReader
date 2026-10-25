@@ -10,6 +10,7 @@ import '../../features/browse/presentation/browse_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
+import '../../services/utilities/app_update_service.dart';
 import '../../services/utilities/storage_access_service.dart';
 import '../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 
@@ -36,6 +37,8 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     unawaited(_incomingIntentService.init());
     _openLaunchFiles();
     WidgetsBinding.instance.addObserver(this);
+    // After the first frame, so the sheet has a navigator to open on.
+    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(AppUpdateService.instance.checkForUpdate()));
   }
 
   /// Storage access can change while the app is in the background (the
