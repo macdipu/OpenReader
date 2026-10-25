@@ -10,6 +10,7 @@ import '../../../core/domain/models/document_model.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
+import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:universal_document_viewer/slides.dart';
@@ -19,7 +20,7 @@ import 'package:universal_document_viewer/slides.dart';
 /// slide on screen and search. This adds what's OpenReader's: the saved
 /// position (restored on open, saved 2 s after a move and once more on
 /// close), favourites/share/open-with, and the BRD §13 error wording.
-class PowerPointReaderController extends BaseController {
+class PowerPointReaderController extends BaseController with ReaderFullscreen {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;
@@ -103,7 +104,36 @@ class PowerPointReaderController extends BaseController {
   void previousSlide() => _deck?.previousSlide();
   void nextSlide() => _deck?.nextSlide();
 
-  void startSearching() => isSearching.value = true;
+  void goToSlide(int number) => _deck?.goToSlide(number - 1);
+
+  /// Whether the slide previews show above the toolbar.
+  final showPreviews = false.obs;
+
+  void togglePreviews() => showPreviews.value = !showPreviews.value;
+
+  @override
+  void onFullscreenChanged(bool fullscreen) {
+    if (fullscreen) showPreviews.value = false;
+  }
+
+  void zoomIn() => _deck?.zoomIn();
+  void zoomOut() => _deck?.zoomOut();
+
+  void startSearching() {
+    setFullscreen(false);
+    isSearching.value = true;
+  }
+
+  /// Esc: leave full screen, then close search, then the reader.
+  void escape() {
+    if (isFullscreen.value) {
+      setFullscreen(false);
+    } else if (isSearching.value) {
+      stopSearching();
+    } else {
+      Get.back();
+    }
+  }
 
   void stopSearching() {
     isSearching.value = false;

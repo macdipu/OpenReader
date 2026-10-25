@@ -5,6 +5,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openreader/core/presentation/widgets/reader/reader_preview_strip.dart';
 import 'package:get/get.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
@@ -214,13 +215,13 @@ void main() {
     testWidgets('shows one slide with a counter, and the arrows and keyboard move between slides', (tester) async {
       final c = await pumpReader(tester, threeSlides);
       expect(find.text('Welcome'), findsOneWidget);
-      expect(find.text('1 / 3'), findsOneWidget);
+      expect(find.text('Slide 1 of 3'), findsOneWidget);
       expect(find.byTooltip('Previous slide'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Next slide'));
       await tester.pumpAndSettle();
       expect(find.text('Budget'), findsOneWidget);
-      expect(find.text('2 / 3'), findsOneWidget);
+      expect(find.text('Slide 2 of 3'), findsOneWidget);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pumpAndSettle();
@@ -229,6 +230,19 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pumpAndSettle();
       expect(c.currentSlide, 1);
+      c.onClose();
+    });
+
+    testWidgets('the previews show the slides around the current one; tapping one goes there', (tester) async {
+      final c = await pumpReader(tester, threeSlides);
+      expect(find.byType(ReaderPreviewStrip), findsNothing);
+      await tester.tap(find.byTooltip('Slide thumbnails'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ReaderPreviewStrip), findsOneWidget);
+      await tester.tap(find.descendant(of: find.byType(ReaderPreviewStrip), matching: find.text('3')));
+      await tester.pumpAndSettle();
+      expect(c.currentSlide, 2);
+      expect(find.text('Slide 3 of 3'), findsOneWidget);
       c.onClose();
     });
 

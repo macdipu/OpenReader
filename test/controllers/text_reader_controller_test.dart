@@ -245,7 +245,7 @@ void main() {
 
   group('display preferences', () {
     test('increaseFontSize/decreaseFontSize clamp to a sane range', () {
-      expect(controller.fontSize.value, 14.0);
+      expect(controller.fontSize.value, TextReaderController.defaultFontSize);
       for (var i = 0; i < 20; i++) {
         controller.increaseFontSize();
       }
@@ -266,7 +266,7 @@ void main() {
       controller.increaseFontSize();
       controller.toggleLineWrap();
       await Future<void>.delayed(Duration.zero);
-      expect(settings.fontSize, 16.0);
+      expect(settings.fontSize, TextReaderController.defaultFontSize + 2);
       expect(settings.lineWrap, isFalse);
     });
 
@@ -287,7 +287,7 @@ void main() {
       reopened.onInit();
       reopened.decreaseFontSize();
       await Future<void>.delayed(Duration.zero);
-      expect(reopened.fontSize.value, 12.0);
+      expect(reopened.fontSize.value, TextReaderController.defaultFontSize - 2);
     });
   });
 

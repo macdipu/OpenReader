@@ -6,6 +6,7 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'package:universal_document_viewer/text.dart';
 import 'text_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
@@ -21,10 +22,17 @@ class TextReaderView extends GetView<TextReaderController> {
     return AppShortcuts(
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.startSearching,
-      onEscape: () => controller.isSearching.value ? controller.stopSearching() : Get.back(),
+      onEscape: controller.escape,
       child: Obx(() => Scaffold(
-      appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
-      body: ContentConstraint(
+      appBar: controller.isFullscreen.value
+          ? null
+          : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
+      bottomNavigationBar: controller.isFullscreen.value || !controller.status.value.isSuccess
+          ? null
+          : _TextToolbar(controller: controller),
+      body: ReaderFullscreenScope(
+        controller: controller,
+        child: ContentConstraint(
         maxWidth: ScreenUtils.maxReaderWidth,
         child: Obx(() {
           if (controller.status.value.isBusy) return const LoadingView();
@@ -36,8 +44,49 @@ class TextReaderView extends GetView<TextReaderController> {
               ));
         }),
       ),
+      ),
     )),
     );
+  }
+}
+
+/// Line x of N (tap to go to a line) · text size · line wrap · full screen.
+class _TextToolbar extends StatelessWidget {
+  final TextReaderController controller;
+
+  const _TextToolbar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final count = controller.lines.length;
+      final line = controller.topLine.value.clamp(1, count < 1 ? 1 : count);
+      return ReaderBottomBar(
+        children: [
+          ReaderPositionButton(
+            label: 'Line $line of $count',
+            onPressed: count < 1
+                ? null
+                : () async {
+                    final target = await showGoToNumberDialog(context, title: 'Go to line', current: line, max: count);
+                    if (target != null) controller.goToLine(target);
+                  },
+          ),
+          ReaderZoomButtons(
+            textSize: true,
+            onZoomOut: controller.canDecreaseFontSize ? controller.decreaseFontSize : null,
+            onZoomIn: controller.canIncreaseFontSize ? controller.increaseFontSize : null,
+          ),
+          ReaderToolbarButton(
+            icon: Icons.wrap_text_rounded,
+            tooltip: controller.lineWrap.value ? 'Don\'t wrap lines' : 'Wrap lines',
+            selected: controller.lineWrap.value,
+            onPressed: controller.toggleLineWrap,
+          ),
+          ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
+        ],
+      );
+    });
   }
 }
 
@@ -70,6 +119,10 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
                   border: InputBorder.none,
                 ),
                 onChanged: controller.search,
+                // Enter steps to the next match; the field keeps focus to press again.
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => controller.goToNextMatch(),
+                onEditingComplete: () {},
               )
             : Row(
                 children: [
@@ -107,13 +160,11 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         PopupMenuButton<_ReaderAction>(
+          tooltip: 'More actions',
           onSelected: (action) => _handle(action),
           itemBuilder: (context) => const [
             PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
-            PopupMenuItem(value: _ReaderAction.increaseFontSize, child: Text('Increase Text Size')),
-            PopupMenuItem(value: _ReaderAction.decreaseFontSize, child: Text('Decrease Text Size')),
-            PopupMenuItem(value: _ReaderAction.toggleLineWrap, child: Text('Toggle Line Wrap')),
           ],
         ),
       ],
@@ -129,17 +180,11 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
-      case _ReaderAction.increaseFontSize:
-        controller.increaseFontSize();
-      case _ReaderAction.decreaseFontSize:
-        controller.decreaseFontSize();
-      case _ReaderAction.toggleLineWrap:
-        controller.toggleLineWrap();
     }
   }
 }
 
-enum _ReaderAction { share, openWith, increaseFontSize, decreaseFontSize, toggleLineWrap }
+enum _ReaderAction { share, openWith }
 
 class _SearchStatusBar extends StatelessWidget {
   final TextReaderController controller;
@@ -158,7 +203,7 @@ class _SearchStatusBar extends StatelessWidget {
         // is reserved for text-less (scanned) PDFs.
         label = 'No matches';
       } else {
-        label = '${controller.currentMatchIndex.value + 1} of ${controller.matches.length} result(s)';
+        label = '${controller.currentMatchIndex.value + 1} of ${controller.matches.length}';
       }
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

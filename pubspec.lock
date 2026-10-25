@@ -1206,10 +1206,10 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "42f2ec4340509cd03f48516cc3c5df67a0583098"
+      resolved-ref: "3af5710293db80ee31160c8ef481091e5361869f"
       url: "https://github.com/macdipu/universal_document_viewer.git"
     source: git
-    version: "0.1.0"
+    version: "0.1.1"
   universal_io:
     dependency: transitive
     description:

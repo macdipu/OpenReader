@@ -9,6 +9,7 @@ import '../../../core/domain/models/document_model.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
+import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/docx.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
@@ -19,7 +20,7 @@ import 'package:universal_document_viewer/universal_document_viewer.dart';
 /// adds what's OpenReader's: the saved position (2 s after scrolling and
 /// once more on close), favourites/share/open-with via the shared
 /// [DocumentInteractionController], and the BRD §13 error wording.
-class WordReaderController extends BaseController {
+class WordReaderController extends BaseController with ReaderFullscreen {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;
@@ -42,8 +43,34 @@ class WordReaderController extends BaseController {
   final isSearching = false.obs;
 
   /// Print layout (pages) rather than continuous; mirrors the kit's
-  /// [WordDocumentController.viewMode] for the menu.
+  /// [WordDocumentController.viewMode] for the toolbar.
   final isPaged = false.obs;
+
+  /// [WordDocumentController.zoom] for the toolbar.
+  final zoom = 1.0.obs;
+
+  /// Whether the page previews show above the toolbar.
+  final showPreviews = false.obs;
+
+  /// Pages exist only in print layout, so showing them switches to it.
+  void togglePreviews() {
+    if (word.viewMode != WordViewMode.paged) {
+      word.viewMode = WordViewMode.paged;
+      showPreviews.value = true;
+    } else {
+      showPreviews.value = !showPreviews.value;
+    }
+  }
+
+  @override
+  void onFullscreenChanged(bool fullscreen) {
+    if (fullscreen) showPreviews.value = false;
+  }
+
+  bool get canZoomIn => word.canZoomIn;
+  bool get canZoomOut => word.canZoomOut;
+  void zoomIn() => word.zoomIn();
+  void zoomOut() => word.zoomOut();
 
   void toggleLayout() => word.toggleViewMode();
 
@@ -52,6 +79,7 @@ class WordReaderController extends BaseController {
 
   void _onWordChanged() {
     isPaged.value = word.viewMode == WordViewMode.paged;
+    zoom.value = word.zoom;
     switch (word.error) {
       case null:
         break;
@@ -107,7 +135,21 @@ class WordReaderController extends BaseController {
   Future<void> _savePosition(ReadingPosition position) =>
       _recentRepository.markOpened(document.id, readingPosition: position);
 
-  void startSearching() => isSearching.value = true;
+  void startSearching() {
+    setFullscreen(false);
+    isSearching.value = true;
+  }
+
+  /// Esc: leave full screen, then close search, then the reader.
+  void escape() {
+    if (isFullscreen.value) {
+      setFullscreen(false);
+    } else if (isSearching.value) {
+      stopSearching();
+    } else {
+      Get.back();
+    }
+  }
 
   void stopSearching() {
     isSearching.value = false;

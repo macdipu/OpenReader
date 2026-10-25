@@ -8,6 +8,7 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'pdf_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 
@@ -27,7 +28,9 @@ class PdfReaderView extends GetView<PdfReaderController> {
       appBar: controller.isFullscreen.value
           ? null
           : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
-      body: Obx(() {
+      body: ReaderFullscreenScope(
+        controller: controller,
+        child: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
         return Stack(
           children: [
@@ -66,6 +69,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
           ],
         );
       }),
+      ),
     )),
     );
   }
@@ -129,6 +133,10 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
                   hintStyle: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
                 ),
                 onChanged: controller.onSearchQueryChanged,
+                // Enter steps to the next match; the field keeps focus to press again.
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => controller.goToNextMatch(),
+                onEditingComplete: () {},
               )
             : Row(
                 mainAxisSize: MainAxisSize.min,
@@ -274,102 +282,41 @@ class _FloatingToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (controller.pageCount.value < 1) return const SizedBox.shrink();
-      final isDark = Theme.of(context).brightness == Brightness.dark;
       return Padding(
         padding: const EdgeInsets.only(bottom: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: context.surfaceContainerLowest.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: context.outlineVariant),
-            boxShadow: isDark
-                ? null
-                : [BoxShadow(color: context.shadow.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 4))],
-          ),
-          // Scales down rather than overflowing on narrow phones (UX-31/33).
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: 'Page thumbnails',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.grid_view_rounded, color: context.onSurfaceVariant, size: 20),
-                onPressed: controller.toggleThumbnails,
-              ),
-              TextButton(
-                onPressed: () => _showJumpToPageDialog(context),
-                child: Text(
-                  'Page ${controller.currentPage.value} of ${controller.pageCount.value}',
-                  style: context.labelMedium?.copyWith(color: context.onSurface),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Zoom out',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.zoom_out_rounded, color: context.onSurfaceVariant, size: 20),
-                onPressed: controller.zoomOut,
-              ),
-              IconButton(
-                tooltip: 'Zoom in',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.zoom_in_rounded, color: context.onSurfaceVariant, size: 20),
-                onPressed: controller.zoomIn,
-              ),
-              IconButton(
-                tooltip: 'Fit width',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.fit_screen_outlined, color: context.onSurfaceVariant, size: 20),
-                onPressed: controller.fitWidth,
-              ),
-              IconButton(
-                tooltip: 'Full screen',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.fullscreen_rounded, color: context.onSurfaceVariant, size: 20),
-                onPressed: controller.toggleFullscreen,
-              ),
-              IconButton(
-                tooltip: 'Switch page layout',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(
-                  controller.viewMode.value == PdfReaderViewMode.horizontal
-                      ? Icons.view_column_rounded
-                      : Icons.view_agenda_outlined,
-                  color: context.secondary,
-                  size: 20,
-                ),
-                onPressed: controller.toggleViewMode,
-              ),
-            ],
-          ),
-          ),
+        child: ReaderToolbar(
+          children: [
+            ReaderPreviewsButton(
+              tooltip: 'Page thumbnails',
+              showing: controller.showThumbnails.value,
+              onPressed: controller.toggleThumbnails,
+            ),
+            ReaderPositionButton(
+              label: 'Page ${controller.currentPage.value} of ${controller.pageCount.value}',
+              onPressed: () => _showJumpToPageDialog(context),
+            ),
+            ReaderZoomButtons(onZoomOut: controller.zoomOut, onZoomIn: controller.zoomIn),
+            ReaderToolbarButton(icon: Icons.fit_screen_outlined, tooltip: 'Fit width', onPressed: controller.fitWidth),
+            ReaderToolbarButton(
+              icon: controller.viewMode.value == PdfReaderViewMode.horizontal
+                  ? Icons.view_column_rounded
+                  : Icons.view_agenda_outlined,
+              tooltip: 'Switch page layout',
+              onPressed: controller.toggleViewMode,
+            ),
+            ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
+          ],
         ),
       );
     });
   }
 
   Future<void> _showJumpToPageDialog(BuildContext context) async {
-    final controllerText = TextEditingController(text: controller.currentPage.value.toString());
-    final page = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Jump to page'),
-        content: TextField(
-          controller: controllerText,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(hintText: '1–${controller.pageCount.value}'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(int.tryParse(controllerText.text)),
-            child: const Text('Go'),
-          ),
-        ],
-      ),
+    final page = await showGoToNumberDialog(
+      context,
+      title: 'Go to page',
+      current: controller.currentPage.value,
+      max: controller.pageCount.value,
     );
     if (page != null) unawaited(controller.jumpToPage(page));
   }

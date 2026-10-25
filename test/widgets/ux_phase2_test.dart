@@ -277,4 +277,76 @@ void main() {
     }
     expect(controller.scrollController.offset, 1200.0);
   });
+
+  group('Reader toolbar', () {
+    Future<TextReaderController> pumpTextReader(WidgetTester tester, int lineCount) async {
+      final file = await tester.runAsync(() async {
+        final dir = await Directory.systemTemp.createTemp('openreader-toolbar-');
+        final f = File('${dir.path}/lines.txt');
+        await f.writeAsString([for (var i = 1; i <= lineCount; i++) 'line $i'].join('\n'));
+        return f;
+      });
+      addTearDown(() => file!.parent.deleteSync(recursive: true));
+      final controller = Get.put(TextReaderController(
+        document: DocumentModel(
+          id: file!.path,
+          path: file.path,
+          displayName: 'lines.txt',
+          extension: 'txt',
+          category: DocumentCategory.text,
+          sizeBytes: 1,
+          modifiedAt: DateTime(2026),
+          lastSeenAt: DateTime(2026),
+        ),
+        recentRepository: recents,
+        settingsRepository: FixtureTextSettings(),
+      ));
+      await tester.pumpWidget(const GetMaterialApp(home: TextReaderView()));
+      for (var i = 0; i < 50 && controller.status.value.isBusy; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+      }
+      await tester.pumpAndSettle();
+      return controller;
+    }
+
+    testWidgets('shows the position, text size, wrap and full screen, and leaves the body room', (tester) async {
+      await pumpTextReader(tester, 200);
+      expect(find.text('Line 1 of 200'), findsOneWidget);
+      for (final tooltip in ['Smaller text', 'Larger text', "Don't wrap lines", 'Full screen']) {
+        expect(find.byTooltip(tooltip), findsOneWidget, reason: tooltip);
+      }
+      // The bar sits at the bottom; the text still gets most of the screen.
+      expect(find.text('line 1'), findsOneWidget);
+      expect(tester.getSize(find.byType(ListView).first).height, greaterThan(300));
+    });
+
+    testWidgets('Go to line jumps there', (tester) async {
+      final controller = await pumpTextReader(tester, 200);
+      await tester.tap(find.text('Line 1 of 200'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '150');
+      await tester.tap(find.text('Go'));
+      await tester.pumpAndSettle();
+      expect(find.text('line 150'), findsOneWidget);
+      expect(controller.topLine.value, 150);
+      // Let the position save, debounced after the scroll, run.
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('full screen hides the bars; Back brings them back before leaving', (tester) async {
+      final controller = await pumpTextReader(tester, 20);
+      await tester.tap(find.byTooltip('Full screen'));
+      await tester.pumpAndSettle();
+      expect(controller.isFullscreen.value, isTrue);
+      expect(find.byType(AppBar), findsNothing);
+      expect(find.byTooltip('Full screen'), findsNothing);
+      expect(find.byTooltip('Exit full screen'), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(controller.isFullscreen.value, isFalse);
+      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.byType(TextReaderView), findsOneWidget, reason: 'Back left full screen, not the reader');
+    });
+  });
 }

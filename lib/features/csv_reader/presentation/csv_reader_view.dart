@@ -6,6 +6,8 @@ import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/sheets.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
+import '../../../core/presentation/widgets/reader/sheet_reader_toolbar.dart';
 import 'csv_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 
@@ -22,10 +24,17 @@ class CsvReaderView extends GetView<CsvReaderController> {
     return AppShortcuts(
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.startSearching,
-      onEscape: () => controller.isSearching.value ? controller.stopSearching() : Get.back(),
+      onEscape: controller.escape,
       child: Obx(() => Scaffold(
-      appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
-      body: Obx(() {
+      appBar: controller.isFullscreen.value
+          ? null
+          : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
+      bottomNavigationBar: controller.isFullscreen.value || !controller.status.value.isSuccess
+          ? null
+          : SheetReaderToolbar(controller: controller),
+      body: ReaderFullscreenScope(
+        controller: controller,
+        child: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
         if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
         return Container(
@@ -36,9 +45,15 @@ class CsvReaderView extends GetView<CsvReaderController> {
             borderRadius: BorderRadius.circular(12),
           ),
           clipBehavior: Clip.antiAlias,
-          child: SheetGrid(controller: controller.sheet, emptyMessage: 'Empty file'),
+          child: SheetGrid(
+            controller: controller.sheet,
+            emptyMessage: 'Empty file',
+            // Zoom is in the reader's toolbar.
+            showZoomControls: false,
+          ),
         );
       }),
+      ),
     )),
     );
   }
@@ -73,6 +88,10 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
                   border: InputBorder.none,
                 ),
                 onChanged: controller.search,
+                // Enter steps to the next match; the field keeps focus to press again.
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => controller.goToNextMatch(),
+                onEditingComplete: () {},
               )
             : Row(
                 children: [
@@ -110,25 +129,12 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         PopupMenuButton<_ReaderAction>(
+          tooltip: 'More actions',
           onSelected: (action) => _handle(context, action),
-          itemBuilder: (context) {
-            final sheet = controller.loadedSheet;
-            return [
-              if (sheet != null) ...[
-                const PopupMenuItem(value: _ReaderAction.goTo, child: Text('Go to cell')),
-                // A sheet whose file froze rows keeps its own.
-                if (!sheet.sheetFreezesRows)
-                  CheckedPopupMenuItem(
-                    value: _ReaderAction.freezeHeader,
-                    checked: sheet.freezeTopRow,
-                    child: const Text('Freeze header row'),
-                  ),
-                const PopupMenuDivider(),
-              ],
-              const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
-              const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
-            ];
-          },
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
+            PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+          ],
         ),
       ],
       bottom: searching
@@ -139,10 +145,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _handle(BuildContext context, _ReaderAction action) {
     switch (action) {
-      case _ReaderAction.goTo:
-        if (controller.loadedSheet case final sheet?) showGoToDialog(context, sheet);
-      case _ReaderAction.freezeHeader:
-        if (controller.loadedSheet case final sheet?) sheet.freezeTopRow = !sheet.freezeTopRow;
       case _ReaderAction.share:
         controller.share();
       case _ReaderAction.openWith:
@@ -151,7 +153,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { goTo, freezeHeader, share, openWith }
+enum _ReaderAction { share, openWith }
 
 class _SearchStatusBar extends StatelessWidget {
   final CsvReaderController controller;
@@ -170,7 +172,7 @@ class _SearchStatusBar extends StatelessWidget {
         // is reserved for text-less (scanned) PDFs.
         label = 'No matches';
       } else {
-        label = '${controller.currentMatchIndex.value + 1} of ${controller.matches.length} result(s)';
+        label = '${controller.currentMatchIndex.value + 1} of ${controller.matches.length}';
       }
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
