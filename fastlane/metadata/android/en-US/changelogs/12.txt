@@ -1,0 +1,8 @@
+What's new in 1.0.10
+• Night mode in every reader – one tap on the moon button
+• New, faster PDF viewer: big files open quickly, sharper zoom
+• Word files in print layout with real pages and page numbers
+• Excel: borders, conditional formatting, notes, formulas; go to a cell, freeze the header row
+• Same toolbar in every reader, with page previews and full screen
+• Thumbnails for all document types; Continue Reading shows your page
+• Get notified when an update is available
