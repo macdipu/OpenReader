@@ -11,11 +11,10 @@ import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
+import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/show_dialog/show_dialog.dart';
 import 'pdf_password_dialog.dart';
-import 'package:flutter/services.dart';
-import '../../../core/presentation/utils/platform_info.dart';
 
 /// Drives the PDF reader (BRD 9.10, ODF-011/012, ODF-008 for PDF).
 ///
@@ -25,7 +24,7 @@ import '../../../core/presentation/utils/platform_info.dart';
 /// comment). Favorite/Share/Open With are not reimplemented here - delegated
 /// to the same shared [DocumentInteractionController] every other screen
 /// uses, exactly like `FileInformationController` already does.
-class PdfReaderController extends BaseController {
+class PdfReaderController extends BaseController with ReaderFullscreen {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;
@@ -71,7 +70,6 @@ class PdfReaderController extends BaseController {
 
   /// Hides the app bar, toolbar and thumbnails (and Android's system bars) so
   /// the page fills the screen (UX-33). A tap on the page brings them back.
-  final isFullscreen = false.obs;
 
   /// Inverted page colours for reading in the dark (UX-33); remembered for
   /// all PDFs.
@@ -100,27 +98,21 @@ class PdfReaderController extends BaseController {
     unawaited(_settingsRepository.setPdfNightMode(nightMode.value));
   }
 
-  void toggleFullscreen() => _setFullscreen(!isFullscreen.value);
-
-  void _setFullscreen(bool value) {
-    isFullscreen.value = value;
-    if (value) showThumbnails.value = false;
-    // System bars exist only on Android; desktop embedders don't implement
-    // this call and would throw.
-    if (!PlatformInfo.isAndroid) return;
-    unawaited(SystemChrome.setEnabledSystemUIMode(value ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge));
+  @override
+  void onFullscreenChanged(bool fullscreen) {
+    if (fullscreen) showThumbnails.value = false;
   }
 
   /// Ctrl/Cmd+F: search needs the app bar, so fullscreen ends first.
   void searchFromShortcut() {
-    if (isFullscreen.value) _setFullscreen(false);
+    setFullscreen(false);
     startSearching();
   }
 
   /// Esc: leave fullscreen, then close search, then the reader.
   void escape() {
     if (isFullscreen.value) {
-      _setFullscreen(false);
+      setFullscreen(false);
     } else if (isSearching.value) {
       stopSearching();
     } else {
@@ -210,7 +202,6 @@ class PdfReaderController extends BaseController {
 
   @override
   void onClose() {
-    if (isFullscreen.value) _setFullscreen(false);
     _positionSaveDebounce?.cancel();
     _interactions.readerClosedAfter(pdf.pageCount > 0 ? _savePosition() : null);
     pdf.dispose();

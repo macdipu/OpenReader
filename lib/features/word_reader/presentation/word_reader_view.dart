@@ -6,6 +6,8 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../core/presentation/widgets/reader/reader_preview_strip.dart';
+import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'word_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 
@@ -20,10 +22,17 @@ class WordReaderView extends GetView<WordReaderController> {
     return AppShortcuts(
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.startSearching,
-      onEscape: () => controller.isSearching.value ? controller.stopSearching() : Get.back(),
+      onEscape: controller.escape,
       child: Obx(() => Scaffold(
-      appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
-      body: Obx(() {
+      appBar: controller.isFullscreen.value
+          ? null
+          : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
+      bottomNavigationBar: controller.isFullscreen.value || controller.status.value.isBusy || controller.hasError.value
+          ? null
+          : _WordToolbar(controller: controller),
+      body: ReaderFullscreenScope(
+        controller: controller,
+        child: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
         if (controller.hasError.value) return _ReaderErrorView(controller: controller);
         return Container(
@@ -40,7 +49,68 @@ class WordReaderView extends GetView<WordReaderController> {
           ),
         );
       }),
+      ),
     )),
+    );
+  }
+}
+
+/// Previews · page (print layout) or how far through (continuous) · zoom ·
+/// layout · full screen.
+class _WordToolbar extends StatelessWidget {
+  final WordReaderController controller;
+
+  const _WordToolbar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final word = controller.word;
+    return ListenableBuilder(
+      listenable: Listenable.merge([word.pageCount, word.currentPage, word.progress]),
+      builder: (context, _) => Obx(() {
+        // Rebuilds with the zoom so the buttons enable at their limits.
+        controller.zoom.value;
+        final paged = controller.isPaged.value;
+        final pageCount = word.pageCount.value;
+        final page = word.currentPage.value;
+        return ReaderBottomBar(
+          above: controller.showPreviews.value && paged && pageCount != null
+              ? ReaderPreviewStrip(
+                  count: pageCount,
+                  current: page,
+                  onSelected: word.goToPage,
+                  itemLabel: 'Page',
+                  previewBuilder: (context, number) => WordPageThumbnail(controller: word, page: number),
+                )
+              : null,
+          children: [
+            ReaderPreviewsButton(
+              tooltip: 'Page thumbnails',
+              showing: controller.showPreviews.value && paged,
+              onPressed: controller.togglePreviews,
+            ),
+            ReaderPositionButton(
+              label: pageCount != null ? 'Page $page of $pageCount' : '${(word.progress.value * 100).round()}%',
+              onPressed: pageCount == null
+                  ? null
+                  : () async {
+                      final target = await showGoToNumberDialog(context, title: 'Go to page', current: page, max: pageCount);
+                      if (target != null) word.goToPage(target);
+                    },
+            ),
+            ReaderZoomButtons(
+              onZoomOut: controller.canZoomOut ? controller.zoomOut : null,
+              onZoomIn: controller.canZoomIn ? controller.zoomIn : null,
+            ),
+            ReaderToolbarButton(
+              icon: paged ? Icons.article_outlined : Icons.description_outlined,
+              tooltip: paged ? 'Continuous layout' : 'Print layout',
+              onPressed: controller.toggleLayout,
+            ),
+            ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
+          ],
+        );
+      }),
     );
   }
 }
@@ -74,6 +144,10 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
                   border: InputBorder.none,
                 ),
                 onChanged: controller.onSearchQueryChanged,
+                // Enter steps to the next match; the field keeps focus to press again.
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => controller.goToNextMatch(),
+                onEditingComplete: () {},
               )
             : Row(
                 children: [
@@ -115,14 +189,11 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         PopupMenuButton<_ReaderAction>(
+          tooltip: 'More actions',
           onSelected: (action) => _handle(action),
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: _ReaderAction.layout,
-              child: Text(controller.isPaged.value ? 'Continuous layout' : 'Print layout'),
-            ),
-            const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
-            const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
+            PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
           ],
         ),
       ],
@@ -134,8 +205,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _handle(_ReaderAction action) {
     switch (action) {
-      case _ReaderAction.layout:
-        controller.toggleLayout();
       case _ReaderAction.share:
         controller.share();
       case _ReaderAction.openWith:
@@ -144,7 +213,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { layout, share, openWith }
+enum _ReaderAction { share, openWith }
 
 class _ReaderErrorView extends StatelessWidget {
   final WordReaderController controller;
@@ -206,7 +275,7 @@ class _SearchStatusBar extends StatelessWidget {
               // is reserved for text-less (scanned) PDFs.
               label = 'No matches';
             } else {
-              label = '${searcher.currentMatchIndex + 1} of ${searcher.matchCount} result(s)';
+              label = '${searcher.currentMatchIndex + 1} of ${searcher.matchCount}';
             }
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

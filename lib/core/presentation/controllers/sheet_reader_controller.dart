@@ -13,6 +13,7 @@ import '../../domain/repositories/recent_repository.dart';
 import '../utils/state_status.dart';
 import 'base_controller.dart';
 import 'document_interaction_controller.dart';
+import 'reader_fullscreen.dart';
 
 /// What the Excel and CSV readers share, on top of universal_document_viewer's
 /// [SpreadsheetController] (which owns the sheets, search, zoom and
@@ -20,7 +21,7 @@ import 'document_interaction_controller.dart';
 /// scroll or sheet switch and once more on close), favourites/share/
 /// open-with, the BRD §13 error wording, and observable mirrors of the
 /// kit's state for the app bar and sheet tabs.
-abstract class SheetReaderController extends BaseController {
+abstract class SheetReaderController extends BaseController with ReaderFullscreen {
   SheetReaderController({
     required this.document,
     RecentRepository? recentRepository,
@@ -50,6 +51,12 @@ abstract class SheetReaderController extends BaseController {
   final matches = <CellMatch>[].obs;
   final currentMatchIndex = (-1).obs;
   final zoom = 1.0.obs;
+  final freezeTopRow = false.obs;
+
+  /// The (1-based) sheet row at the top of the grid, and how many rows the
+  /// sheet has, for the toolbar.
+  final topRow = 1.obs;
+  final rowCount = 0.obs;
 
   List<List<SheetCell?>> get currentRows => _sheet?.currentRows ?? const [];
   int get columnCount => _sheet?.columnCount ?? 0;
@@ -83,7 +90,7 @@ abstract class SheetReaderController extends BaseController {
       final positionResult = await _recentRepository.getPosition(document.id);
       positionResult.fold((_) {}, (position) => saved = position);
       if (isClosed) return;
-      final sheet = _sheet = SpreadsheetController(initialPosition: saved, onPositionChanged: (_) => _scheduleSave())
+      final sheet = _sheet = SpreadsheetController(initialPosition: saved, onPositionChanged: _onPositionChanged)
         ..addListener(_mirror);
       await loadInto(sheet, File(document.path));
       if (isClosed) return;
@@ -113,6 +120,13 @@ abstract class SheetReaderController extends BaseController {
     if (!listEquals(matches, sheet.matches)) matches.assignAll(sheet.matches);
     currentMatchIndex.value = sheet.currentMatchIndex;
     zoom.value = sheet.zoom;
+    freezeTopRow.value = sheet.freezeTopRow;
+    rowCount.value = sheet.currentRows.length;
+  }
+
+  void _onPositionChanged(ReadingPosition position) {
+    if (position[PositionKeys.row] case final int row) topRow.value = row + 1;
+    _scheduleSave();
   }
 
   void _scheduleSave() {
@@ -133,7 +147,25 @@ abstract class SheetReaderController extends BaseController {
   void zoomIn() => _sheet?.zoomIn();
   void zoomOut() => _sheet?.zoomOut();
 
-  void startSearching() => isSearching.value = true;
+  void toggleFreezeTopRow() {
+    if (loadedSheet case final sheet?) sheet.freezeTopRow = !sheet.freezeTopRow;
+  }
+
+  void startSearching() {
+    setFullscreen(false);
+    isSearching.value = true;
+  }
+
+  /// Esc: leave full screen, then close search, then the reader.
+  void escape() {
+    if (isFullscreen.value) {
+      setFullscreen(false);
+    } else if (isSearching.value) {
+      stopSearching();
+    } else {
+      Get.back();
+    }
+  }
 
   void stopSearching() {
     isSearching.value = false;

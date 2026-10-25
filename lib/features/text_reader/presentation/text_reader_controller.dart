@@ -12,6 +12,7 @@ import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
+import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:universal_document_viewer/text.dart';
@@ -22,7 +23,7 @@ import 'package:universal_document_viewer/text.dart';
 /// (restored on open, saved 2 s after scrolling and once more on close),
 /// font size and wrap remembered across files (UX-20), favourites/share/
 /// open-with, and the BRD §13 error wording.
-class TextReaderController extends BaseController {
+class TextReaderController extends BaseController with ReaderFullscreen {
   /// See [TextDocumentController.maxBytes].
   static const int maxBytes = TextDocumentController.maxBytes;
 
@@ -55,7 +56,13 @@ class TextReaderController extends BaseController {
 
   double get initialScrollOffset => textDocument.initialScrollOffset;
 
-  final fontSize = 14.0.obs;
+  /// A comfortable reading size until the reader picks one (UX-20).
+  static const double defaultFontSize = 16;
+
+  final fontSize = defaultFontSize.obs;
+
+  /// The (1-based) line at the top of the view, for the toolbar.
+  final topLine = 1.obs;
   final lineWrap = true.obs;
 
   final isSearching = false.obs;
@@ -151,6 +158,7 @@ class TextReaderController extends BaseController {
   /// `Scrollable`, the same shape the Word reader's scroll reporting
   /// and the Excel/CSV readers' `onScrolled` use.
   void onScrolled(double offset, {int? line}) {
+    if (line != null) topLine.value = line + 1;
     _lastScrollOffset = offset;
     _lastLine = line;
     _scrolledThisSession = true;
@@ -181,7 +189,33 @@ class TextReaderController extends BaseController {
     unawaited(_settingsRepository.setTextReaderLineWrap(lineWrap.value));
   }
 
-  void startSearching() => isSearching.value = true;
+  bool get canIncreaseFontSize => fontSize.value < maxFontSize;
+  bool get canDecreaseFontSize => fontSize.value > minFontSize;
+
+  /// Scrolls line [number] (1-based) to the top.
+  void goToLine(int number) {
+    final scroll = scrollController;
+    if (!scroll.hasClients || lines.isEmpty) return;
+    final index = number.clamp(1, lines.length) - 1;
+    final offset = lineOffsetResolver?.call(index) ?? 0;
+    scroll.jumpTo(offset.clamp(0.0, scroll.position.maxScrollExtent));
+  }
+
+  void startSearching() {
+    setFullscreen(false);
+    isSearching.value = true;
+  }
+
+  /// Esc: leave full screen, then close search, then the reader.
+  void escape() {
+    if (isFullscreen.value) {
+      setFullscreen(false);
+    } else if (isSearching.value) {
+      stopSearching();
+    } else {
+      Get.back();
+    }
+  }
 
   void stopSearching() {
     isSearching.value = false;

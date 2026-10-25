@@ -36,26 +36,17 @@ class HomeView extends GetView<HomeController> {
             icon: const Icon(Icons.search_rounded),
             onPressed: () => Get.toNamed(AppRoutes.search),
           ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () => Get.toNamed(AppRoutes.settings),
-          ),
-          // Phones have no navigation rail, which is where "Open file" lives
-          // on wider screens (UX-34).
+          // Phones have no navigation rail, which is where "Open file" and
+          // Settings live on wider screens (UX-34).
           if (context.isCompactScreen)
             PopupMenuButton<int>(
-              tooltip: 'More',
-              onSelected: (_) => Get.find<AppShellController>().pickAndOpenFile(),
+              tooltip: 'More actions',
+              onSelected: (value) => value == 0
+                  ? Get.find<AppShellController>().pickAndOpenFile()
+                  : Get.toNamed(AppRoutes.settings),
               itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: 0,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.file_open_outlined),
-                    title: Text('Open file'),
-                  ),
-                ),
+                PopupMenuItem(value: 0, child: Text('Open file')),
+                PopupMenuItem(value: 1, child: Text('Settings')),
               ],
             ),
         ],

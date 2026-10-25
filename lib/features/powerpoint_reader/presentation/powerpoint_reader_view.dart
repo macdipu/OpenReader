@@ -7,6 +7,8 @@ import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../core/presentation/widgets/reader/reader_preview_strip.dart';
+import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'package:universal_document_viewer/slides.dart';
 import 'powerpoint_reader_controller.dart';
 
@@ -27,10 +29,14 @@ class PowerPointReaderView extends GetView<PowerPointReaderController> {
       child: AppShortcuts(
         // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
         onSearch: controller.startSearching,
-        onEscape: () => controller.isSearching.value ? controller.stopSearching() : Get.back(),
+        onEscape: controller.escape,
         child: Obx(() => Scaffold(
-              appBar: _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
-              body: Obx(() {
+              appBar: controller.isFullscreen.value
+                  ? null
+                  : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
+              body: ReaderFullscreenScope(
+                controller: controller,
+                child: Obx(() {
                 final status = controller.status.value;
                 if (status.isBusy) return const LoadingView();
                 if (controller.hasError.value) return _ReaderErrorView(controller: controller);
@@ -39,11 +45,99 @@ class PowerPointReaderView extends GetView<PowerPointReaderController> {
                 }
                 return Container(color: context.background, child: SlideDeckView(controller: controller.deck));
               }),
-              bottomNavigationBar: Obx(() =>
-                  controller.status.value.isBusy || controller.status.value.isEmpty || controller.hasError.value
-                      ? const SizedBox.shrink()
-                      : SlideNavigationBar(controller: controller.deck)),
+              ),
+              bottomNavigationBar: controller.isFullscreen.value ||
+                      controller.status.value.isBusy ||
+                      controller.status.value.isEmpty ||
+                      controller.hasError.value
+                  ? null
+                  : _SlidesToolbar(controller: controller),
             )),
+      ),
+    );
+  }
+}
+
+/// Previews · ‹ Slide x of y › · zoom · full screen.
+class _SlidesToolbar extends StatelessWidget {
+  final PowerPointReaderController controller;
+
+  const _SlidesToolbar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final deck = controller.deck;
+    return ListenableBuilder(
+      listenable: deck,
+      builder: (context, _) => Obx(() => ReaderBottomBar(
+        above: controller.showPreviews.value
+            ? ReaderPreviewStrip(
+                count: deck.slides.length,
+                current: deck.currentSlide + 1,
+                onSelected: controller.goToSlide,
+                itemLabel: 'Slide',
+                itemWidth: 110,
+                previewBuilder: (context, number) => _SlidePreview(slide: deck.slides[number - 1], number: number),
+              )
+            : null,
+        children: [
+          ReaderPreviewsButton(
+            tooltip: 'Slide thumbnails',
+            showing: controller.showPreviews.value,
+            onPressed: controller.togglePreviews,
+          ),
+          ReaderToolbarButton(
+            icon: Icons.chevron_left_rounded,
+            tooltip: 'Previous slide',
+            onPressed: deck.canGoPrevious ? controller.previousSlide : null,
+          ),
+          ReaderPositionButton(
+            label: 'Slide ${deck.currentSlide + 1} of ${deck.slides.length}',
+            onPressed: () async {
+              final slide = await showGoToNumberDialog(
+                context,
+                title: 'Go to slide',
+                current: deck.currentSlide + 1,
+                max: deck.slides.length,
+              );
+              if (slide != null) controller.goToSlide(slide);
+            },
+          ),
+          ReaderToolbarButton(
+            icon: Icons.chevron_right_rounded,
+            tooltip: 'Next slide',
+            onPressed: deck.canGoNext ? controller.nextSlide : null,
+          ),
+          ReaderZoomButtons(
+            onZoomOut: deck.canZoomOut ? controller.zoomOut : null,
+            onZoomIn: deck.canZoomIn ? controller.zoomIn : null,
+          ),
+          ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
+        ],
+      )),
+    );
+  }
+}
+
+/// A slide drawn at a fixed size and scaled down, for the previews.
+class _SlidePreview extends StatelessWidget {
+  final PptxSlide slide;
+  final int number;
+
+  const _SlidePreview({required this.slide, required this.number});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: ExcludeSemantics(
+        child: FittedBox(
+          child: SizedBox(
+            width: 400,
+            height: 300,
+            // The slide's own size, whatever the reader's zoom.
+            child: MediaQuery.withNoTextScaling(child: SlideCard(slide: slide, number: number)),
+          ),
+        ),
       ),
     );
   }
@@ -78,6 +172,10 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
                   border: InputBorder.none,
                 ),
                 onChanged: controller.onSearchQueryChanged,
+                // Enter steps to the next match; the field keeps focus to press again.
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => controller.goToNextMatch(),
+                onEditingComplete: () {},
               )
             : Row(
                 children: [
@@ -123,7 +221,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         PopupMenuButton<_ReaderAction>(
-          tooltip: 'More options',
+          tooltip: 'More actions',
           onSelected: (action) => _handle(action),
           itemBuilder: (context) => const [
             PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
@@ -206,7 +304,7 @@ class _SearchStatusBar extends StatelessWidget {
             label = 'No matches';
           } else {
             final slide = controller.matches[controller.currentMatch.clamp(0, controller.matches.length - 1)] + 1;
-            label = 'Slide $slide (${controller.currentMatch + 1} of ${controller.matches.length} matching slides)';
+            label = '${controller.currentMatch + 1} of ${controller.matches.length} (slide $slide)';
           }
           return Container(
             color: context.surfaceContainerLow,
