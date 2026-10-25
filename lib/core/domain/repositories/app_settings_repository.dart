@@ -45,10 +45,10 @@ abstract class AppSettingsRepository {
 
   Future<void> setTextReaderLineWrap(bool value);
 
-  /// PDF reader night mode (inverted page colours, UX-33); null when never set.
-  Future<bool?> getPdfNightMode();
+  /// Night mode, shared by every reader (UX-33); null when never set.
+  Future<bool?> getReaderNightMode();
 
-  Future<void> setPdfNightMode(bool value);
+  Future<void> setReaderNightMode(bool value);
 
   /// Clear all app settings
   Future<void> clearSettings();

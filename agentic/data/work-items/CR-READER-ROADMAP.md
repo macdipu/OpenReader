@@ -79,7 +79,7 @@ Unchanged from **CR-LEGACY-OFFICE**: a CFB reader and safety guard first, then `
 - **Spreadsheet row counter:** count the first *fully* visible row (it's one short today).
 - **Word continuous:** a document that fits on one screen shows 100%, not 0%.
 - ⚖ **Menu labels:** capitalise only the first word ("Open with", "File information") or every word.
-- ⚖ **Checkable menu items:** "Night mode" sits indented next to plain items. Line them up, or turn them into plain toggle items.
+- ✅ **Checkable menu items:** settled. Night mode left PDF's ⋮ menu for the toolbar, so no checkable items remain beside plain ones.
 - **Housekeeping:** push the engine (`3af5710`), delete the local `pubspec_overrides.yaml`, run `flutter pub get`.
 
 ### A2 · One reader screen (needs P1) - M
@@ -88,7 +88,8 @@ Unchanged from **CR-LEGACY-OFFICE**: a CFB reader and safety guard first, then `
 - **Done when:** every reader keeps today's behaviour, all tests pass, and the reader code is much smaller.
 
 ### A3 · Reading comfort (P1 for theming) - M
-- **Reading themes for all readers** (light / sepia / dark / night), chosen from each reader's toolbar or ⋮ menu, not from Settings. Today only PDF has night mode, in its ⋮ menu.
+- ✅ **Night mode in every reader** (user, 2026-10-25): a 🌙 toolbar button just before full screen, one choice shared by all readers and remembered (kept under PDF's old key). White-paper content (PDF, Word print layout, thumbnails) is inverted with hues kept; theme-following content (text, Word continuous, slides, sheets) switches to the app's dark theme.
+- **Reading themes for all readers** (light / sepia / dark): the rest of this item, chosen from each reader's toolbar, not from Settings.
   - ⚖ Is the last theme picked the default for every reader, the way PDF's reading mode now works?
 - **Bars auto-hide** while scrolling down and come back on scrolling up or a tap.
 - **Remember zoom/layout per document,** alongside the saved position. The last choice becomes the default for new documents of that type (the rule the PDF mode now follows). Word's print/continuous layout already works this way per document.

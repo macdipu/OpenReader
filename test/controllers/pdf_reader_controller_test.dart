@@ -69,10 +69,10 @@ class FixtureSettings implements AppSettingsRepository {
   bool? nightMode;
 
   @override
-  Future<bool?> getPdfNightMode() async => nightMode;
+  Future<bool?> getReaderNightMode() async => nightMode;
 
   @override
-  Future<void> setPdfNightMode(bool value) async => nightMode = value;
+  Future<void> setReaderNightMode(bool value) async => nightMode = value;
 
   @override
   Future<bool> getDefaultContinuousScroll() async => continuous;

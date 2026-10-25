@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
+import 'package:openreader/core/presentation/theme/app_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
@@ -270,7 +271,7 @@ void main() {
   });
 
   group('Reader toolbar', () {
-    Future<TextReaderController> pumpTextReader(WidgetTester tester, int lineCount) async {
+    Future<TextReaderController> pumpTextReader(WidgetTester tester, int lineCount, {ThemeData? theme}) async {
       final file = await tester.runAsync(() async {
         final dir = await Directory.systemTemp.createTemp('openreader-toolbar-');
         final f = File('${dir.path}/lines.txt');
@@ -292,7 +293,7 @@ void main() {
         recentRepository: recents,
         settingsRepository: FixtureTextSettings(),
       ));
-      await tester.pumpWidget(const GetMaterialApp(home: TextReaderView()));
+      await tester.pumpWidget(GetMaterialApp(theme: theme, home: const TextReaderView()));
       for (var i = 0; i < 50 && controller.status.value.isBusy; i++) {
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
       }
@@ -322,6 +323,19 @@ void main() {
       expect(controller.topLine.value, 150);
       // Let the position save, debounced after the scroll, run.
       await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('night mode turns the whole reader dark, from the toolbar', (tester) async {
+      // The app's own light theme, which night mode swaps for its dark one.
+      final controller = await pumpTextReader(tester, 20, theme: AppTheme.lightTheme);
+      Brightness textBrightness() => Theme.of(tester.element(find.text('line 1'))).brightness;
+      expect(textBrightness(), Brightness.light);
+      await tester.tap(find.byTooltip('Night mode'));
+      await tester.pumpAndSettle();
+      expect(controller.nightMode.value, isTrue);
+      expect(textBrightness(), Brightness.dark);
+      expect(Theme.of(tester.element(find.byType(AppBar))).brightness, Brightness.dark, reason: 'the bars too');
+      expect(find.byTooltip('Turn off night mode'), findsOneWidget);
     });
 
     testWidgets('full screen hides the bars; Back brings them back before leaving', (tester) async {

@@ -14,6 +14,7 @@ import '../utils/state_status.dart';
 import 'base_controller.dart';
 import 'document_interaction_controller.dart';
 import 'reader_fullscreen.dart';
+import 'reader_night_mode.dart';
 
 /// What the Excel and CSV readers share, on top of universal_document_viewer's
 /// [SpreadsheetController] (which owns the sheets, search, zoom and
@@ -21,7 +22,7 @@ import 'reader_fullscreen.dart';
 /// scroll or sheet switch and once more on close), favourites/share/
 /// open-with, the BRD §13 error wording, and observable mirrors of the
 /// kit's state for the app bar and sheet tabs.
-abstract class SheetReaderController extends BaseController with ReaderFullscreen {
+abstract class SheetReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
   SheetReaderController({
     required this.document,
     RecentRepository? recentRepository,

@@ -12,6 +12,7 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/controllers/reader_fullscreen.dart';
+import '../../../core/presentation/controllers/reader_night_mode.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/show_dialog/show_dialog.dart';
 import 'pdf_password_dialog.dart';
@@ -24,7 +25,7 @@ import 'pdf_password_dialog.dart';
 /// comment). Favorite/Share/Open With are not reimplemented here - delegated
 /// to the same shared [DocumentInteractionController] every other screen
 /// uses, exactly like `FileInformationController` already does.
-class PdfReaderController extends BaseController with ReaderFullscreen {
+class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;
@@ -73,8 +74,6 @@ class PdfReaderController extends BaseController with ReaderFullscreen {
 
   /// Inverted page colours for reading in the dark (UX-33); remembered for
   /// all PDFs.
-  final nightMode = false.obs;
-
   Timer? _positionSaveDebounce;
   bool _passwordPreviouslyWrong = false;
 
@@ -82,21 +81,10 @@ class PdfReaderController extends BaseController with ReaderFullscreen {
   void onInit() {
     super.onInit();
     _loadInitialPosition().then((_) => _loadDefaultViewMode());
-    _loadNightMode();
   }
 
-  Future<void> _loadNightMode() async {
-    try {
-      nightMode.value = await _settingsRepository.getPdfNightMode() ?? false;
-    } catch (_) {
-      // A preference, not a requirement - the reader works without it.
-    }
-  }
-
-  void toggleNightMode() {
-    nightMode.value = !nightMode.value;
-    unawaited(_settingsRepository.setPdfNightMode(nightMode.value));
-  }
+  @override
+  AppSettingsRepository get readerSettings => _settingsRepository;
 
   @override
   void onFullscreenChanged(bool fullscreen) {

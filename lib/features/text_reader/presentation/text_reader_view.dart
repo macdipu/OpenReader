@@ -6,6 +6,7 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'package:universal_document_viewer/text.dart';
 import 'text_reader_controller.dart';
@@ -23,7 +24,12 @@ class TextReaderView extends GetView<TextReaderController> {
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.startSearching,
       onEscape: controller.escape,
-      child: Obx(() => Scaffold(
+      child: Obx(() => ReaderNightModeView(
+      // The whole reader, bars included, goes dark at night.
+      enabled: controller.nightMode.value,
+      // A context under the night theme for the whole screen; its own Obx,
+      // since the builder runs after the outer one has finished.
+      child: Builder(builder: (context) => Obx(() => Scaffold(
       appBar: controller.isFullscreen.value
           ? null
           : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
@@ -45,7 +51,7 @@ class TextReaderView extends GetView<TextReaderController> {
         }),
       ),
       ),
-    )),
+    ))))),
     );
   }
 }
@@ -83,6 +89,7 @@ class _TextToolbar extends StatelessWidget {
             selected: controller.lineWrap.value,
             onPressed: controller.toggleLineWrap,
           ),
+          ReaderNightModeButton(on: controller.nightMode.value, onPressed: controller.toggleNightMode),
           ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
         ],
       );

@@ -8,6 +8,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/reader/reader_preview_strip.dart';
+import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'package:universal_document_viewer/slides.dart';
 import 'powerpoint_reader_controller.dart';
@@ -30,7 +31,12 @@ class PowerPointReaderView extends GetView<PowerPointReaderController> {
         // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
         onSearch: controller.startSearching,
         onEscape: controller.escape,
-        child: Obx(() => Scaffold(
+        child: Obx(() => ReaderNightModeView(
+      // The whole reader, bars included, goes dark at night.
+      enabled: controller.nightMode.value,
+      // A context under the night theme for the whole screen; its own Obx,
+      // since the builder runs after the outer one has finished.
+      child: Builder(builder: (context) => Obx(() => Scaffold(
               appBar: controller.isFullscreen.value
                   ? null
                   : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
@@ -52,7 +58,7 @@ class PowerPointReaderView extends GetView<PowerPointReaderController> {
                       controller.hasError.value
                   ? null
                   : _SlidesToolbar(controller: controller),
-            )),
+            ))))),
       ),
     );
   }
@@ -112,6 +118,7 @@ class _SlidesToolbar extends StatelessWidget {
             onZoomOut: deck.canZoomOut ? controller.zoomOut : null,
             onZoomIn: deck.canZoomIn ? controller.zoomIn : null,
           ),
+          ReaderNightModeButton(on: controller.nightMode.value, onPressed: controller.toggleNightMode),
           ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
         ],
       )),

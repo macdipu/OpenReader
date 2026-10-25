@@ -13,6 +13,7 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/controllers/reader_fullscreen.dart';
+import '../../../core/presentation/controllers/reader_night_mode.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:universal_document_viewer/text.dart';
@@ -23,7 +24,7 @@ import 'package:universal_document_viewer/text.dart';
 /// (restored on open, saved 2 s after scrolling and once more on close),
 /// font size and wrap remembered across files (UX-20), favourites/share/
 /// open-with, and the BRD §13 error wording.
-class TextReaderController extends BaseController with ReaderFullscreen {
+class TextReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
   /// See [TextDocumentController.maxBytes].
   static const int maxBytes = TextDocumentController.maxBytes;
 
@@ -188,6 +189,9 @@ class TextReaderController extends BaseController with ReaderFullscreen {
     lineWrap.value = !lineWrap.value;
     unawaited(_settingsRepository.setTextReaderLineWrap(lineWrap.value));
   }
+
+  @override
+  AppSettingsRepository get readerSettings => _settingsRepository;
 
   bool get canIncreaseFontSize => fontSize.value < maxFontSize;
   bool get canDecreaseFontSize => fontSize.value > minFontSize;

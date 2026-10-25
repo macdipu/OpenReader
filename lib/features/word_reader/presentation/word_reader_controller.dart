@@ -10,6 +10,7 @@ import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/controllers/reader_fullscreen.dart';
+import '../../../core/presentation/controllers/reader_night_mode.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/docx.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
@@ -20,7 +21,7 @@ import 'package:universal_document_viewer/universal_document_viewer.dart';
 /// adds what's OpenReader's: the saved position (2 s after scrolling and
 /// once more on close), favourites/share/open-with via the shared
 /// [DocumentInteractionController], and the BRD §13 error wording.
-class WordReaderController extends BaseController with ReaderFullscreen {
+class WordReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final DocumentInteractionController _interactions;

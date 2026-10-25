@@ -7,6 +7,7 @@ import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/reader/reader_preview_strip.dart';
+import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'word_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
@@ -23,7 +24,12 @@ class WordReaderView extends GetView<WordReaderController> {
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.startSearching,
       onEscape: controller.escape,
-      child: Obx(() => Scaffold(
+      child: Obx(() => ReaderNightModeView(
+      // The whole reader, bars included, goes dark at night.
+      enabled: controller.nightMode.value,
+      // A context under the night theme for the whole screen; its own Obx,
+      // since the builder runs after the outer one has finished.
+      child: Builder(builder: (context) => Obx(() => Scaffold(
       appBar: controller.isFullscreen.value
           ? null
           : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
@@ -45,12 +51,18 @@ class WordReaderView extends GetView<WordReaderController> {
               border: Border.all(color: context.outlineVariant),
             ),
             clipBehavior: Clip.antiAlias,
-            child: WordDocumentView(controller: controller.word),
+            // Print layout is white paper, inverted at night; continuous
+            // follows the screen's (night) theme.
+            child: ReaderNightModeView(
+              enabled: controller.nightMode.value && controller.isPaged.value,
+              paper: true,
+              child: WordDocumentView(controller: controller.word),
+            ),
           ),
         );
       }),
       ),
-    )),
+    ))))),
     );
   }
 }
@@ -80,7 +92,11 @@ class _WordToolbar extends StatelessWidget {
                   current: page,
                   onSelected: word.goToPage,
                   itemLabel: 'Page',
-                  previewBuilder: (context, number) => WordPageThumbnail(controller: word, page: number),
+                  previewBuilder: (context, number) => ReaderNightModeView(
+                    enabled: controller.nightMode.value,
+                    paper: true,
+                    child: WordPageThumbnail(controller: word, page: number),
+                  ),
                 )
               : null,
           children: [
@@ -107,6 +123,7 @@ class _WordToolbar extends StatelessWidget {
               tooltip: paged ? 'Continuous layout' : 'Print layout',
               onPressed: controller.toggleLayout,
             ),
+            ReaderNightModeButton(on: controller.nightMode.value, onPressed: controller.toggleNightMode),
             ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
           ],
         );

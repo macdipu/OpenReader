@@ -8,6 +8,7 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
+import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'pdf_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
@@ -24,7 +25,12 @@ class PdfReaderView extends GetView<PdfReaderController> {
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.searchFromShortcut,
       onEscape: controller.escape,
-      child: Obx(() => Scaffold(
+      child: Obx(() => ReaderNightModeView(
+      // The whole reader, bars included, goes dark at night.
+      enabled: controller.nightMode.value,
+      // A context under the night theme for the whole screen; its own Obx,
+      // since the builder runs after the outer one has finished.
+      child: Builder(builder: (context) => Obx(() => Scaffold(
       appBar: controller.isFullscreen.value
           ? null
           : _ReaderAppBar(controller: controller, searching: controller.isSearching.value),
@@ -34,26 +40,28 @@ class PdfReaderView extends GetView<PdfReaderController> {
         if (controller.status.value.isBusy) return const LoadingView();
         return Stack(
           children: [
-            // Night mode inverts the pages and thumbnails (UX-33). Always the
-            // same ColorFiltered (identity when off), so toggling it doesn't
-            // rebuild the viewer and lose the reading position.
-            Obx(() => ColorFiltered(
-                  colorFilter: controller.nightMode.value ? _invert : _identity,
+            // Night mode inverts the pages and thumbnails (UX-33).
+            Obx(() => ReaderNightModeView(
+                  enabled: controller.nightMode.value,
+                  paper: true,
                   child: Stack(
                     children: [
                       // Clearance below the last page for the toolbar (and the
                       // strip when open), in screen pixels so it holds at any zoom.
                       Padding(
                         padding: EdgeInsets.only(
-                          bottom: controller.isFullscreen.value ? 0 : 76 + (controller.showThumbnails.value ? 128 : 0),
+                          bottom: controller.isFullscreen.value
+                              ? 0
+                              : 76 + MediaQuery.paddingOf(context).bottom + (controller.showThumbnails.value ? 128 : 0),
                         ),
-                        child: _buildViewer(context),
+                        // Under the night-mode filter's theme, for the backdrop.
+                        child: Builder(builder: _buildViewer),
                       ),
                       if (controller.showThumbnails.value && !controller.isFullscreen.value)
                         Align(
                           alignment: Alignment.bottomCenter,
                           child: Padding(
-                            padding: const EdgeInsets.only(bottom: 84),
+                            padding: EdgeInsets.only(bottom: 84 + MediaQuery.paddingOf(context).bottom),
                             child: _ThumbnailStrip(controller: controller),
                           ),
                         ),
@@ -64,29 +72,17 @@ class PdfReaderView extends GetView<PdfReaderController> {
                 ? const SizedBox.shrink()
                 : Align(
                     alignment: Alignment.bottomCenter,
-                    child: _FloatingToolbar(controller: controller),
+                    // Clear of the system navigation bar when drawn
+                    // edge to edge (as after full screen).
+                    child: SafeArea(top: false, child: _FloatingToolbar(controller: controller)),
                   )),
           ],
         );
       }),
       ),
-    )),
+    ))))),
     );
   }
-
-  static const _identity = ColorFilter.matrix(<double>[
-    1, 0, 0, 0, 0, //
-    0, 1, 0, 0, 0, //
-    0, 0, 1, 0, 0, //
-    0, 0, 0, 1, 0, //
-  ]);
-
-  static const _invert = ColorFilter.matrix(<double>[
-    -1, 0, 0, 0, 255, //
-    0, -1, 0, 0, 255, //
-    0, 0, -1, 0, 255, //
-    0, 0, 0, 1, 0, //
-  ]);
 
   Widget _buildViewer(BuildContext context) {
     return PdfDocumentView(
@@ -188,14 +184,9 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         PopupMenuButton<_ReaderAction>(
           onSelected: (action) => _handle(action),
           tooltip: 'More actions',
-          itemBuilder: (context) => [
-            CheckedPopupMenuItem(
-              value: _ReaderAction.nightMode,
-              checked: controller.nightMode.value,
-              child: const Text('Night mode'),
-            ),
-            const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
-            const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
+            PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
           ],
         ),
       ],
@@ -211,13 +202,11 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
-      case _ReaderAction.nightMode:
-        controller.toggleNightMode();
     }
   }
 }
 
-enum _ReaderAction { nightMode, share, openWith }
+enum _ReaderAction { share, openWith }
 
 class _SearchStatusBar extends StatelessWidget {
   final PdfReaderController controller;
@@ -283,7 +272,8 @@ class _FloatingToolbar extends StatelessWidget {
     return Obx(() {
       if (controller.pageCount.value < 1) return const SizedBox.shrink();
       return Padding(
-        padding: const EdgeInsets.only(bottom: 20),
+        // As ReaderBottomBar pads the other readers' toolbars.
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
         child: ReaderToolbar(
           children: [
             ReaderPreviewsButton(
@@ -304,6 +294,7 @@ class _FloatingToolbar extends StatelessWidget {
               tooltip: controller.viewMode.value == PdfReaderViewMode.horizontal ? 'Continuous scroll' : 'Page by page',
               onPressed: controller.toggleViewMode,
             ),
+            ReaderNightModeButton(on: controller.nightMode.value, onPressed: controller.toggleNightMode),
             ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
           ],
         ),
