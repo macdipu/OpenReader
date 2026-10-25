@@ -301,7 +301,7 @@ class _FloatingToolbar extends StatelessWidget {
               icon: controller.viewMode.value == PdfReaderViewMode.horizontal
                   ? Icons.view_column_rounded
                   : Icons.view_agenda_outlined,
-              tooltip: 'Switch page layout',
+              tooltip: controller.viewMode.value == PdfReaderViewMode.horizontal ? 'Continuous scroll' : 'Page by page',
               onPressed: controller.toggleViewMode,
             ),
             ReaderFullscreenButton(onPressed: controller.toggleFullscreen),

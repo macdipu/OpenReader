@@ -154,7 +154,7 @@ void main() {
     expect(await result, isFalse);
   });
 
-  testWidgets('Settings renders its body, including Clear Recent History (P2r4-qa #1)', (tester) async {
+  testWidgets('Settings renders its body (P2r4-qa #1)', (tester) async {
     // The "Storage & Cache" row used to get infinite height inside the
     // ListView, so the whole body failed to lay out and showed blank.
     SharedPreferences.setMockInitialValues({});
@@ -164,11 +164,14 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     Get.put(ThemeController());
-    Get.put(SettingsController(recentRepository: recents));
+    Get.put(SettingsController());
     await tester.pumpWidget(const GetMaterialApp(home: SettingsView()));
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
-    expect(find.text('Clear Recent History'), findsOneWidget);
+    // Reading history is cleared from Library's History; the PDF reading
+    // mode is picked in the PDF reader's toolbar.
+    expect(find.text('Clear Recent History'), findsNothing);
+    expect(find.textContaining('Reader Mode'), findsNothing);
     expect(find.text('Clear Render Cache'), findsOneWidget);
     // No storage scan any more (CR-OPENREADER-BROWSE).
     expect(find.textContaining('Rescan'), findsNothing);
@@ -179,18 +182,6 @@ void main() {
     }
     // The app can delete files, so the copy mustn't claim read-only access.
     expect(find.textContaining('only reads'), findsNothing);
-  });
-
-  testWidgets('Settings > Clear Recent History asks first (UX-16)', (tester) async {
-    await tester.pumpWidget(const GetMaterialApp(home: SizedBox()));
-    final settings = SettingsController(recentRepository: recents);
-    final clearing = settings.clearRecentHistory();
-    await tester.pumpAndSettle();
-    expect(find.text('Clear all reading history?'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    await clearing;
-    expect(recents.clearCalls, 0);
   });
 
   group('Text reader jump offsets (UX-21)', () {

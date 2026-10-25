@@ -6,9 +6,9 @@ import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
 import 'settings_controller.dart';
 
-/// Settings & Storage (DESIGN_SPEC.md #01): privacy banner, segmented
-/// appearance control, reading preferences, storage bento grid, privacy
-/// statement, about.
+/// Settings & Storage (DESIGN_SPEC.md #01): segmented appearance control,
+/// the render cache and about. The PDF reading mode is chosen in the PDF
+/// reader's toolbar, and reading history is cleared from Library's History.
 class SettingsView extends GetView<SettingsController> {
   const SettingsView({super.key});
 
@@ -42,49 +42,6 @@ class SettingsView extends GetView<SettingsController> {
                 )),
           ),
           const SizedBox(height: 24),
-          const _SectionLabel('Reading Engine Preferences'),
-          _SectionCard(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text('Default PDF Reader Mode', style: context.labelMedium?.copyWith(color: context.onSurfaceVariant)),
-                ),
-                const SizedBox(height: 8),
-                Obx(() => Row(
-                      children: [
-                        Expanded(
-                          child: _ModeTile(
-                            icon: Icons.view_agenda_outlined,
-                            label: 'Continuous Scroll',
-                            selected: controller.defaultContinuousScroll.value,
-                            onTap: () => controller.setDefaultContinuousScroll(true),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _ModeTile(
-                            icon: Icons.auto_stories_outlined,
-                            label: 'Page by Page',
-                            selected: !controller.defaultContinuousScroll.value,
-                            onTap: () => controller.setDefaultContinuousScroll(false),
-                          ),
-                        ),
-                      ],
-                    )),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
-                  child: Text(
-                    'Applies the next time you open a PDF',
-                    style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
           // No storage scan any more (CR-OPENREADER-BROWSE), so no index
           // count or Rescan here - just the render cache.
           const _SectionLabel('Cache'),
@@ -96,17 +53,6 @@ class SettingsView extends GetView<SettingsController> {
                 destructive: true,
                 onAction: controller.clearCache,
               )),
-          const SizedBox(height: 12),
-          _SectionCard(
-            padding: const EdgeInsets.all(4),
-            child: _ActionRow(
-              icon: Icons.history_toggle_off_outlined,
-              title: 'Clear Recent History',
-              subtitle: 'Removes reading history, keeps your files',
-              destructive: true,
-              onTap: controller.clearRecentHistory,
-            ),
-          ),
           const SizedBox(height: 24),
           const _SectionLabel('About'),
           _SectionCard(
@@ -184,43 +130,6 @@ class _ThemeSegmented extends StatelessWidget {
           ),
       ],
     );
-  }
-}
-
-/// 2-tile selector for Reading Engine Preferences (DESIGN_SPEC #01).
-class _ModeTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ModeTile({required this.icon, required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(button: true, selected: selected, child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: selected ? context.secondaryContainer : context.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: selected ? context.secondary : context.outlineVariant, width: selected ? 2 : 1),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 22, color: selected ? context.secondary : context.onSurfaceVariant),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: context.labelMedium?.copyWith(color: selected ? context.secondary : context.onSurface),
-            ),
-          ],
-        ),
-      ),
-    ));
   }
 }
 
@@ -322,27 +231,20 @@ class _SectionCard extends StatelessWidget {
 class _ActionRow extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String? subtitle;
   final String? trailingText;
   final IconData? trailing;
-  final bool destructive;
-  final bool busy;
   final VoidCallback? onTap;
 
   const _ActionRow({
     required this.icon,
     required this.title,
-    this.subtitle,
     this.trailingText,
     this.trailing,
-    this.destructive = false,
-    this.busy = false,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive ? context.error : context.onSurface;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -350,24 +252,9 @@ class _ActionRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
-            busy
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: context.secondary),
-                  )
-                : Icon(icon, color: destructive ? context.error : context.onSurfaceVariant, size: 20),
+            Icon(icon, color: context.onSurfaceVariant, size: 20),
             const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: context.bodyLarge?.copyWith(color: color)),
-                  if (subtitle != null)
-                    Text(subtitle!, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-                ],
-              ),
-            ),
+            Expanded(child: Text(title, style: context.bodyLarge?.copyWith(color: context.onSurface))),
             if (trailingText != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

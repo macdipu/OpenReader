@@ -125,8 +125,8 @@ class PdfReaderController extends BaseController with ReaderFullscreen {
   Future<void> zoomOut() => pdf.zoomOut();
   Future<void> fitWidth() => pdf.fitWidth();
 
-  /// Applies the Settings > Reading Engine Preferences default (BRD 9.18)
-  /// only to a PDF with no remembered mode of its own (UX-19).
+  /// Applies the default reading mode - the one last picked in the
+  /// toolbar - only to a PDF with no remembered mode of its own (UX-19).
   Future<void> _loadDefaultViewMode() async {
     if (pdf.viewModeSettled) return;
     final continuous = await _settingsRepository.getDefaultContinuousScroll();
@@ -157,8 +157,11 @@ class PdfReaderController extends BaseController with ReaderFullscreen {
 
   Future<void> jumpToPage(int page) => pdf.jumpToPage(page);
 
+  /// Switches this PDF's mode and makes it the default for PDFs opened
+  /// later (the toolbar replaced Settings' default reading mode).
   void toggleViewMode() {
     pdf.toggleViewMode();
+    unawaited(_settingsRepository.setDefaultContinuousScroll(pdf.viewMode == PdfReaderViewMode.continuous));
     if (pdf.pageCount < 1) return;
     _positionSaveDebounce?.cancel();
     unawaited(_savePosition());

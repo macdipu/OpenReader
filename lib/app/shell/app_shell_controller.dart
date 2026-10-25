@@ -111,8 +111,8 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
       Get.find<FavoritesController>().load();
     }
     // Same reasoning as above, for Home's Recent Documents/Continue Reading
-    // list: Settings > "Clear Recent History" and Favorites' History tab
-    // both clear via their own RecentRepository call without notifying
+    // list: Favorites' History tab clears via its own RecentRepository
+    // call without notifying
     // Home's separate `recentDocuments` list, which would otherwise show a
     // stale (already-deleted) history until the app restarts.
     if (index == homeIndex) {
