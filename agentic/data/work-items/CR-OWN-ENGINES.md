@@ -365,7 +365,7 @@ User: the package needs its own test app, since OpenReader will gain features th
   - Positions saved to disk.
 - **On-device test:** `integration_test/samples_test.dart` passes all 11 tests on the Pixel_4a emulator (commits 4c877f5, b4ab32f). It caught a bug in the example's own password dialog.
 
-## NEXT STEPS (updated 2026-10-24)
+## NEXT STEPS (updated 2026-10-25)
 1. **E5, repo split and pub.dev.**
    - **Done:** the licence is **MIT** (`LICENSE` added on 2026-10-24) and the README licence section is updated.
    - **Renamed (user, 2026-10-24):** the package is **`universal_document_viewer`** (free on pub.dev), in `packages/universal_document_viewer`; `lib/universal_document_viewer.dart` is the main library, the example is `universal_document_viewer_example` (bundle ids `com.chowdhuryelab.universal_document_viewer_example` / `universalDocumentViewerExample`), and the PDFium code asset is `package:universal_document_viewer/libpdfium`. The app name OpenReader is unchanged. The bundled `deck.pptx` and `guide.pdf` samples still carry the old name in their content. Kit 191 tests and app 221 pass; analyze is clean.
@@ -373,7 +373,7 @@ User: the package needs its own test app, since OpenReader will gain features th
    - **Split out (user, 2026-10-24):** the package was removed from OpenDocs; the standalone repo is now its only copy, and the app depends on it by path (`../universal_document_viewer`). Package work now happens in that repo.
    - **On GitHub (user, 2026-10-24):** `github.com/macdipu/universal_document_viewer` (not the chowdhuryelab org; pubspec/README URLs updated, package commit 42f2ec4). The package README also gained "How it compares" and "Related packages" (universal_image_viewer, universal_viewer, planned). `flutter pub publish --dry-run`: 0 warnings.
    - **App:** depends on the package by git (`ref: main`, pinned in pubspec.lock); a `pubspec_overrides.yaml` with a path dependency is the way to work on both. App 221 tests pass.
-   - Then: the pub.dev publish, which needs release approval.
+   - **Published (user, 2026-10-25):** `universal_document_viewer` 0.1.0 is on pub.dev (published 2026-10-25 06:50 UTC by the user; pub points 160/160; MIT; android, ios, macos, linux, windows). The package repo's `.gitignore` now ignores `.idea/` (fa6046e, pushed). E5 is complete.
 2. **Resumed-page thumbnails: done** (see the section above). Checked on the Pixel_4a emulator: the PDF, text and Word cards and rows show the resumed page.
 2b. **Sheet-reading features:** Tiers 1 and 2 are done (E1c, E1d above). Still planned and not scheduled: filter/table header styling, view-only sort/filter, pictures, charts, rotated text, and a small formula evaluator for files saved without results.
 3. **REVIEW, QA and RELEASE** for run `RUN-60D2C2882A324C15AAD0FBB0A9DC42DF`. The release approval is the user's.
