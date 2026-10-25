@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
@@ -16,17 +14,17 @@ import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/controllers/reader_night_mode.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
-import 'package:universal_document_viewer/text.dart';
+import 'package:universal_document_viewer/plain_text.dart';
 
 /// Drives the Text reader (BRD §9.14, ODF-019, ODF-008 for TXT) on top of
-/// universal_document_viewer's [TextDocumentController], which owns the lines,
+/// universal_document_viewer's [PlainTextController], which owns the lines,
 /// search and scrolling. This adds what's OpenReader's: the saved position
 /// (restored on open, saved 2 s after scrolling and once more on close),
 /// font size and wrap remembered across files (UX-20), favourites/share/
 /// open-with, and the BRD §13 error wording.
 class TextReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
-  /// See [TextDocumentController.maxBytes].
-  static const int maxBytes = TextDocumentController.maxBytes;
+  /// See [PlainTextController.maxBytes].
+  static const int maxBytes = PlainTextController.maxBytes;
 
   final DocumentModel document;
   final RecentRepository _recentRepository;
@@ -41,19 +39,16 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>(),
         _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl() {
-    textDocument = TextDocumentController(
+    textDocument = PlainTextController(
       onPositionChanged: (p) => onScrolled(p[PositionKeys.scrollOffset]! as double, line: p[PositionKeys.line] as int?),
     )
       ..addListener(_mirrorSearch);
   }
 
-  late final TextDocumentController textDocument;
+  late final PlainTextController textDocument;
 
   List<String> get lines => textDocument.lines;
-  ScrollController get scrollController => textDocument.scrollController;
 
-  double Function(int lineIndex)? get lineOffsetResolver => textDocument.lineOffsetResolver;
-  set lineOffsetResolver(double Function(int lineIndex)? resolver) => textDocument.lineOffsetResolver = resolver;
 
   double get initialScrollOffset => textDocument.initialScrollOffset;
 
@@ -70,7 +65,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
 
   /// Mirrors of the kit's search state, for the app bar's Obx widgets.
   final searchQuery = ''.obs;
-  final matches = <int>[].obs; // matching line indices
+  final matches = <TextMatch>[].obs; // every occurrence
   final currentMatchIndex = (-1).obs;
 
   void _mirrorSearch() {
@@ -112,7 +107,10 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
       final size = await _settingsRepository.getTextReaderFontSize();
       if (size != null && !_fontSizeChosen) fontSize.value = size.clamp(minFontSize, maxFontSize);
       final wrap = await _settingsRepository.getTextReaderLineWrap();
-      if (wrap != null && !_lineWrapChosen) lineWrap.value = wrap;
+      if (wrap != null && !_lineWrapChosen) {
+        lineWrap.value = wrap;
+        textDocument.wrap = wrap;
+      }
     } catch (_) {
       // Preferences are a convenience; the reader works with the defaults.
     }
@@ -130,13 +128,9 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
         }
       });
 
-      // Refuse an oversized file before reading it into memory.
-      final file = File(document.path);
-      if (await file.length() > maxBytes) {
-        _fail('This document is too large to render safely on this device.');
-        return;
-      }
-      textDocument.load(await file.readAsBytes());
+      // Refuses an oversized file before reading it into memory.
+      await textDocument.loadFile(document.path);
+      if (isClosed) return;
       if (textDocument.error != null) {
         _fail(textDocument.error == DocumentLoadError.tooLarge
             ? 'This document is too large to render safely on this device.'
@@ -187,6 +181,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   void toggleLineWrap() {
     _lineWrapChosen = true;
     lineWrap.value = !lineWrap.value;
+    textDocument.wrap = lineWrap.value;
     unawaited(_settingsRepository.setTextReaderLineWrap(lineWrap.value));
   }
 
@@ -197,13 +192,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   bool get canDecreaseFontSize => fontSize.value > minFontSize;
 
   /// Scrolls line [number] (1-based) to the top.
-  void goToLine(int number) {
-    final scroll = scrollController;
-    if (!scroll.hasClients || lines.isEmpty) return;
-    final index = number.clamp(1, lines.length) - 1;
-    final offset = lineOffsetResolver?.call(index) ?? 0;
-    scroll.jumpTo(offset.clamp(0.0, scroll.position.maxScrollExtent));
-  }
+  void goToLine(int number) => textDocument.goTo(number);
 
   void startSearching() {
     setFullscreen(false);

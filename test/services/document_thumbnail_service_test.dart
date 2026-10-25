@@ -93,10 +93,10 @@ void main() {
     final first = await service.getThumbnail(document);
     final page3 = await service.getThumbnail(
       document,
-      position: {PositionKeys.pageNumber: 3, PositionKeys.pageCount: 9, PositionKeys.zoom: 1.5},
+      position: {PositionKeys.pageNumber: 3, PositionKeys.pageCount: 9, 'zoom': 1.5},
     );
     // Same page, another zoom: the cached picture.
-    final page3Again = await service.getThumbnail(document, position: {PositionKeys.pageNumber: 3, PositionKeys.zoom: 2.0});
+    final page3Again = await service.getThumbnail(document, position: {PositionKeys.pageNumber: 3, 'zoom': 2.0});
     // Only scroll offsets saved (an older position): the first page.
     final offsetOnly = await service.getThumbnail(document, position: {PositionKeys.scrollOffset: 400.0});
 

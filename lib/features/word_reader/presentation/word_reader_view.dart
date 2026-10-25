@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:universal_document_viewer/docx.dart';
+import 'package:universal_document_viewer/word.dart';
 
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
@@ -56,7 +56,7 @@ class WordReaderView extends GetView<WordReaderController> {
             child: ReaderNightModeView(
               enabled: controller.nightMode.value && controller.isPaged.value,
               paper: true,
-              child: WordDocumentView(controller: controller.word),
+              child: WordView(controller: controller.word),
             ),
           ),
         );
@@ -77,20 +77,20 @@ class _WordToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final word = controller.word;
-    return ListenableBuilder(
-      listenable: Listenable.merge([word.pageCount, word.currentPage, word.progress]),
-      builder: (context, _) => Obx(() {
+    return ValueListenableBuilder(
+      valueListenable: word.location,
+      builder: (context, location, _) => Obx(() {
         // Rebuilds with the zoom so the buttons enable at their limits.
         controller.zoom.value;
         final paged = controller.isPaged.value;
-        final pageCount = word.pageCount.value;
-        final page = word.currentPage.value;
+        final pageCount = word.pageCount;
+        final page = location.current;
         return ReaderBottomBar(
           above: controller.showPreviews.value && paged && pageCount != null
               ? ReaderPreviewStrip(
                   count: pageCount,
                   current: page,
-                  onSelected: word.goToPage,
+                  onSelected: word.goTo,
                   itemLabel: 'Page',
                   previewBuilder: (context, number) => ReaderNightModeView(
                     enabled: controller.nightMode.value,
@@ -106,12 +106,12 @@ class _WordToolbar extends StatelessWidget {
               onPressed: controller.togglePreviews,
             ),
             ReaderPositionButton(
-              label: pageCount != null ? 'Page $page of $pageCount' : '${(word.progress.value * 100).round()}%',
+              label: DocumentViewerStrings.of(context).location(location),
               onPressed: pageCount == null
                   ? null
                   : () async {
                       final target = await showGoToNumberDialog(context, title: 'Go to page', current: page, max: pageCount);
-                      if (target != null) word.goToPage(target);
+                      if (target != null) word.goTo(target);
                     },
             ),
             ReaderZoomButtons(
@@ -280,20 +280,10 @@ class _SearchStatusBar extends StatelessWidget {
       if (!controller.isSearching.value) return const SizedBox.shrink();
       return Container(
         color: context.surfaceContainerLow,
-        child: ListenableBuilder(
-          listenable: controller.searchController,
-          builder: (context, _) {
-            final searcher = controller.searchController;
-            final String label;
-            if (searcher.query.isEmpty) {
-              label = '';
-            } else if (searcher.matchCount == 0) {
-              // Zero matches in readable text. BRD's 'No searchable text found'
-              // is reserved for text-less (scanned) PDFs.
-              label = 'No matches';
-            } else {
-              label = '${searcher.currentMatchIndex + 1} of ${searcher.matchCount}';
-            }
+        child: ValueListenableBuilder(
+          valueListenable: controller.word.searchState,
+          builder: (context, searcher, _) {
+            final label = DocumentViewerStrings.of(context).searchStatus(searcher);
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(

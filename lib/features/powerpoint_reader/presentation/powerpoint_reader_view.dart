@@ -49,7 +49,7 @@ class PowerPointReaderView extends GetView<PowerPointReaderController> {
                 if (status.isEmpty) {
                   return Center(child: Text('This presentation has no slides.', style: context.bodyMedium));
                 }
-                return Container(color: context.background, child: SlideDeckView(controller: controller.deck));
+                return Container(color: context.background, child: SlidesView(controller: controller.deck));
               }),
               ),
               bottomNavigationBar: controller.isFullscreen.value ||
@@ -304,15 +304,9 @@ class _SearchStatusBar extends StatelessWidget {
     return ListenableBuilder(
         listenable: deck,
         builder: (context, _) {
-          final String label;
-          if (controller.searchQuery.trim().isEmpty) {
-            label = '';
-          } else if (controller.matches.isEmpty) {
-            label = 'No matches';
-          } else {
-            final slide = controller.matches[controller.currentMatch.clamp(0, controller.matches.length - 1)] + 1;
-            label = '${controller.currentMatch + 1} of ${controller.matches.length} (slide $slide)';
-          }
+          final status = DocumentViewerStrings.of(context).searchStatus(deck.searchState.value);
+          final match = deck.currentSlideMatch;
+          final label = match == null ? status : '$status (slide ${match.slide + 1})';
           return Container(
             color: context.surfaceContainerLow,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

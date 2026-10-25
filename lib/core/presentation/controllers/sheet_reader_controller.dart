@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
-import 'package:universal_document_viewer/sheets.dart';
+import 'package:universal_document_viewer/spreadsheet.dart';
 
 import '../../data/repositories/recent_repository_impl.dart';
 import '../../domain/models/document_model.dart';
@@ -68,10 +67,9 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
 
   Timer? _positionSaveDebounce;
 
-  /// Reads the file into [controller] (via `loadXlsx`/`loadCsv`). Throws on
-  /// an unreadable file.
+  /// What the file is: an Excel workbook or CSV, whatever its name says.
   @protected
-  Future<void> loadInto(SpreadsheetController controller, File file);
+  DocumentFormat get format;
 
   /// What [SpreadsheetController.position] is saved as; a single-sheet
   /// format can drop the sheet index.
@@ -91,9 +89,13 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
       final positionResult = await _recentRepository.getPosition(document.id);
       positionResult.fold((_) {}, (position) => saved = position);
       if (isClosed) return;
-      final sheet = _sheet = SpreadsheetController(initialPosition: saved, onPositionChanged: _onPositionChanged)
-        ..addListener(_mirror);
-      await loadInto(sheet, File(document.path));
+      final sheet = _sheet = SpreadsheetController(
+        initialPosition: saved,
+        onPositionChanged: _onPositionChanged,
+        format: format,
+      )..addListener(_mirror);
+      // Refuses an oversized file before reading it.
+      await sheet.loadFile(document.path);
       if (isClosed) return;
       switch (sheet.error) {
         case null:
@@ -138,7 +140,6 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
   Future<void> _savePosition() =>
       _recentRepository.markOpened(document.id, readingPosition: positionToSave(sheet.position));
 
-  void onScrolled() => _sheet?.onScrolled();
 
   void switchSheet(int index) {
     _sheet?.switchSheet(index);

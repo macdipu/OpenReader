@@ -157,7 +157,7 @@ void main() {
   group('reading position persistence', () {
     test('onPageChanged saves after a 2 second debounce', () {
       fakeAsync((async) {
-        controller.onPageChanged(5);
+        controller.pdf.onPageChanged(5); // ignore: invalid_use_of_internal_member
         expect(controller.currentPage.value, 5);
         expect(recents.markOpenedCalls, 0);
 
@@ -173,9 +173,9 @@ void main() {
 
     test('a new page change resets the debounce and only the latest page is saved', () {
       fakeAsync((async) {
-        controller.onPageChanged(2);
+        controller.pdf.onPageChanged(2); // ignore: invalid_use_of_internal_member
         async.elapse(const Duration(seconds: 1));
-        controller.onPageChanged(3);
+        controller.pdf.onPageChanged(3); // ignore: invalid_use_of_internal_member
         async.elapse(const Duration(seconds: 1, milliseconds: 1));
         expect(recents.markOpenedCalls, 0);
 
@@ -185,14 +185,6 @@ void main() {
       });
     });
 
-    test('a null page (no current page yet) is ignored', () {
-      fakeAsync((async) {
-        controller.onPageChanged(null);
-        expect(controller.currentPage.value, 1);
-        async.elapse(const Duration(seconds: 3));
-        expect(recents.markOpenedCalls, 0);
-      });
-    });
 
     test('onClose is a no-op when the viewer was never attached', () {
       expect(controller.pageCount.value, 0);
@@ -267,10 +259,10 @@ void main() {
       expect(controller.isSearching.value, isFalse);
     });
 
-    test('zoom and fit are safe before the viewer is ready', () async {
-      await controller.zoomIn();
-      await controller.zoomOut();
-      await controller.fitWidth();
+    test('zoom and fit are safe before the viewer is ready', () {
+      controller.zoomIn();
+      controller.zoomOut();
+      controller.fitWidth();
     });
   });
 
@@ -280,7 +272,7 @@ void main() {
       controller.onInit();
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
-      expect(controller.viewMode.value, PdfReaderViewMode.horizontal);
+      expect(controller.viewMode.value, PdfViewMode.horizontal);
     });
 
     test('a PDF with no remembered mode gets the Settings default', () async {
@@ -288,7 +280,7 @@ void main() {
       controller.onInit();
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
-      expect(controller.viewMode.value, PdfReaderViewMode.horizontal);
+      expect(controller.viewMode.value, PdfViewMode.horizontal);
     });
 
     test('a toggle made before the default loads is not overridden by it', () async {
@@ -296,7 +288,7 @@ void main() {
       controller.toggleViewMode();
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
-      expect(controller.viewMode.value, PdfReaderViewMode.horizontal);
+      expect(controller.viewMode.value, PdfViewMode.horizontal);
     });
 
     test('toggling saves the mode with the position', () async {
@@ -309,11 +301,11 @@ void main() {
 
   group('view mode / thumbnails', () {
     test('toggleViewMode alternates between continuous and horizontal', () {
-      expect(controller.viewMode.value, PdfReaderViewMode.continuous);
+      expect(controller.viewMode.value, PdfViewMode.continuous);
       controller.toggleViewMode();
-      expect(controller.viewMode.value, PdfReaderViewMode.horizontal);
+      expect(controller.viewMode.value, PdfViewMode.horizontal);
       controller.toggleViewMode();
-      expect(controller.viewMode.value, PdfReaderViewMode.continuous);
+      expect(controller.viewMode.value, PdfViewMode.continuous);
     });
 
     test('the mode picked in the toolbar becomes the default for PDFs opened later', () async {

@@ -1,3 +1,7 @@
+// These tests stand in for the package's views, reporting scrolls the way
+// they do, through members the package marks internal.
+// ignore_for_file: invalid_use_of_internal_member
+
 import 'dart:io';
 
 import 'package:openreader/core/domain/models/document_category.dart';
@@ -219,7 +223,7 @@ void main() {
     test('finds matching lines case-insensitively and jumps to the first', () async {
       await loaded(controller);
       controller.search('fox');
-      expect(controller.matches, [1, 3]);
+      expect(controller.matches.map((m) => m.line), [1, 3]);
       expect(controller.currentMatchIndex.value, 0);
     });
 

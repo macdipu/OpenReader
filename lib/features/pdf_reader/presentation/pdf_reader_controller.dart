@@ -39,27 +39,24 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>(),
         _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl() {
-    pdf = PdfDocumentController(onPositionChanged: _onPositionChanged)..addListener(_mirror);
+    pdf = PdfController(onPositionChanged: _onPositionChanged, passwordProvider: providePassword)..addListener(_mirror);
   }
 
   /// universal_document_viewer's PDF state: pages, layout, zoom, search, text layer.
-  late final PdfDocumentController pdf;
+  late final PdfController pdf;
 
   int get initialPageNumber => pdf.initialPageNumber;
-
-  /// The kit's search: query, matches, current match (a Listenable).
-  PdfSearchController get searchController => pdf.searchController;
 
   // Mirrors of the kit's state, for Obx widgets and tests.
   /// The document is open (search and thumbnails need it).
   final isReady = false.obs;
   final currentPage = 1.obs;
   final pageCount = 0.obs;
-  final viewMode = PdfReaderViewMode.continuous.obs;
+  final viewMode = PdfViewMode.continuous.obs;
   final hasTextLayer = RxnBool();
 
   void _mirror() {
-    isReady.value = pdf.isReady;
+    isReady.value = pdf.status == DocumentStatus.ready;
     currentPage.value = pdf.currentPage;
     pageCount.value = pdf.pageCount;
     viewMode.value = pdf.viewMode;
@@ -80,7 +77,12 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   @override
   void onInit() {
     super.onInit();
-    _loadInitialPosition().then((_) => _loadDefaultViewMode());
+    _loadInitialPosition().then((_) {
+      if (isClosed) return;
+      unawaited(_loadDefaultViewMode());
+      // The document opens on the restored page; PDFium reads the file.
+      unawaited(pdf.loadFile(document.path));
+    });
   }
 
   @override
@@ -109,16 +111,16 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   }
 
   /// Toolbar zoom (UX-33), alongside pinch-to-zoom.
-  Future<void> zoomIn() => pdf.zoomIn();
-  Future<void> zoomOut() => pdf.zoomOut();
-  Future<void> fitWidth() => pdf.fitWidth();
+  void zoomIn() => pdf.zoomIn();
+  void zoomOut() => pdf.zoomOut();
+  void fitWidth() => pdf.fitWidth();
 
   /// Applies the default reading mode - the one last picked in the
   /// toolbar - only to a PDF with no remembered mode of its own (UX-19).
   Future<void> _loadDefaultViewMode() async {
     if (pdf.viewModeSettled) return;
     final continuous = await _settingsRepository.getDefaultContinuousScroll();
-    pdf.applyDefaultViewMode(continuous ? PdfReaderViewMode.continuous : PdfReaderViewMode.horizontal);
+    pdf.applyDefaultViewMode(continuous ? PdfViewMode.continuous : PdfViewMode.horizontal);
   }
 
   Future<void> _loadInitialPosition() async {
@@ -126,11 +128,6 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
     final result = await _recentRepository.getPosition(document.id);
     result.fold((_) {}, pdf.restore);
     status.value = StateStatus.success;
-  }
-
-  /// The page being read (1-based), as the kit's view reports it.
-  void onPageChanged(int? page) {
-    if (page != null) pdf.onPageChanged(page);
   }
 
   /// A page change saves 2 s later ([toggleViewMode] saves at once).
@@ -149,7 +146,7 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   /// later (the toolbar replaced Settings' default reading mode).
   void toggleViewMode() {
     pdf.toggleViewMode();
-    unawaited(_settingsRepository.setDefaultContinuousScroll(pdf.viewMode == PdfReaderViewMode.continuous));
+    unawaited(_settingsRepository.setDefaultContinuousScroll(pdf.viewMode == PdfViewMode.continuous));
     if (pdf.pageCount < 1) return;
     _positionSaveDebounce?.cancel();
     unawaited(_savePosition());
@@ -165,8 +162,8 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   }
 
   void onSearchQueryChanged(String query) => pdf.search(query);
-  Future<void> goToNextMatch() => pdf.nextMatch();
-  Future<void> goToPrevMatch() => pdf.previousMatch();
+  void goToNextMatch() => pdf.nextMatch();
+  void goToPrevMatch() => pdf.previousMatch();
 
   bool get isFavorite => _interactions.isFavorite(document.id);
 

@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import 'package:universal_document_viewer/sheets.dart';
+import 'package:universal_document_viewer/spreadsheet.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
@@ -16,7 +16,7 @@ import '../../../core/presentation/widgets/app_shortcuts.dart';
 /// BRD §9.12 Excel Reader Screen.
 ///
 /// Renders universal_document_viewer's spreadsheet engine (see `ExcelReaderController`'s
-/// own doc comment) through [SheetGrid] - shared with the CSV reader since
+/// own doc comment) through [SpreadsheetView] - shared with the CSV reader since
 /// `FEATURE-OPENREADER-P4` - built directly on the engine's parsed cell model.
 ///
 /// Styled per DESIGN_SPEC.md #05/#15 (Excel Viewer, light + AMOLED): the
@@ -61,12 +61,10 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: SheetGrid(
+                child: SpreadsheetView(
                   key: ValueKey(sheetIndex),
                   controller: controller.sheet,
                   emptyMessage: 'Empty workbook',
-                  // Zoom is in the reader's toolbar.
-                  showZoomControls: false,
                 ),
               ),
             ),
