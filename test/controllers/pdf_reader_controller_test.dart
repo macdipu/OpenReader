@@ -78,6 +78,9 @@ class FixtureSettings implements AppSettingsRepository {
   Future<bool> getDefaultContinuousScroll() async => continuous;
 
   @override
+  Future<void> setDefaultContinuousScroll(bool value) async => continuous = value;
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -311,6 +314,15 @@ void main() {
       expect(controller.viewMode.value, PdfReaderViewMode.horizontal);
       controller.toggleViewMode();
       expect(controller.viewMode.value, PdfReaderViewMode.continuous);
+    });
+
+    test('the mode picked in the toolbar becomes the default for PDFs opened later', () async {
+      controller.toggleViewMode();
+      await Future<void>.delayed(Duration.zero);
+      expect(settings.continuous, isFalse);
+      controller.toggleViewMode();
+      await Future<void>.delayed(Duration.zero);
+      expect(settings.continuous, isTrue);
     });
 
     test('toggleThumbnails flips the flag', () {
