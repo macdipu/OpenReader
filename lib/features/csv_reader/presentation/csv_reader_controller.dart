@@ -1,15 +1,13 @@
-import 'dart:io';
-
 import 'package:universal_document_viewer/universal_document_viewer.dart';
-import 'package:universal_document_viewer/sheets.dart';
+import 'package:universal_document_viewer/spreadsheet.dart';
 
 import '../../../core/presentation/controllers/sheet_reader_controller.dart';
 
-export 'package:universal_document_viewer/sheets.dart' show CellMatch;
+export 'package:universal_document_viewer/spreadsheet.dart' show CellMatch;
 
 /// Drives the CSV reader (BRD §9.15, ODF-020, ODF-008 for CSV):
 /// universal_document_viewer's [SpreadsheetController] parses the file (off the UI
-/// isolate) and [SheetGrid] shows it;
+/// isolate) and [SpreadsheetView] shows it;
 /// [SheetReaderController] adds OpenReader's saved position, favourites and
 /// error wording. CSV has one implicit sheet, so no sheet tabs.
 class CsvReaderController extends SheetReaderController {
@@ -19,11 +17,7 @@ class CsvReaderController extends SheetReaderController {
   static const int maxBytes = SpreadsheetController.maxCsvBytes;
 
   @override
-  Future<void> loadInto(SpreadsheetController controller, File file) async {
-    // Refuse an oversized file before reading it into memory.
-    if (await file.length() > maxBytes) return controller.rejectAsTooLarge();
-    await controller.loadCsv(await file.readAsBytes());
-  }
+  DocumentFormat get format => DocumentFormat.csv;
 
   /// One sheet, so no sheet index.
   @override

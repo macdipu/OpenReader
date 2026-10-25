@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/recent_repository_impl.dart';
@@ -17,7 +15,7 @@ import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:universal_document_viewer/slides.dart';
 
 /// Drives the PowerPoint reader (CR-OPENREADER-PPTX, UX-07) on top of
-/// universal_document_viewer's [SlideDeckController], which owns the slides, the
+/// universal_document_viewer's [SlidesController], which owns the slides, the
 /// slide on screen and search. This adds what's OpenReader's: the saved
 /// position (restored on open, saved 2 s after a move and once more on
 /// close), favourites/share/open-with, and the BRD §13 error wording.
@@ -39,17 +37,16 @@ class PowerPointReaderController extends BaseController with ReaderFullscreen, R
   static const _damaged = 'This document may be damaged or incomplete.';
 
   /// Created in [onInit] with the saved position; null before that.
-  SlideDeckController? _deck;
-  SlideDeckController get deck => _deck!;
-  SlideDeckController? get deckOrNull => _deck;
+  SlidesController? _deck;
+  SlidesController get deck => _deck!;
+  SlidesController? get deckOrNull => _deck;
 
   final hasError = false.obs;
   final isSearching = false.obs;
 
   List<PptxSlide> get slides => _deck?.slides ?? const [];
   int get currentSlide => _deck?.currentSlide ?? 0;
-  PageController? get pageController => _deck?.pageController;
-  List<int> get matches => _deck?.matches ?? const [];
+  List<SlideMatch> get matches => _deck?.matches ?? const [];
   int get currentMatch => _deck?.currentMatch ?? -1;
   String get searchQuery => _deck?.searchQuery ?? '';
 
@@ -68,12 +65,9 @@ class PowerPointReaderController extends BaseController with ReaderFullscreen, R
     final position = await _recentRepository.getPosition(document.id);
     position.fold((_) {}, (value) => saved = value);
     if (isClosed) return;
-    final deck = _deck = SlideDeckController(initialPosition: saved, onPositionChanged: _onMoved, parse: _parse);
-    try {
-      await deck.load(await File(document.path).readAsBytes());
-    } catch (_) {
-      _fail(_damaged);
-    }
+    final deck = _deck = SlidesController(initialPosition: saved, onPositionChanged: _onMoved, parse: _parse);
+    // A file that can't be read fails as corrupted.
+    await deck.loadFile(document.path);
     if (isClosed) return;
     switch (deck.error) {
       case DocumentLoadError.tooLarge:
@@ -90,9 +84,6 @@ class PowerPointReaderController extends BaseController with ReaderFullscreen, R
     hasError.value = true;
     errorMessage.value = message;
   }
-
-  /// The page view reports every settled page here (through the kit).
-  void onSlideChanged(int index) => deck.onSlideChanged(index);
 
   void _onMoved(ReadingPosition _) {
     _moved = true;

@@ -1,3 +1,7 @@
+// These tests stand in for the package's views, reporting scrolls the way
+// they do, through members the package marks internal.
+// ignore_for_file: invalid_use_of_internal_member
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -9,7 +13,7 @@ import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
-import 'package:universal_document_viewer/sheets.dart';
+import 'package:universal_document_viewer/spreadsheet.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
@@ -395,18 +399,18 @@ void main() {
       for (var i = 0; i < 10; i++) {
         controller.zoomIn();
       }
-      expect(controller.zoom.value, SpreadsheetController.maxZoom);
+      expect(controller.zoom.value, controller.sheet.maxZoom);
       expect(controller.canZoomIn, isFalse);
       for (var i = 0; i < 10; i++) {
         controller.zoomOut();
       }
-      expect(controller.zoom.value, SpreadsheetController.minZoom);
+      expect(controller.zoom.value, controller.sheet.minZoom);
       expect(controller.canZoomOut, isFalse);
     });
 
     testWidgets('tapping a cell shows its full value with Copy; zoom scales cells', (tester) async {
       await tester.runAsync(() => loaded(controller));
-      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SheetGrid(controller: controller.sheet))));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SpreadsheetView(controller: controller.sheet))));
       await tester.pump();
       Finder cellOf(String text) => find.ancestor(of: find.text(text), matching: find.byType(Container)).first;
       expect(tester.getSize(cellOf('Alice')).width, SpreadsheetController.cellWidth);
@@ -418,9 +422,10 @@ void main() {
       Navigator.of(tester.element(find.text('Cell A2'))).pop();
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Zoom in'));
+      // Zoom is in the reader's toolbar, which calls the controller.
+      controller.zoomIn();
       await tester.pumpAndSettle();
-      expect(find.text('125%'), findsOneWidget);
+      expect(controller.zoom.value, 1.25);
       expect(tester.getSize(cellOf('Alice')).width, SpreadsheetController.cellWidth * 1.25);
     });
 
@@ -432,7 +437,7 @@ void main() {
       });
       addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
       await tester.runAsync(() => loaded(controller));
-      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SheetGrid(controller: controller.sheet))));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SpreadsheetView(controller: controller.sheet))));
       await tester.pump();
 
       await tester.tap(find.bySemanticsLabel('Column B'));

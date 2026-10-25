@@ -85,10 +85,8 @@ class PdfReaderView extends GetView<PdfReaderController> {
   }
 
   Widget _buildViewer(BuildContext context) {
-    return PdfDocumentView(
-      path: controller.document.path,
+    return PdfView(
       controller: controller.pdf,
-      passwordProvider: controller.providePassword,
       backgroundColor: context.background,
       // In fullscreen, a tap on the page brings the controls back.
       onTap: () {
@@ -217,21 +215,12 @@ class _SearchStatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (!controller.isSearching.value) return const SizedBox.shrink();
-      final searcher = controller.searchController;
-      // Read here, not in the ListenableBuilder, so this Obx tracks it.
-      final hasTextLayer = controller.hasTextLayer.value;
       return Container(
         color: context.surfaceContainerLow,
-        child: ListenableBuilder(
-          listenable: searcher,
-          builder: (context, _) {
-            final label = pdfSearchStatusLabel(
-              hasPattern: searcher.pattern != null,
-              isSearching: searcher.isSearching,
-              matchCount: searcher.matches.length,
-              currentIndex: searcher.currentIndex,
-              hasTextLayer: hasTextLayer,
-            );
+        child: ValueListenableBuilder(
+          valueListenable: controller.pdf.searchState,
+          builder: (context, search, _) {
+            final label = DocumentViewerStrings.of(context).searchStatus(search);
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
@@ -241,13 +230,13 @@ class _SearchStatusBar extends StatelessWidget {
                     tooltip: 'Previous match',
                     icon: const Icon(Icons.keyboard_arrow_up_rounded),
                     color: context.onSurfaceVariant,
-                    onPressed: searcher.hasMatches ? controller.goToPrevMatch : null,
+                    onPressed: search.matchCount > 0 ? controller.goToPrevMatch : null,
                   ),
                   IconButton(
                     tooltip: 'Next match',
                     icon: const Icon(Icons.keyboard_arrow_down_rounded),
                     color: context.onSurfaceVariant,
-                    onPressed: searcher.hasMatches ? controller.goToNextMatch : null,
+                    onPressed: search.matchCount > 0 ? controller.goToNextMatch : null,
                   ),
                 ],
               ),
@@ -288,10 +277,10 @@ class _FloatingToolbar extends StatelessWidget {
             ReaderZoomButtons(onZoomOut: controller.zoomOut, onZoomIn: controller.zoomIn),
             ReaderToolbarButton(icon: Icons.fit_screen_outlined, tooltip: 'Fit width', onPressed: controller.fitWidth),
             ReaderToolbarButton(
-              icon: controller.viewMode.value == PdfReaderViewMode.horizontal
+              icon: controller.viewMode.value == PdfViewMode.horizontal
                   ? Icons.view_column_rounded
                   : Icons.view_agenda_outlined,
-              tooltip: controller.viewMode.value == PdfReaderViewMode.horizontal ? 'Continuous scroll' : 'Page by page',
+              tooltip: controller.viewMode.value == PdfViewMode.horizontal ? 'Continuous scroll' : 'Page by page',
               onPressed: controller.toggleViewMode,
             ),
             ReaderNightModeButton(on: controller.nightMode.value, onPressed: controller.toggleNightMode),
@@ -411,7 +400,7 @@ class _ThumbnailStripState extends State<_ThumbnailStrip> {
 
 class _ReaderErrorView extends StatelessWidget {
   final PdfReaderController controller;
-  final Object error;
+  final DocumentLoadError error;
 
   const _ReaderErrorView({required this.controller, required this.error});
 

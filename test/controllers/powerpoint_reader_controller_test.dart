@@ -118,7 +118,6 @@ void main() {
       recents.position = {'slide_index': 9, 'slide_count': 10};
       final c = await loaded(controllerFor(await deck(threeSlides)));
       expect(c.currentSlide, 2);
-      expect(c.pageController?.initialPage, 2);
     });
 
     test('a file that is not a PowerPoint package shows the damaged-file message', () async {
@@ -140,7 +139,7 @@ void main() {
     test('a slide change is saved after a 2 second debounce, with the slide count', () async {
       final c = await loaded(controllerFor(await deck(threeSlides)));
       fakeAsync((async) {
-        c.onSlideChanged(1);
+        c.deck.goToSlide(1);
         async.elapse(const Duration(seconds: 1));
         expect(recents.markOpenedCalls, 0);
         async.elapse(const Duration(seconds: 1));
@@ -154,7 +153,7 @@ void main() {
       expect(recents.markOpenedCalls, 0);
 
       final moved = await loaded(controllerFor(await deck(threeSlides)));
-      moved.onSlideChanged(2);
+      moved.deck.goToSlide(2);
       moved.onClose();
       expect(recents.lastReadingPosition, {'slide_index': 2, 'slide_count': 3});
     });
@@ -173,7 +172,7 @@ void main() {
     test('finds matching slides, starting from the slide on screen, and cycles through them', () async {
       final c = await loaded(controllerFor(await deck(threeSlides)));
       c.onSearchQueryChanged('revenue');
-      expect(c.matches, [1, 2]);
+      expect(c.matches, const [SlideMatch(1, 0), SlideMatch(2, 0)]);
       expect(c.currentSlide, 1);
       c.goToNextMatch();
       expect(c.currentSlide, 2);

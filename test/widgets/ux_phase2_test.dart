@@ -26,7 +26,7 @@ import 'package:openreader/features/text_reader/presentation/text_reader_view.da
 import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/word_reader/presentation/word_reader_controller.dart';
-import 'package:universal_document_viewer/docx.dart';
+import 'package:universal_document_viewer/word.dart';
 import 'package:universal_document_viewer/testing.dart';
 
 /// CR-OPENREADER-UX Phase 2 regressions not covered by document_views_test.
@@ -224,7 +224,7 @@ void main() {
         }
         await tester.pumpAndSettle();
         expect(controller.lineWrap.value, wrap);
-        final resolver = controller.lineOffsetResolver;
+        final resolver = controller.textDocument.lineOffsetResolver; // ignore: invalid_use_of_internal_member
         expect(resolver, isNotNull);
 
         final top = tester.getTopLeft(find.text(lines.first)).dy;
@@ -263,11 +263,11 @@ void main() {
     });
     expect(controller.initialScrollOffset, 1200.0);
 
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: WordDocumentView(controller: controller.word))));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: WordView(controller: controller.word))));
     for (var i = 0; i < 15; i++) {
       await tester.pump();
     }
-    expect(controller.scrollController.offset, 1200.0);
+    expect(controller.word.scrollController.offset, 1200.0); // ignore: invalid_use_of_internal_member
   });
 
   group('Reader toolbar', () {

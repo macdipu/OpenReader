@@ -8,7 +8,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
-import 'package:universal_document_viewer/text.dart';
+import 'package:universal_document_viewer/plain_text.dart';
 import 'text_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 
@@ -43,10 +43,9 @@ class TextReaderView extends GetView<TextReaderController> {
         child: Obx(() {
           if (controller.status.value.isBusy) return const LoadingView();
           if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
-          return Obx(() => TextDocumentView(
+          return Obx(() => PlainTextView(
                 controller: controller.textDocument,
                 fontSize: controller.fontSize.value,
-                wrap: controller.lineWrap.value,
               ));
         }),
       ),
@@ -202,16 +201,10 @@ class _SearchStatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (!controller.isSearching.value) return const SizedBox.shrink();
-      final String label;
-      if (controller.searchQuery.value.isEmpty) {
-        label = '';
-      } else if (controller.matches.isEmpty) {
-        // Zero matches in readable text. BRD's 'No searchable text found'
-        // is reserved for text-less (scanned) PDFs.
-        label = 'No matches';
-      } else {
-        label = '${controller.currentMatchIndex.value + 1} of ${controller.matches.length}';
-      }
+      // Read so this Obx rebuilds as the query and the current match change.
+      controller.searchQuery.value;
+      controller.currentMatchIndex.value;
+      final label = DocumentViewerStrings.of(context).searchStatus(controller.textDocument.searchState.value);
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(

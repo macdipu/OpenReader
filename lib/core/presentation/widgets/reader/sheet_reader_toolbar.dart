@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:universal_document_viewer/sheets.dart' show showGoToDialog;
+import 'go_to_cell_dialog.dart';
 
 import '../../controllers/sheet_reader_controller.dart';
 import 'reader_toolbar.dart';
@@ -26,7 +26,7 @@ class SheetReaderToolbar extends StatelessWidget {
         children: [
           ReaderPositionButton(
             label: 'Row ${_count.format(controller.topRow.value.clamp(1, rows < 1 ? 1 : rows))} of ${_count.format(rows)}',
-            onPressed: sheet == null ? null : () => showGoToDialog(context, sheet),
+            onPressed: sheet == null ? null : () => showGoToCellDialog(context, sheet),
           ),
           ReaderZoomButtons(
             onZoomOut: controller.canZoomOut ? controller.zoomOut : null,

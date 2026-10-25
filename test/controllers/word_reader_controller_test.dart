@@ -1,3 +1,7 @@
+// These tests stand in for the package's views, reporting scrolls the way
+// they do, through members the package marks internal.
+// ignore_for_file: invalid_use_of_internal_member
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -191,18 +195,18 @@ void main() {
       expect(controller.isSearching.value, isTrue);
 
       controller.onSearchQueryChanged('fox');
-      expect(controller.searchController.query, 'fox');
+      expect(controller.word.searchState.value.query, 'fox');
 
       controller.stopSearching();
       expect(controller.isSearching.value, isFalse);
-      expect(controller.searchController.query, '');
+      expect(controller.word.searchState.value.query, '');
     });
   });
 
   group('error handling', () {
     test('a failed load flips hasError', () {
       expect(controller.hasError.value, isFalse);
-      controller.word.rejectAsCorrupted();
+      controller.word.markFailed(DocumentLoadError.corrupted);
       expect(controller.hasError.value, isTrue);
     });
 

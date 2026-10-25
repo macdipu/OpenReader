@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/recent_repository_impl.dart';
@@ -12,11 +10,11 @@ import '../../../core/presentation/controllers/document_interaction_controller.d
 import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/controllers/reader_night_mode.dart';
 import '../../../core/presentation/utils/state_status.dart';
-import 'package:universal_document_viewer/docx.dart';
+import 'package:universal_document_viewer/word.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 
 /// Drives the Word reader (BRD §9.11, ODF-013/014, ODF-008 for Word) on
-/// top of universal_document_viewer's [WordDocumentController], which checks the
+/// top of universal_document_viewer's [WordController], which checks the
 /// file, owns search and scrolling, and restores the saved offset. This
 /// adds what's OpenReader's: the saved position (2 s after scrolling and
 /// once more on close), favourites/share/open-with via the shared
@@ -32,22 +30,20 @@ class WordReaderController extends BaseController with ReaderFullscreen, ReaderN
     DocumentInteractionController? interactions,
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>() {
-    word = WordDocumentController(onPositionChanged: _onPositionChanged)..addListener(_onWordChanged);
+    word = WordController(onPositionChanged: _onPositionChanged)..addListener(_onWordChanged);
   }
 
-  late final WordDocumentController word;
+  late final WordController word;
 
-  WordSearchController get searchController => word.searchController;
-  ScrollController get scrollController => word.scrollController;
   double get initialScrollOffset => word.initialScrollOffset;
 
   final isSearching = false.obs;
 
   /// Print layout (pages) rather than continuous; mirrors the kit's
-  /// [WordDocumentController.viewMode] for the toolbar.
+  /// [WordController.viewMode] for the toolbar.
   final isPaged = false.obs;
 
-  /// [WordDocumentController.zoom] for the toolbar.
+  /// [WordController.zoom] for the toolbar.
   final zoom = 1.0.obs;
 
   /// Whether the page previews show above the toolbar.
@@ -112,14 +108,8 @@ class WordReaderController extends BaseController with ReaderFullscreen, ReaderN
     if (_closed) return;
     result.fold((_) {}, word.restore);
     isPaged.value = word.viewMode == WordViewMode.paged;
-    try {
-      final bytes = await File(document.path).readAsBytes();
-      if (_closed) return;
-      await word.load(bytes);
-    } catch (_) {
-      if (_closed) return;
-      word.rejectAsCorrupted();
-    }
+    // A file that can't be read fails as corrupted.
+    await word.loadFile(document.path);
     if (_closed) return;
     status.value = StateStatus.success;
   }
