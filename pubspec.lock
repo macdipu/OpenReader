@@ -1206,7 +1206,7 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "28c49435c47173b3e6b3b804b86eaeca708cf224"
+      resolved-ref: "23c9caaeb7f877649106a91547c690dd06d4bd3b"
       url: "https://github.com/macdipu/universal_document_viewer.git"
     source: git
     version: "0.1.1"
