@@ -11,6 +11,8 @@ $types = [ordered]@{
   md   = @('MD',  '#7C3AED')
 }
 
+$logo = [Drawing.Image]::FromFile((Join-Path $PSScriptRoot '../assets/icon/icon.png'))
+
 function New-Page([string]$label, [string]$hex, [int]$s) {
   $c = [Drawing.ColorTranslator]::FromHtml($hex)
   $b = New-Object Drawing.Bitmap $s, $s
@@ -29,6 +31,9 @@ function New-Page([string]$label, [string]$hex, [int]$s) {
   $g.DrawPath((New-Object Drawing.Pen ([Drawing.Color]::FromArgb(255, 203, 213, 225)), (3*$u)), $path)
   $fp = @([Drawing.PointF]::new($x0 + $w - $fold, $y0), [Drawing.PointF]::new($x0 + $w - $fold, $y0 + $fold), [Drawing.PointF]::new($x0 + $w, $y0 + $fold))
   $g.FillPolygon((New-Object Drawing.SolidBrush ([Drawing.Color]::FromArgb(255, 226, 232, 240))), $fp)
+  # OpenReader logo, top-left of the page
+  $g.InterpolationMode = 'HighQualityBicubic'
+  $g.DrawImage($logo, $x0 + 18*$u, $y0 + 18*$u, 52*$u, 52*$u)
   # text lines
   $lp = New-Object Drawing.SolidBrush ([Drawing.Color]::FromArgb(255, 226, 232, 240))
   foreach ($i in 0..1) { $g.FillRectangle($lp, $x0 + 22*$u, $y0 + (78 + 18*$i)*$u, (124 - 30*$i)*$u, 8*$u) }
