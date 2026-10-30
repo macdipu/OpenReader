@@ -1212,12 +1212,11 @@ packages:
   universal_document_viewer:
     dependency: "direct main"
     description:
-      path: "."
-      ref: c812336a9fafa86fb852ed71df71eee604923b78
-      resolved-ref: c812336a9fafa86fb852ed71df71eee604923b78
-      url: "https://github.com/macdipu/universal_document_viewer.git"
-    source: git
-    version: "0.1.1"
+      name: universal_document_viewer
+      sha256: "35a38e09a65e5efefd4292bad844ccfea8be47fded719b7a25ec2a46593722df"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.4"
   universal_io:
     dependency: transitive
     description:
