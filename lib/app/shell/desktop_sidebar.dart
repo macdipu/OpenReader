@@ -37,7 +37,10 @@ class DesktopSidebar extends StatelessWidget {
       color: context.surfaceContainerLowest,
       padding: EdgeInsets.symmetric(horizontal: extended ? 14 : 10, vertical: short ? 8 : 16),
       // Scrolls if even the compact rail does not fit (a very short window).
-      child: CustomScrollView(
+      // Labels appear only once the animated width has room for them, so expanding never clips.
+      child: LayoutBuilder(builder: (context, constraints) {
+        final extended = this.extended && constraints.maxWidth >= 190;
+        return CustomScrollView(
         slivers: [
           SliverFillRemaining(
             hasScrollBody: false,
@@ -131,7 +134,8 @@ class DesktopSidebar extends StatelessWidget {
             ),
           ),
         ],
-      ),
+      );
+      }),
     );
   }
 }
@@ -151,19 +155,13 @@ class _SidebarBrand extends StatelessWidget {
       borderRadius: BorderRadius.circular(9),
       child: Image.asset('assets/icon/icon.png', width: 34, height: 34, filterQuality: FilterQuality.medium),
     );
-    final shortcut = PlatformInfo.isMacOS ? '⌘B' : 'Ctrl+B';
+    final toggle = _SidebarToggle(extended: extended, onPressed: onToggle);
     if (!extended) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showMark) mark,
-          IconButton(
-            tooltip: 'Expand sidebar ($shortcut)',
-            visualDensity: VisualDensity.compact,
-            iconSize: 20,
-            icon: const Icon(Icons.chevron_right_rounded),
-            onPressed: onToggle,
-          ),
+          if (showMark) ...[mark, const SizedBox(height: 10)],
+          toggle,
         ],
       );
     }
@@ -181,14 +179,72 @@ class _SidebarBrand extends StatelessWidget {
               style: context.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.2),
             ),
           ),
-          IconButton(
-            tooltip: 'Collapse sidebar ($shortcut)',
-            visualDensity: VisualDensity.compact,
-            iconSize: 20,
-            icon: const Icon(Icons.chevron_left_rounded),
-            onPressed: onToggle,
-          ),
+          toggle,
         ],
+      ),
+    );
+  }
+}
+
+/// The [<] / [>] button: a tinted, rounded button that brightens and grows a little under the
+/// pointer, with a chevron that turns half a circle as the sidebar opens and closes.
+class _SidebarToggle extends StatefulWidget {
+  final bool extended;
+  final VoidCallback onPressed;
+
+  const _SidebarToggle({required this.extended, required this.onPressed});
+
+  @override
+  State<_SidebarToggle> createState() => _SidebarToggleState();
+}
+
+class _SidebarToggleState extends State<_SidebarToggle> {
+  static const _duration = Duration(milliseconds: 220);
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final shortcut = PlatformInfo.isMacOS ? '⌘B' : 'Ctrl+B';
+    return Tooltip(
+      message: widget.extended ? 'Collapse sidebar ($shortcut)' : 'Expand sidebar ($shortcut)',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: Semantics(
+          button: true,
+          label: widget.extended ? 'Collapse sidebar' : 'Expand sidebar',
+          child: GestureDetector(
+            onTap: widget.onPressed,
+            child: AnimatedScale(
+              scale: _hover ? 1.08 : 1,
+              duration: _duration,
+              curve: Curves.easeOutBack,
+              child: AnimatedContainer(
+                duration: _duration,
+                curve: Curves.easeOut,
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: _hover ? context.secondaryContainer : context.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(color: _hover ? context.secondary.withValues(alpha: 0.35) : Colors.transparent),
+                ),
+                // chevron_left is "collapse"; half a turn makes it "expand".
+                child: AnimatedRotation(
+                  turns: widget.extended ? 0 : 0.5,
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeInOutCubic,
+                  child: Icon(
+                    Icons.chevron_left_rounded,
+                    size: 22,
+                    color: _hover ? context.secondary : context.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
