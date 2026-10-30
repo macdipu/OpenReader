@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/presentation/widgets/show_dialog/show_dialog.dart';
+import '../../../services/navigation/navigation_service.dart';
 
 import '../../../core/presentation/utils/platform_info.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
@@ -9,12 +9,15 @@ import '../../../services/platform_integration/default_app_service.dart';
 /// or only chosen types (e.g. just PDFs). [firstRun] adds "Don't ask again".
 Future<void> showDefaultAppDialog({bool firstRun = false}) async {
   if (firstRun) await DefaultAppService.instance.recordPromptShown();
-  await showAppDialog<void>(child: _DefaultAppDialog(firstRun: firstRun), hasBlur: false);
+  // The navigator key's own context sits above the Navigator, so use its overlay's.
+  final context = NavigationService.navigatorKey.currentState?.overlay?.context;
+  if (context == null) return;
+  await showDialog<void>(context: context, builder: (_) => _DefaultAppDialog(firstRun: firstRun));
 }
 
 /// Shows the first-run prompt once the shell is up (a few launches at most).
 Future<void> maybePromptDefaultApp() async {
-  if (!DefaultAppService.instance.shouldPrompt()) return;
+  if (!await DefaultAppService.instance.shouldPrompt()) return;
   await Future<void>.delayed(const Duration(seconds: 1));
   await showDefaultAppDialog(firstRun: true);
 }
@@ -76,7 +79,15 @@ class _DefaultAppDialogState extends State<_DefaultAppDialog> {
               const SizedBox(height: 16),
               RadioGroup<bool>(
                 groupValue: _onlySome,
-                onChanged: (v) => setState(() => _onlySome = v ?? false),
+                onChanged: (v) => setState(() {
+                  _onlySome = v ?? false;
+                  // "Only some types" starts with just PDF, the common case.
+                  if (_onlySome && _selected.length == DocumentType.values.length) {
+                    _selected
+                      ..clear()
+                      ..add(DocumentType.pdf);
+                  }
+                }),
                 child: const Column(
                   children: [
                     RadioListTile<bool>(
@@ -105,6 +116,16 @@ class _DefaultAppDialogState extends State<_DefaultAppDialog> {
                         FilterChip(
                           label: Text(type.label),
                           selected: _selected.contains(type),
+                          showCheckmark: true,
+                          checkmarkColor: theme.colorScheme.onSecondaryContainer,
+                          selectedColor: theme.colorScheme.secondaryContainer,
+                          backgroundColor: theme.colorScheme.surface,
+                          side: BorderSide(
+                            color: _selected.contains(type) ? theme.colorScheme.secondary : theme.colorScheme.outlineVariant,
+                          ),
+                          labelStyle: theme.textTheme.labelLarge?.copyWith(
+                            color: _selected.contains(type) ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onSurface,
+                          ),
                           onSelected: (on) => setState(() => on ? _selected.add(type) : _selected.remove(type)),
                         ),
                     ],

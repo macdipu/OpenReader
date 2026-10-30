@@ -4,93 +4,146 @@ import 'package:get/get.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
+import '../../../core/presentation/utils/platform_info.dart';
 import '../../../services/platform_integration/default_app_service.dart';
 import 'default_app_dialog.dart';
 import 'settings_controller.dart';
 
 /// Settings & Storage (DESIGN_SPEC.md #01): segmented appearance control,
-/// the render cache and about. The PDF reading mode is chosen in the PDF
-/// reader's toolbar, and reading history is cleared from Library's History.
+/// the default-app prompt, the render cache and about. The PDF reading mode
+/// is chosen in the PDF reader's toolbar, and reading history is cleared from
+/// Library's History. Wide windows (desktop, tablets) lay the cards out in two
+/// columns under a page header.
 class SettingsView extends GetView<SettingsController> {
   const SettingsView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
-      body: ContentConstraint(child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+    final wide = context.screenDimensions.width >= 900;
+
+    final appearance = _Section(
+      label: 'Appearance',
+      child: Obx(() => _ThemeSegmented(
+            mode: controller.themeController.themeMode,
+            onChanged: (mode) {
+              switch (mode) {
+                case ThemeMode.system:
+                  controller.themeController.setSystemTheme();
+                  break;
+                case ThemeMode.light:
+                  controller.themeController.setLightTheme();
+                  break;
+                case ThemeMode.dark:
+                  controller.themeController.setDarkTheme();
+                  break;
+              }
+            },
+          )),
+      padded: true,
+    );
+
+    final defaultApp = DefaultAppService.instance.isSupported
+        ? _Section(
+            label: 'Default app',
+            child: _ActionRow(
+              icon: Icons.menu_book_rounded,
+              title: 'Make OpenReader your default reader',
+              subtitle: PlatformInfo.isAndroid
+                  ? 'Open PDFs, Word, Excel and more here by default'
+                  : 'For every document type, or just the ones you pick (like PDFs)',
+              trailing: Icons.chevron_right_rounded,
+              onTap: showDefaultAppDialog,
+            ),
+          )
+        : null;
+
+    // No storage scan any more (CR-OPENREADER-BROWSE), so no index count or
+    // Rescan here - just the render cache.
+    final cache = _Section(
+      label: 'Cache',
+      child: Obx(() => _StatBento(
+            icon: Icons.cleaning_services_outlined,
+            value: controller.isLoadingStats.value ? '—' : formatFileSize(controller.cacheSizeBytes.value),
+            label: 'cached render tiles',
+            actionLabel: 'Clear Render Cache',
+            destructive: true,
+            onAction: controller.clearCache,
+          )),
+      bare: true,
+    );
+
+    final about = _Section(
+      label: 'About',
+      child: Column(
         children: [
-          const _SectionLabel('Appearance'),
-          _SectionCard(
-            padding: const EdgeInsets.all(12),
-            child: Obx(() => _ThemeSegmented(
-                  mode: controller.themeController.themeMode,
-                  onChanged: (mode) {
-                    switch (mode) {
-                      case ThemeMode.system:
-                        controller.themeController.setSystemTheme();
-                        break;
-                      case ThemeMode.light:
-                        controller.themeController.setLightTheme();
-                        break;
-                      case ThemeMode.dark:
-                        controller.themeController.setDarkTheme();
-                        break;
-                    }
-                  },
-                )),
-          ),
-          const SizedBox(height: 24),
-          if (DefaultAppService.instance.isSupported) ...[
-            const _SectionLabel('Default app'),
-            _SectionCard(
-              padding: const EdgeInsets.all(4),
-              child: _ActionRow(
-                icon: Icons.open_in_new_rounded,
-                title: 'Make OpenReader your default reader',
-                trailing: Icons.chevron_right_rounded,
-                onTap: showDefaultAppDialog,
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-          // No storage scan any more (CR-OPENREADER-BROWSE), so no index
-          // count or Rescan here - just the render cache.
-          const _SectionLabel('Cache'),
-          Obx(() => _StatBento(
-                icon: Icons.cleaning_services_outlined,
-                value: controller.isLoadingStats.value ? '—' : formatFileSize(controller.cacheSizeBytes.value),
-                label: 'cached render tiles',
-                actionLabel: 'Clear Render Cache',
-                destructive: true,
-                onAction: controller.clearCache,
+          Obx(() => _ActionRow(
+                icon: Icons.info_outline,
+                title: 'Version',
+                trailingText: controller.appVersion.value,
               )),
-          const SizedBox(height: 24),
-          const _SectionLabel('About'),
-          _SectionCard(
-            padding: const EdgeInsets.all(4),
-            child: Column(
-              children: [
-                Obx(() => _ActionRow(
-                      icon: Icons.info_outline,
-                      title: 'Version',
-                      trailingText: controller.appVersion.value,
-                    )),
-                Divider(height: 1, color: context.outlineVariant),
-                _ActionRow(
-                  icon: Icons.description_outlined,
-                  title: 'Open-source licenses',
-                  trailing: Icons.chevron_right_rounded,
-                  onTap: () => showLicensePage(context: context, applicationName: 'OpenReader'),
-                ),
-              ],
-            ),
+          Divider(height: 1, color: context.outlineVariant),
+          _ActionRow(
+            icon: Icons.description_outlined,
+            title: 'Open-source licenses',
+            trailing: Icons.chevron_right_rounded,
+            onTap: () => showLicensePage(context: context, applicationName: 'OpenReader'),
           ),
         ],
-      )),
+      ),
+    );
+
+    final left = [appearance, if (defaultApp != null) defaultApp];
+    final right = [cache, about];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: ContentConstraint(
+        maxWidth: wide ? 1040 : ScreenUtils.maxContentWidth,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(wide ? 32 : 16, wide ? 28 : 16, wide ? 32 : 16, 32),
+          children: [
+            if (wide) ...[
+              Text('Settings', style: context.headlineMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+              const SizedBox(height: 4),
+              Text('Appearance, defaults and storage', style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
+              const SizedBox(height: 28),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: Column(children: left)),
+                  const SizedBox(width: 24),
+                  Expanded(child: Column(children: right)),
+                ],
+              ),
+            ] else
+              ...[...left, ...right],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A labelled settings group.
+class _Section extends StatelessWidget {
+  final String label;
+  final Widget child;
+  final bool padded;
+  final bool bare;
+
+  const _Section({required this.label, required this.child, this.padded = false, this.bare = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionLabel(label),
+          if (bare) child else _SectionCard(padding: padded ? const EdgeInsets.all(12) : const EdgeInsets.all(4), child: child),
+        ],
+      ),
     );
   }
 }
@@ -246,6 +299,7 @@ class _SectionCard extends StatelessWidget {
 class _ActionRow extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final String? trailingText;
   final IconData? trailing;
   final VoidCallback? onTap;
@@ -253,6 +307,7 @@ class _ActionRow extends StatelessWidget {
   const _ActionRow({
     required this.icon,
     required this.title,
+    this.subtitle,
     this.trailingText,
     this.trailing,
     this.onTap,
@@ -267,9 +322,26 @@ class _ActionRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
-            Icon(icon, color: context.onSurfaceVariant, size: 20),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: context.secondaryContainer.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: context.secondary, size: 19),
+            ),
             const SizedBox(width: 14),
-            Expanded(child: Text(title, style: context.bodyLarge?.copyWith(color: context.onSurface))),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: context.bodyLarge?.copyWith(color: context.onSurface)),
+                  if (subtitle != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(subtitle!, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+                    ),
+                ],
+              ),
+            ),
             if (trailingText != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

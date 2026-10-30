@@ -33,3 +33,14 @@ How to capture (keeps all platforms visually consistent):
       copy in the "Desktop integration" and "Download" sections.
 - [ ] Link each platform button directly to its release asset instead of `releases/latest` once file names are stable.
 - [ ] Add a macOS-style and Linux-style window frame if the native title bars look inconsistent next to each other.
+
+## "Make OpenReader the default app" (in-app prompt + Settings > Default app)
+
+Built and verified on Windows (opens Settings > Default apps on OpenReader's page, which lists each file type).
+Not yet run on the other platforms:
+
+- [ ] **macOS**: `setDefaultForExtensions` in `macos/Runner/AppDelegate.swift` (`NSWorkspace.setDefaultApplication`, macOS 12+).
+      Check the confirmation prompt, that a declined type is reported, and that Finder's Open With reflects the change.
+- [ ] **Linux**: `xdg-mime default` per MIME type, after `install-desktop-entry.sh` if the entry is missing. Test on GNOME and KDE.
+- [ ] **Android**: opens the system default-apps screen (`MainActivity.kt`). Check on Android 10 through 15 that the
+      screen opens, then that choosing OpenReader and tapping Always works for a PDF.

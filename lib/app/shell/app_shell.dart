@@ -8,6 +8,7 @@ import '../../features/favorites/presentation/favorites_view.dart';
 import '../../features/browse/presentation/browse_view.dart';
 import '../../features/home/presentation/home_view.dart';
 import 'app_shell_controller.dart';
+import 'desktop_sidebar.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../core/presentation/widgets/app_shortcuts.dart';
@@ -41,7 +42,7 @@ class AppShell extends StatelessWidget {
       body: wide
           ? Row(
               children: [
-                _AppNavRail(controller: controller, extended: context.isExpandedScreen),
+                DesktopSidebar(controller: controller, extended: context.isExpandedScreen),
                 VerticalDivider(width: 1, color: context.outlineVariant),
                 Expanded(child: ContentConstraint(child: pages)),
               ],
@@ -109,76 +110,13 @@ class _DropOverlay extends StatelessWidget {
   }
 }
 
-class _AppNavRail extends StatelessWidget {
-  final AppShellController controller;
-  final bool extended;
-
-  const _AppNavRail({required this.controller, required this.extended});
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() => NavigationRail(
-          extended: extended,
-          backgroundColor: context.surfaceContainerLowest,
-          selectedIndex: controller.currentIndex.value,
-          onDestinationSelected: controller.changeTab,
-          labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
-          indicatorColor: context.secondaryContainer,
-          leading: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: extended
-                ? FilledButton.icon(
-                    onPressed: controller.pickAndOpenFile,
-                    icon: const Icon(Icons.file_open_outlined),
-                    label: const Text('Open file'),
-                  )
-                : IconButton.filledTonal(
-                    tooltip: 'Open file',
-                    onPressed: controller.pickAndOpenFile,
-                    icon: const Icon(Icons.file_open_outlined),
-                  ),
-          ),
-          trailing: Expanded(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Settings',
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => Get.toNamed(AppRoutes.settings),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          destinations: [
-            for (final item in _AppNavBar._items)
-              NavigationRailDestination(
-                icon: Icon(item.icon),
-                selectedIcon: Icon(item.activeIcon),
-                label: Text(item.label),
-              ),
-          ],
-        ));
-  }
-}
-
 class _AppNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
   const _AppNavBar({required this.currentIndex, required this.onTap});
 
-  static const _items = [
-    (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded, label: 'Browse'),
-    (icon: Icons.star_outline_rounded, activeIcon: Icons.star_rounded, label: 'Library'),
-  ];
+  static const _items = shellDestinations;
 
   @override
   Widget build(BuildContext context) {
