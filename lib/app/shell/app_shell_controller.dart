@@ -8,6 +8,8 @@ import '../../core/domain/models/document_category.dart';
 import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/browse/presentation/browse_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
+import '../../core/presentation/utils/platform_info.dart';
+import '../../services/platform_integration/desktop_open_files.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
 import '../../services/utilities/app_update_service.dart';
@@ -65,6 +67,17 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   void _openLaunchFiles() {
     final files = LaunchArguments.take();
     if (files.isNotEmpty) unawaited(_incomingIntentService.handlePath(files.first));
+    if (PlatformInfo.isMacOS) unawaited(_listenForFinderFiles());
+  }
+
+  /// macOS delivers "Open With" / double-clicked files as Apple Events, both
+  /// at launch and while the app is already running.
+  Future<void> _listenForFinderFiles() async {
+    void open(List<String> paths) {
+      if (paths.isNotEmpty) unawaited(_incomingIntentService.handlePath(paths.first));
+    }
+
+    open(await DesktopOpenFiles.listen(open));
   }
 
   /// "Open file" - lets desktop users read a document outside the scanned
