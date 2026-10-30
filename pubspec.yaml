@@ -65,12 +65,7 @@ dependencies:
   # kit's example app. The package has its own repository; pubspec.lock pins
   # the commit. To work on both at once, use a pubspec_overrides.yaml with
   # `path: ../universal_document_viewer`.
-  universal_document_viewer:
-    git:
-      url: https://github.com/macdipu/universal_document_viewer.git
-      # Pinned to the desktop-scroll branch commit (PDF desktop scrollbar, touchpad scroll no longer
-      # zooms) until it is merged into the kit's main; then point this back at main.
-      ref: c812336a9fafa86fb852ed71df71eee604923b78
+  universal_document_viewer: ^0.1.4
   # ODF-P5-03: direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
   # ZIP container's central directory before the kit's engines decompress it.
   archive: ^4.5.0
