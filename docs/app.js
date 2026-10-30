@@ -426,6 +426,7 @@
     });
     tabs.forEach(function (t, k) { t.tabIndex = k === 0 ? 0 : -1; });
 
+
     var panel = $('panel');
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) { visible = es[0].isIntersecting; runBar(); schedule(); }, { threshold: 0.4 }).observe(panel);

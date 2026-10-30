@@ -188,6 +188,24 @@
       </div>
     </section>
 
+    <!-- ================= STORY (pinned, scroll-driven) ================= -->
+    <section class="story" id="story" aria-label="Why OpenReader">
+      <div class="story-inner wrap wide">
+        <div class="story-words">
+          <h2 class="sw is-on"><span>Offline.</span><small>No network calls, ever. Open a file on a plane.</small></h2>
+          <h2 class="sw"><span>Private.</span><small>Your documents never leave your device.</small></h2>
+          <h2 class="sw"><span>Fast.</span><small>Opens quickly and scrolls smoothly.</small></h2>
+        </div>
+        <div class="story-stage" aria-hidden="true">
+          <div class="story-frame">
+            <img class="is-on" src="assets/screens/desktop-pdf.png" width="1262" height="750" alt="" loading="lazy" />
+            <img src="assets/screens/desktop-docx.png" width="1262" height="750" alt="" loading="lazy" />
+            <img src="assets/screens/desktop-xlsx.png" width="1262" height="750" alt="" loading="lazy" />
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= SCREENSHOT SHOWCASE ================= -->
     <section class="showcase" id="showcase">
       <div class="wrap wide">
@@ -446,8 +464,11 @@
     <div id="linux-pick-body"></div>
   </dialog>
 
+  <div class="sprog" aria-hidden="true"><i></i></div>
+
   <button class="to-top" id="to-top" type="button" aria-label="Back to top" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 15 7-7 7 7"/></svg></button>
 
   <script src="app.js"></script>
+  <script src="scroll-fx.js"></script>
 </body>
 </html>
