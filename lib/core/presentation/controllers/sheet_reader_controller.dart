@@ -165,7 +165,7 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
     } else if (isSearching.value) {
       stopSearching();
     } else {
-      Get.back();
+      escapeReader();
     }
   }
 

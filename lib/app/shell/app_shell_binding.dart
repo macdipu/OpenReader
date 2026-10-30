@@ -5,6 +5,8 @@ import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/browse/presentation/browse_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
 import '../../features/recents/presentation/recents_controller.dart';
+import '../../features/workspace/presentation/workspace_controller.dart';
+import '../../features/workspace/presentation/workspace_readers.dart';
 import 'app_shell_controller.dart';
 
 class AppShellBinding extends Bindings {
@@ -26,6 +28,11 @@ class AppShellBinding extends Bindings {
     // because `Get.lazyPut` has no `permanent` parameter in this GetX
     // version — only `fenix`, which is the behavior being removed here).
     Get.put<DocumentInteractionController>(DocumentInteractionController(), permanent: true);
+
+    // Several documents open at once (tabs, side by side) on wide windows.
+    Get.put<WorkspaceController>(WorkspaceController(), permanent: true)
+      ..onTabOpened = ((tab) => registerTabReader(tab, Get.find<WorkspaceController>()))
+      ..onTabClosed = disposeTabReader;
 
     Get.lazyPut<AppShellController>(() => AppShellController());
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);

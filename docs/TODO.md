@@ -59,6 +59,21 @@ How to capture (keeps all platforms consistent):
 - [ ] **Android rotation.** The portrait lock is gone; check every screen on a phone in landscape, not only the home
       screen and the readers I checked on Windows window sizes.
 
+## Tabs and side by side (built on Windows; plan: `agentic/data/design/WORKSPACE-PLAN.md`)
+
+- [ ] **Keyboard shortcuts are untested live.** Ctrl+W, Ctrl+Tab, Ctrl+Shift+Tab and Ctrl+\ are bound in the shell
+      (`app_shell.dart`), but key presses sent by my test script never reached the Flutter window (even the existing
+      Ctrl+F did nothing), so press them by hand: they act only while open documents are on screen.
+- [ ] Middle-click to close a tab, right-click menu, drag to reorder: built, not exercised by hand.
+- [ ] Restore the open tabs (and the split) after a restart.
+- [ ] Opening a file from another process while the app runs works on Windows only. Linux (a `GApplication` is
+      non-unique, so a second window opens) and macOS (a second launch is the OS's job) are not wired.
+- [ ] Tabs on phones and small tablets (today they open one screen at a time).
+- [ ] More than two panes, and dragging a tab out into its own window.
+- [ ] A reader in full-screen mode inside a tab only hides that pane's bars, not the tab strip and sidebar.
+- [ ] Each pane header repeats the document's name that the reader's own app bar shows; merge them.
+- [ ] Every tab keeps its reader mounted (PDF engine included), up to 12; measure memory with several large PDFs.
+
 ## Layout and reader work still to do
 
 - [ ] Two-pane (list plus details) exists on Home only, from about 1000 px of content width. Add it to Library and
@@ -87,4 +102,5 @@ How to capture (keeps all platforms consistent):
 
 - [ ] Two `pdf_reader_controller_test.dart` tests fail on most full runs, a different pair each time (also seen
       before the recent changes). Likely shared state or timing; find and fix.
-- [ ] Single-instance handling on desktop: opening a file while OpenReader is running starts a second window.
+- [ ] Settings is a pushed route, so the sidebar and the open tabs disappear while it is open; it could live inside
+      the shell on wide windows.
