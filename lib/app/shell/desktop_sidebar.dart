@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../core/presentation/theme/theme_extensions.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../core/presentation/utils/screen_utils.dart';
+import '../../features/workspace/presentation/workspace_controller.dart';
 import '../../res/routes/app_routes.dart';
 import 'app_shell_controller.dart';
 
@@ -78,20 +79,36 @@ class DesktopSidebar extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
               child: Text('BROWSE', style: context.labelSmall?.copyWith(color: context.onSurfaceVariant, letterSpacing: 1.2)),
             ),
-          Obx(() => Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < shellDestinations.length; i++)
-                    _SidebarItem(
-                      icon: shellDestinations[i].icon,
-                      activeIcon: shellDestinations[i].activeIcon,
-                      label: shellDestinations[i].label,
-                      selected: controller.currentIndex.value == i,
-                      extended: extended,
-                      onTap: () => controller.changeTab(i),
-                    ),
-                ],
-              )),
+          Obx(() {
+            final workspace = Get.find<WorkspaceController>();
+            final inWorkspace = workspace.visible.value && workspace.tabs.isNotEmpty;
+            final openCount = workspace.tabs.length;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < shellDestinations.length; i++)
+                  _SidebarItem(
+                    icon: shellDestinations[i].icon,
+                    activeIcon: shellDestinations[i].activeIcon,
+                    label: shellDestinations[i].label,
+                    selected: !inWorkspace && controller.currentIndex.value == i,
+                    extended: extended,
+                    onTap: () => controller.changeTab(i),
+                  ),
+                // Documents that are open in tabs, one click from anywhere.
+                if (openCount > 0)
+                  _SidebarItem(
+                    icon: Icons.tab_outlined,
+                    activeIcon: Icons.tab_rounded,
+                    label: 'Open documents',
+                    badge: '$openCount',
+                    selected: inWorkspace,
+                    extended: extended,
+                    onTap: () => workspace.visible.value = true,
+                  ),
+              ],
+            );
+          }),
           const Spacer(),
           Divider(height: short ? 12 : 24, color: context.outlineVariant),
           _SidebarItem(
@@ -143,6 +160,9 @@ class _SidebarItem extends StatefulWidget {
   final bool extended;
   final VoidCallback onTap;
 
+  /// A small count shown at the end of the row (and on the icon when collapsed).
+  final String? badge;
+
   const _SidebarItem({
     required this.icon,
     required this.activeIcon,
@@ -150,6 +170,7 @@ class _SidebarItem extends StatefulWidget {
     required this.selected,
     required this.extended,
     required this.onTap,
+    this.badge,
   });
 
   @override
@@ -180,9 +201,28 @@ class _SidebarItemState extends State<_SidebarItem> {
                   ),
                 ),
               ),
+              if (widget.badge != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: widget.selected ? context.secondary : context.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    widget.badge!,
+                    style: context.labelSmall?.copyWith(
+                      color: widget.selected ? Colors.white : context.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
             ],
           )
-        : Center(child: icon);
+        : Center(
+            child: widget.badge == null
+                ? icon
+                : Badge(label: Text(widget.badge!), child: icon),
+          );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

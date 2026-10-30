@@ -138,7 +138,7 @@ class WordReaderController extends BaseController with ReaderFullscreen, ReaderN
     } else if (isSearching.value) {
       stopSearching();
     } else {
-      Get.back();
+      escapeReader();
     }
   }
 

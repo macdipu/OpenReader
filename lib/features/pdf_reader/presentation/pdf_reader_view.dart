@@ -19,7 +19,13 @@ import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.10 PDF Reader Screen (DESIGN_SPEC.md #09 / #14 - light + AMOLED).
 class PdfReaderView extends GetView<PdfReaderController> {
-  const PdfReaderView({super.key});
+  /// Set when the reader is a workspace tab: its controller is registered under this tag.
+  final String? tabTag;
+
+  const PdfReaderView({super.key, this.tabTag});
+
+  @override
+  String? get tag => tabTag;
 
   @override
   Widget build(BuildContext context) {
@@ -432,7 +438,7 @@ class _ReaderErrorView extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(onPressed: () => Get.back(), child: const Text('Close')),
+                TextButton(onPressed: controller.exitReader, child: const Text('Close')),
                 const SizedBox(width: 8),
                 FilledButton(onPressed: controller.openWith, child: const Text('Try another app')),
               ],

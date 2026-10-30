@@ -105,7 +105,7 @@ class BrowseView extends GetView<BrowseController> {
         children: [
           for (final root in controller.roots)
             ListTile(
-              leading: Icon(Icons.sd_storage_outlined, color: context.secondary),
+              leading: Icon(_rootIcon(root.name), color: context.secondary),
               title: Text(root.name, style: context.titleMedium),
               subtitle: Text(root.path, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
               trailing: const Icon(Icons.chevron_right_rounded),
@@ -137,6 +137,9 @@ class BrowseView extends GetView<BrowseController> {
             final folder = folders[index];
             return ListTile(
               leading: Icon(Icons.folder_rounded, color: context.secondary),
+              // Denser rows where there is a mouse, so folders do not push the documents off screen.
+              dense: context.usesSideNav,
+              visualDensity: context.usesSideNav ? VisualDensity.compact : VisualDensity.standard,
               title: Text(p.basename(folder.path), maxLines: 1, overflow: TextOverflow.ellipsis),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => controller.openFolder(folder.path),
@@ -211,27 +214,45 @@ class BrowseView extends GetView<BrowseController> {
 }
 
 /// Where the folder on screen is; each part jumps there.
-class _Breadcrumb extends StatelessWidget {
+class _Breadcrumb extends StatefulWidget {
   final BrowseController controller;
   const _Breadcrumb({required this.controller});
 
   @override
+  State<_Breadcrumb> createState() => _BreadcrumbState();
+}
+
+class _BreadcrumbState extends State<_Breadcrumb> {
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final crumbs = controller.breadcrumb;
+    final crumbs = widget.controller.breadcrumb;
+    // Reads left to right (Home > Documents > Reports) and starts at the left edge; when the
+    // path is longer than the width it scrolls so the current folder is the one in view.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
+    });
     return SizedBox(
       height: context.scaledExtent(40),
       child: ListView.separated(
+        controller: _scroll,
         scrollDirection: Axis.horizontal,
-        reverse: true, // keeps the current folder in view
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: crumbs.length,
-        separatorBuilder: (_, __) => Icon(Icons.chevron_left_rounded, size: 18, color: context.onSurfaceVariant),
+        separatorBuilder: (_, __) => Icon(Icons.chevron_right_rounded, size: 18, color: context.onSurfaceVariant),
         itemBuilder: (context, i) {
-          final crumb = crumbs[crumbs.length - 1 - i];
-          final isCurrent = i == 0;
+          final crumb = crumbs[i];
+          final isCurrent = i == crumbs.length - 1;
           return Center(
             child: TextButton(
-              onPressed: isCurrent ? null : () => controller.openFolder(crumb.path),
+              onPressed: isCurrent ? null : () => widget.controller.openFolder(crumb.path),
               child: Text(crumb.name, style: isCurrent ? context.labelLarge : null),
             ),
           );
@@ -240,6 +261,15 @@ class _Breadcrumb extends StatelessWidget {
     );
   }
 }
+
+/// A recognisable icon for the places Browse starts from, instead of one storage icon for all.
+IconData _rootIcon(String name) => switch (name.toLowerCase()) {
+      'home' => Icons.home_outlined,
+      'documents' => Icons.description_outlined,
+      'downloads' => Icons.download_outlined,
+      'desktop' => Icons.desktop_windows_outlined,
+      _ => Icons.sd_storage_outlined,
+    };
 
 /// Files' no-access/empty states: a message plus the action that gets the
 /// user out of it (UX-17). Always scrollable, so a surrounding

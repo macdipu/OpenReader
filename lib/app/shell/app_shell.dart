@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/presentation/theme/theme_extensions.dart';
@@ -9,6 +10,8 @@ import '../../features/browse/presentation/browse_view.dart';
 import '../../features/home/presentation/home_view.dart';
 import 'app_shell_controller.dart';
 import '../../core/presentation/widgets/fold_aware_sub_screen.dart';
+import '../../features/workspace/presentation/workspace_controller.dart';
+import '../../features/workspace/presentation/workspace_view.dart';
 import 'desktop_sidebar.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../core/presentation/utils/platform_info.dart';
@@ -29,6 +32,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<AppShellController>();
     final wide = context.usesSideNav;
+    final workspace = Get.find<WorkspaceController>()..enabled = wide;
 
     final pages = Obx(() => IndexedStack(
           index: controller.currentIndex.value,
@@ -46,13 +50,38 @@ class AppShell extends StatelessWidget {
                 DesktopSidebar(controller: controller, extended: context.isExpandedScreen),
                 VerticalDivider(width: 1, color: context.outlineVariant),
                 // A hinge or fold splits the window: keep the pages on one side of it.
-                Expanded(child: FoldAwareSubScreen(
-                  // Home splits into list and details, so it gets more room than the lists.
-                  child: Obx(() => ContentConstraint(
-                    maxWidth: controller.currentIndex.value == AppShellController.homeIndex ? 1240 : ScreenUtils.maxContentWidth,
-                    child: pages,
-                  )),
-                )),
+                Expanded(
+                  child: FoldAwareSubScreen(
+                    child: Obx(() {
+                      // Open documents (tabs, side by side) replace the pages while they are shown;
+                      // both stay mounted so neither loses its state.
+                      final showWorkspace = workspace.visible.value && workspace.tabs.isNotEmpty;
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Offstage(
+                            offstage: showWorkspace,
+                            child: TickerMode(
+                              enabled: !showWorkspace,
+                              // Home splits into list and details, so it gets more room than the lists.
+                              child: ContentConstraint(
+                                maxWidth: controller.currentIndex.value == AppShellController.homeIndex
+                                    ? 1240
+                                    : ScreenUtils.maxContentWidth,
+                                child: pages,
+                              ),
+                            ),
+                          ),
+                          if (workspace.tabs.isNotEmpty)
+                            Offstage(
+                              offstage: !showWorkspace,
+                              child: TickerMode(enabled: showWorkspace, child: const WorkspaceView()),
+                            ),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
               ],
             )
           : pages,
@@ -64,10 +93,29 @@ class AppShell extends StatelessWidget {
               )),
     );
 
-    final shell = AppShortcuts(
-      onOpenFile: controller.pickAndOpenFile,
-      onSearch: () => Get.toNamed(AppRoutes.search),
-      child: scaffold,
+    // Tab shortcuts only act while open documents are on screen. They live here, above both the
+    // pages and the workspace, so they work whichever widget last held keyboard focus.
+    void whenWorkspaceShown(void Function() action) {
+      if (wide && workspace.visible.value && workspace.tabs.isNotEmpty) action();
+    }
+
+    final shell = CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyW, control: true): () => whenWorkspaceShown(() {
+              final id = workspace.activeId;
+              if (id != null) workspace.close(id);
+            }),
+        const SingleActivator(LogicalKeyboardKey.tab, control: true): () => whenWorkspaceShown(workspace.next),
+        const SingleActivator(LogicalKeyboardKey.tab, control: true, shift: true): () =>
+            whenWorkspaceShown(workspace.previous),
+        const SingleActivator(LogicalKeyboardKey.backslash, control: true): () =>
+            whenWorkspaceShown(workspace.toggleSplit),
+      },
+      child: AppShortcuts(
+        onOpenFile: controller.pickAndOpenFile,
+        onSearch: () => Get.toNamed(AppRoutes.search),
+        child: scaffold,
+      ),
     );
     if (!PlatformInfo.isDesktop) return shell;
     // Desktop: drop a file onto the window to open it (UX-34).
