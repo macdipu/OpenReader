@@ -51,6 +51,8 @@ class TextReaderView extends GetView<TextReaderController> {
         child: Obx(() {
           if (controller.status.value.isBusy) return const LoadingView();
           if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
+// The scrollbar needs the kit's scroll controller; the kit should expose it publicly.
+// ignore: invalid_use_of_internal_member
           return Obx(() => ReaderSafeZone(kind: ReaderContent.text, child: ReaderScrollbar(controller: controller.textDocument.scrollController, child: PlainTextView(
                 controller: controller.textDocument,
                 fontSize: controller.fontSize.value,

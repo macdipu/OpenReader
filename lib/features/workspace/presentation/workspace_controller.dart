@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/domain/models/document_model.dart';
 
@@ -49,10 +54,95 @@ class WorkspaceController extends GetxController {
   /// Whether the workspace, rather than Home / Browse / Library, fills the content area.
   final visible = false.obs;
 
+  /// A reader in a tab is full screen: hide the tab strip, pane headers and sidebar as well.
+  final chromeHidden = false.obs;
+
   /// Set by the shell from the window size. When false, documents open as routes.
   bool enabled = false;
 
   int _nextId = 0;
+
+  static const _savedKey = 'workspace_open_tabs';
+  bool _restoring = false;
+  final _workers = <Worker>[];
+  Timer? _saveTimer;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Remember the open tabs, so a restart brings them back: any change to the tabs, to what
+    // the panes show, or to which pane is focused schedules a save.
+    _workers
+      ..add(ever(tabs, (_) => _scheduleSave()))
+      ..add(ever(paneTabs, (_) => _scheduleSave()))
+      ..add(ever(focusedPane, (_) => _scheduleSave()));
+  }
+
+  @override
+  void onClose() {
+    for (final worker in _workers) {
+      worker.dispose();
+    }
+    _saveTimer?.cancel();
+    super.onClose();
+  }
+
+  void _scheduleSave() {
+    if (_restoring) return;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 400), () => unawaited(_save()));
+  }
+
+  /// Open tabs (not the extra views of a document) and which one was showing.
+  Future<void> _save() async {
+    final saved = tabs.where((t) => t.copy == 1).toList();
+    final activeIndex = saved.indexWhere((t) => t.id == activeId);
+    final prefs = await SharedPreferences.getInstance();
+    if (saved.isEmpty) {
+      await prefs.remove(_savedKey);
+      return;
+    }
+    await prefs.setString(
+      _savedKey,
+      jsonEncode({'active': activeIndex, 'tabs': [for (final t in saved) t.document.toMap()]}),
+    );
+  }
+
+  /// Brings back the tabs from the last session (files that are gone are skipped). They are
+  /// added quietly: whatever the app was just asked to open stays what is on screen, and with
+  /// nothing else showing the last active tab is shown, as a browser does.
+  Future<void> restore() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_savedKey);
+    if (raw == null || tabs.isNotEmpty) return;
+    _restoring = true;
+    try {
+      final data = jsonDecode(raw) as Map<String, Object?>;
+      final documents = <DocumentModel>[];
+      for (final entry in (data['tabs'] as List<Object?>? ?? const [])) {
+        final document = DocumentModel.fromMap(Map<String, Object?>.from(entry! as Map));
+        if (File(document.path).existsSync()) documents.add(document);
+      }
+      for (final document in documents.take(maxTabs)) {
+        if (tabs.any((t) => t.document.id == document.id)) continue;
+        final tab = WorkspaceTab(id: 'tab${_nextId++}', document: document);
+        onTabOpened?.call(tab);
+        tabs.add(tab);
+      }
+      if (paneTabs[0] == null && tabs.isNotEmpty) {
+        final active = (data['active'] as int?) ?? 0;
+        final index = active >= 0 && active < documents.length ? active : 0;
+        final target = tabs.firstWhereOrNull((t) => t.document.id == documents[index].id) ?? tabs.first;
+        paneTabs[0] = target.id;
+        paneTabs.refresh();
+        visible.value = true;
+      }
+    } catch (_) {
+      // A damaged saved list is not worth stopping for; start fresh.
+    } finally {
+      _restoring = false;
+    }
+  }
 
   String? get activeId => paneTabs[focusedPane.value];
 
@@ -75,6 +165,26 @@ class WorkspaceController extends GetxController {
     onTabOpened?.call(tab);
     tabs.add(tab);
     show(tab.id);
+    return true;
+  }
+
+  /// Opens [document] in the right pane and leaves the left pane as it is. If the left pane
+  /// already shows this document, the right pane gets a second view of it; with nothing open
+  /// on the left it simply opens there. Returns false when the tab limit stops it.
+  bool openBeside(DocumentModel document) {
+    if (paneTabs[0] == null) return open(document);
+    var tab = tabs.firstWhereOrNull((t) => t.document.id == document.id);
+    if (tab == null) {
+      if (isFull) return false;
+      tab = WorkspaceTab(id: 'tab${_nextId++}', document: document);
+      onTabOpened?.call(tab);
+      tabs.add(tab);
+    } else if (paneTabs[0] == tab.id) {
+      final copy = duplicate(tab.id);
+      if (copy == null) return false;
+      tab = tabById(copy)!;
+    }
+    showInPane(tab.id, 1);
     return true;
   }
 
@@ -111,6 +221,8 @@ class WorkspaceController extends GetxController {
     if (tab == null) return;
     final index = tabs.indexOf(tab);
     tabs.removeAt(index);
+    // Whatever was full screen is gone with it.
+    chromeHidden.value = false;
     onTabClosed?.call(tab);
 
     for (var pane = 0; pane < 2; pane++) {
@@ -193,6 +305,16 @@ class WorkspaceController extends GetxController {
     paneTabs[1] = null;
     paneTabs.refresh();
     focusedPane.value = 0;
+  }
+
+  /// Puts the left pane's document on the right and the other way round.
+  void swapPanes() {
+    if (!split.value || paneTabs[1] == null) return;
+    final left = paneTabs[0];
+    paneTabs[0] = paneTabs[1];
+    paneTabs[1] = left;
+    paneTabs.refresh();
+    focusedPane.value = 1 - focusedPane.value;
   }
 
   /// The (x) on a pane: leaves side by side. The document stays open as a tab, except an

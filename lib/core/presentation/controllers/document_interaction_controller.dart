@@ -136,6 +136,19 @@ class DocumentInteractionController extends GetxController {
     }
   }
 
+  /// Opens [document] in the right-hand pane next to what is open (wide windows only; elsewhere it
+  /// just opens). The document keeps its own tab, so closing the side leaves it open.
+  Future<void> openBeside(DocumentModel document) async {
+    final workspace = Get.isRegistered<WorkspaceController>() ? Get.find<WorkspaceController>() : null;
+    if (workspace == null || !workspace.enabled) return openDocument(document);
+    if (!await _verifyStillAccessible(document)) return;
+    unawaited(_recordOpen(document));
+    Get.until((route) => route.isFirst || route.settings.name == AppRoutes.appShell);
+    if (!workspace.openBeside(document)) {
+      CustomSnackbar.info('Close a tab to open another document (up to ${WorkspaceController.maxTabs}).');
+    }
+  }
+
   /// On wide windows a document opens as a tab (or beside another) instead of replacing the screen.
   /// Returns false when the workspace is off (phones, narrow windows), so the caller pushes the route.
   bool _openInWorkspace(DocumentModel document) {

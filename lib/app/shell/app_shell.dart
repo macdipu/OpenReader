@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -12,6 +14,7 @@ import 'app_shell_controller.dart';
 import '../../core/presentation/widgets/fold_aware_sub_screen.dart';
 import '../../features/workspace/presentation/workspace_controller.dart';
 import '../../features/workspace/presentation/workspace_view.dart';
+import '../../features/settings/presentation/settings_view.dart';
 import 'desktop_sidebar.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../core/presentation/utils/platform_info.dart';
@@ -40,6 +43,7 @@ class AppShell extends StatelessWidget {
             HomeView(),
             BrowseView(),
             FavoritesView(),
+            SettingsView(embedded: true),
           ],
         ));
 
@@ -47,8 +51,19 @@ class AppShell extends StatelessWidget {
       body: wide
           ? Row(
               children: [
-                DesktopSidebar(controller: controller, extended: context.isExpandedScreen),
-                VerticalDivider(width: 1, color: context.outlineVariant),
+                // Full screen in a tab hides the sidebar as well.
+                Obx(() {
+                  final hide = workspace.chromeHidden.value && workspace.visible.value && workspace.tabs.isNotEmpty;
+                  if (hide) return const SizedBox.shrink();
+                  return Row(mainAxisSize: MainAxisSize.min, children: [
+                    DesktopSidebar(
+                      controller: controller,
+                      extended: controller.sidebarExtended(auto: context.isExpandedScreen),
+                      onToggle: () => controller.toggleSidebar(auto: context.isExpandedScreen),
+                    ),
+                    VerticalDivider(width: 1, color: context.outlineVariant),
+                  ]);
+                }),
                 // A hinge or fold splits the window: keep the pages on one side of it.
                 Expanded(
                   child: FoldAwareSubScreen(
@@ -105,6 +120,12 @@ class AppShell extends StatelessWidget {
               final id = workspace.activeId;
               if (id != null) workspace.close(id);
             }),
+        const SingleActivator(LogicalKeyboardKey.keyB, control: true): () {
+          if (wide) unawaited(controller.toggleSidebar(auto: context.isExpandedScreen));
+        },
+        const SingleActivator(LogicalKeyboardKey.keyB, meta: true): () {
+          if (wide) unawaited(controller.toggleSidebar(auto: context.isExpandedScreen));
+        },
         const SingleActivator(LogicalKeyboardKey.tab, control: true): () => whenWorkspaceShown(workspace.next),
         const SingleActivator(LogicalKeyboardKey.tab, control: true, shift: true): () =>
             whenWorkspaceShown(workspace.previous),

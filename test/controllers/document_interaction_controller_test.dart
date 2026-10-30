@@ -11,6 +11,7 @@ import 'package:openreader/services/utilities/storage_access_service.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/temp_dir.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
@@ -110,7 +111,7 @@ void main() {
 
   tearDown(() async {
     Get.reset();
-    await root.delete(recursive: true);
+    await deleteTempDir(root);
   });
 
   Future<void> pumpWithSnackbarHost(WidgetTester tester) async {

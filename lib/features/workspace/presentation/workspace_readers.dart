@@ -27,7 +27,12 @@ void registerTabReader(WorkspaceTab tab, WorkspaceController workspace) {
   void embed(ReaderFullscreen controller) {
     controller
       ..embedded = true
-      ..exitHandler = () => workspace.close(tab.id);
+      ..exitHandler = () {
+        workspace.close(tab.id);
+      }
+      ..fullscreenListener = (fullscreen) {
+        workspace.chromeHidden.value = fullscreen;
+      };
   }
 
   switch (document.category) {

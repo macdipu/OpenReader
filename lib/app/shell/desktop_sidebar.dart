@@ -5,7 +5,6 @@ import '../../core/presentation/theme/theme_extensions.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../core/presentation/utils/screen_utils.dart';
 import '../../features/workspace/presentation/workspace_controller.dart';
-import '../../res/routes/app_routes.dart';
 import 'app_shell_controller.dart';
 
 /// The shell's destinations, shared by the phone bottom bar and the sidebar.
@@ -22,7 +21,10 @@ class DesktopSidebar extends StatelessWidget {
   final AppShellController controller;
   final bool extended;
 
-  const DesktopSidebar({super.key, required this.controller, required this.extended});
+  /// The [<] / [>] button at the top.
+  final VoidCallback onToggle;
+
+  const DesktopSidebar({super.key, required this.controller, required this.extended, required this.onToggle});
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +44,8 @@ class DesktopSidebar extends StatelessWidget {
             child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!short || extended) ...[_SidebarBrand(extended: extended), SizedBox(height: short ? 12 : 20)],
+          _SidebarBrand(extended: extended, onToggle: onToggle, showMark: !short || extended),
+          SizedBox(height: short ? 8 : 20),
           if (extended)
             FilledButton(
               onPressed: controller.pickAndOpenFile,
@@ -111,14 +114,19 @@ class DesktopSidebar extends StatelessWidget {
           }),
           const Spacer(),
           Divider(height: short ? 12 : 24, color: context.outlineVariant),
-          _SidebarItem(
-            icon: Icons.settings_outlined,
-            activeIcon: Icons.settings_rounded,
-            label: 'Settings',
-            selected: false,
-            extended: extended,
-            onTap: () => Get.toNamed(AppRoutes.settings),
-          ),
+          Obx(() {
+            final workspace = Get.find<WorkspaceController>();
+            final inWorkspace = workspace.visible.value && workspace.tabs.isNotEmpty;
+            return _SidebarItem(
+              icon: Icons.settings_outlined,
+              activeIcon: Icons.settings_rounded,
+              label: 'Settings',
+              selected: !inWorkspace && controller.currentIndex.value == AppShellController.settingsIndex,
+              extended: extended,
+              // A page of the shell, so the sidebar and the open tabs stay where they are.
+              onTap: () => controller.changeTab(AppShellController.settingsIndex),
+            );
+          }),
         ],
             ),
           ),
@@ -130,7 +138,12 @@ class DesktopSidebar extends StatelessWidget {
 
 class _SidebarBrand extends StatelessWidget {
   final bool extended;
-  const _SidebarBrand({required this.extended});
+  final VoidCallback onToggle;
+
+  /// Short windows drop the logo and keep only the toggle.
+  final bool showMark;
+
+  const _SidebarBrand({required this.extended, required this.onToggle, required this.showMark});
 
   @override
   Widget build(BuildContext context) {
@@ -138,14 +151,43 @@ class _SidebarBrand extends StatelessWidget {
       borderRadius: BorderRadius.circular(9),
       child: Image.asset('assets/icon/icon.png', width: 34, height: 34, filterQuality: FilterQuality.medium),
     );
-    if (!extended) return Center(child: mark);
+    final shortcut = PlatformInfo.isMacOS ? '⌘B' : 'Ctrl+B';
+    if (!extended) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showMark) mark,
+          IconButton(
+            tooltip: 'Expand sidebar ($shortcut)',
+            visualDensity: VisualDensity.compact,
+            iconSize: 20,
+            icon: const Icon(Icons.chevron_right_rounded),
+            onPressed: onToggle,
+          ),
+        ],
+      );
+    }
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.only(left: 4),
       child: Row(
         children: [
           mark,
           const SizedBox(width: 12),
-          Text('OpenReader', style: context.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.2)),
+          Expanded(
+            child: Text(
+              'OpenReader',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.2),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Collapse sidebar ($shortcut)',
+            visualDensity: VisualDensity.compact,
+            iconSize: 20,
+            icon: const Icon(Icons.chevron_left_rounded),
+            onPressed: onToggle,
+          ),
         ],
       ),
     );

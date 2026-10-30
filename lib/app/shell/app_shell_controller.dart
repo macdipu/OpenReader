@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/domain/models/document_category.dart';
 import '../../features/favorites/presentation/favorites_controller.dart';
@@ -23,7 +24,31 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   static const filesIndex = 1;
   static const favoritesIndex = 2;
 
+  /// Settings is a page of the shell on wide windows (sidebar and open tabs stay put); phones push a route.
+  static const settingsIndex = 3;
+
   final RxInt currentIndex = homeIndex.obs;
+
+  static const _sidebarKey = 'shell_sidebar_extended';
+
+  /// The user's choice for the sidebar: true expanded, false the icon rail, null (never chosen)
+  /// follows the window width. Remembered between launches.
+  final sidebarPref = RxnBool();
+
+  /// Whether the sidebar shows labels, given what the window width alone would pick.
+  bool sidebarExtended({required bool auto}) => sidebarPref.value ?? auto;
+
+  /// The [<] / [>] button and Ctrl+B.
+  Future<void> toggleSidebar({required bool auto}) async {
+    sidebarPref.value = !sidebarExtended(auto: auto);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_sidebarKey, sidebarPref.value!);
+  }
+
+  Future<void> _loadSidebarPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    sidebarPref.value = prefs.getBool(_sidebarKey);
+  }
 
   final IncomingIntentService _incomingIntentService;
   final StorageAccessService _storageAccess;
@@ -38,11 +63,18 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     // BRD §7.7 / TASK-009: by the time the shell exists, onboarding/storage
     // access has already been resolved, so it's safe to start listening for
     // an incoming file here.
+    unawaited(_loadSidebarPref());
     unawaited(_incomingIntentService.init());
     _openLaunchFiles();
     WidgetsBinding.instance.addObserver(this);
     // After the first frame, so the sheet has a navigator to open on.
     WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(AppUpdateService.instance.checkForUpdate()));
+    // Wide windows bring back the tabs from the last session (enabled is set by the shell on its first build).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!Get.isRegistered<WorkspaceController>()) return;
+      final workspace = Get.find<WorkspaceController>();
+      if (workspace.enabled) unawaited(workspace.restore());
+    });
   }
 
   /// Storage access can change while the app is in the background (the

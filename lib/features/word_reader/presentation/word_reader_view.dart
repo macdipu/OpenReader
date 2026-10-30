@@ -64,6 +64,8 @@ class WordReaderView extends GetView<WordReaderController> {
             child: ReaderNightModeView(
               enabled: controller.nightMode.value && controller.isPaged.value,
               paper: true,
+// The scrollbar needs the kit's scroll controller; the kit should expose it publicly.
+// ignore: invalid_use_of_internal_member
               child: ReaderSafeZone(kind: ReaderContent.document, child: ReaderScrollbar(controller: controller.word.scrollController, child: WordView(controller: controller.word))),
             ),
           ),

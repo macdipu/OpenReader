@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
@@ -7,7 +10,10 @@ import '../../../core/domain/models/recent_document_model.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
+import '../../../core/presentation/utils/platform_info.dart';
 import '../../../core/presentation/utils/relative_time_formatter.dart';
+import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
+import '../../../services/utilities/reveal_in_folder.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/document/document_list_tile.dart';
 import '../../../core/presentation/widgets/document/document_load_error_view.dart';
@@ -70,8 +76,13 @@ class HomeView extends GetView<HomeController> {
 
         return LayoutBuilder(builder: (context, constraints) {
         final twoPane = constraints.maxWidth >= _twoPaneMinWidth && controller.recentDocuments.isNotEmpty;
+        void _select(RecentDocumentModel r) {
+          controller.select(r.document.id);
+          controller.listFocus.requestFocus();
+        }
+
         void choose(RecentDocumentModel r) =>
-            twoPane ? controller.select(r.document.id) : interactions.openDocument(r.document);
+            twoPane ? _select(r) : interactions.openDocument(r.document);
         final feed = RefreshIndicator(
           onRefresh: controller.load,
           child: ListView(
@@ -167,7 +178,21 @@ class HomeView extends GetView<HomeController> {
         // the selected document on the right. Click selects; double-click or Open reads it.
         return Row(
           children: [
-            SizedBox(width: _listPaneWidth, child: feed),
+            SizedBox(
+              width: _listPaneWidth,
+              // Up / Down move the selection through the list, Enter reads the selected document.
+              child: CallbackShortcuts(
+                bindings: {
+                  const SingleActivator(LogicalKeyboardKey.arrowDown): () => controller.moveSelection(1),
+                  const SingleActivator(LogicalKeyboardKey.arrowUp): () => controller.moveSelection(-1),
+                  const SingleActivator(LogicalKeyboardKey.enter): () {
+                    final selected = controller.selectedRecent;
+                    if (selected != null) unawaited(interactions.openDocument(selected.document));
+                  },
+                },
+                child: Focus(focusNode: controller.listFocus, child: feed),
+              ),
+            ),
             VerticalDivider(width: 1, color: context.outlineVariant),
             Expanded(child: Obx(() {
               final selected = controller.selectedRecent;
@@ -463,37 +488,80 @@ class _DocumentDetailsPane extends StatelessWidget {
                   Text('${(progress * 100).round()}% read', style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
                   const SizedBox(height: 16),
                 ],
-                FilledButton.icon(
-                  onPressed: () => interactions.openDocument(document),
-                  icon: const Icon(Icons.menu_book_rounded),
-                  label: Text(progress != null ? 'Continue reading' : 'Open'),
-                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
                   children: [
-                    Obx(() => OutlinedButton.icon(
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => interactions.openDocument(document),
+                        icon: const Icon(Icons.menu_book_rounded),
+                        label: Text(progress != null ? 'Continue reading' : 'Open'),
+                        style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: 'Open in the right pane, next to what is open',
+                      child: OutlinedButton.icon(
+                        onPressed: () => interactions.openBeside(document),
+                        icon: const Icon(Icons.vertical_split_outlined),
+                        label: const Text('Beside'),
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Obx(() => IconButton.outlined(
+                          tooltip: interactions.isFavorite(document.id) ? 'Remove from favorites' : 'Add to favorites',
                           onPressed: () => interactions.toggleFavorite(document.id),
                           icon: Icon(interactions.isFavorite(document.id) ? Icons.star_rounded : Icons.star_outline_rounded),
-                          label: Text(interactions.isFavorite(document.id) ? 'Favorited' : 'Favorite'),
                         )),
-                    OutlinedButton.icon(
+                    const SizedBox(width: 8),
+                    IconButton.outlined(
+                      tooltip: 'Share',
                       onPressed: () => interactions.shareDocument(document),
                       icon: const Icon(Icons.ios_share_rounded),
-                      label: const Text('Share'),
                     ),
-                    OutlinedButton.icon(
+                    const SizedBox(width: 8),
+                    IconButton.outlined(
+                      tooltip: 'Open with another app',
                       onPressed: () => interactions.openWithExternalApp(document),
                       icon: const Icon(Icons.open_in_new_rounded),
-                      label: const Text('Open with'),
                     ),
-                    OutlinedButton.icon(
+                    if (PlatformInfo.isDesktop) ...[
+                      const SizedBox(width: 8),
+                      IconButton.outlined(
+                        tooltip: 'Show in folder',
+                        onPressed: () => revealInFolder(document.path),
+                        icon: const Icon(Icons.folder_open_rounded),
+                      ),
+                    ],
+                    const SizedBox(width: 8),
+                    IconButton.outlined(
+                      tooltip: 'Copy path',
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: document.path));
+                        CustomSnackbar.success('Path copied');
+                      },
+                      icon: const Icon(Icons.link_rounded),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.outlined(
+                      tooltip: 'File information',
                       onPressed: () => showFileInformationSheet(context, document),
                       icon: const Icon(Icons.info_outline_rounded),
-                      label: const Text('Info'),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.outlined(
+                      tooltip: 'Remove from history',
+                      onPressed: () async {
+                        await interactions.removeFromRecent(document.id);
+                        await Get.find<HomeController>().load();
+                      },
+                      icon: const Icon(Icons.history_toggle_off_rounded),
                     ),
                   ],
                 ),

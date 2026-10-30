@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/temp_dir.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
 import 'package:openreader/features/workspace/presentation/workspace_controller.dart';
@@ -247,6 +251,87 @@ void main() {
       }
       expect(ws.duplicateToRight(ws.tabs[0].id), isFalse);
       expect(ws.tabs.length, WorkspaceController.maxTabs);
+    });
+  });
+
+  group('remembering the open tabs', () {
+    late Directory dir;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      dir = await Directory.systemTemp.createTemp('workspace_test');
+    });
+
+    tearDown(() async => deleteTempDir(dir));
+
+    DocumentModel fileDoc(String name) {
+      final file = File('${dir.path}/$name')..writeAsStringSync('x');
+      return DocumentModel(
+        id: name,
+        path: file.path,
+        displayName: name,
+        extension: 'txt',
+        category: DocumentCategory.text,
+        sizeBytes: 1,
+        modifiedAt: DateTime(2026),
+        lastSeenAt: DateTime(2026),
+      );
+    }
+
+    test('a new session gets the tabs back, with the one that was showing', () async {
+      final first = WorkspaceController()..onInit();
+      first
+        ..open(fileDoc('a.txt'))
+        ..open(fileDoc('b.txt'))
+        ..open(fileDoc('c.txt'));
+      first.show(first.tabs[1].id);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      first.onClose();
+
+      final second = WorkspaceController();
+      await second.restore();
+      expect(second.tabs.map((t) => t.document.displayName), ['a.txt', 'b.txt', 'c.txt']);
+      expect(second.tabs.firstWhere((t) => t.id == second.activeId).document.displayName, 'b.txt');
+      expect(second.visible.value, isTrue);
+    });
+
+    test('a file that is gone is skipped, and extra views of a document are not remembered', () async {
+      final first = WorkspaceController()..onInit();
+      first
+        ..open(fileDoc('keep.txt'))
+        ..open(fileDoc('gone.txt'));
+      first.duplicateToRight(first.tabs[0].id);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      first.onClose();
+      File('${dir.path}/gone.txt').deleteSync();
+
+      final second = WorkspaceController();
+      await second.restore();
+      expect(second.tabs.map((t) => t.title), ['keep.txt']);
+    });
+
+    test('closing every tab forgets them', () async {
+      final first = WorkspaceController()..onInit();
+      first.open(fileDoc('a.txt'));
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      first.close(first.tabs.single.id);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      first.onClose();
+
+      final second = WorkspaceController();
+      await second.restore();
+      expect(second.tabs, isEmpty);
+    });
+
+    test('restoring does not replace what is already open', () async {
+      final first = WorkspaceController()..onInit();
+      first.open(fileDoc('old.txt'));
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      first.onClose();
+
+      final second = WorkspaceController()..open(fileDoc('new.txt'));
+      await second.restore();
+      expect(second.tabs.map((t) => t.title), ['new.txt']);
     });
   });
 
