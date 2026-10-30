@@ -291,6 +291,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force release | Out-Null
+          # Lets users add OpenReader to Explorer's "Open with" list.
+          Copy-Item windows/register-file-types.ps1 build/windows/x64/runner/Release/
           Compress-Archive -Path build/windows/x64/runner/Release/* `
             -DestinationPath "release/openreader-windows-x64-${{ steps.tag.outputs.tag }}.zip"
 
@@ -308,6 +310,10 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           mkdir -p release
+          # "Open With" / launcher integration; see install-desktop-entry.sh.
+          cp linux/packaging/openreader.desktop linux/packaging/install-desktop-entry.sh \
+            build/linux/x64/release/bundle/
+          cp assets/icon/icon.png build/linux/x64/release/bundle/openreader.png
           tar -czf "release/openreader-linux-x64-${{ steps.tag.outputs.tag }}.tar.gz" \
             -C build/linux/x64/release/bundle .
 
