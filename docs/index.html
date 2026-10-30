@@ -25,6 +25,16 @@
       document.documentElement.setAttribute('data-theme', t);
     })();
   </script>
+  <!-- Motion state: .js enables the entrance styles, .loading shows the loader, .go starts the hero. Failsafe after 5s. -->
+  <script>
+    (function () {
+      var d = document.documentElement, reduce = false, seen = false;
+      d.classList.add('js');
+      try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; seen = sessionStorage.getItem('openreader-seen') === '1'; } catch (e) {}
+      if (reduce || seen) d.classList.add('go'); else d.classList.add('loading');
+      setTimeout(function () { d.classList.remove('loading'); d.classList.add('go'); }, 5000);
+    })();
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -32,6 +42,18 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader-inner">
+      <div class="loader-stack">
+        <img class="lf lf-a" src="assets/types/pdf.png" alt="" width="56" height="56" />
+        <img class="lf lf-b" src="assets/types/docx.png" alt="" width="56" height="56" />
+        <img class="lf lf-c" src="assets/types/xlsx.png" alt="" width="56" height="56" />
+        <img class="lf-logo" src="icon.png" alt="" width="84" height="84" />
+      </div>
+      <div class="loader-name">OpenReader</div>
+      <div class="loader-bar"><b></b></div>
+    </div>
+  </div>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="p-android" viewBox="0 0 24 24"><path d="M6.8 9.5h10.4v8a1 1 0 0 1-1 1h-.8v2.7a1.1 1.1 0 0 1-2.2 0v-2.7h-2.4v2.7a1.1 1.1 0 0 1-2.2 0v-2.7h-.8a1 1 0 0 1-1-1v-8ZM4.4 9.5a1.1 1.1 0 0 1 2.2 0v5.8a1.1 1.1 0 0 1-2.2 0V9.5Zm13 0a1.1 1.1 0 0 1 2.2 0v5.8a1.1 1.1 0 0 1-2.2 0V9.5ZM7 8.6a5 5 0 0 1 10 0H7Z"/></symbol><symbol id="p-mac" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 9V6.5A2.5 2.5 0 1 0 6.5 9H9Zm0 0h6m-6 0v6m6-6V6.5A2.5 2.5 0 1 1 17.5 9H15Zm0 0v6m-6 0H6.5A2.5 2.5 0 1 0 9 17.5V15Zm0 0h6m0 0h2.5a2.5 2.5 0 1 1-2.5 2.5V15Z"/></symbol></defs></svg>
   <a class="skip" href="#main">Skip to content</a>
 
@@ -69,14 +91,21 @@
             <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--mist)" stop-opacity="0"/><stop offset=".6" stop-color="var(--mist)" stop-opacity=".85"/><stop offset="1" stop-color="var(--mist)"/></linearGradient>
             <filter id="soft"><feGaussianBlur stdDeviation="22"/></filter>
           </defs>
-          <path d="M0 400 90 330 170 372 300 250 380 320 520 150 640 290 720 240 860 350 1000 270 1120 190 1260 330 1370 250 1480 100 1600 260V900H0Z" fill="url(#g-far)"/>
-          <path d="M520 150 560 215 590 200 620 250 640 290 600 262 570 280 540 232 505 250ZM1480 100 1520 170 1550 150 1580 215 1600 260 1560 232 1530 255 1500 190 1460 215ZM300 250 340 300 320 296 290 318 270 290Z" fill="#fff" opacity=".7"/>
-          <path d="M0 520 110 450 220 500 360 390 480 480 640 410 800 500 960 440 1120 520 1280 420 1440 500 1600 440V900H0Z" fill="url(#g-mid)"/>
-          <ellipse cx="320" cy="560" rx="360" ry="40" fill="var(--mist)" opacity=".8" filter="url(#soft)"/>
-          <ellipse cx="1280" cy="540" rx="380" ry="46" fill="var(--mist)" opacity=".8" filter="url(#soft)"/>
-          <g fill="url(#g-pine)"><use href="#pine" x="-40" y="388" width="96" height="265" opacity="0.86"/><use href="#pine" x="141" y="533" width="61" height="153" opacity="0.77"/><use href="#pine" x="193" y="444" width="85" height="211" opacity="0.69"/><use href="#pine" x="201" y="458" width="77" height="223" opacity="0.73"/><use href="#pine" x="274" y="427" width="85" height="243" opacity="0.96"/><use href="#pine" x="194" y="482" width="82" height="212" opacity="0.95"/><use href="#pine" x="87" y="506" width="63" height="154" opacity="0.58"/><use href="#pine" x="61" y="525" width="62" height="171" opacity="0.78"/><use href="#pine" x="208" y="400" width="89" height="257" opacity="0.78"/><use href="#pine" x="133" y="524" width="60" height="170" opacity="0.53"/><use href="#pine" x="84" y="540" width="61" height="155" opacity="0.76"/><use href="#pine" x="16" y="495" width="61" height="167" opacity="0.71"/><use href="#pine" x="73" y="463" width="74" height="191" opacity="0.95"/><use href="#pine" x="116" y="424" width="99" height="254" opacity="0.76"/><use href="#pine" x="132" y="443" width="92" height="221" opacity="0.85"/><use href="#pine" x="45" y="458" width="74" height="202" opacity="0.70"/><use href="#pine" x="230" y="432" width="90" height="257" opacity="0.54"/><use href="#pine" x="98" y="581" width="41" height="119" opacity="0.61"/><use href="#pine" x="175" y="558" width="44" height="117" opacity="0.57"/><use href="#pine" x="273" y="435" width="106" height="258" opacity="0.95"/><use href="#pine" x="219" y="513" width="49" height="142" opacity="0.54"/><use href="#pine" x="-39" y="477" width="74" height="207" opacity="0.74"/><use href="#pine" x="1534" y="519" width="56" height="135" opacity="0.69"/><use href="#pine" x="1604" y="528" width="43" height="112" opacity="0.96"/><use href="#pine" x="1517" y="429" width="91" height="265" opacity="0.59"/><use href="#pine" x="1629" y="459" width="78" height="197" opacity="0.61"/><use href="#pine" x="1371" y="489" width="68" height="197" opacity="0.85"/><use href="#pine" x="1543" y="462" width="63" height="185" opacity="0.96"/><use href="#pine" x="1344" y="422" width="91" height="221" opacity="0.94"/><use href="#pine" x="1593" y="407" width="116" height="279" opacity="0.71"/><use href="#pine" x="1384" y="436" width="94" height="228" opacity="0.62"/><use href="#pine" x="1438" y="403" width="99" height="259" opacity="0.81"/><use href="#pine" x="1550" y="512" width="61" height="154" opacity="0.60"/><use href="#pine" x="1406" y="401" width="116" height="277" opacity="0.94"/><use href="#pine" x="1612" y="520" width="50" height="128" opacity="0.75"/><use href="#pine" x="1490" y="432" width="98" height="237" opacity="0.59"/><use href="#pine" x="1452" y="550" width="48" height="122" opacity="0.78"/><use href="#pine" x="1472" y="451" width="86" height="234" opacity="0.51"/><use href="#pine" x="1402" y="490" width="69" height="193" opacity="0.65"/><use href="#pine" x="1380" y="429" width="81" height="215" opacity="0.89"/><use href="#pine" x="1580" y="417" width="109" height="264" opacity="0.98"/><use href="#pine" x="1309" y="449" width="91" height="235" opacity="0.95"/><use href="#pine" x="1313" y="531" width="40" height="116" opacity="0.54"/><use href="#pine" x="1303" y="447" width="85" height="205" opacity="0.57"/></g>
+          <g class="m-far"><path d="M0 400 90 330 170 372 300 250 380 320 520 150 640 290 720 240 860 350 1000 270 1120 190 1260 330 1370 250 1480 100 1600 260V900H0Z" fill="url(#g-far)"/>
+          <path d="M520 150 560 215 590 200 620 250 640 290 600 262 570 280 540 232 505 250ZM1480 100 1520 170 1550 150 1580 215 1600 260 1560 232 1530 255 1500 190 1460 215ZM300 250 340 300 320 296 290 318 270 290Z" fill="#fff" opacity=".7"/></g>
+          <g class="m-mid"><path d="M0 520 110 450 220 500 360 390 480 480 640 410 800 500 960 440 1120 520 1280 420 1440 500 1600 440V900H0Z" fill="url(#g-mid)"/></g>
+          <ellipse class="cloud c1" cx="320" cy="560" rx="360" ry="40" fill="var(--mist)" opacity=".8" filter="url(#soft)"/>
+          <ellipse class="cloud c2" cx="1280" cy="540" rx="380" ry="46" fill="var(--mist)" opacity=".8" filter="url(#soft)"/>
+          <g class="pines" fill="url(#g-pine)"><use href="#pine" x="-40" y="388" width="96" height="265" opacity="0.86"/><use href="#pine" x="141" y="533" width="61" height="153" opacity="0.77"/><use href="#pine" x="193" y="444" width="85" height="211" opacity="0.69"/><use href="#pine" x="201" y="458" width="77" height="223" opacity="0.73"/><use href="#pine" x="274" y="427" width="85" height="243" opacity="0.96"/><use href="#pine" x="194" y="482" width="82" height="212" opacity="0.95"/><use href="#pine" x="87" y="506" width="63" height="154" opacity="0.58"/><use href="#pine" x="61" y="525" width="62" height="171" opacity="0.78"/><use href="#pine" x="208" y="400" width="89" height="257" opacity="0.78"/><use href="#pine" x="133" y="524" width="60" height="170" opacity="0.53"/><use href="#pine" x="84" y="540" width="61" height="155" opacity="0.76"/><use href="#pine" x="16" y="495" width="61" height="167" opacity="0.71"/><use href="#pine" x="73" y="463" width="74" height="191" opacity="0.95"/><use href="#pine" x="116" y="424" width="99" height="254" opacity="0.76"/><use href="#pine" x="132" y="443" width="92" height="221" opacity="0.85"/><use href="#pine" x="45" y="458" width="74" height="202" opacity="0.70"/><use href="#pine" x="230" y="432" width="90" height="257" opacity="0.54"/><use href="#pine" x="98" y="581" width="41" height="119" opacity="0.61"/><use href="#pine" x="175" y="558" width="44" height="117" opacity="0.57"/><use href="#pine" x="273" y="435" width="106" height="258" opacity="0.95"/><use href="#pine" x="219" y="513" width="49" height="142" opacity="0.54"/><use href="#pine" x="-39" y="477" width="74" height="207" opacity="0.74"/><use href="#pine" x="1534" y="519" width="56" height="135" opacity="0.69"/><use href="#pine" x="1604" y="528" width="43" height="112" opacity="0.96"/><use href="#pine" x="1517" y="429" width="91" height="265" opacity="0.59"/><use href="#pine" x="1629" y="459" width="78" height="197" opacity="0.61"/><use href="#pine" x="1371" y="489" width="68" height="197" opacity="0.85"/><use href="#pine" x="1543" y="462" width="63" height="185" opacity="0.96"/><use href="#pine" x="1344" y="422" width="91" height="221" opacity="0.94"/><use href="#pine" x="1593" y="407" width="116" height="279" opacity="0.71"/><use href="#pine" x="1384" y="436" width="94" height="228" opacity="0.62"/><use href="#pine" x="1438" y="403" width="99" height="259" opacity="0.81"/><use href="#pine" x="1550" y="512" width="61" height="154" opacity="0.60"/><use href="#pine" x="1406" y="401" width="116" height="277" opacity="0.94"/><use href="#pine" x="1612" y="520" width="50" height="128" opacity="0.75"/><use href="#pine" x="1490" y="432" width="98" height="237" opacity="0.59"/><use href="#pine" x="1452" y="550" width="48" height="122" opacity="0.78"/><use href="#pine" x="1472" y="451" width="86" height="234" opacity="0.51"/><use href="#pine" x="1402" y="490" width="69" height="193" opacity="0.65"/><use href="#pine" x="1380" y="429" width="81" height="215" opacity="0.89"/><use href="#pine" x="1580" y="417" width="109" height="264" opacity="0.98"/><use href="#pine" x="1309" y="449" width="91" height="235" opacity="0.95"/><use href="#pine" x="1313" y="531" width="40" height="116" opacity="0.54"/><use href="#pine" x="1303" y="447" width="85" height="205" opacity="0.57"/></g>
           <rect y="440" width="1600" height="460" fill="url(#mist)"/>
         </svg>
+      </div>
+
+      <div class="drift" aria-hidden="true">
+        <img class="d d1" src="assets/types/docx.png" alt="" width="58" height="58" />
+        <img class="d d2" src="assets/types/pdf.png" alt="" width="50" height="50" />
+        <img class="d d3" src="assets/types/xlsx.png" alt="" width="56" height="56" />
+        <img class="d d4" src="assets/types/md.png" alt="" width="46" height="46" />
       </div>
 
       <div class="wrap hero-copy">
@@ -85,11 +114,12 @@
         <p class="note note-r" aria-hidden="true">Your documents,<br />on any device.
           <svg viewBox="0 0 70 70"><path d="M64 6C30 10 12 28 14 60M14 60l-9-10M14 60l11-8"/></svg></p>
 
-        <p class="overline reveal">Free <i></i> Open source <i></i> Cross-platform</p>
-        <h1 class="reveal">All your documents.<br /><span class="grad">One beautiful reader.</span></h1>
-        <p class="lead reveal">A fast, lightweight and privacy-focused document reader for your everyday files. <br />Read PDF, Word, Excel, PowerPoint, CSV and Markdown — all in one app.</p>
+        <a class="pill reveal" id="ver-pill" href="#history" hidden style="--d:.1s"><i></i><span id="ver-pill-text"></span></a>
+        <p class="overline reveal" style="--d:.2s">Free <i></i> Open source <i></i> Cross-platform</p>
+        <h1><span class="h-line" style="--d:.3s"><span>All your documents.</span></span><span class="h-line" style="--d:.45s"><span class="grad">One beautiful reader.</span></span></h1>
+        <p class="lead reveal" style="--d:.7s">A fast, lightweight and privacy-focused document reader for your everyday files. <br />Read PDF, Word, Excel, PowerPoint, CSV and Markdown — all in one app.</p>
 
-        <div class="cta-row reveal">
+        <div class="cta-row reveal" style="--d:.85s">
           <a class="btn primary" id="cta-primary" href="#platforms">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v9.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4L11 13.6V4a1 1 0 0 1 1-1ZM5 19a1 1 0 1 1 0-2h14a1 1 0 1 1 0 2H5Z"/></svg>
             <span id="cta-label">Download Free</span>
@@ -100,7 +130,7 @@
         <p class="cta-note" id="cta-note"></p>
         <p class="release-line" id="release-line" hidden></p>
 
-        <ul class="trust reveal">
+        <ul class="trust reveal" style="--d:1.05s">
           <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.2 7 10 4-1.8 7-5.500 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>Free forever</li>
           <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>No registration</li>
           <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 12.500a10 10 0 0 1 14 0M8.500 16a5 5 0 0 1 7 0M12 19.500h.01"/></svg>Works offline</li>
@@ -109,23 +139,23 @@
 
       <div class="wrap wide stage">
         <div class="lineup" id="lineup">
-          <div class="dev dev-desktop" data-device="windows-desktop">
+          <div class="dev dev-desktop" style="--i:0;--d:6" data-device="windows-desktop">
             <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm8.7-1.3L21 3v8.5h-9.3V4.2ZM3 12.5h7.5v7.1L3 18.5v-6Zm8.7 0H21V21l-9.3-1.3v-7.2Z"/></svg><span><b>Windows</b><small>Desktop</small><a class="badge" href="#platforms" data-for="windows" hidden></a></span></span>
             <button class="devbtn" type="button" aria-label="View Windows desktop larger"><span class="frame monitor"><span class="screen"><img src="assets/devices/windows-desktop.png" width="1280" height="766" alt="OpenReader on Windows, reading Exploring the World as a PDF" /></span></span></button>
           </div>
-          <div class="dev dev-laptop" data-device="macos-laptop">
+          <div class="dev dev-laptop" style="--i:1;--d:10" data-device="macos-laptop">
             <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.900-3.400 2-3.500-1.100-1.600-2.800-1.800-3.400-1.800-1.400-.1-2.800.9-3.500.9s-1.800-.8-3-.8c-1.500 0-3 .9-3.800 2.300-1.600 2.800-.4 7 1.200 9.300.8 1.100 1.700 2.400 2.900 2.300 1.200 0 1.600-.7 3-.7s1.800.7 3 .7c1.300 0 2.100-1.100 2.800-2.200.9-1.300 1.300-2.500 1.300-2.600-.1 0-2.500-1-2.500-3.900ZM14.200 5.800c.6-.8 1.100-1.800.9-2.900-.9 0-2 .6-2.700 1.400-.6.700-1.100 1.800-.9 2.800 1 .1 2-.5 2.700-1.300Z"/></svg><span><b>macOS</b><small>Laptop</small><a class="badge" href="#platforms" data-for="macos" hidden></a></span></span>
             <button class="devbtn" type="button" aria-label="View macOS laptop larger"><span class="frame laptop"><span class="screen"><img src="assets/devices/macos-laptop.png" width="1200" height="722" alt="OpenReader on a laptop, reading Exploring the World as a Word document" /></span></span></button>
           </div>
-          <div class="dev dev-tablet" data-device="android-tablet">
+          <div class="dev dev-tablet" style="--i:2;--d:14" data-device="android-tablet">
             <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg><span><b>Android</b><small>Tablet</small><a class="badge" href="#platforms" data-for="android" hidden></a></span></span>
             <button class="devbtn" type="button" aria-label="View Android tablet larger"><span class="frame tablet"><span class="screen"><img src="assets/devices/android-tablet.png" width="1280" height="800" alt="OpenReader on an Android tablet, reading Exploring the World as a PDF" /></span></span></button>
           </div>
-          <div class="dev dev-fold" data-device="android-foldable">
+          <div class="dev dev-fold" style="--i:3;--d:18" data-device="android-foldable">
             <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg><span><b>Android</b><small>Foldable</small><a class="badge" href="#platforms" data-for="android" hidden></a></span></span>
             <button class="devbtn" type="button" aria-label="View Android foldable larger"><span class="frame fold"><span class="screen"><img src="assets/devices/android-foldable.png" width="1104" height="920" alt="OpenReader on an unfolded Android foldable, reading Exploring the World as a PDF" /></span><span class="crease" aria-hidden="true"></span></span></button>
           </div>
-          <div class="dev dev-phone" data-device="android-phone">
+          <div class="dev dev-phone" style="--i:4;--d:22" data-device="android-phone">
             <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg><span><b>Android</b><small>Phone</small><a class="badge" href="#platforms" data-for="android" hidden></a></span></span>
             <button class="devbtn" type="button" aria-label="View Android phone larger"><span class="frame phone"><span class="screen"><img src="assets/devices/android-phone.png" width="540" height="1170" alt="OpenReader on an Android phone, reading Exploring the World as a PDF" /></span></span></button>
           </div>
@@ -201,7 +231,7 @@
           <article class="tile t-find">
             <div>
               <h3>Finds your documents</h3>
-              <p>On Android, OpenReader scans your storage for PDF, Office, CSV and Markdown files and sorts them into All, Recent and Favorites.</p>
+              <p>Browse your storage, filter by PDF, Word or Excel, and pick up where you left off from Home. Favorites stay one tap away.</p>
             </div>
             <img src="assets/screens/phone-files.png" width="540" height="1170" alt="OpenReader file list on a phone" loading="lazy" />
           </article>
