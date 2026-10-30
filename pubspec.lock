@@ -1213,8 +1213,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
-      resolved-ref: "23c9caaeb7f877649106a91547c690dd06d4bd3b"
+      ref: c812336a9fafa86fb852ed71df71eee604923b78
+      resolved-ref: c812336a9fafa86fb852ed71df71eee604923b78
       url: "https://github.com/macdipu/universal_document_viewer.git"
     source: git
     version: "0.1.1"
