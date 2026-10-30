@@ -61,18 +61,20 @@
       <div class="scenery" aria-hidden="true">
         <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
           <defs>
-            <symbol id="pine" viewBox="0 0 40 100"><path d="M20 0 33 32H27L37 58H30L40 90H22V100H18V90H0L10 58H3L13 32H7Z"/></symbol>
-            <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--mist)" stop-opacity="0"/><stop offset="1" stop-color="var(--mist)" stop-opacity=".95"/></linearGradient>
+            <symbol id="pine" viewBox="0 0 40 100"><path d="M20 0 31 28H26L35 50H29L38 76H23V100H17V76H2L11 50H5L14 28H9Z"/></symbol>
+            <linearGradient id="g-far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--mt-far)"/><stop offset="1" stop-color="var(--mt-mid)"/></linearGradient>
+            <linearGradient id="g-mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--mt-mid)"/><stop offset="1" stop-color="var(--mist)"/></linearGradient>
+            <linearGradient id="g-pine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pine)"/><stop offset="1" stop-color="var(--pine)" stop-opacity=".25"/></linearGradient>
+            <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--mist)" stop-opacity="0"/><stop offset=".6" stop-color="var(--mist)" stop-opacity=".85"/><stop offset="1" stop-color="var(--mist)"/></linearGradient>
+            <filter id="soft"><feGaussianBlur stdDeviation="22"/></filter>
           </defs>
-          <path class="m-far" d="M0 430 150 330 250 380 430 190 560 300 640 250 780 360 940 300 1060 230 1190 330 1290 260 1450 120 1600 300V900H0Z"/>
-          <path class="m-mid" d="M0 560 120 470 230 520 380 400 520 500 700 430 860 520 1010 470 1170 540 1330 430 1470 520 1600 450V900H0Z"/>
-          <rect y="380" width="1600" height="520" fill="url(#mist)"/>
-          <g class="pines">
-            <use href="#pine" x="-10" y="430" width="70" height="170"/><use href="#pine" x="40" y="470" width="60" height="150"/><use href="#pine" x="90" y="410" width="80" height="200"/>
-            <use href="#pine" x="150" y="490" width="56" height="130"/><use href="#pine" x="-30" y="520" width="64" height="150"/><use href="#pine" x="190" y="540" width="50" height="110"/>
-            <use href="#pine" x="1500" y="440" width="76" height="190"/><use href="#pine" x="1440" y="490" width="60" height="140"/><use href="#pine" x="1550" y="500" width="70" height="170"/>
-            <use href="#pine" x="1390" y="540" width="52" height="120"/><use href="#pine" x="1580" y="420" width="60" height="170"/>
-          </g>
+          <path d="M0 400 90 330 170 372 300 250 380 320 520 150 640 290 720 240 860 350 1000 270 1120 190 1260 330 1370 250 1480 100 1600 260V900H0Z" fill="url(#g-far)"/>
+          <path d="M520 150 560 215 590 200 620 250 640 290 600 262 570 280 540 232 505 250ZM1480 100 1520 170 1550 150 1580 215 1600 260 1560 232 1530 255 1500 190 1460 215ZM300 250 340 300 320 296 290 318 270 290Z" fill="#fff" opacity=".7"/>
+          <path d="M0 520 110 450 220 500 360 390 480 480 640 410 800 500 960 440 1120 520 1280 420 1440 500 1600 440V900H0Z" fill="url(#g-mid)"/>
+          <ellipse cx="320" cy="560" rx="360" ry="40" fill="var(--mist)" opacity=".8" filter="url(#soft)"/>
+          <ellipse cx="1280" cy="540" rx="380" ry="46" fill="var(--mist)" opacity=".8" filter="url(#soft)"/>
+          <g fill="url(#g-pine)"><use href="#pine" x="-40" y="388" width="96" height="265" opacity="0.86"/><use href="#pine" x="141" y="533" width="61" height="153" opacity="0.77"/><use href="#pine" x="193" y="444" width="85" height="211" opacity="0.69"/><use href="#pine" x="201" y="458" width="77" height="223" opacity="0.73"/><use href="#pine" x="274" y="427" width="85" height="243" opacity="0.96"/><use href="#pine" x="194" y="482" width="82" height="212" opacity="0.95"/><use href="#pine" x="87" y="506" width="63" height="154" opacity="0.58"/><use href="#pine" x="61" y="525" width="62" height="171" opacity="0.78"/><use href="#pine" x="208" y="400" width="89" height="257" opacity="0.78"/><use href="#pine" x="133" y="524" width="60" height="170" opacity="0.53"/><use href="#pine" x="84" y="540" width="61" height="155" opacity="0.76"/><use href="#pine" x="16" y="495" width="61" height="167" opacity="0.71"/><use href="#pine" x="73" y="463" width="74" height="191" opacity="0.95"/><use href="#pine" x="116" y="424" width="99" height="254" opacity="0.76"/><use href="#pine" x="132" y="443" width="92" height="221" opacity="0.85"/><use href="#pine" x="45" y="458" width="74" height="202" opacity="0.70"/><use href="#pine" x="230" y="432" width="90" height="257" opacity="0.54"/><use href="#pine" x="98" y="581" width="41" height="119" opacity="0.61"/><use href="#pine" x="175" y="558" width="44" height="117" opacity="0.57"/><use href="#pine" x="273" y="435" width="106" height="258" opacity="0.95"/><use href="#pine" x="219" y="513" width="49" height="142" opacity="0.54"/><use href="#pine" x="-39" y="477" width="74" height="207" opacity="0.74"/><use href="#pine" x="1534" y="519" width="56" height="135" opacity="0.69"/><use href="#pine" x="1604" y="528" width="43" height="112" opacity="0.96"/><use href="#pine" x="1517" y="429" width="91" height="265" opacity="0.59"/><use href="#pine" x="1629" y="459" width="78" height="197" opacity="0.61"/><use href="#pine" x="1371" y="489" width="68" height="197" opacity="0.85"/><use href="#pine" x="1543" y="462" width="63" height="185" opacity="0.96"/><use href="#pine" x="1344" y="422" width="91" height="221" opacity="0.94"/><use href="#pine" x="1593" y="407" width="116" height="279" opacity="0.71"/><use href="#pine" x="1384" y="436" width="94" height="228" opacity="0.62"/><use href="#pine" x="1438" y="403" width="99" height="259" opacity="0.81"/><use href="#pine" x="1550" y="512" width="61" height="154" opacity="0.60"/><use href="#pine" x="1406" y="401" width="116" height="277" opacity="0.94"/><use href="#pine" x="1612" y="520" width="50" height="128" opacity="0.75"/><use href="#pine" x="1490" y="432" width="98" height="237" opacity="0.59"/><use href="#pine" x="1452" y="550" width="48" height="122" opacity="0.78"/><use href="#pine" x="1472" y="451" width="86" height="234" opacity="0.51"/><use href="#pine" x="1402" y="490" width="69" height="193" opacity="0.65"/><use href="#pine" x="1380" y="429" width="81" height="215" opacity="0.89"/><use href="#pine" x="1580" y="417" width="109" height="264" opacity="0.98"/><use href="#pine" x="1309" y="449" width="91" height="235" opacity="0.95"/><use href="#pine" x="1313" y="531" width="40" height="116" opacity="0.54"/><use href="#pine" x="1303" y="447" width="85" height="205" opacity="0.57"/></g>
+          <rect y="440" width="1600" height="460" fill="url(#mist)"/>
         </svg>
       </div>
 
@@ -95,6 +97,7 @@
           <a class="btn ghost" href="https://github.com/macdipu/OpenReader"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8v2.7c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"/></svg>View on GitHub</a>
         </div>
         <p class="cta-note" id="cta-note"></p>
+        <p class="release-line" id="release-line" hidden></p>
 
         <ul class="trust reveal">
           <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.2 7 10 4-1.8 7-5.500 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>Free forever</li>
@@ -159,20 +162,21 @@
     <!-- ================= SCREENSHOT SHOWCASE ================= -->
     <section class="showcase" id="showcase">
       <div class="wrap">
-        <div class="section-head">
-          <h2 id="showcase-title">See it in action.</h2>
-          <p>Every format gets its own reader, with a night mode for all of them.</p>
+        <div class="showcase-grid">
+          <div class="showcase-copy">
+            <h2 id="showcase-title">Every format opens the way it should.</h2>
+            <div class="tabs" role="tablist" aria-label="Document type">
+              <button class="tab" role="tab" aria-selected="true" data-shot="pdf"><b>PDF</b><span>Continuous scroll, page thumbnails, zoom and jump to page.</span></button>
+              <button class="tab" role="tab" aria-selected="false" data-shot="docx"><b>Word</b><span>Headings, lists, tables and images from .docx files.</span></button>
+              <button class="tab" role="tab" aria-selected="false" data-shot="xlsx"><b>Excel</b><span>Workbooks as scrollable tables, one tab per sheet.</span></button>
+              <button class="tab" role="tab" aria-selected="false" data-shot="docx-dark"><b>Night mode</b><span>Flip any document to a dark theme with one tap.</span></button>
+            </div>
+          </div>
+          <div class="showcase-shot">
+            <div class="window"><img id="showcase-img" src="assets/screens/desktop-pdf.png" width="1262" height="750" alt="OpenReader PDF reader on Windows" loading="lazy" /></div>
+            <p class="shot-note">Windows build.</p>
+          </div>
         </div>
-
-        <div class="tabs" role="tablist" aria-label="Document type">
-          <button class="tab" role="tab" aria-selected="true" data-shot="pdf">PDF</button>
-          <button class="tab" role="tab" aria-selected="false" data-shot="docx">Word</button>
-          <button class="tab" role="tab" aria-selected="false" data-shot="xlsx">Excel</button>
-          <button class="tab" role="tab" aria-selected="false" data-shot="docx-dark">Night mode</button>
-        </div>
-
-        <div class="window"><img id="showcase-img" src="assets/screens/desktop-pdf.png" width="1262" height="750" alt="OpenReader PDF reader on Windows" loading="lazy" /></div>
-        <p class="shot-note">Windows build.</p>
       </div>
     </section>
 
@@ -180,39 +184,40 @@
     <section class="soft" id="features">
       <div class="wrap">
         <div class="section-head">
-          <h2>Built for reading.</h2>
+          <h2>A reader for the files you already have.</h2>
         </div>
-        <div class="grid">
-          <div class="card">
+        <div class="bento">
+          <article class="tile t-find">
+            <div>
+              <h3>Finds your documents</h3>
+              <p>On Android, OpenReader scans your storage for PDF, Office, CSV and Markdown files and sorts them into All, Recent and Favorites.</p>
+            </div>
+            <img src="assets/screens/phone-files.png" width="540" height="1170" alt="OpenReader file list on a phone" loading="lazy" />
+          </article>
+          <article class="tile t-search">
+            <h3>Search what you have read</h3>
+            <p>One search box across the file names and text of everything you have opened, in every format.</p>
+            <div class="fake-search" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.500"/><path d="m20 20-4.200-4.200"/></svg><span>quarterly revenue</span><kbd>Ctrl K</kbd></div>
+          </article>
+          <article class="tile t-night">
+            <div>
+              <h3>Night mode, per document</h3>
+              <p>Reading late? Switch the page to dark without touching the file.</p>
+            </div>
+            <img src="assets/screens/desktop-docx-dark.png" width="1262" height="750" alt="A Word document in night mode" loading="lazy" />
+          </article>
+          <article class="tile t-small">
             <span class="ico"><svg viewBox="0 0 24 24"><path d="M5 12.500a10 10 0 0 1 14 0M8.500 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/></svg></span>
-            <h3>Offline</h3>
-            <p>Every file is read on your device. No connection needed, ever.</p>
-          </div>
-          <div class="card">
+            <h3>Fully offline</h3><p>No network calls. Ever.</p>
+          </article>
+          <article class="tile t-small">
             <span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-            <h3>Privacy</h3>
-            <p>No accounts, no uploads, no analytics. Your documents stay yours.</p>
-          </div>
-          <div class="card">
-            <span class="ico"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
-            <h3>Speed</h3>
-            <p>Fast to open, smooth to scroll, with search across everything you have read.</p>
-          </div>
-          <div class="card">
-            <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
-            <h3>Multiple formats</h3>
-            <p>PDF, Word, Excel, PowerPoint, CSV, Markdown and text in one place.</p>
-          </div>
-          <div class="card">
+            <h3>No account</h3><p>Install it and start reading.</p>
+          </article>
+          <article class="tile t-small">
             <span class="ico"><svg viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></span>
-            <h3>Open source</h3>
-            <p>Read the code, report a bug or send a fix on <a href="https://github.com/macdipu/OpenReader">GitHub</a>.</p>
-          </div>
-          <div class="card">
-            <span class="ico"><svg viewBox="0 0 24 24"><path d="M21 12.800A9 9 0 1 1 11.200 3a7 7 0 0 0 9.800 9.800Z"/></svg></span>
-            <h3>Night mode</h3>
-            <p>Switch any reader to a dark theme with one tap.</p>
-          </div>
+            <h3>Open source</h3><p>Code and issues on <a href="https://github.com/macdipu/OpenReader">GitHub</a>.</p>
+          </article>
         </div>
       </div>
     </section>
@@ -314,22 +319,25 @@
             <a class="btn primary" href="https://github.com/macdipu/OpenReader/releases/latest">Download for Linux</a>
           </article>
         </div>
-        <p class="fineprint">There is no iOS version. Step-by-step install and update instructions are in the <a href="https://github.com/macdipu/OpenReader#installation">README</a>.</p>
+        <div class="ios-soon"><span class="soon-tag">Coming soon</span><b>iOS</b><span>iPhone and iPad version is on the way.</span></div>
+        <p class="fineprint">iOS is coming soon. Step-by-step install and update instructions are in the <a href="https://github.com/macdipu/OpenReader#installation">README</a>.</p>
+
+        <div class="history" id="history" hidden>
+          <h3>All versions</h3>
+          <div class="history-list" id="history-list"></div>
+        </div>
       </div>
     </section>
 
     <!-- ================= PRIVACY ================= -->
-    <section id="privacy">
+    <section class="tight" id="privacy">
       <div class="wrap">
-        <div class="privacy-highlight">
-          <h2>Your documents never leave your device.</h2>
-          <p>OpenReader has no servers, no accounts and no analytics. Everything is read and indexed locally.</p>
-          <div class="stats">
-            <div><b>0</b><span>network calls</span></div>
-            <div><b>0</b><span>accounts</span></div>
-            <div><b>0</b><span>trackers</span></div>
+        <div class="privacy-band">
+          <div>
+            <h2>Your documents never leave your device.</h2>
+            <p>No servers, no accounts, no analytics. Files are read and indexed locally.</p>
           </div>
-          <a class="btn ghost" href="privacy.html">Read the privacy policy</a>
+          <a class="btn ghost" href="privacy.html">Privacy policy</a>
         </div>
       </div>
     </section>
@@ -342,7 +350,7 @@
           <details><summary>Is OpenReader really free?</summary><p>Yes. There are no ads, subscriptions or in-app purchases, and you never need to register.</p></details>
           <details><summary>Does it work offline?</summary><p>Always. OpenReader makes no network calls, so everything works without a connection.</p></details>
           <details><summary>Which formats can it open?</summary><p>PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), CSV, Markdown and plain text. Legacy binary .doc, .xls and .ppt files are not supported.</p></details>
-          <details><summary>Which devices are supported?</summary><p>Android phones, tablets and foldables, plus Windows, macOS and Linux computers. There is no iOS version.</p></details>
+          <details><summary>Which devices are supported?</summary><p>Android phones, tablets and foldables, plus Windows, macOS and Linux computers. iOS is coming soon.</p></details>
           <details><summary>Are my documents uploaded anywhere?</summary><p>No. Files are read and indexed on your device and never leave it.</p></details>
           <details><summary>Why does Windows or macOS warn me?</summary><p>Desktop builds are not code-signed yet. On Windows choose “More info”, then “Run anyway”. On macOS right-click the app and choose Open the first time.</p></details>
           <details><summary>Where can I report a bug or help?</summary><p>On <a href="https://github.com/macdipu/OpenReader/issues">GitHub</a>. Issues and pull requests are welcome.</p></details>
@@ -366,6 +374,12 @@
     <form method="dialog"><button class="close" aria-label="Close preview">×</button></form>
     <p class="viewer-title" id="viewer-title"></p>
     <div class="viewer-body" id="viewer-body"></div>
+  </dialog>
+
+  <dialog id="linux-pick" class="pick" aria-labelledby="linux-pick-title">
+    <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+    <h3 id="linux-pick-title">Choose your Linux package <small id="linux-pick-ver"></small></h3>
+    <div id="linux-pick-body"></div>
   </dialog>
 
   <script src="app.js"></script>
