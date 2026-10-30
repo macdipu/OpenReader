@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata: lets GNOME Software, KDE Discover and similar show OpenReader. -->
+<component type="desktop-application">
+  <id>com.chowdhuryelab.openreader</id>
+  <name>OpenReader</name>
+  <summary>Read PDF, Word, Excel, PowerPoint, text and CSV files</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <!-- No licence is declared in the repository yet; replace with the real SPDX id once chosen. -->
+  <project_license>LicenseRef-proprietary</project_license>
+  <developer_name>Chowdhury eLab</developer_name>
+  <description>
+    <p>
+      OpenReader opens PDF, Word, Excel, PowerPoint, Markdown, text and CSV files in one fast app.
+      It works offline: no account, no uploads, no tracking.
+    </p>
+    <ul>
+      <li>Open several documents in tabs, or two side by side</li>
+      <li>Night mode in every reader</li>
+      <li>Adds itself to your file manager's "Open with" menu</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">openreader.desktop</launchable>
+  <url type="homepage">https://macdipu.github.io/OpenDocs/</url>
+  <provides>
+    <binary>openreader</binary>
+  </provides>
+  <categories>
+    <category>Office</category>
+    <category>Viewer</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>

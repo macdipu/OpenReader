@@ -265,8 +265,9 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
+          # rpm provides rpmbuild, for the .rpm package; dpkg-deb for the .deb is already here.
           sudo apt-get install -y clang cmake ninja-build pkg-config \
-            libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev
+            libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev rpm
 
       - name: Install dependencies
         run: flutter pub get
@@ -286,6 +287,15 @@ jobs:
             echo "tag=build-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
           fi
 
+      # pubspec's "1.0.11+13" -> version 1.0.11, build 13 (for the installer file names).
+      - name: Read app version
+        id: app
+        shell: bash
+        run: |
+          full=$(grep '^version:' pubspec.yaml | head -1 | sed 's/version:[[:space:]]*//')
+          echo "version=${full%%+*}" >> "$GITHUB_OUTPUT"
+          echo "build=${full#*+}" >> "$GITHUB_OUTPUT"
+
       - name: Package Windows
         if: matrix.platform == 'windows'
         shell: pwsh
@@ -296,26 +306,43 @@ jobs:
           Compress-Archive -Path build/windows/x64/runner/Release/* `
             -DestinationPath "release/openreader-windows-x64-${{ steps.tag.outputs.tag }}.zip"
 
-      # ditto keeps the .app bundle's symlinks and permissions intact; a plain
-      # zip would break the embedded frameworks.
+      # A disk image: open it and drag OpenReader onto Applications. make-dmg.sh falls back to a plain
+      # image (still with the Applications shortcut) if create-dmg cannot script Finder on the runner.
       - name: Package macOS
         if: matrix.platform == 'macos'
         run: |
           mkdir -p release
-          ditto -c -k --sequesterRsrc --keepParent \
+          brew install create-dmg
+          bash macos/dmg/make-dmg.sh \
             build/macos/Build/Products/Release/OpenReader.app \
-            "release/openreader-macos-${{ steps.tag.outputs.tag }}.zip"
+            "release/OpenReader-${{ steps.app.outputs.version }}-macos.dmg" \
+            "${{ steps.app.outputs.version }}"
 
+      # .deb (Ubuntu, Debian, Mint), .rpm (Fedora, RHEL, openSUSE) and an AppImage (any distro with
+      # GTK 3), plus the plain tarball for anyone who wants the loose folder.
       - name: Package Linux
         if: matrix.platform == 'linux'
         run: |
           mkdir -p release
-          # "Open With" / launcher integration; see install-desktop-entry.sh.
-          cp linux/packaging/openreader.desktop linux/packaging/install-desktop-entry.sh \
-            build/linux/x64/release/bundle/
-          cp assets/icon/icon.png build/linux/x64/release/bundle/openreader.png
-          tar -czf "release/openreader-linux-x64-${{ steps.tag.outputs.tag }}.tar.gz" \
-            -C build/linux/x64/release/bundle .
+          bundle=build/linux/x64/release/bundle
+          v='${{ steps.app.outputs.version }}'
+          b='${{ steps.app.outputs.build }}'
+
+          # AppImages need FUSE to run, which CI runners lack; extract-and-run avoids it.
+          curl -fsSL -o /tmp/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /tmp/appimagetool
+
+          bash linux/packaging/package-linux.sh deb "$bundle" "$v" "$b" release
+          bash linux/packaging/package-linux.sh rpm "$bundle" "$v" "$b" release
+          APPIMAGETOOL="/tmp/appimagetool --appimage-extract-and-run" \
+            bash linux/packaging/package-linux.sh appimage "$bundle" "$v" "$b" release
+
+          # The tarball: "Open With" / launcher integration via install-desktop-entry.sh.
+          cp linux/packaging/openreader.desktop linux/packaging/install-desktop-entry.sh "$bundle/"
+          cp assets/icon/icon.png "$bundle/openreader.png"
+          tar -czf "release/openreader-linux-x64-${{ steps.tag.outputs.tag }}.tar.gz" -C "$bundle" .
+          ls -l release
 
       - name: Attach to GitHub release
         uses: softprops/action-gh-release@v2

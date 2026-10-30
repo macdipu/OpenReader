@@ -7,5 +7,6 @@ Exec=@EXEC@ %F
 Icon=openreader
 Terminal=false
 Categories=Office;Viewer;
+Keywords=PDF;Word;Excel;PowerPoint;CSV;Document;Reader;
 MimeType=application/pdf;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.openxmlformats-officedocument.presentationml.presentation;text/plain;text/markdown;text/csv;
 StartupWMClass=com.chowdhuryelab.openreader

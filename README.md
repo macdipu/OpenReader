@@ -30,6 +30,12 @@ flutter build linux --release                 # run on Linux (needs libgtk-3-dev
 
 Each desktop target must be built on its own OS. `.github/workflows/release.yml` builds all four on a version tag and attaches the artifacts to the GitHub release. Desktop builds are unsigned.
 
+**Installers** (built by that workflow):
+
+- **macOS:** `OpenReader-<version>-macos.dmg`, a disk image with the app and an Applications shortcut to drag it onto (`macos/dmg/make-dmg.sh`; the window background comes from `tool/generate_dmg_background.ps1`).
+- **Linux:** `openreader_<version>-<build>_amd64.deb` (Ubuntu, Debian, Mint), `openreader-<version>-<build>.x86_64.rpm` (Fedora, RHEL, openSUSE) and `OpenReader-<version>-x86_64.AppImage` (any distribution with GTK 3), plus a plain `.tar.gz` (`linux/packaging/package-linux.sh`; `tool/test_linux_packages.sh` checks the packaging in Debian and Fedora containers).
+- **Windows:** a zip with `register-file-types.ps1` (no installer yet).
+
 ---
 
 ## Tech Stack
