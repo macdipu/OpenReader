@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
@@ -69,6 +70,10 @@ class IncomingIntentService {
     final resolution = await _resolver.resolve(path, mimeType: files.first.mimeType);
     switch (resolution.outcome) {
       case IncomingDocumentOutcome.success:
+        // On a cold start this runs while the shell route is still building;
+        // pushing the reader then leaves a blank gray screen. Wait for the
+        // first frame so the shell is mounted underneath.
+        await _afterFirstFrame();
         unawaited(Get.find<DocumentInteractionController>().openDocument(resolution.document!, fromOtherApp: true));
       case IncomingDocumentOutcome.unsupported:
         // BRD §13 "Unsupported format".
@@ -81,6 +86,16 @@ class IncomingIntentService {
         // BRD §13 "File missing".
         CustomSnackbar.error('This file may have been moved or deleted.');
     }
+  }
+
+  Future<void> _afterFirstFrame() {
+    final binding = WidgetsBinding.instance;
+    if (binding.rootElement != null && !binding.renderViews.isEmpty && binding.schedulerPhase == SchedulerPhase.idle) {
+      return Future<void>.delayed(const Duration(milliseconds: 300));
+    }
+    final done = Completer<void>();
+    binding.addPostFrameCallback((_) => Future<void>.delayed(const Duration(milliseconds: 300), done.complete));
+    return done.future;
   }
 
   void dispose() {
