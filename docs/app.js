@@ -21,9 +21,9 @@
     macos: { label: 'Download for macOS', sub: 'macOS 12 or later', href: RELEASES,
       secondary: { text: 'Get it for Android', href: PLAY },
       note: 'Unsigned build: on first launch right-click the app and choose Open. <a href="#platforms">Other platforms</a>' },
-    linux: { label: 'Download for Linux', sub: 'x64 · .tar.gz', href: RELEASES,
+    linux: { label: 'Download for Linux', sub: 'x64 · .deb, .rpm, AppImage', href: RELEASES,
       secondary: { text: 'Get it for Android', href: PLAY },
-      note: 'Run install-desktop-entry.sh to add it to your launcher and Open With. <a href="#platforms">Other platforms</a>' },
+      note: 'Pick the .deb, .rpm or AppImage for your distribution. <a href="#platforms">Other platforms</a>' },
     other: { label: 'Download OpenReader', sub: 'Android, Windows, macOS & Linux', href: '#platforms',
       secondary: { text: 'Get it on Google Play', href: PLAY }, note: '' }
   };

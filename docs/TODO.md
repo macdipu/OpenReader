@@ -89,6 +89,21 @@ How to capture (keeps all platforms consistent):
 
 ## Icons and packaging
 
+- [ ] **macOS DMG: run it on a Mac.** `macos/dmg/make-dmg.sh` was written without a Mac. Build with
+      `flutter build macos --release`, then `brew install create-dmg` and
+      `macos/dmg/make-dmg.sh build/macos/Build/Products/Release/OpenReader.app /tmp/OpenReader.dmg 1.0.11`.
+      Check: the window opens with the background, the app icon sits on the left of the arrow and the Applications
+      shortcut on the right (positions in `make-dmg.sh` and `tool/generate_dmg_background.ps1` must agree), dragging
+      works, and the app starts from Applications. Also try it without create-dmg to see the plain fallback.
+- [ ] **Linux packages: install them on real distributions.** `.deb` (Ubuntu 22.04 and 24.04, Debian 12), `.rpm`
+      (Fedora, openSUSE) and the AppImage. `tool/test_linux_packages.sh` tests the packaging in containers with a
+      stand-in app (Docker could not start on the Windows machine this was written on); a real install also checks
+      that the declared dependencies (`libjsoncpp` has different names per release) resolve and the app launches.
+- [ ] Sign and notarise the macOS app and DMG (Apple Developer ID), and sign the Linux packages (GPG), so Gatekeeper
+      and package managers stop warning. Add a package repository (apt / dnf) if updates should not be manual.
+- [ ] The packages and AppStream file say the licence is unspecified: the repository has no LICENSE file. Pick one.
+- [ ] Linux arm64 packages (a `ubuntu-24.04-arm` runner) and an Intel-only check of the macOS universal build.
+
 - [ ] **macOS per-type document icons.** The Windows set exists; macOS needs `.icns` files wired into the Xcode
       project (`CFBundleTypeIconFile` per type). Linux file managers use the theme's own icons.
 - [ ] Linux: set the running window's icon in the runner (the launcher and file-manager icons are covered).

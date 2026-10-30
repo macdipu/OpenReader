@@ -89,18 +89,31 @@ class DefaultAppService {
     return const DefaultAppResult(applied: false, success: false, message: 'Could not change the default app.');
   }
 
+  /// Whether `openreader.desktop` is installed where the system looks for applications: the user's
+  /// data directory, or any of XDG_DATA_DIRS (/usr/share and /usr/local/share by default, which is
+  /// where the .deb and .rpm put it).
+  bool _hasDesktopEntry() {
+    final home = Platform.environment['HOME'] ?? '';
+    final dirs = <String>[
+      Platform.environment['XDG_DATA_HOME'] ?? p.join(home, '.local', 'share'),
+      ...(Platform.environment['XDG_DATA_DIRS'] ?? '/usr/local/share:/usr/share').split(':').where((d) => d.isNotEmpty),
+    ];
+    return dirs.any((dir) => File(p.join(dir, 'applications', 'openreader.desktop')).existsSync());
+  }
+
   String _list(Set<DocumentType> types) => types.map((t) => '.${t.extension}').join(', ');
 
   Future<DefaultAppResult> _linux(Set<DocumentType> types) async {
-    final dataHome = Platform.environment['XDG_DATA_HOME'] ?? p.join(Platform.environment['HOME'] ?? '', '.local', 'share');
-    final entry = File(p.join(dataHome, 'applications', 'openreader.desktop'));
-    if (!entry.existsSync()) {
+    if (!_hasDesktopEntry()) {
+      // A .deb / .rpm installs the entry system-wide, so it is found above. Without one (the
+      // tarball, an AppImage), the entry is made for the user from the bundle's script if it has one.
       final script = File(p.join(p.dirname(Platform.resolvedExecutable), 'install-desktop-entry.sh'));
       if (!script.existsSync()) {
         return const DefaultAppResult(
             applied: false,
             success: false,
-            message: 'Run install-desktop-entry.sh from the OpenReader folder first, then try again.');
+            message: 'OpenReader is not installed as an app on this system. Install the .deb or .rpm, '
+                'or run install-desktop-entry.sh from the OpenReader folder, then try again.');
       }
       await Process.run('sh', [script.path]);
     }
