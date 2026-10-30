@@ -28,7 +28,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Caveat:wght@500&amp;display=swap" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -37,20 +37,20 @@
 
   <header class="site">
     <div class="wrap">
-      <a class="brand" href="#top"><img class="mark" src="icon.png" alt="" width="28" height="28" /> OpenReader</a>
+      <a class="brand" href="#top"><img class="mark" src="icon.png" alt="" width="32" height="32" /> OpenReader</a>
       <nav class="site" aria-label="Primary">
-        <a href="#devices">Devices</a>
+        <a href="#top" class="active">Overview</a>
         <a href="#features">Features</a>
+        <a href="#showcase">Screenshots</a>
         <a href="#platforms">Download</a>
         <a href="#faq">FAQ</a>
-        <a href="https://github.com/macdipu/OpenReader">GitHub</a>
       </nav>
       <div class="tools">
+        <a class="gh-btn" href="https://github.com/macdipu/OpenReader"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8v2.7c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"/></svg>GitHub</a>
         <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch theme">
-          <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-          <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+          <span class="seg seg-light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+          <span class="seg seg-dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
         </button>
-        <a class="nav-cta" id="nav-cta" href="#platforms">Download</a>
       </div>
     </div>
   </header>
@@ -58,115 +58,100 @@
   <main id="main">
     <!-- ================= HERO ================= -->
     <section class="hero" id="top">
-      <div class="wrap">
-        <p class="overline reveal">Free · Open source · Cross-platform</p>
+      <div class="scenery" aria-hidden="true">
+        <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+          <defs>
+            <symbol id="pine" viewBox="0 0 40 100"><path d="M20 0 33 32H27L37 58H30L40 90H22V100H18V90H0L10 58H3L13 32H7Z"/></symbol>
+            <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--mist)" stop-opacity="0"/><stop offset="1" stop-color="var(--mist)" stop-opacity=".95"/></linearGradient>
+          </defs>
+          <path class="m-far" d="M0 430 150 330 250 380 430 190 560 300 640 250 780 360 940 300 1060 230 1190 330 1290 260 1450 120 1600 300V900H0Z"/>
+          <path class="m-mid" d="M0 560 120 470 230 520 380 400 520 500 700 430 860 520 1010 470 1170 540 1330 430 1470 520 1600 450V900H0Z"/>
+          <rect y="380" width="1600" height="520" fill="url(#mist)"/>
+          <g class="pines">
+            <use href="#pine" x="-10" y="430" width="70" height="170"/><use href="#pine" x="40" y="470" width="60" height="150"/><use href="#pine" x="90" y="410" width="80" height="200"/>
+            <use href="#pine" x="150" y="490" width="56" height="130"/><use href="#pine" x="-30" y="520" width="64" height="150"/><use href="#pine" x="190" y="540" width="50" height="110"/>
+            <use href="#pine" x="1500" y="440" width="76" height="190"/><use href="#pine" x="1440" y="490" width="60" height="140"/><use href="#pine" x="1550" y="500" width="70" height="170"/>
+            <use href="#pine" x="1390" y="540" width="52" height="120"/><use href="#pine" x="1580" y="420" width="60" height="170"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="wrap hero-copy">
+        <p class="note note-l" aria-hidden="true">Same experience<br />everywhere
+          <svg viewBox="0 0 70 70"><path d="M6 4C38 6 56 24 52 58M52 58l-9-10M52 58l10-9"/></svg></p>
+        <p class="note note-r" aria-hidden="true">Your documents,<br />on any device.
+          <svg viewBox="0 0 70 70"><path d="M64 6C30 10 12 28 14 60M14 60l-9-10M14 60l11-8"/></svg></p>
+
+        <p class="overline reveal">Free <i></i> Open source <i></i> Cross-platform</p>
         <h1 class="reveal">All your documents.<br /><span class="grad">One beautiful reader.</span></h1>
-        <p class="lead reveal">PDF, Word, Excel, PowerPoint, CSV and Markdown — in one fast, private app.</p>
+        <p class="lead reveal">A fast, lightweight and privacy-focused document reader for your everyday files.<br />Read PDF, Word, Excel, PowerPoint, CSV and Markdown — all in one app.</p>
 
         <div class="cta-row reveal">
           <a class="btn primary" id="cta-primary" href="#platforms">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v9.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4L11 13.6V4a1 1 0 0 1 1-1ZM5 19a1 1 0 1 1 0-2h14a1 1 0 1 1 0 2H5Z"/></svg>
             <span id="cta-label">Download Free</span>
+            <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
-          <a class="btn ghost" href="https://github.com/macdipu/OpenReader">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.6-1.3-2.2-.3-4.600-1.1-4.600-5 0-1.100.4-2 1-2.700-.1-.3-.4-1.300.1-2.700 0 0 .8-.3 2.800 1a9.600 9.600 0 0 1 5 0c1.900-1.300 2.800-1 2.800-1 .5 1.400.2 2.400.1 2.700.6.700 1 1.600 1 2.700 0 3.900-2.400 4.700-4.600 5 .4.300.7.900.7 1.800v2.700c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"/></svg>
-            View on GitHub
-          </a>
+          <a class="btn ghost" href="https://github.com/macdipu/OpenReader"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8v2.7c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"/></svg>View on GitHub</a>
         </div>
         <p class="cta-note" id="cta-note"></p>
 
         <ul class="trust reveal">
-          <li>Free forever</li>
-          <li>No registration</li>
-          <li>Works offline</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.2 7 10 4-1.8 7-5.500 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>Free forever</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>No registration</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 12.500a10 10 0 0 1 14 0M8.500 16a5 5 0 0 1 7 0M12 19.500h.01"/></svg>Works offline</li>
         </ul>
       </div>
-    </section>
 
-    <!-- ================= MULTI-DEVICE SHOWCASE ================= -->
-    <section class="devices" id="devices" aria-labelledby="devices-title">
-      <div class="wrap wide">
-        <div class="section-head">
-          <h2 id="devices-title">The same reader. On every screen.</h2>
-          <p>The layout adapts to the window — a side rail on big screens, a bottom bar on phones. Select a device to look closer.</p>
-        </div>
-
+      <div class="wrap wide stage">
         <div class="lineup" id="lineup">
-          <button class="dev dev-desktop" type="button" data-device="windows-desktop" aria-label="Windows desktop: view larger">
-            <span class="frame monitor"><span class="screen"><img src="assets/devices/windows-desktop.png" width="1280" height="766" alt="OpenReader on Windows, reading Exploring the World as a PDF" loading="lazy" /></span></span>
-            <span class="stand" aria-hidden="true"></span>
+          <button class="dev dev-desktop" type="button" data-device="windows-desktop" aria-label="Windows Desktop: view larger">
+            <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm8.7-1.3L21 3v8.5h-9.3V4.2ZM3 12.5h7.5v7.1L3 18.5v-6Zm8.7 0H21V21l-9.3-1.3v-7.2Z"/></svg><span><b>Windows</b><small>Desktop</small></span></span>
+            <span class="frame monitor"><span class="screen"><img src="assets/devices/windows-desktop.png" width="1280" height="766" alt="OpenReader on Windows, reading Exploring the World as a PDF" /></span></span>
+            <span class="disc" aria-hidden="true"></span>
           </button>
-          <button class="dev dev-laptop" type="button" data-device="macos-laptop" aria-label="macOS laptop: view larger">
-            <span class="frame laptop"><span class="screen"><img src="assets/devices/macos-laptop.png" width="1200" height="722" alt="OpenReader on a laptop, reading Exploring the World as a Word document" loading="lazy" /></span></span>
-            <span class="base" aria-hidden="true"></span>
+          <button class="dev dev-laptop" type="button" data-device="macos-laptop" aria-label="macOS Laptop: view larger">
+            <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.900-3.400 2-3.500-1.100-1.600-2.800-1.800-3.400-1.800-1.400-.1-2.800.9-3.500.9s-1.800-.8-3-.8c-1.500 0-3 .9-3.800 2.300-1.600 2.800-.4 7 1.200 9.300.8 1.100 1.700 2.400 2.900 2.300 1.200 0 1.600-.7 3-.7s1.800.7 3 .7c1.300 0 2.100-1.100 2.800-2.200.9-1.300 1.300-2.500 1.300-2.600-.1 0-2.500-1-2.500-3.900ZM14.200 5.800c.6-.8 1.100-1.800.9-2.900-.9 0-2 .6-2.700 1.400-.6.700-1.100 1.800-.9 2.800 1 .1 2-.5 2.700-1.300Z"/></svg><span><b>macOS</b><small>Laptop</small></span></span>
+            <span class="frame laptop"><span class="screen"><img src="assets/devices/macos-laptop.png" width="1200" height="722" alt="OpenReader on a laptop, reading Exploring the World as a Word document" /></span></span>
+            <span class="disc" aria-hidden="true"></span>
           </button>
-          <button class="dev dev-tablet" type="button" data-device="android-tablet" aria-label="Android tablet: view larger">
-            <span class="frame tablet"><span class="screen"><img src="assets/devices/android-tablet.png" width="1280" height="800" alt="OpenReader on an Android tablet, reading Exploring the World as a PDF" loading="lazy" /></span></span>
+          <button class="dev dev-tablet" type="button" data-device="android-tablet" aria-label="Android Tablet: view larger">
+            <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg><span><b>Android</b><small>Tablet</small></span></span>
+            <span class="frame tablet"><span class="screen"><img src="assets/devices/android-tablet.png" width="1280" height="800" alt="OpenReader on an Android tablet, reading Exploring the World as a PDF" /></span></span>
+            <span class="disc" aria-hidden="true"></span>
           </button>
-          <button class="dev dev-fold" type="button" data-device="android-foldable" aria-label="Android foldable: view larger">
-            <span class="frame fold"><span class="screen"><img src="assets/devices/android-foldable.png" width="1104" height="920" alt="OpenReader on an unfolded Android foldable, reading Exploring the World as a PDF" loading="lazy" /></span><span class="crease" aria-hidden="true"></span></span>
+          <button class="dev dev-fold" type="button" data-device="android-foldable" aria-label="Android Foldable: view larger">
+            <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg><span><b>Android</b><small>Foldable</small></span></span>
+            <span class="frame fold"><span class="screen"><img src="assets/devices/android-foldable.png" width="1104" height="920" alt="OpenReader on an unfolded Android foldable, reading Exploring the World as a PDF" /></span><span class="crease" aria-hidden="true"></span></span>
+            <span class="disc" aria-hidden="true"></span>
           </button>
-          <button class="dev dev-phone" type="button" data-device="android-phone" aria-label="Android phone: view larger">
-            <span class="frame phone"><span class="screen"><img src="assets/devices/android-phone.png" width="540" height="1170" alt="OpenReader on an Android phone, reading Exploring the World as a PDF" loading="lazy" /></span></span>
+          <button class="dev dev-phone" type="button" data-device="android-phone" aria-label="Android Phone: view larger">
+            <span class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg><span><b>Android</b><small>Phone</small></span></span>
+            <span class="frame phone"><span class="screen"><img src="assets/devices/android-phone.png" width="540" height="1170" alt="OpenReader on an Android phone, reading Exploring the World as a PDF" /></span></span>
+            <span class="disc" aria-hidden="true"></span>
           </button>
         </div>
+      </div>
 
-        <ul class="labels" aria-label="Devices shown">
-          <li>
-            <span class="plat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.500 10.500 4.400v7.100H3V5.500Zm8.700-1.300L21 3v8.500h-9.300V4.200ZM3 12.500h7.500v7.100L3 18.500v-6Zm8.700 0H21V21l-9.300-1.300v-7.200Z"/></svg></span>
-            <b>Windows</b><small>Desktop</small>
-          </li>
-          <li>
-            <span class="plat"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-mac"/></svg></span>
-            <b>macOS</b><small>Laptop</small>
-          </li>
-          <li>
-            <span class="plat"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg></span>
-            <b>Android</b><small>Tablet</small>
-          </li>
-          <li>
-            <span class="plat"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg></span>
-            <b>Android</b><small>Foldable</small>
-          </li>
-          <li>
-            <span class="plat"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#p-android"/></svg></span>
-            <b>Android</b><small>Phone</small>
-          </li>
+      <div class="wrap">
+        <ul class="strip">
+          <li><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><span>Same experience<br />everywhere</span></li>
+          <li><span class="ico"><svg viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8A5.500 5.500 0 0 1 17 8.500a4.800 4.800 0 0 1 .5 9.500H7Z"/><path d="M12 11v6m-2.500-2.500L12 17l2.500-2.500"/></svg></span><span>Your files stay<br />on your device</span></li>
+          <li><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/></svg></span><span>Optimized for<br />all screen sizes</span></li>
+          <li><span class="ico"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span><span>Fast, smooth<br />and lightweight</span></li>
+          <li><span class="ico heart"><svg viewBox="0 0 24 24"><path d="M12 20.500S3.500 15.500 3.500 9.200A4.700 4.700 0 0 1 12 6.600a4.700 4.700 0 0 1 8.500 2.600C20.500 15.500 12 20.500 12 20.500Z"/></svg></span><span>Open source and<br />community driven</span></li>
         </ul>
-        <p class="fineprint">Windows and Android frames show real captures of the OpenReader app. The laptop frame shows the same Flutter interface captured from the Windows build; native macOS captures are still to come.</p>
-      </div>
-    </section>
 
-    <!-- ================= BENEFITS ================= -->
-    <section class="soft" id="cross-platform">
-      <div class="wrap">
-        <div class="section-head">
-          <h2>One app. Four platforms.</h2>
-          <p>Built once with Flutter, with its own document engines, so every device reads a file the same way.</p>
-        </div>
-        <div class="benefits">
-          <div class="benefit"><b>Adaptive</b><span>Phone, tablet, foldable, laptop and desktop layouts from one app.</span></div>
-          <div class="benefit"><b>Consistent</b><span>The same fonts, colours and reader on Android, Windows, macOS and Linux.</span></div>
-          <div class="benefit"><b>Native feel</b><span>Open With, drag and drop and the command line on desktop; share and open-from-app on Android.</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= FORMATS ================= -->
-    <section class="tight" id="formats">
-      <div class="wrap">
-        <div class="section-head">
-          <h2>Every file, its own look.</h2>
-          <p>PDF, Word, Excel, PowerPoint, CSV and Markdown — plus plain text.</p>
-        </div>
-        <div class="formats">
-          <div class="format"><img src="assets/types/pdf.png" alt="" width="64" height="64" loading="lazy" /><span>PDF</span></div>
-          <div class="format"><img src="assets/types/docx.png" alt="" width="64" height="64" loading="lazy" /><span>Word</span></div>
-          <div class="format"><img src="assets/types/xlsx.png" alt="" width="64" height="64" loading="lazy" /><span>Excel</span></div>
-          <div class="format"><img src="assets/types/pptx.png" alt="" width="64" height="64" loading="lazy" /><span>PowerPoint</span></div>
-          <div class="format"><img src="assets/types/csv.png" alt="" width="64" height="64" loading="lazy" /><span>CSV</span></div>
-          <div class="format"><img src="assets/types/md.png" alt="" width="64" height="64" loading="lazy" /><span>Markdown</span></div>
-          <div class="format"><img src="assets/types/txt.png" alt="" width="64" height="64" loading="lazy" /><span>Text</span></div>
+        <div class="formats-panel" id="formats">
+          <div class="fp-head"><small>Supported formats</small><h2>Open and read your<br />important files in one place.</h2></div>
+          <ul class="fp-list">
+            <li><img src="assets/types/pdf.png" alt="" width="64" height="64" /><b>PDF</b><span>.pdf</span></li>
+            <li><img src="assets/types/docx.png" alt="" width="64" height="64" /><b>Word</b><span>.docx</span></li>
+            <li><img src="assets/types/xlsx.png" alt="" width="64" height="64" /><b>Excel</b><span>.xlsx</span></li>
+            <li><img src="assets/types/pptx.png" alt="" width="64" height="64" /><b>PowerPoint</b><span>.pptx</span></li>
+            <li><img src="assets/types/csv.png" alt="" width="64" height="64" /><b>CSV</b><span>.csv</span></li>
+            <li><img src="assets/types/md.png" alt="" width="64" height="64" /><b>Markdown</b><span>.md</span></li>
+          </ul>
         </div>
       </div>
     </section>
@@ -175,8 +160,8 @@
     <section class="showcase" id="showcase">
       <div class="wrap">
         <div class="section-head">
-          <h2 id="showcase-title">A reader that stays out of the way.</h2>
-          <p>Clean typography, fast scrolling and a night mode for every reader.</p>
+          <h2 id="showcase-title">See it in action.</h2>
+          <p>Every format gets its own reader, with a night mode for all of them.</p>
         </div>
 
         <div class="tabs" role="tablist" aria-label="Document type">
@@ -187,7 +172,7 @@
         </div>
 
         <div class="window"><img id="showcase-img" src="assets/screens/desktop-pdf.png" width="1262" height="750" alt="OpenReader PDF reader on Windows" loading="lazy" /></div>
-        <p class="shot-note">Captured from the Windows build.</p>
+        <p class="shot-note">Windows build.</p>
       </div>
     </section>
 
@@ -195,7 +180,7 @@
     <section class="soft" id="features">
       <div class="wrap">
         <div class="section-head">
-          <h2>Everything a reader needs.<br />Nothing it doesn't.</h2>
+          <h2>Built for reading.</h2>
         </div>
         <div class="grid">
           <div class="card">
@@ -291,10 +276,10 @@
               <div><h3>Windows</h3><span class="req">Windows 10 or later · 64-bit</span></div>
             </div>
             <ul>
-              <li>Unzip and run <code>openreader.exe</code></li>
-              <li>Run <code>register-file-types.ps1</code> to add it to Open with</li>
+              <li>Download <code>OpenReader-&lt;version&gt;-windows-x64-setup.exe</code> and run it — no admin rights needed</li>
+              <li>Or one line in PowerShell: <code style="word-break:break-all">irm https://raw.githubusercontent.com/macdipu/OpenReader/main/install.ps1 | iex</code></li>
+              <li>Adds OpenReader to Open with for PDF, Office, text and CSV files</li>
               <li>Unsigned build — SmartScreen may ask you to confirm</li>
-              <li>The latest release (v1.0.10) has no Windows file yet; it is built by the release workflow for the next one</li>
             </ul>
             <a class="btn primary" href="https://github.com/macdipu/OpenReader/releases/latest">Download for Windows</a>
           </article>
@@ -306,7 +291,8 @@
               <div><h3>macOS</h3><span class="req">macOS 12 or later</span></div>
             </div>
             <ul>
-              <li>Open the <code>.dmg</code> and drag <code>OpenReader</code> onto Applications (v1.0.10 ships a <code>.zip</code> instead; the <code>.dmg</code> follows)</li>
+              <li>Open the <code>.dmg</code> and drag <code>OpenReader</code> onto Applications</li>
+              <li>Or one line in Terminal: <code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/macdipu/OpenReader/main/install.sh | sh</code></li>
               <li>First launch: right-click, then Open (unsigned build)</li>
               <li>Opens files from Finder while already running</li>
             </ul>
@@ -321,14 +307,14 @@
             </div>
             <ul>
               <li><code>.deb</code> for Ubuntu, Debian and Mint; <code>.rpm</code> for Fedora, RHEL and openSUSE</li>
+              <li>Or one line: <code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/macdipu/OpenReader/main/install.sh | sh</code></li>
               <li>Or an <code>AppImage</code>: make it executable and run it</li>
-              <li>v1.0.10 has only a <code>.tar.gz</code>; the <code>.deb</code>, <code>.rpm</code> and AppImage come with the next release</li>
               <li>Needs <code>libgtk-3</code> and <code>libsecret</code> (the packages pull them in)</li>
             </ul>
             <a class="btn primary" href="https://github.com/macdipu/OpenReader/releases/latest">Download for Linux</a>
           </article>
         </div>
-        <p class="fineprint">OpenReader is not published for iOS. Step-by-step install and update instructions are in the <a href="https://github.com/macdipu/OpenReader#installation">README</a>.</p>
+        <p class="fineprint">There is no iOS version. Step-by-step install and update instructions are in the <a href="https://github.com/macdipu/OpenReader#installation">README</a>.</p>
       </div>
     </section>
 

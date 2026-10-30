@@ -23,7 +23,7 @@
   function applyTheme(theme, save) {
     root.setAttribute('data-theme', theme);
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#07080f' : '#ffffff');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#07080f' : '#f4f7ff');
     var btn = $('theme-toggle');
     if (btn) btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
     if (save) { try { localStorage.setItem('openreader-theme', theme); } catch (e) { /* private mode */ } }
@@ -64,7 +64,6 @@
     $('cta-label').textContent = cta.label;
     $('cta-primary').href = cta.href;
     $('cta-note').innerHTML = cta.note;
-    $('nav-cta').href = cta.href;
 
     var list = $('platform-list');
     var order = ['android', 'windows', 'macos', 'linux'];
@@ -124,7 +123,7 @@
 
   // ---- reveal on scroll --------------------------------------------------
   function initReveal() {
-    var items = document.querySelectorAll('.section-head, .lineup, .labels, .card, .platform, .format, .benefit, .privacy-highlight, .split > *, .window, .faq');
+    var items = document.querySelectorAll('.section-head, .lineup, .card, .platform, .format, .benefit, .privacy-highlight, .split > *, .window, .faq');
     if (!('IntersectionObserver' in window)) return;
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('seen'); io.unobserve(e.target); } });
