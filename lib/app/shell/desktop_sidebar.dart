@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../core/presentation/theme/theme_extensions.dart';
 import '../../core/presentation/utils/platform_info.dart';
+import '../../core/presentation/utils/screen_utils.dart';
 import '../../res/routes/app_routes.dart';
 import 'app_shell_controller.dart';
 
@@ -25,16 +26,22 @@ class DesktopSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shortcut = PlatformInfo.isMacOS ? '⌘O' : 'Ctrl+O';
+    // A phone on its side is short: drop the brand and tighten the spacing.
+    final short = context.isShortScreen;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       width: extended ? 252 : 76,
       color: context.surfaceContainerLowest,
-      padding: EdgeInsets.symmetric(horizontal: extended ? 14 : 10, vertical: 16),
-      child: Column(
+      padding: EdgeInsets.symmetric(horizontal: extended ? 14 : 10, vertical: short ? 8 : 16),
+      // Scrolls if even the compact rail does not fit (a very short window).
+      child: CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SidebarBrand(extended: extended),
-          const SizedBox(height: 20),
+          if (!short || extended) ...[_SidebarBrand(extended: extended), SizedBox(height: short ? 12 : 20)],
           if (extended)
             FilledButton(
               onPressed: controller.pickAndOpenFile,
@@ -55,12 +62,17 @@ class DesktopSidebar extends StatelessWidget {
           else
             Tooltip(
               message: 'Open file ($shortcut)',
-              child: IconButton.filled(
+              child: FilledButton(
                 onPressed: controller.pickAndOpenFile,
-                icon: const Icon(Icons.file_open_outlined),
+                style: FilledButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 44),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Icon(Icons.file_open_outlined, size: 22),
               ),
             ),
-          const SizedBox(height: 24),
+          SizedBox(height: short ? 12 : 24),
           if (extended)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -81,7 +93,7 @@ class DesktopSidebar extends StatelessWidget {
                 ],
               )),
           const Spacer(),
-          Divider(height: 24, color: context.outlineVariant),
+          Divider(height: short ? 12 : 24, color: context.outlineVariant),
           _SidebarItem(
             icon: Icons.settings_outlined,
             activeIcon: Icons.settings_rounded,
@@ -89,6 +101,9 @@ class DesktopSidebar extends StatelessWidget {
             selected: false,
             extended: extended,
             onTap: () => Get.toNamed(AppRoutes.settings),
+          ),
+        ],
+            ),
           ),
         ],
       ),
