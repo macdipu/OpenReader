@@ -10,8 +10,16 @@ import 'app_shell_controller.dart';
 /// The shell's destinations, shared by the phone bottom bar and the sidebar.
 const shellDestinations = [
   (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
-  (icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded, label: 'Browse'),
-  (icon: Icons.star_outline_rounded, activeIcon: Icons.star_rounded, label: 'Library'),
+  (
+    icon: Icons.folder_outlined,
+    activeIcon: Icons.folder_rounded,
+    label: 'Browse'
+  ),
+  (
+    icon: Icons.star_outline_rounded,
+    activeIcon: Icons.star_rounded,
+    label: 'Library'
+  ),
 ];
 
 /// Desktop / tablet sidebar: brand, primary "Open file" action, destinations
@@ -24,117 +32,151 @@ class DesktopSidebar extends StatelessWidget {
   /// The [<] / [>] button at the top.
   final VoidCallback onToggle;
 
-  const DesktopSidebar({super.key, required this.controller, required this.extended, required this.onToggle});
+  const DesktopSidebar(
+      {super.key,
+      required this.controller,
+      required this.extended,
+      required this.onToggle});
 
   @override
   Widget build(BuildContext context) {
-    final shortcut = PlatformInfo.isMacOS ? '⌘O' : 'Ctrl+O';
+    // A tablet has no keyboard shortcut to advertise.
+    final shortcut =
+        PlatformInfo.isMobile ? '' : (PlatformInfo.isMacOS ? '⌘O' : 'Ctrl+O');
+    // Keep clear of the status bar and the gesture bar on Android tablets and foldables.
+    final insets = MediaQuery.paddingOf(context);
     // A phone on its side is short: drop the brand and tighten the spacing.
     final short = context.isShortScreen;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       width: extended ? 252 : 76,
       color: context.surfaceContainerLowest,
-      padding: EdgeInsets.symmetric(horizontal: extended ? 14 : 10, vertical: short ? 8 : 16),
+      padding: EdgeInsets.fromLTRB(
+          extended ? 14 : 10,
+          (short ? 8 : 16) + insets.top,
+          extended ? 14 : 10,
+          (short ? 8 : 16) + insets.bottom),
       // Scrolls if even the compact rail does not fit (a very short window).
       // Labels appear only once the animated width has room for them, so expanding never clips.
       child: LayoutBuilder(builder: (context, constraints) {
         final extended = this.extended && constraints.maxWidth >= 190;
         return CustomScrollView(
-        slivers: [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SidebarBrand(extended: extended, onToggle: onToggle, showMark: !short || extended),
-          SizedBox(height: short ? 8 : 20),
-          if (extended)
-            FilledButton(
-              onPressed: controller.pickAndOpenFile,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Row(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.file_open_outlined, size: 20),
-                  const SizedBox(width: 10),
-                  const Text('Open file'),
+                  _SidebarBrand(
+                      extended: extended,
+                      onToggle: onToggle,
+                      showMark: !short || extended),
+                  SizedBox(height: short ? 8 : 20),
+                  if (extended)
+                    FilledButton(
+                      onPressed: controller.pickAndOpenFile,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.file_open_outlined, size: 20),
+                          const SizedBox(width: 10),
+                          const Text('Open file'),
+                          const Spacer(),
+                          if (shortcut.isNotEmpty)
+                            Text(shortcut,
+                                style: context.labelSmall?.copyWith(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.75))),
+                        ],
+                      ),
+                    )
+                  else
+                    Tooltip(
+                      message: shortcut.isEmpty
+                          ? 'Open file'
+                          : 'Open file ($shortcut)',
+                      child: FilledButton(
+                        onPressed: controller.pickAndOpenFile,
+                        style: FilledButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 44),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Icon(Icons.file_open_outlined, size: 22),
+                      ),
+                    ),
+                  SizedBox(height: short ? 12 : 24),
+                  if (extended)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                      child: Text('BROWSE',
+                          style: context.labelSmall?.copyWith(
+                              color: context.onSurfaceVariant,
+                              letterSpacing: 1.2)),
+                    ),
+                  Obx(() {
+                    final workspace = Get.find<WorkspaceController>();
+                    final inWorkspace =
+                        workspace.visible.value && workspace.tabs.isNotEmpty;
+                    final openCount = workspace.tabs.length;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < shellDestinations.length; i++)
+                          _SidebarItem(
+                            icon: shellDestinations[i].icon,
+                            activeIcon: shellDestinations[i].activeIcon,
+                            label: shellDestinations[i].label,
+                            selected: !inWorkspace &&
+                                controller.currentIndex.value == i,
+                            extended: extended,
+                            onTap: () => controller.changeTab(i),
+                          ),
+                        // Documents that are open in tabs, one click from anywhere.
+                        if (openCount > 0)
+                          _SidebarItem(
+                            icon: Icons.tab_outlined,
+                            activeIcon: Icons.tab_rounded,
+                            label: 'Open documents',
+                            badge: '$openCount',
+                            selected: inWorkspace,
+                            extended: extended,
+                            onTap: () => workspace.visible.value = true,
+                          ),
+                      ],
+                    );
+                  }),
                   const Spacer(),
-                  Text(shortcut, style: context.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.75))),
+                  Divider(
+                      height: short ? 12 : 24, color: context.outlineVariant),
+                  Obx(() {
+                    final workspace = Get.find<WorkspaceController>();
+                    final inWorkspace =
+                        workspace.visible.value && workspace.tabs.isNotEmpty;
+                    return _SidebarItem(
+                      icon: Icons.settings_outlined,
+                      activeIcon: Icons.settings_rounded,
+                      label: 'Settings',
+                      selected: !inWorkspace &&
+                          controller.currentIndex.value ==
+                              AppShellController.settingsIndex,
+                      extended: extended,
+                      // A page of the shell, so the sidebar and the open tabs stay where they are.
+                      onTap: () => controller
+                          .changeTab(AppShellController.settingsIndex),
+                    );
+                  }),
                 ],
               ),
-            )
-          else
-            Tooltip(
-              message: 'Open file ($shortcut)',
-              child: FilledButton(
-                onPressed: controller.pickAndOpenFile,
-                style: FilledButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 44),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Icon(Icons.file_open_outlined, size: 22),
-              ),
             ),
-          SizedBox(height: short ? 12 : 24),
-          if (extended)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: Text('BROWSE', style: context.labelSmall?.copyWith(color: context.onSurfaceVariant, letterSpacing: 1.2)),
-            ),
-          Obx(() {
-            final workspace = Get.find<WorkspaceController>();
-            final inWorkspace = workspace.visible.value && workspace.tabs.isNotEmpty;
-            final openCount = workspace.tabs.length;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < shellDestinations.length; i++)
-                  _SidebarItem(
-                    icon: shellDestinations[i].icon,
-                    activeIcon: shellDestinations[i].activeIcon,
-                    label: shellDestinations[i].label,
-                    selected: !inWorkspace && controller.currentIndex.value == i,
-                    extended: extended,
-                    onTap: () => controller.changeTab(i),
-                  ),
-                // Documents that are open in tabs, one click from anywhere.
-                if (openCount > 0)
-                  _SidebarItem(
-                    icon: Icons.tab_outlined,
-                    activeIcon: Icons.tab_rounded,
-                    label: 'Open documents',
-                    badge: '$openCount',
-                    selected: inWorkspace,
-                    extended: extended,
-                    onTap: () => workspace.visible.value = true,
-                  ),
-              ],
-            );
-          }),
-          const Spacer(),
-          Divider(height: short ? 12 : 24, color: context.outlineVariant),
-          Obx(() {
-            final workspace = Get.find<WorkspaceController>();
-            final inWorkspace = workspace.visible.value && workspace.tabs.isNotEmpty;
-            return _SidebarItem(
-              icon: Icons.settings_outlined,
-              activeIcon: Icons.settings_rounded,
-              label: 'Settings',
-              selected: !inWorkspace && controller.currentIndex.value == AppShellController.settingsIndex,
-              extended: extended,
-              // A page of the shell, so the sidebar and the open tabs stay where they are.
-              onTap: () => controller.changeTab(AppShellController.settingsIndex),
-            );
-          }),
-        ],
-            ),
-          ),
-        ],
-      );
+          ],
+        );
       }),
     );
   }
@@ -147,13 +189,15 @@ class _SidebarBrand extends StatelessWidget {
   /// Short windows drop the logo and keep only the toggle.
   final bool showMark;
 
-  const _SidebarBrand({required this.extended, required this.onToggle, required this.showMark});
+  const _SidebarBrand(
+      {required this.extended, required this.onToggle, required this.showMark});
 
   @override
   Widget build(BuildContext context) {
     final mark = ClipRRect(
       borderRadius: BorderRadius.circular(9),
-      child: Image.asset('assets/icon/icon.png', width: 34, height: 34, filterQuality: FilterQuality.medium),
+      child: Image.asset('assets/icon/icon.png',
+          width: 34, height: 34, filterQuality: FilterQuality.medium),
     );
     final toggle = _SidebarToggle(extended: extended, onPressed: onToggle);
     if (!extended) {
@@ -176,7 +220,8 @@ class _SidebarBrand extends StatelessWidget {
               'OpenReader',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.2),
+              style: context.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.2),
             ),
           ),
           toggle,
@@ -206,7 +251,9 @@ class _SidebarToggleState extends State<_SidebarToggle> {
   Widget build(BuildContext context) {
     final shortcut = PlatformInfo.isMacOS ? '⌘B' : 'Ctrl+B';
     return Tooltip(
-      message: widget.extended ? 'Collapse sidebar ($shortcut)' : 'Expand sidebar ($shortcut)',
+      message: widget.extended
+          ? 'Collapse sidebar ($shortcut)'
+          : 'Expand sidebar ($shortcut)',
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _hover = true),
@@ -226,9 +273,14 @@ class _SidebarToggleState extends State<_SidebarToggle> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: _hover ? context.secondaryContainer : context.surfaceContainerHigh,
+                  color: _hover
+                      ? context.secondaryContainer
+                      : context.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(11),
-                  border: Border.all(color: _hover ? context.secondary.withValues(alpha: 0.35) : Colors.transparent),
+                  border: Border.all(
+                      color: _hover
+                          ? context.secondary.withValues(alpha: 0.35)
+                          : Colors.transparent),
                 ),
                 // chevron_left is "collapse"; half a turn makes it "expand".
                 child: AnimatedRotation(
@@ -238,7 +290,8 @@ class _SidebarToggleState extends State<_SidebarToggle> {
                   child: Icon(
                     Icons.chevron_left_rounded,
                     size: 22,
-                    color: _hover ? context.secondary : context.onSurfaceVariant,
+                    color:
+                        _hover ? context.secondary : context.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -280,11 +333,13 @@ class _SidebarItemState extends State<_SidebarItem> {
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.selected ? context.secondary : context.onSurfaceVariant;
+    final color =
+        widget.selected ? context.secondary : context.onSurfaceVariant;
     final background = widget.selected
         ? context.secondaryContainer
         : (_hover ? context.surfaceContainerLow : Colors.transparent);
-    final icon = Icon(widget.selected ? widget.activeIcon : widget.icon, color: color, size: 22, semanticLabel: '');
+    final icon = Icon(widget.selected ? widget.activeIcon : widget.icon,
+        color: color, size: 22, semanticLabel: '');
     final content = widget.extended
         ? Row(
             children: [
@@ -294,22 +349,29 @@ class _SidebarItemState extends State<_SidebarItem> {
                 child: Text(
                   widget.label,
                   style: context.bodyMedium?.copyWith(
-                    color: widget.selected ? context.secondary : context.onSurface,
-                    fontWeight: widget.selected ? FontWeight.w700 : FontWeight.w500,
+                    color:
+                        widget.selected ? context.secondary : context.onSurface,
+                    fontWeight:
+                        widget.selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
               ),
               if (widget.badge != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: widget.selected ? context.secondary : context.surfaceContainerHigh,
+                    color: widget.selected
+                        ? context.secondary
+                        : context.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     widget.badge!,
                     style: context.labelSmall?.copyWith(
-                      color: widget.selected ? Colors.white : context.onSurfaceVariant,
+                      color: widget.selected
+                          ? Colors.white
+                          : context.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -344,7 +406,10 @@ class _SidebarItemState extends State<_SidebarItem> {
                   child: Stack(
                     alignment: Alignment.centerLeft,
                     children: [
-                      Padding(padding: EdgeInsets.symmetric(horizontal: widget.extended ? 14 : 0), child: content),
+                      Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: widget.extended ? 14 : 0),
+                          child: content),
                       if (widget.selected)
                         Positioned(
                           left: 0,
@@ -353,7 +418,8 @@ class _SidebarItemState extends State<_SidebarItem> {
                             height: 20,
                             decoration: BoxDecoration(
                               color: context.secondary,
-                              borderRadius: const BorderRadius.horizontal(right: Radius.circular(3)),
+                              borderRadius: const BorderRadius.horizontal(
+                                  right: Radius.circular(3)),
                             ),
                           ),
                         ),

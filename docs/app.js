@@ -1,143 +1,140 @@
-/* OpenReader landing page: OS-aware hero, download buttons and previews. */
+/* OpenReader landing page: theme, OS-aware download button, device previews and screenshot tabs. */
 (function () {
   'use strict';
 
   var PLAY = 'https://play.google.com/store/apps/details?id=com.chowdhuryelab.openreader';
-  var RELEASES = 'https://github.com/macdipu/OpenDocs/releases/latest';
-
-  // Screenshot prefix per platform. Windows images are the "desktop-*" set;
-  // add macos-*.png / linux-*.png to assets/screens/ (see docs/TODO.md) and they are
-  // picked up automatically. Until then the Windows shot is used, with a note.
-  var SHOT_PREFIX = { windows: 'desktop', macos: 'macos', linux: 'linux' };
-  var FALLBACK_PREFIX = 'desktop';
+  var RELEASES = 'https://github.com/macdipu/OpenReader/releases/latest';
   var OS_NAME = { android: 'Android', windows: 'Windows', macos: 'macOS', linux: 'Linux' };
 
   var CTA = {
-    android: { label: 'Get it on Google Play', sub: 'Free · Android phones & tablets', href: PLAY,
-      secondary: { text: 'Desktop downloads', href: '#platforms' }, note: '' },
-    windows: { label: 'Download for Windows', sub: 'Windows 10 or later · 64-bit', href: RELEASES,
-      secondary: { text: 'Get it for Android', href: PLAY },
-      note: 'Unsigned build: Windows SmartScreen may ask you to confirm. <a href="#platforms">Other platforms</a>' },
-    macos: { label: 'Download for macOS', sub: 'macOS 12 or later', href: RELEASES,
-      secondary: { text: 'Get it for Android', href: PLAY },
-      note: 'Unsigned build: on first launch right-click the app and choose Open. <a href="#platforms">Other platforms</a>' },
-    linux: { label: 'Download for Linux', sub: 'x64 · .deb, .rpm, AppImage', href: RELEASES,
-      secondary: { text: 'Get it for Android', href: PLAY },
-      note: 'Pick the .deb, .rpm or AppImage for your distribution. <a href="#platforms">Other platforms</a>' },
-    other: { label: 'Download OpenReader', sub: 'Android, Windows, macOS & Linux', href: '#platforms',
-      secondary: { text: 'Get it on Google Play', href: PLAY }, note: '' }
+    android: { label: 'Get it on Google Play', href: PLAY, note: 'Also available as an APK on <a href="' + RELEASES + '">GitHub Releases</a>.' },
+    windows: { label: 'Download for Windows', href: RELEASES, note: 'Unsigned build: Windows SmartScreen may ask you to confirm. <a href="#platforms">Other platforms</a>' },
+    macos: { label: 'Download for macOS', href: RELEASES, note: 'Unsigned build: on first launch right-click the app and choose Open. <a href="#platforms">Other platforms</a>' },
+    linux: { label: 'Download for Linux', href: RELEASES, note: '.deb, .rpm or AppImage. <a href="#platforms">Other platforms</a>' },
+    other: { label: 'Download Free', href: '#platforms', note: '' }
   };
 
+  var $ = function (id) { return document.getElementById(id); };
+  var root = document.documentElement;
+
+  // ---- theme -------------------------------------------------------------
+  function currentTheme() { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+
+  function applyTheme(theme, save) {
+    root.setAttribute('data-theme', theme);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#07080f' : '#ffffff');
+    var btn = $('theme-toggle');
+    if (btn) btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+    if (save) { try { localStorage.setItem('openreader-theme', theme); } catch (e) { /* private mode */ } }
+  }
+
+  function initTheme() {
+    applyTheme(currentTheme(), false);
+    var btn = $('theme-toggle');
+    if (btn) btn.addEventListener('click', function () { applyTheme(currentTheme() === 'dark' ? 'light' : 'dark', true); });
+    // Follow the system only until the visitor picks a theme themselves.
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    var onChange = function (e) {
+      var saved = null;
+      try { saved = localStorage.getItem('openreader-theme'); } catch (err) { /* ignore */ }
+      if (!saved) applyTheme(e.matches ? 'dark' : 'light', false);
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+  }
+
+  // ---- OS-aware download -------------------------------------------------
   function detect() {
     var forced = new URLSearchParams(location.search).get('os');
-    if (forced && OS_NAME[forced]) return forced;
+    if (forced && (OS_NAME[forced] || forced === 'other')) return forced;
     var ua = (navigator.userAgent || '').toLowerCase();
     var plat = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '').toLowerCase();
     if (/android/.test(ua)) return 'android';
-    if (/iphone|ipad|ipod/.test(ua)) return 'other';
+    if (/iphone|ipad|ipod/.test(ua)) return 'other';   // no iOS build
     if (/win/.test(plat) || /windows/.test(ua)) return 'windows';
     if (/mac/.test(plat) || /macintosh|mac os x/.test(ua)) return 'macos';
     if (/linux|x11|cros/.test(plat + ua)) return 'linux';
     return 'other';
   }
 
-  var $ = function (id) { return document.getElementById(id); };
-  var os = detect();
-  var shot = 'pdf';
-  var previewOs = os;          // platform the previews are showing
-  var usedFallback = false;
-
-  function setText(id, value) { var el = $(id); if (el) el.textContent = value; }
-
-  function applyHero() {
+  function initDownload() {
+    var os = detect();
     var cta = CTA[os] || CTA.other;
     document.body.classList.add('os-' + os);
-    setText('cta-label', cta.label);
-    setText('cta-sub', cta.sub);
+    $('cta-label').textContent = cta.label;
     $('cta-primary').href = cta.href;
-    $('cta-secondary').textContent = cta.secondary.text;
-    $('cta-secondary').href = cta.secondary.href;
     $('cta-note').innerHTML = cta.note;
-    var nav = $('nav-cta');
-    nav.href = cta.href;
-    nav.textContent = os === 'android' ? 'Get the app' : (os === 'other' ? 'Download' : 'Download');
-  }
+    $('nav-cta').href = cta.href;
 
-  function applyPlatforms() {
     var list = $('platform-list');
-    var cards = Array.prototype.slice.call(list.querySelectorAll('.platform'));
     var order = ['android', 'windows', 'macos', 'linux'];
     if (OS_NAME[os]) order = [os].concat(order.filter(function (o) { return o !== os; }));
-    cards.forEach(function (card) {
+    list.querySelectorAll('.platform').forEach(function (card) {
       var key = card.getAttribute('data-os');
       card.style.order = String(order.indexOf(key));
       if (key === os) card.classList.add('current');
     });
-    list.style.display = 'grid';
   }
 
-  // ---- screenshots -------------------------------------------------------
-  function src(prefix, name) { return 'assets/screens/' + prefix + '-' + name + '.png'; }
+  // ---- device lineup: click a device to see it larger --------------------
+  var DEVICE_TITLE = {
+    'windows-desktop': 'Windows desktop',
+    'macos-laptop': 'macOS laptop',
+    'android-tablet': 'Android tablet',
+    'android-foldable': 'Android foldable, unfolded',
+    'android-phone': 'Android phone'
+  };
 
-  function loadImage(img, prefix, name, noteEl, platformName) {
-    img.onerror = function () {
-      img.onerror = null;
-      img.src = src(FALLBACK_PREFIX, name);
-      usedFallback = true;
-      if (noteEl) noteEl.textContent = 'Preview from the Windows build — ' + platformName + ' screenshot coming soon.';
-    };
-    if (noteEl) noteEl.textContent = '';
-    img.src = src(prefix, name);
-  }
+  function initDevices() {
+    var dlg = $('viewer');
+    if (!dlg || typeof dlg.showModal !== 'function') return;   // old browser: the lineup stays a static picture
+    var body = $('viewer-body');
 
-  function showcasePlatform() {
-    // Android has phone shots only on the hero; the showcase always shows a desktop reader.
-    return previewOs === 'android' ? 'windows' : previewOs;
-  }
-
-  function renderShowcase() {
-    var img = $('showcase-img');
-    var plat = showcasePlatform();
-    var prefix = SHOT_PREFIX[plat] || FALLBACK_PREFIX;
-    img.style.opacity = '0.4';
-    img.onload = function () { img.style.opacity = '1'; };
-    loadImage(img, prefix, shot, $('showcase-note'), OS_NAME[plat] || 'desktop');
-
-    var android = previewOs === 'android';
-    setText('showcase-kicker', android ? 'Also on desktop' : 'Preview');
-    setText('showcase-title', android ? 'The same reader on your computer.' : 'A reader that stays out of the way.');
-    setText('showcase-lead', android
-      ? 'Take your reading to Windows, macOS and Linux with the same clean, private reader.'
-      : 'Clean typography, fast scrolling and a night mode for every reader.');
-    document.querySelectorAll('.os-switch button').forEach(function (b) {
-      b.setAttribute('aria-pressed', String(b.getAttribute('data-os') === previewOs));
+    document.querySelectorAll('.dev').forEach(function (dev) {
+      dev.addEventListener('click', function () {
+        var frame = dev.querySelector('.frame');
+        var clone = frame.cloneNode(true);
+        clone.querySelectorAll('img').forEach(function (img) { img.removeAttribute('loading'); });
+        body.textContent = '';
+        body.appendChild(clone);
+        $('viewer-title').textContent = DEVICE_TITLE[dev.getAttribute('data-device')] || '';
+        dlg.showModal();
+      });
     });
+    // Click on the backdrop closes it.
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
   }
 
-  function applyHeroStage() {
-    var img = $('hero-desktop');
-    var plat = os === 'android' || os === 'other' ? 'windows' : os;
-    var prefix = SHOT_PREFIX[plat] || FALLBACK_PREFIX;
-    loadImage(img, prefix, 'pdf', $('hero-note'), OS_NAME[plat] || 'desktop');
-  }
-
-  function bind() {
+  // ---- screenshot tabs ---------------------------------------------------
+  function initShowcase() {
+    var img = $('showcase-img');
+    var names = { pdf: 'PDF reader', docx: 'Word reader', xlsx: 'Excel reader', 'docx-dark': 'Word reader in night mode' };
     document.querySelectorAll('.tab').forEach(function (tab) {
       tab.addEventListener('click', function () {
         document.querySelectorAll('.tab').forEach(function (t) { t.setAttribute('aria-selected', 'false'); });
         tab.setAttribute('aria-selected', 'true');
-        shot = tab.getAttribute('data-shot');
-        renderShowcase();
+        var shot = tab.getAttribute('data-shot');
+        img.style.opacity = '0.35';
+        img.onload = function () { img.style.opacity = '1'; };
+        img.src = 'assets/screens/desktop-' + shot + '.png';
+        img.alt = 'OpenReader ' + names[shot] + ' on Windows';
       });
-    });
-    document.querySelectorAll('.os-switch button').forEach(function (b) {
-      b.addEventListener('click', function () { previewOs = b.getAttribute('data-os'); renderShowcase(); });
     });
   }
 
-  applyHero();
-  applyPlatforms();
-  applyHeroStage();
-  bind();
-  renderShowcase();
+  // ---- reveal on scroll --------------------------------------------------
+  function initReveal() {
+    var items = document.querySelectorAll('.section-head, .lineup, .labels, .card, .platform, .format, .benefit, .privacy-highlight, .split > *, .window, .faq');
+    if (!('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('seen'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    items.forEach(function (el) { el.classList.add('in'); io.observe(el); });
+  }
+
+  initTheme();
+  initDownload();
+  initDevices();
+  initShowcase();
+  initReveal();
 })();

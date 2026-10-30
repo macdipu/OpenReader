@@ -20,7 +20,7 @@
     </ul>
   </description>
   <launchable type="desktop-id">openreader.desktop</launchable>
-  <url type="homepage">https://macdipu.github.io/OpenDocs/</url>
+  <url type="homepage">https://macdipu.github.io/OpenReader/</url>
   <provides>
     <binary>openreader</binary>
   </provides>

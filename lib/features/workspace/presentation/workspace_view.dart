@@ -30,7 +30,12 @@ class WorkspaceView extends StatelessWidget {
                 _TabStrip(workspace: workspace),
                 Divider(height: 1, color: context.outlineVariant),
               ])),
-        Expanded(child: _Panes(workspace: workspace)),
+        // The tab strip already clears the status bar; the readers under it must not add the gap again.
+        Expanded(
+          child: Obx(() => workspace.chromeHidden.value
+              ? _Panes(workspace: workspace)
+              : MediaQuery.removePadding(context: context, removeTop: true, child: _Panes(workspace: workspace))),
+        ),
       ],
     );
   }
@@ -42,9 +47,13 @@ class _TabStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canSplit = MediaQuery.sizeOf(context).width >= WorkspaceController.minSplitWidth;
+    final canSplit =
+        MediaQuery.sizeOf(context).width >= WorkspaceController.minSplitWidth;
+    // Below the status bar on Android tablets and foldables; zero on desktop.
+    final topInset = MediaQuery.paddingOf(context).top;
     return Container(
-      height: 46,
+      height: 46 + topInset,
+      padding: EdgeInsets.only(top: topInset),
       color: context.surfaceContainerLowest,
       child: Row(
         children: [
@@ -59,7 +68,8 @@ class _TabStrip extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 itemCount: tabs.length,
                 onReorder: workspace.reorder,
-                proxyDecorator: (child, _, __) => Material(color: Colors.transparent, child: child),
+                proxyDecorator: (child, _, __) =>
+                    Material(color: Colors.transparent, child: child),
                 itemBuilder: (context, index) {
                   final tab = tabs[index];
                   return ReorderableDragStartListener(
@@ -69,7 +79,8 @@ class _TabStrip extends StatelessWidget {
                       workspace: workspace,
                       tab: tab,
                       active: tab.id == active,
-                      shownElsewhere: tab.id != active && shown.contains(tab.id),
+                      shownElsewhere:
+                          tab.id != active && shown.contains(tab.id),
                     ),
                   );
                 },
@@ -78,7 +89,9 @@ class _TabStrip extends StatelessWidget {
           ),
           if (canSplit)
             Obx(() => IconButton(
-                  tooltip: workspace.split.value ? 'Close side-by-side (Ctrl+\\)' : 'Side by side (Ctrl+\\)',
+                  tooltip: workspace.split.value
+                      ? 'Close side-by-side (Ctrl+\\)'
+                      : 'Side by side (Ctrl+\\)',
                   isSelected: workspace.split.value,
                   icon: const Icon(Icons.vertical_split_outlined),
                   selectedIcon: const Icon(Icons.vertical_split),
@@ -102,26 +115,38 @@ class _TabChip extends StatelessWidget {
   final bool active;
   final bool shownElsewhere;
 
-  const _TabChip({required this.workspace, required this.tab, required this.active, required this.shownElsewhere});
+  const _TabChip(
+      {required this.workspace,
+      required this.tab,
+      required this.active,
+      required this.shownElsewhere});
 
   Future<void> _menu(BuildContext context, Offset position) async {
     final choice = await showMenu<String>(
       context: context,
-      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
+      position: RelativeRect.fromLTRB(
+          position.dx, position.dy, position.dx, position.dy),
       items: [
         const PopupMenuItem(value: 'left', child: Text('Show in left pane')),
-        if (MediaQuery.sizeOf(context).width >= WorkspaceController.minSplitWidth)
-          const PopupMenuItem(value: 'copy', child: Text('Split right (same document)')),
-        if (MediaQuery.sizeOf(context).width >= WorkspaceController.minSplitWidth)
-          const PopupMenuItem(value: 'right', child: Text('Show in right pane')),
+        if (MediaQuery.sizeOf(context).width >=
+            WorkspaceController.minSplitWidth)
+          const PopupMenuItem(
+              value: 'copy', child: Text('Split right (same document)')),
+        if (MediaQuery.sizeOf(context).width >=
+            WorkspaceController.minSplitWidth)
+          const PopupMenuItem(
+              value: 'right', child: Text('Show in right pane')),
         const PopupMenuDivider(),
         const PopupMenuItem(value: 'close', child: Text('Close tab')),
-        if (workspace.tabs.length > 1) const PopupMenuItem(value: 'others', child: Text('Close other tabs')),
+        if (workspace.tabs.length > 1)
+          const PopupMenuItem(value: 'others', child: Text('Close other tabs')),
       ],
     );
     switch (choice) {
       case 'copy':
-        if (!workspace.duplicateToRight(tab.id)) CustomSnackbar.info('Close a tab first (up to ${WorkspaceController.maxTabs} open).');
+        if (!workspace.duplicateToRight(tab.id))
+          CustomSnackbar.info(
+              'Close a tab first (up to ${WorkspaceController.maxTabs} open).');
       case 'left':
         workspace.showInPane(tab.id, 0);
       case 'right':
@@ -139,12 +164,15 @@ class _TabChip extends StatelessWidget {
     final accent = category.accentColor(context);
     final background = active
         ? context.secondaryContainer
-        : (shownElsewhere ? context.secondaryContainer.withValues(alpha: 0.4) : Colors.transparent);
+        : (shownElsewhere
+            ? context.secondaryContainer.withValues(alpha: 0.4)
+            : Colors.transparent);
 
     return Listener(
       // Middle click closes, as in a browser.
       onPointerDown: (event) {
-        if (event.kind == PointerDeviceKind.mouse && event.buttons == kMiddleMouseButton) workspace.close(tab.id);
+        if (event.kind == PointerDeviceKind.mouse &&
+            event.buttons == kMiddleMouseButton) workspace.close(tab.id);
       },
       child: GestureDetector(
         onSecondaryTapUp: (details) => _menu(context, details.globalPosition),
@@ -154,7 +182,8 @@ class _TabChip extends StatelessWidget {
             color: background,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: active ? context.secondary : context.outlineVariant),
+              side: BorderSide(
+                  color: active ? context.secondary : context.outlineVariant),
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
@@ -167,14 +196,18 @@ class _TabChip extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 2),
                         decoration: BoxDecoration(
                           color: accent.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(
                           category.shortCode,
-                          style: context.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800, fontSize: 9.5),
+                          style: context.labelSmall?.copyWith(
+                              color: accent,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 9.5),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -184,8 +217,10 @@ class _TabChip extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.bodyMedium?.copyWith(
-                            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                            color: active ? context.secondary : context.onSurface,
+                            fontWeight:
+                                active ? FontWeight.w700 : FontWeight.w500,
+                            color:
+                                active ? context.secondary : context.onSurface,
                           ),
                         ),
                       ),
@@ -220,7 +255,8 @@ class _Panes extends StatelessWidget {
       final width = constraints.maxWidth;
       final height = constraints.maxHeight;
       return Obx(() {
-        final split = workspace.split.value && width >= WorkspaceController.minSplitWidth;
+        final split =
+            workspace.split.value && width >= WorkspaceController.minSplitWidth;
         final ratio = workspace.ratio.value;
         final leftWidth = split ? (width * ratio) - _divider / 2 : width;
         final rightLeft = split ? leftWidth + _divider : width;
@@ -228,8 +264,9 @@ class _Panes extends StatelessWidget {
         final paneTabs = workspace.paneTabs.toList();
         final focused = workspace.focusedPane.value;
 
-        Rect rectFor(int pane) =>
-            pane == 0 ? Rect.fromLTWH(0, 0, leftWidth, height) : Rect.fromLTWH(rightLeft, 0, rightWidth, height);
+        Rect rectFor(int pane) => pane == 0
+            ? Rect.fromLTWH(0, 0, leftWidth, height)
+            : Rect.fromLTWH(rightLeft, 0, rightWidth, height);
 
         return Stack(
           children: [
@@ -237,8 +274,12 @@ class _Panes extends StatelessWidget {
             // pane is parked out of sight and not painted or ticked.
             for (final tab in workspace.tabs)
               () {
-                final pane = split ? paneTabs.indexOf(tab.id) : (paneTabs[0] == tab.id ? 0 : -1);
-                final rect = pane >= 0 ? rectFor(pane) : Rect.fromLTWH(0, 0, width, height);
+                final pane = split
+                    ? paneTabs.indexOf(tab.id)
+                    : (paneTabs[0] == tab.id ? 0 : -1);
+                final rect = pane >= 0
+                    ? rectFor(pane)
+                    : Rect.fromLTWH(0, 0, width, height);
                 return Positioned.fromRect(
                   key: ValueKey('pane-${tab.id}'),
                   rect: rect,
@@ -253,7 +294,11 @@ class _Panes extends StatelessWidget {
                         // The header is always in the tree (empty when not split) so the reader keeps its
                         // place in it, and its state, when side by side is switched on or off.
                         child: Column(children: [
-                          _PaneHeader(workspace: workspace, pane: pane, tab: tab, visible: split && !workspace.chromeHidden.value),
+                          _PaneHeader(
+                              workspace: workspace,
+                              pane: pane,
+                              tab: tab,
+                              visible: split && !workspace.chromeHidden.value),
                           Expanded(child: buildTabReader(tab)),
                         ]),
                       ),
@@ -270,7 +315,11 @@ class _Panes extends StatelessWidget {
                   split: true,
                   onFocus: () => workspace.focusPane(1),
                   child: Column(children: [
-                    _PaneHeader(workspace: workspace, pane: 1, tab: null, visible: !workspace.chromeHidden.value),
+                    _PaneHeader(
+                        workspace: workspace,
+                        pane: 1,
+                        tab: null,
+                        visible: !workspace.chromeHidden.value),
                     Expanded(child: _EmptyPane(workspace: workspace)),
                   ]),
                 ),
@@ -285,9 +334,12 @@ class _Panes extends StatelessWidget {
                   cursor: SystemMouseCursors.resizeColumn,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onHorizontalDragUpdate: (details) => workspace.setRatio(ratio + details.delta.dx / width),
+                    onHorizontalDragUpdate: (details) =>
+                        workspace.setRatio(ratio + details.delta.dx / width),
                     onDoubleTap: () => workspace.setRatio(0.5),
-                    child: Center(child: Container(width: 2, color: context.outlineVariant)),
+                    child: Center(
+                        child:
+                            Container(width: 2, color: context.outlineVariant)),
                   ),
                 ),
               ),
@@ -305,7 +357,11 @@ class _PaneFrame extends StatelessWidget {
   final VoidCallback onFocus;
   final Widget child;
 
-  const _PaneFrame({required this.focused, required this.split, required this.onFocus, required this.child});
+  const _PaneFrame(
+      {required this.focused,
+      required this.split,
+      required this.onFocus,
+      required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -314,7 +370,12 @@ class _PaneFrame extends StatelessWidget {
       child: DecoratedBox(
         position: DecorationPosition.foreground,
         decoration: BoxDecoration(
-          border: split ? Border(top: BorderSide(color: focused ? context.secondary : Colors.transparent, width: 2)) : null,
+          border: split
+              ? Border(
+                  top: BorderSide(
+                      color: focused ? context.secondary : Colors.transparent,
+                      width: 2))
+              : null,
         ),
         child: child,
       ),
@@ -335,14 +396,16 @@ class _EmptyPane extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.vertical_split_outlined, size: 40, color: context.onSurfaceVariant),
+          Icon(Icons.vertical_split_outlined,
+              size: 40, color: context.onSurfaceVariant),
           const SizedBox(height: 12),
           Text('Open a document here', style: context.titleMedium),
           const SizedBox(height: 4),
           Text(
             'Pick a tab above, or open another file to read it side by side.',
             textAlign: TextAlign.center,
-            style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
+            style:
+                context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
@@ -364,7 +427,11 @@ class _PaneHeader extends StatelessWidget {
   final WorkspaceTab? tab;
   final bool visible;
 
-  const _PaneHeader({required this.workspace, required this.pane, required this.tab, required this.visible});
+  const _PaneHeader(
+      {required this.workspace,
+      required this.pane,
+      required this.tab,
+      required this.visible});
 
   @override
   Widget build(BuildContext context) {
@@ -385,7 +452,8 @@ class _PaneHeader extends StatelessWidget {
               '$side$copy',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.labelSmall?.copyWith(color: context.onSurfaceVariant, letterSpacing: 0.4),
+              style: context.labelSmall?.copyWith(
+                  color: context.onSurfaceVariant, letterSpacing: 0.4),
             ),
           ),
           IconButton(

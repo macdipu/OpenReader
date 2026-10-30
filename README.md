@@ -1,40 +1,165 @@
-# OpenReader
+<p align="center">
+  <img src="docs/icon.png" width="96" alt="OpenReader icon" />
+</p>
 
-A document reader built with Flutter for Android, Windows, macOS and Linux. OpenReader lets users browse, open, read, search, and navigate the documents on their device — no accounts and no server dependency.
+<h1 align="center">OpenReader</h1>
 
-**Supported formats:** PDF, DOCX, XLSX, PPTX, CSV, TXT, MD. Legacy binary DOC/XLS/PPT are not supported.
+<p align="center"><b>All your documents. One beautiful reader.</b><br />
+Free · Open source · Cross-platform · Works offline · No registration</p>
 
----
+<p align="center">
+  <a href="https://macdipu.github.io/OpenReader/">Website</a> ·
+  <a href="https://github.com/macdipu/OpenReader/releases/latest">Download</a> ·
+  <a href="#installation">Installation</a> ·
+  <a href="#troubleshooting">Troubleshooting</a> ·
+  <a href="docs/ui-audit/README.md">UI audit</a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/devices/windows-desktop.png" width="49%" alt="OpenReader on Windows" />
+  <img src="docs/assets/devices/android-tablet.png" width="49%" alt="OpenReader on an Android tablet" />
+</p>
+<p align="center">
+  <img src="docs/assets/devices/android-foldable.png" width="35%" alt="OpenReader on an unfolded Android foldable" />
+  <img src="docs/assets/devices/android-phone.png" width="15%" alt="OpenReader on an Android phone" />
+</p>
+
+OpenReader is a document reader built with Flutter. It lets you browse, open, read, search and navigate the documents on your device, with no account and no server: nothing you open ever leaves it.
 
 ## Features
 
-- **Readers:** PDF (page-based), Word (paginated/flow), Excel/CSV (spreadsheet grid), plain text
-- **File discovery:** in-app folder browser, Recents, Favorites, Search
-- **Sharing:** Share, File Info, Open With, and Open From Other Apps (receive shared/opened files from other apps)
-- **Data:** an on-device SQLite index of opened documents for recents/favorites
+- **Seven formats, one app:** PDF (page-based), Word (paginated/flow), Excel and CSV (spreadsheet grid), PowerPoint slides, Markdown and plain text.
+- **Offline and private:** zero network calls, no accounts, no analytics. A local SQLite index remembers Recents and Favorites.
+- **Adaptive layout:** bottom bar on phones, side rail and tabs on tablets and desktops, fold-aware on foldables.
+- **Night mode** in every reader, plus light and dark app themes.
+- **Open from anywhere:** in-app folder browser, Open file (`Ctrl+O` / `⌘O`), drag and drop on desktop, the command line (`openreader file.pdf`), Open With, and files shared from other Android apps.
+- **Several documents at once:** tabs and side-by-side panes.
+- **Native integration:** per-type icons, Open With and a "make default reader" prompt.
 
-Reference: `lib/features/` (`pdf_reader`, `word_reader`, `excel_reader`, `csv_reader`, `text_reader`, `files`, `recents`, `favorites`, `search`, `settings`, `onboarding`, `home`).
+Supported formats: **PDF, DOCX, XLSX, PPTX, CSV, Markdown (.md), TXT.** Legacy binary `.doc`, `.xls` and `.ppt` are not supported.
 
----
+## Supported platforms
+
+| Platform | Devices | Release asset |
+|---|---|---|
+| **Android** | phones, tablets, foldables | `.apk` (arm64-v8a, armeabi-v7a) · [Google Play](https://play.google.com/store/apps/details?id=com.chowdhuryelab.openreader) |
+| **Windows** 10+ | 64-bit desktops and laptops | `.zip` (workflow only; not in v1.0.10) |
+| **macOS** 12+ | Mac laptops and desktops | `.dmg` |
+| **Linux** | x86_64 with GTK 3 | `.deb`, `.rpm`, `.AppImage`, `.tar.gz` |
+
+There is **no iOS / iPadOS build**. The macOS and Linux packages are produced by the release workflow; [`docs/ui-audit/`](docs/ui-audit/README.md) lists which form factors have been exercised on real builds.
+
+## Installation
+
+Every download is on the [**GitHub Releases** page](https://github.com/macdipu/OpenReader/releases). The newest release is always at <https://github.com/macdipu/OpenReader/releases/latest>. Asset names are fixed by [`.github/workflows/release.yml`](.github/workflows/release.yml); `<tag>` is the release tag (for example `v1.0.11`), `<version>` and `<build>` are the app version and build number.
+
+> **What is published today.** The newest release, **v1.0.10**, contains the Android APKs and AAB, `openreader-linux-x64-v1.0.10.tar.gz` and `openreader-macos-v1.0.10.zip`. It has **no Windows zip**, and the macOS `.dmg` and the Linux `.deb`, `.rpm` and AppImage described below are built by the release workflow but first appear with the **next tagged release**. Until then use the `.zip` / `.tar.gz` on those platforms.
+>
+> **There is no one-line install script.** OpenReader does not ship an `install.sh` or `install.ps1`, so use the steps below. Desktop builds are **not code-signed**, which is why Windows and macOS ask you to confirm the first launch.
+
+### Windows
+
+Asset: `openreader-windows-x64-<tag>.zip` (**not yet attached to any release**, see above; a portable folder; there is no `.exe` or `.msi` installer yet).
+
+1. Download the zip from Releases and extract it, for example to `C:\Users\<you>\OpenReader`.
+2. Run `openreader.exe`. If SmartScreen appears, choose **More info → Run anyway**.
+3. Optional, so OpenReader appears in **Open with**: in that folder run
+   `powershell -ExecutionPolicy Bypass -File register-file-types.ps1` (per user, no admin rights).
+
+Needs 64-bit Windows 10 or later.
+
+### macOS
+
+Asset: `OpenReader-<version>-macos.dmg` (v1.0.10: `openreader-macos-v1.0.10.zip`; unzip it, then drag **OpenReader.app** onto **Applications**).
+
+1. Open the `.dmg` and drag **OpenReader** onto **Applications**.
+2. First launch: right-click the app and choose **Open**, then **Open** again (unsigned build).
+
+Needs macOS 12 or later. The release workflow builds on GitHub's `macos-latest` runner (Apple silicon); an Intel-only Mac is untested.
+
+### Linux
+
+Assets (x86_64 only): `openreader_<version>-<build>_amd64.deb`, `openreader-<version>-<build>.x86_64.rpm`, `OpenReader-<version>-x86_64.AppImage`, `openreader-linux-x64-<tag>.tar.gz`.
+
+```bash
+# Debian, Ubuntu, Linux Mint
+sudo apt install ./openreader_<version>-<build>_amd64.deb
+
+# Fedora, RHEL
+sudo dnf install ./openreader-<version>-<build>.x86_64.rpm
+# openSUSE
+sudo zypper install ./openreader-<version>-<build>.x86_64.rpm
+
+# Any distribution with GTK 3: no install
+chmod +x OpenReader-<version>-x86_64.AppImage && ./OpenReader-<version>-x86_64.AppImage
+
+# Tarball: extract, then add the launcher and Open With entry
+mkdir -p ~/openreader && tar -xzf openreader-linux-x64-<tag>.tar.gz -C ~/openreader && ~/openreader/install-desktop-entry.sh
+```
+
+The packages pull in `libgtk-3` and `libsecret`; for the AppImage and tarball install them yourself if the app does not start.
+
+### Android
+
+- **Google Play:** <https://play.google.com/store/apps/details?id=com.chowdhuryelab.openreader>
+- **APK:** download `openreader-arm64-v8a-<tag>.apk` (almost every current phone) or `openreader-armeabi-v7a-<tag>.apk` (older 32-bit devices) from Releases, open it, and allow "Install unknown apps" for your browser or file manager when Android asks.
+
+The `.aab` file is the Google Play bundle, not something you install by hand.
+
+Not sure of your CPU? Use `arm64-v8a`; Android refuses an APK that does not fit.
+
+### Updating
+
+- **Google Play:** updates arrive through the store.
+- **Everything else:** download the newest asset from [Releases](https://github.com/macdipu/OpenReader/releases/latest) and install over the old one. Windows: extract over (or beside) the old folder. macOS: replace the app in Applications. Linux: install the new `.deb`/`.rpm`, or replace the AppImage. Android: install the new APK.
+- Recents and favourites live in the app's own data folder, outside the install folder.
+
+### Uninstalling
+
+| Platform | Steps |
+|---|---|
+| Windows | Run `register-file-types.ps1 -Unregister` (if you used it), then delete the folder |
+| macOS | Drag **OpenReader** from Applications to the Bin |
+| Linux | `sudo apt remove openreader` / `sudo dnf remove openreader`; AppImage: delete the file; tarball: `install-desktop-entry.sh --remove`, then delete the folder |
+| Android | Settings → Apps → OpenReader → Uninstall |
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Windows: "Windows protected your PC" | The build is unsigned. **More info → Run anyway.** |
+| macOS: "cannot be opened because the developer cannot be verified" | Right-click the app → **Open** → **Open** |
+| Linux: AppImage will not run | `chmod +x` it; install `libgtk-3-0` and `libsecret-1-0` |
+| Linux: `.deb` fails on a missing dependency | `sudo apt -f install` |
+| Android: "App not installed" | Wrong CPU type: try the other APK, or uninstall the Google Play version first (it is signed differently) |
+| Android: cannot see my files | Grant "All files access" when onboarding asks, or use the in-app **Open file** picker |
+| A `.doc`, `.xls` or `.ppt` will not open | Legacy binary Office formats are not supported; save as `.docx`, `.xlsx`, `.pptx` |
+| Anything else | [Open an issue](https://github.com/macdipu/OpenReader/issues) with your OS, version and file type |
 
 ## Platforms and release builds
 
-The layout adapts to window size (`lib/core/presentation/utils/screen_utils.dart`): phones get a bottom navigation bar, tablets and desktop windows get a side rail, an "Open file" button, and width-capped content. Documents are found with the in-app folder browser (Browse tab), starting from device storage (Android) or Home, Documents, Downloads and Desktop (desktop); a file can also be opened with "Open file", by drag-and-drop on desktop, or as a command-line argument (`openreader file.pdf`).
+The layout adapts to window size (`lib/core/presentation/utils/screen_utils.dart`): phones get a bottom navigation bar, tablets and desktop windows get a side rail, an "Open file" button, and width-capped content.
+
+## Building from source
 
 ```bash
-flutter build apk --release --split-per-abi   # Android
-flutter build windows --release               # run on Windows
-flutter build macos --release                 # run on macOS
-flutter build linux --release                 # run on Linux (needs libgtk-3-dev, libsecret-1-dev, ninja-build)
+flutter pub get
+flutter run                                    # debug, on the connected device or desktop
+flutter build apk --release --split-per-abi    # Android
+flutter build windows --release                # run on Windows
+flutter build macos --release                  # run on macOS
+flutter build linux --release                  # run on Linux (needs libgtk-3-dev, libsecret-1-dev, ninja-build)
 ```
 
-Each desktop target must be built on its own OS. `.github/workflows/release.yml` builds all four on a version tag and attaches the artifacts to the GitHub release. Desktop builds are unsigned.
+Each desktop target must be built on its own OS. `.github/workflows/release.yml` builds all four on a version tag and attaches the artifacts to the GitHub release. Installer scripts: `macos/dmg/make-dmg.sh` (background from `tool/generate_dmg_background.ps1`) and `linux/packaging/package-linux.sh` (checked by `tool/test_linux_packages.sh` in Debian and Fedora containers).
 
-**Installers** (built by that workflow):
+The landing page (`docs/`, served by GitHub Pages) is plain HTML, CSS and JS. Its device screenshots come from `tool/capture_window.ps1` and `tool/make_device_assets.ps1`.
 
-- **macOS:** `OpenReader-<version>-macos.dmg`, a disk image with the app and an Applications shortcut to drag it onto (`macos/dmg/make-dmg.sh`; the window background comes from `tool/generate_dmg_background.ps1`).
-- **Linux:** `openreader_<version>-<build>_amd64.deb` (Ubuntu, Debian, Mint), `openreader-<version>-<build>.x86_64.rpm` (Fedora, RHEL, openSUSE) and `OpenReader-<version>-x86_64.AppImage` (any distribution with GTK 3), plus a plain `.tar.gz` (`linux/packaging/package-linux.sh`; `tool/test_linux_packages.sh` checks the packaging in Debian and Fedora containers).
-- **Windows:** a zip with `register-file-types.ps1` (no installer yet).
+**Keeping this README in step with releases:** the asset names above come from the *Package* steps of `release.yml`. When that workflow, the app version or a download link changes, update the Installation section and `docs/index.html` together.
+
+## Licence
+
+The repository ([macdipu/OpenReader](https://github.com/macdipu/OpenReader); GitHub reports no licence) does not contain a `LICENSE` file yet, so no licence grant is stated here. The document engine it uses, [`universal_document_viewer`](https://github.com/macdipu/universal_document_viewer), is MIT-licensed. *(Maintainer: add a `LICENSE` file; the website and this README call the project open source.)*
 
 ---
 
@@ -298,7 +423,7 @@ More commands and troubleshooting are available in `docker/README.md` — it con
 
 ## Contributing
 
-1. Check `agentic/data/project-context/` for current requirements/architecture before making changes
+1. Read [Building from source](#building-from-source), then check `agentic/data/project-context/` for current requirements/architecture before making changes
 2. Follow the established Clean Architecture + GetX patterns (use `generate_feature.dart` for new features)
 3. Run `flutter analyze` and `flutter test` before submitting
 4. Submit your PR

@@ -135,6 +135,10 @@ class _DefaultAppDialogState extends State<_DefaultAppDialog> {
           ),
         ),
       ),
+      // On a narrow phone the three buttons stack: primary action first, all aligned to the same edge.
+      actionsOverflowDirection: VerticalDirection.up,
+      actionsOverflowAlignment: OverflowBarAlignment.end,
+      actionsOverflowButtonSpacing: 4,
       actions: [
         if (widget.firstRun)
           TextButton(
