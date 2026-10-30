@@ -71,6 +71,27 @@ class RecentRepositoryImpl implements RecentRepository {
   }
 
   @override
+  ResultFuture<void> touch(String documentId) {
+    return runTask(() async {
+      final db = await _appDatabase.database;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final updated = await db.update(
+        'recent_documents',
+        {'last_opened_at': now},
+        where: 'document_id = ?',
+        whereArgs: [documentId],
+      );
+      if (updated == 0) {
+        await db.insert(
+          'recent_documents',
+          {'document_id': documentId, 'last_opened_at': now, 'reading_position': '{}'},
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+    });
+  }
+
+  @override
   ResultFuture<void> remove(String documentId) {
     return runTask(() async {
       final db = await _appDatabase.database;

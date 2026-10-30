@@ -136,7 +136,21 @@ class DocumentInteractionController extends GetxController {
   }
 
   void _openReader(String route, DocumentModel document) {
+    unawaited(_recordOpen(document));
     unawaited(Get.toNamed(route, arguments: document));
+  }
+
+  /// Every open lands in History - a double-clicked file, an Android intent,
+  /// the picker, a drop - not just ones the reader later saves a position for
+  /// (some readers only save once the user has scrolled). Indexed first:
+  /// history rows reference index rows. Never blocks or fails the open.
+  Future<void> _recordOpen(DocumentModel document) async {
+    try {
+      await _documentRepository.indexDocument(document);
+      await _recentRepository.touch(document.id);
+    } catch (_) {
+      // History is best-effort.
+    }
   }
 
   /// Opens a document picked in the in-app browser. Browsed files aren't in
