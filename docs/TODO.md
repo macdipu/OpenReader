@@ -61,9 +61,9 @@ How to capture (keeps all platforms consistent):
 
 ## Layout and reader work still to do
 
-- [ ] **Two-pane layout** for tablets and a Fold's inner screen: list on one side, reader on the other
-      (FOLDABLES-PLAN P3). Home and Library are single lists today.
-- [ ] Home's "Continue Reading" shows three cards and leaves space on wide tablets and desktop.
+- [ ] Two-pane (list plus details) exists on Home only, from about 1000 px of content width. Add it to Library and
+      History, and lower the threshold so an unfolded Fold's inner screen gets it too (FOLDABLES-PLAN P3). Opening
+      a document still goes full screen; showing the reader in the right pane is not done.
 - [ ] **Dedicated tablet reader UI**: toolbar placement and navigation panels for portrait and landscape.
 - [ ] **Mobile reader polish**: fit-to-width by default, double-tap to zoom and reset, compact toolbar, no horizontal
       overflow.

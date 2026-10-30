@@ -46,7 +46,13 @@ class AppShell extends StatelessWidget {
                 DesktopSidebar(controller: controller, extended: context.isExpandedScreen),
                 VerticalDivider(width: 1, color: context.outlineVariant),
                 // A hinge or fold splits the window: keep the pages on one side of it.
-                Expanded(child: FoldAwareSubScreen(child: ContentConstraint(child: pages))),
+                Expanded(child: FoldAwareSubScreen(
+                  // Home splits into list and details, so it gets more room than the lists.
+                  child: Obx(() => ContentConstraint(
+                    maxWidth: controller.currentIndex.value == AppShellController.homeIndex ? 1240 : ScreenUtils.maxContentWidth,
+                    child: pages,
+                  )),
+                )),
               ],
             )
           : pages,
