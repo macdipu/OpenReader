@@ -1,0 +1,46 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 636 >>
+stream
+BT /F2 26 Tf 56 770 Td (Quarterly Report) Tj ET
+BT /F1 13 Tf 56 746 Td (Q3 2026 - Summary) Tj ET
+BT /F1 12 Tf 56 700 Td (Revenue grew 12% quarter over quarter, led by the East region.) Tj ET
+BT /F1 12 Tf 56 676 Td (Customer retention held steady at 94%.) Tj ET
+BT /F1 12 Tf 56 652 Td (Support response time improved from 9h to 5h.) Tj ET
+BT /F1 12 Tf 56 628 Td () Tj ET
+BT /F2 16 Tf 56 604 Td (Highlights) Tj ET
+BT /F1 12 Tf 56 580 Td (  - Launched desktop apps for Windows, macOS and Linux) Tj ET
+BT /F1 12 Tf 56 556 Td (  - Reached 50,000 documents opened per week) Tj ET
+BT /F1 12 Tf 56 532 Td (  - Cut cold-start time by 38%) Tj ET
+
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000000938 00000 n 
+0000001008 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+1083
+%%EOF

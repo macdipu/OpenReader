@@ -3,85 +3,281 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenReader — All-in-One PDF, Word &amp; Excel Reader</title>
-  <meta name="description" content="OpenReader is an all-in-one Android document reader for PDF, Word, Excel, CSV, and text files. No accounts, no cloud upload, no tracking." />
+  <title>OpenReader — PDF, Word, Excel &amp; PowerPoint reader for Android, Windows, macOS and Linux</title>
+  <meta name="description" content="OpenReader is a fast, private document reader for PDF, Word, Excel, PowerPoint, CSV, Markdown and text files. Works offline on Android, Windows, macOS and Linux. No accounts, no cloud, no tracking." />
+  <meta name="theme-color" content="#0b0d12" />
   <link rel="icon" type="image/png" href="icon.png" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="canonical" href="https://macdipu.github.io/OpenDocs/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="OpenReader — one reader for every document" />
+  <meta property="og:description" content="PDF, Word, Excel, PowerPoint, CSV and text — offline and private, on Android, Windows, macOS and Linux." />
+  <meta property="og:image" content="https://macdipu.github.io/OpenDocs/assets/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="site">
     <div class="wrap">
-      <div class="brand"><img class="mark" src="icon.png" alt="" width="28" height="28" /> OpenReader</div>
-      <nav class="site">
+      <a class="brand" href="#top"><img class="mark" src="icon.png" alt="" width="30" height="30" /> OpenReader</a>
+      <nav class="site" aria-label="Primary">
+        <a href="#showcase">Preview</a>
+        <a href="#features">Features</a>
+        <a href="#platforms">Platforms</a>
+        <a href="privacy.html">Privacy</a>
         <a href="https://github.com/macdipu/OpenDocs">GitHub</a>
-        <a href="privacy.html">Privacy Policy</a>
+        <a class="nav-cta keep" id="nav-cta" href="#platforms">Download</a>
       </nav>
     </div>
   </header>
 
-  <main>
+  <main id="top">
+    <!-- ================= HERO ================= -->
     <section class="hero">
       <div class="wrap">
-        <div class="badges">
-          <span class="badge">No Accounts</span>
-          <span class="badge">Open Source</span>
-        </div>
-        <h1>One app for all your documents.</h1>
+        <span class="eyebrow"><span class="dot"></span><b>v1.0.11</b> · Android, Windows, macOS &amp; Linux</span>
+        <h1>One reader for <span class="grad">every document</span>.</h1>
         <p class="lead">
-          OpenReader is an all-in-one Android document reader built with Flutter.
-          Discover, open, read, search, and navigate your PDF, Word, Excel, CSV, and
-          text files — no accounts, no cloud upload, no server dependency.
+          Open PDF, Word, Excel, PowerPoint, CSV, Markdown and text files in a single fast app.
+          It works fully offline — no accounts, no uploads, no tracking.
         </p>
+
         <div class="cta-row">
-          <a class="btn primary" href="https://github.com/macdipu/OpenDocs">View on GitHub</a>
-          <a class="btn ghost" href="privacy.html">Read Privacy Policy</a>
+          <a class="btn primary" id="cta-primary" href="#platforms">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v9.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4L11 13.6V4a1 1 0 0 1 1-1ZM5 19a1 1 0 1 1 0-2h14a1 1 0 1 1 0 2H5Z"/></svg>
+            <span class="two"><span id="cta-label">Download OpenReader</span><small id="cta-sub">Free · no account needed</small></span>
+          </a>
+          <a class="btn ghost" id="cta-secondary" href="#platforms">All platforms</a>
+        </div>
+        <p class="cta-note" id="cta-note"></p>
+
+        <div class="trust">
+          <span>Works offline</span>
+          <span>No account or sign-in</span>
+          <span>No analytics or tracking</span>
+          <span>Open source</span>
+        </div>
+
+        <div class="stage" id="hero-stage">
+          <div class="window"><img id="hero-desktop" src="assets/screens/desktop-pdf.png" width="1262" height="750" alt="OpenReader showing a PDF on the desktop" fetchpriority="high" /></div>
+          <div class="phone"><img src="assets/screens/phone-files.png" width="540" height="1170" alt="OpenReader file list on a phone" loading="lazy" /></div>
+          <p class="shot-note" id="hero-note"></p>
         </div>
       </div>
     </section>
 
-    <section id="formats">
+    <!-- ================= FORMATS ================= -->
+    <section class="tight" id="formats">
       <div class="wrap">
-        <h2>Supported formats</h2>
+        <div class="section-head">
+          <span class="kicker">Formats</span>
+          <h2>Every file, its own look.</h2>
+          <p>Each document type has its own colour and icon, so you always know what you are opening.</p>
+        </div>
         <div class="formats">
-          <span>PDF</span>
-          <span>DOCX</span>
-          <span>XLSX</span>
-          <span>PPTX</span>
-          <span>CSV</span>
-          <span>TXT</span>
+          <div class="format"><img src="assets/types/pdf.png" alt="" width="64" height="64" loading="lazy" /><span>PDF</span></div>
+          <div class="format"><img src="assets/types/docx.png" alt="" width="64" height="64" loading="lazy" /><span>Word</span></div>
+          <div class="format"><img src="assets/types/xlsx.png" alt="" width="64" height="64" loading="lazy" /><span>Excel</span></div>
+          <div class="format"><img src="assets/types/pptx.png" alt="" width="64" height="64" loading="lazy" /><span>PowerPoint</span></div>
+          <div class="format"><img src="assets/types/csv.png" alt="" width="64" height="64" loading="lazy" /><span>CSV</span></div>
+          <div class="format"><img src="assets/types/txt.png" alt="" width="64" height="64" loading="lazy" /><span>Text</span></div>
+          <div class="format"><img src="assets/types/md.png" alt="" width="64" height="64" loading="lazy" /><span>Markdown</span></div>
         </div>
       </div>
     </section>
 
-    <section id="features">
+    <!-- ================= SHOWCASE ================= -->
+    <section id="showcase" class="showcase">
       <div class="wrap">
-        <h2>Features</h2>
-        <p class="section-lead">Everything a document reader needs, nothing it doesn't.</p>
+        <div class="section-head">
+          <span class="kicker" id="showcase-kicker">Preview</span>
+          <h2 id="showcase-title">A reader that stays out of the way.</h2>
+          <p id="showcase-lead">Clean typography, fast scrolling and a night mode for every reader.</p>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Document type">
+          <button class="tab" role="tab" aria-selected="true" data-shot="pdf">PDF</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="docx">Word</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="xlsx">Excel</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="docx-dark">Night mode</button>
+        </div>
+
+        <div class="window"><img id="showcase-img" src="assets/screens/desktop-pdf.png" width="1262" height="750" alt="OpenReader PDF reader" loading="lazy" /></div>
+        <p class="shot-note" id="showcase-note"></p>
+
+        <div class="os-switch" role="group" aria-label="Preview platform">
+          <span>Preview as</span>
+          <button data-os="android" aria-pressed="false">Android</button>
+          <button data-os="windows" aria-pressed="false">Windows</button>
+          <button data-os="macos" aria-pressed="false">macOS</button>
+          <button data-os="linux" aria-pressed="false">Linux</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FEATURES ================= -->
+    <section id="features" style="background: var(--bg-soft);">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Features</span>
+          <h2>Everything a reader needs. Nothing it doesn't.</h2>
+          <p>Built with Flutter, with its own document engines, so every platform reads files the same way.</p>
+        </div>
         <div class="grid">
           <div class="card">
-            <span class="icon">📖</span>
-            <h3>Multi-format readers</h3>
-            <p>Page-based PDF viewing, paginated Word documents, spreadsheet grid for Excel/CSV, and plain text reading.</p>
+            <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+            <h3>Seven formats, one app</h3>
+            <p>Page-based PDF, paginated Word, spreadsheet grid for Excel and CSV, PowerPoint slides, Markdown and plain text.</p>
           </div>
           <div class="card">
-            <span class="icon">🔍</span>
-            <h3>File discovery</h3>
-            <p>Browse your folders, plus Recents, Favorites, and Search.</p>
+            <span class="ico"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
+            <h3>Night mode everywhere</h3>
+            <p>Switch any reader to a dark theme with one tap, so late-night reading is easy on the eyes.</p>
           </div>
           <div class="card">
-            <span class="icon">📤</span>
-            <h3>Sharing &amp; integration</h3>
-            <p>Share, File Info, Open With, and receive shared/opened files from other apps.</p>
+            <span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+            <h3>Private by design</h3>
+            <p>Zero network calls. Your documents are read on-device and never leave it. No accounts, no analytics.</p>
+          </div>
+          <div class="card">
+            <span class="ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+            <h3>Find anything fast</h3>
+            <p>Browse folders, jump to Recents and Favorites, filter by type, and search inside documents.</p>
+          </div>
+          <div class="card">
+            <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/></svg></span>
+            <h3>Open from anywhere</h3>
+            <p>Open With from your file manager, drag and drop, the command line, or files shared from other apps.</p>
+          </div>
+          <div class="card">
+            <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
+            <h3>Made for every screen</h3>
+            <p>A bottom bar on phones, a side rail and "Open file" button on desktop, with content width that suits large windows.</p>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- ================= OPEN WITH ================= -->
+    <section>
+      <div class="wrap">
+        <div class="split">
+          <div>
+            <span class="kicker">Desktop integration</span>
+            <h2>Right-click, Open with OpenReader.</h2>
+            <p>OpenReader registers itself with your file manager, so any supported document opens in one click — and each type keeps its own recognisable icon.</p>
+            <ul class="checks">
+              <li><b>Windows</b> — per-user registration script, no admin rights needed.</li>
+              <li><b>macOS</b> — appears in Finder's Open With and the Dock drop target.</li>
+              <li><b>Linux</b> — a desktop entry adds it to your launcher and Open With menu.</li>
+              <li><b>Never takes over</b> — it does not change your default apps.</li>
+            </ul>
+          </div>
+          <div class="explorer" aria-hidden="true">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <div class="files">
+              <div class="file"><img src="assets/types/pdf.png" alt="" width="72" height="72" loading="lazy" /><span>Quarterly Report.pdf</span></div>
+              <div class="file"><img src="assets/types/docx.png" alt="" width="72" height="72" loading="lazy" /><span>Project Brief.docx</span></div>
+              <div class="file"><img src="assets/types/xlsx.png" alt="" width="72" height="72" loading="lazy" /><span>Sales 2026.xlsx</span></div>
+              <div class="file"><img src="assets/types/pptx.png" alt="" width="72" height="72" loading="lazy" /><span>Roadmap.pptx</span></div>
+              <div class="file"><img src="assets/types/csv.png" alt="" width="72" height="72" loading="lazy" /><span>Expenses.csv</span></div>
+              <div class="file"><img src="assets/types/md.png" alt="" width="72" height="72" loading="lazy" /><span>Notes.md</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PLATFORMS ================= -->
+    <section id="platforms" style="background: var(--bg-soft);">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Download</span>
+          <h2>Get OpenReader on your device.</h2>
+          <p>Free on every platform. Desktop builds are attached to each GitHub release.</p>
+        </div>
+
+        <div class="platforms" id="platform-list">
+          <article class="platform" data-os="android">
+            <span class="tag">Your device</span>
+            <div class="head">
+              <span class="logo"><svg viewBox="0 0 24 24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 2v14h10V4H7Zm5 15.2a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2Z"/></svg></span>
+              <div><h3>Android</h3><span class="req">Phones &amp; tablets</span></div>
+            </div>
+            <p>Finds the documents already on your phone, and opens files shared from any other app.</p>
+            <ul>
+              <li>On-device scanner for PDF, Office, CSV and text</li>
+              <li>Recents, Favorites and search</li>
+              <li>Open from other apps and share out</li>
+            </ul>
+            <a class="btn primary" href="https://play.google.com/store/apps/details?id=com.chowdhuryelab.openreader">Get it on Google Play</a>
+          </article>
+
+          <article class="platform" data-os="windows">
+            <span class="tag">Your device</span>
+            <div class="head">
+              <span class="logo"><svg viewBox="0 0 24 24"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm8.7-1.3L21 3v8.5h-9.3V4.2ZM3 12.5h7.5v7.1L3 18.5v-6Zm8.7 0H21V21l-9.3-1.3v-7.2Z"/></svg></span>
+              <div><h3>Windows</h3><span class="req">Windows 10 or later · 64-bit</span></div>
+            </div>
+            <p>A native desktop app with drag and drop, command-line open and Explorer integration.</p>
+            <ul>
+              <li>Unzip and run <code>openreader.exe</code></li>
+              <li>Run <code>register-file-types.ps1</code> to add it to Open with</li>
+              <li>Unsigned build — SmartScreen may ask you to confirm</li>
+            </ul>
+            <a class="btn primary" href="https://github.com/macdipu/OpenDocs/releases/latest">Download for Windows</a>
+          </article>
+
+          <article class="platform" data-os="macos">
+            <span class="tag">Your device</span>
+            <div class="head">
+              <span class="logo"><svg viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v9H5V5Zm2 0v7h10V5H7ZM2 16h20v1.2A1.8 1.8 0 0 1 20.2 19H3.8A1.8 1.8 0 0 1 2 17.2V16Z"/></svg></span>
+              <div><h3>macOS</h3><span class="req">macOS 12 or later</span></div>
+            </div>
+            <p>A real Mac app that shows up in Finder's Open With and accepts files dropped on the Dock icon.</p>
+            <ul>
+              <li>Unzip and drag <code>OpenReader.app</code> to Applications</li>
+              <li>First launch: right-click, then Open (unsigned build)</li>
+              <li>Opens files from Finder while already running</li>
+            </ul>
+            <a class="btn primary" href="https://github.com/macdipu/OpenDocs/releases/latest">Download for macOS</a>
+          </article>
+
+          <article class="platform" data-os="linux">
+            <span class="tag">Your device</span>
+            <div class="head">
+              <span class="logo"><svg viewBox="0 0 24 24"><path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5Zm2 0v14h14V5H5Zm2.3 3.3 1.4-1.4 4 4-4 4-1.4-1.4 2.6-2.6-2.6-2.6ZM13 15h4v2h-4v-2Z"/></svg></span>
+              <div><h3>Linux</h3><span class="req">x64 · GTK 3</span></div>
+            </div>
+            <p>A tarball you can run anywhere, plus a desktop entry for your launcher and file manager.</p>
+            <ul>
+              <li>Extract and run <code>./openreader</code></li>
+              <li>Run <code>./install-desktop-entry.sh</code> for Open With and the app menu</li>
+              <li>Needs <code>libgtk-3</code> and <code>libsecret</code></li>
+            </ul>
+            <a class="btn primary" href="https://github.com/macdipu/OpenDocs/releases/latest">Download for Linux</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PRIVACY ================= -->
     <section id="privacy">
       <div class="wrap">
         <div class="privacy-highlight">
-          <h2>Your documents never leave your device</h2>
-          <p>OpenReader has no servers, no accounts, and no analytics. Read the full details in our <a href="privacy.html">Privacy Policy</a>.</p>
+          <h2>Your documents never leave your device.</h2>
+          <p>OpenReader has no servers, no accounts and no analytics. Everything is read and indexed locally.</p>
+          <div class="stats">
+            <div><b>0</b><span>network calls</span></div>
+            <div><b>0</b><span>accounts</span></div>
+            <div><b>0</b><span>trackers</span></div>
+          </div>
+          <a class="btn ghost" href="privacy.html">Read the privacy policy</a>
         </div>
       </div>
     </section>
@@ -89,12 +285,15 @@
 
   <footer class="site">
     <div class="wrap">
-      <span>OpenReader — built with Flutter</span>
+      <span>© 2026 OpenReader · Built with Flutter</span>
       <span>
         <a href="https://github.com/macdipu/OpenDocs">GitHub</a> ·
+        <a href="https://github.com/macdipu/OpenDocs/releases">Releases</a> ·
         <a href="privacy.html">Privacy Policy</a>
       </span>
     </div>
   </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>

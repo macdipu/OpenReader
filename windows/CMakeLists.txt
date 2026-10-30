@@ -75,6 +75,10 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
+# Lets the app register itself in Settings > Default apps (see DefaultAppService).
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/register-file-types.ps1"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
+
 # Per-document-type icons used by register-file-types.ps1.
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/runner/resources/file_icons"
   DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)

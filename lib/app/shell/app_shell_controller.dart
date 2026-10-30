@@ -9,6 +9,7 @@ import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/browse/presentation/browse_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
 import '../../core/presentation/utils/platform_info.dart';
+import '../../features/settings/presentation/default_app_dialog.dart';
 import '../../services/platform_integration/desktop_open_files.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
@@ -66,7 +67,12 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   /// Desktop: a file passed on the command line when the app was launched.
   void _openLaunchFiles() {
     final files = LaunchArguments.take();
-    if (files.isNotEmpty) unawaited(_incomingIntentService.handlePath(files.first));
+    if (files.isNotEmpty) {
+      unawaited(_incomingIntentService.handlePath(files.first));
+    } else {
+      // Not when the app was just launched to read a file.
+      unawaited(maybePromptDefaultApp());
+    }
     if (PlatformInfo.isMacOS) unawaited(_listenForFinderFiles());
   }
 

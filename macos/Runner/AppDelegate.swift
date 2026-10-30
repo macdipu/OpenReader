@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import UniformTypeIdentifiers
 
 @main
 class AppDelegate: FlutterAppDelegate {
@@ -15,18 +16,46 @@ class AppDelegate: FlutterAppDelegate {
       let channel = FlutterMethodChannel(
         name: "openreader/open_files", binaryMessenger: controller.engine.binaryMessenger)
       channel.setMethodCallHandler { [weak self] call, result in
-        guard let self = self, call.method == "takeInitialFiles" else {
+        guard let self = self else {
           result(FlutterMethodNotImplemented)
           return
         }
-        self.dartReady = true
-        let files = self.pendingFiles
-        self.pendingFiles = []
-        result(files)
+        switch call.method {
+        case "takeInitialFiles":
+          self.dartReady = true
+          let files = self.pendingFiles
+          self.pendingFiles = []
+          result(files)
+        case "setDefaultForExtensions":
+          self.setDefault(forExtensions: call.arguments as? [String] ?? [], result: result)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
       }
       self.channel = channel
     }
     super.applicationDidFinishLaunching(notification)
+  }
+
+  /// Makes OpenReader the default app for each extension; replies with the extensions that failed.
+  /// macOS shows its own confirmation, so a refusal by the user also lands in the failed list.
+  private func setDefault(forExtensions extensions: [String], result: @escaping FlutterResult) {
+    let appURL = Bundle.main.bundleURL
+    Task {
+      var failed: [String] = []
+      for ext in extensions {
+        guard let type = UTType(filenameExtension: ext) else {
+          failed.append(ext)
+          continue
+        }
+        do {
+          try await NSWorkspace.shared.setDefaultApplication(at: appURL, toOpen: type)
+        } catch {
+          failed.append(ext)
+        }
+      }
+      result(failed)
+    }
   }
 
   override func application(_ sender: NSApplication, openFiles filenames: [String]) {
