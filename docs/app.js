@@ -230,8 +230,9 @@
       }
       line.innerHTML = 'Latest version <b>' + esc(latest.tag_name) + '</b>, released ' + fmtDate(latest.published_at) + extra + '. <a href="#history">See all versions</a>';
       line.hidden = false;
+      if (window.fitHero) setTimeout(window.fitHero, 0);
       var pill = $('ver-pill');
-      if (pill) { $('ver-pill-text').textContent = 'Version ' + latest.tag_name.replace(/^v/, '') + ' is out'; pill.hidden = false; pill.addEventListener('click', function () { var hs = $('history'); if (hs) hs.open = true; }); }
+      if (pill) { $('ver-pill-text').textContent = 'Version ' + latest.tag_name.replace(/^v/, '') + ' is out'; pill.hidden = false; if (window.fitHero) setTimeout(window.fitHero, 0);  }
       line.querySelectorAll('[data-pick]').forEach(function (el) { el.addEventListener('click', function (e) { e.preventDefault(); openLinuxPicker(rels); }); });
 
       // availability badge under each device in the lineup
@@ -283,15 +284,30 @@
         }
       });
 
-      // history: collapsed list, latest release open once expanded
+      // history: a visible list, latest three first, older ones on request
+      var PLATFORM_NAMES = [['android', 'Android'], ['macos', 'macOS'], ['linux', 'Linux'], ['windows', 'Windows']];
+      var SHOW = 3;
       $('history-list').innerHTML = rels.map(function (r, i) {
-        return '<details' + (i === 0 ? ' open' : '') + '><summary><b>' + esc(r.tag_name) + '</b>' + (i === 0 ? '<i>Latest</i>' : '') +
-          '<span>' + fmtDate(r.published_at) + ', ' + r.assets.length + ' files</span></summary><div class="files-list">' + r.assets.map(fileRow).join('') +
+        var chips = PLATFORM_NAMES.filter(function (p) { return listFor(r, p[0]).length; })
+          .map(function (p) { return '<span class="chip">' + p[1] + '</span>'; }).join('');
+        return '<details class="vrow' + (i >= SHOW ? ' older' : '') + '"' + '><summary>' +
+          '<span class="vtag"><b>' + esc(r.tag_name) + '</b>' + (i === 0 ? '<i>Latest</i>' : '') + '</span>' +
+          '<span class="vdate">' + fmtDate(r.published_at) + '</span><span class="vchips">' + chips + '</span>' +
+          '<span class="vcount">' + r.assets.length + ' files</span></summary><div class="files-list">' + r.assets.map(fileRow).join('') +
           '<a class="notes" href="' + esc(r.html_url) + '">Read the release notes on GitHub</a></div></details>';
       }).join('');
-      $('history-count').textContent = '(' + rels.length + ')';
+      $('history-blurb').textContent = rels.length + ' releases, newest first. Older builds stay available if you need one.';
+      var more = $('history-more'), list = $('history-list');
+      function setMore() {
+        var all = list.classList.contains('all');
+        more.textContent = all ? 'Show fewer versions' : 'Show ' + (rels.length - SHOW) + ' older versions';
+      }
+      if (rels.length > SHOW) {
+        more.hidden = false; setMore();
+        more.addEventListener('click', function () { list.classList.toggle('all'); setMore(); });
+      }
       $('history').hidden = false;
-      document.querySelectorAll('a[href="#history"]').forEach(function (a) { a.addEventListener('click', function () { $('history').open = true; }); });
+      document.querySelectorAll('a[href="#history"]').forEach(function (a) { a.addEventListener('click', function () { list.classList.add('all'); if (rels.length > SHOW) setMore(); }); });
 
       initProof(rels);
     });
@@ -486,6 +502,27 @@
     els.forEach(function (e) { io.observe(e); });
   }
 
+  // ---- hero: fit copy + devices to the window height --------------------------
+  function initFit() {
+    var fold = $('fold'), hdr = document.querySelector('header.site'), hero = document.querySelector('.hero');
+    if (!fold || !hero || !('zoom' in document.body.style)) return;
+    var raf = 0;
+    function fit() {
+      raf = 0;
+      if (window.innerWidth < 900) { fold.style.zoom = ''; return; }
+      fold.style.zoom = '1';
+      var natural = fold.getBoundingClientRect().height;
+      var avail = window.innerHeight - hdr.offsetHeight - parseFloat(getComputedStyle(hero).paddingTop) - 28;
+      var s = Math.max(0.5, Math.min(1, avail / natural));
+      fold.style.zoom = s < 0.995 ? s.toFixed(3) : '';
+    }
+    window.fitHero = function () { if (!raf) raf = requestAnimationFrame(fit); };
+    window.addEventListener('resize', window.fitHero);
+    window.addEventListener('load', window.fitHero);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(window.fitHero);
+    fit();
+  }
+
   // ---- header: shadow after scroll, highlight the section in view ----------
   function initHeader() {
     var hdr = document.querySelector('header.site'), top = $('to-top'), hero = document.querySelector('.hero');
@@ -504,6 +541,7 @@
   }
 
   initLoader();
+  initFit();
   initHeader();
   initParallax();
   initActions();

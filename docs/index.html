@@ -101,6 +101,7 @@
         </svg>
       </div>
 
+      <div class="fold" id="fold">
       <div class="drift" aria-hidden="true">
         <img class="d d1" src="assets/types/docx.png" alt="" width="58" height="58" />
         <img class="d d2" src="assets/types/pdf.png" alt="" width="50" height="50" />
@@ -160,6 +161,8 @@
             <button class="devbtn" type="button" aria-label="View Android phone larger"><span class="frame phone"><span class="screen"><img src="assets/devices/android-phone.png" width="540" height="1170" alt="OpenReader on an Android phone, reading Exploring the World as a PDF" /></span></span></button>
           </div>
         </div>
+      </div>
+
       </div>
 
       <div class="wrap">
@@ -372,10 +375,16 @@
         <div class="ios-soon"><span class="soon-tag">Coming soon</span><b>iOS</b><span>iPhone and iPad version is on the way.</span></div>
         <p class="fineprint">iOS is coming soon. Step-by-step install and update instructions are in the <a href="https://github.com/macdipu/OpenReader#installation">README</a>.</p>
 
-        <details class="history" id="history" hidden>
-          <summary><h3>All versions <span id="history-count"></span></h3></summary>
-          <div class="history-list" id="history-list"></div>
-        </details>
+        <div class="history" id="history" hidden>
+          <div class="history-head">
+            <div>
+              <h3>All versions</h3>
+              <p id="history-blurb">Every published release, newest first.</p>
+            </div>
+          </div>
+          <div class="vlist" id="history-list"></div>
+          <button class="vmore" id="history-more" type="button" hidden></button>
+        </div>
       </div>
     </section>
 
