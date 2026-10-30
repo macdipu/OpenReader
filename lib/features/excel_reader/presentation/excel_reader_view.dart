@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import 'package:get/get.dart';
 
 import '../../../core/domain/models/document_category.dart';
@@ -61,11 +62,11 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: SpreadsheetView(
+                child: ReaderScrollbar(controller: controller.sheet.verticalController, child: SpreadsheetView(
                   key: ValueKey(sheetIndex),
                   controller: controller.sheet,
                   emptyMessage: 'Empty workbook',
-                ),
+                )),
               ),
             ),
             _SheetTabBar(controller: controller),

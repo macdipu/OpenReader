@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../core/presentation/utils/platform_info.dart';
+import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
+import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
 import 'package:universal_document_viewer/pdf.dart';
 
@@ -85,7 +88,8 @@ class PdfReaderView extends GetView<PdfReaderController> {
   }
 
   Widget _buildViewer(BuildContext context) {
-    return PdfView(
+    return ReaderSafeZone(kind: ReaderContent.page, child: PdfView(
+      showScrollbar: PlatformInfo.isDesktop,
       controller: controller.pdf,
       backgroundColor: context.background,
       // In fullscreen, a tap on the page brings the controls back.
@@ -95,7 +99,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
         return true;
       },
       errorBuilder: (context, error) => _ReaderErrorView(controller: controller, error: error),
-    );
+    ));
   }
 }
 

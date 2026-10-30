@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -49,7 +50,7 @@ class PowerPointReaderView extends GetView<PowerPointReaderController> {
                 if (status.isEmpty) {
                   return Center(child: Text('This presentation has no slides.', style: context.bodyMedium));
                 }
-                return Container(color: context.background, child: SlidesView(controller: controller.deck));
+                return ReaderSafeZone(kind: ReaderContent.slides, child: Container(color: context.background, child: SlidesView(controller: controller.deck)));
               }),
               ),
               bottomNavigationBar: controller.isFullscreen.value ||
