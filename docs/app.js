@@ -95,19 +95,19 @@
     { re: /linux.*\.tar\.gz$/i, label: '.tar.gz', hint: 'Manual install' }
   ];
   var FRIENDLY = [
-    [/\.exe$/i, 'Installer (.exe) · Windows 64-bit'],
-    [/\.msi$/i, 'Installer (.msi) · Windows'],
-    [/windows.*\.zip$/i, 'ZIP · Windows portable'],
-    [/\.dmg$/i, 'DMG · macOS'],
-    [/macos.*\.zip$/i, 'ZIP · macOS'],
-    [/arm64-v8a.*\.apk$/i, 'APK · arm64 (most phones)'],
-    [/armeabi-v7a.*\.apk$/i, 'APK · armeabi-v7a (older phones)'],
-    [/\.apk$/i, 'APK · Android'],
-    [/\.aab$/i, 'AAB · Play Store bundle'],
-    [/\.deb$/i, '.deb · Ubuntu / Debian / Mint (x64)'],
-    [/\.rpm$/i, '.rpm · Fedora / RHEL / openSUSE'],
-    [/\.appimage$/i, 'AppImage · any distro'],
-    [/\.tar\.gz$/i, '.tar.gz · manual install']
+    [/\.exe$/i, 'Installer (.exe), Windows 64-bit'],
+    [/\.msi$/i, 'Installer (.msi), Windows'],
+    [/windows.*\.zip$/i, 'ZIP, Windows portable'],
+    [/\.dmg$/i, 'DMG, macOS'],
+    [/macos.*\.zip$/i, 'ZIP, macOS'],
+    [/arm64-v8a.*\.apk$/i, 'APK, arm64 (most phones)'],
+    [/armeabi-v7a.*\.apk$/i, 'APK, armeabi-v7a (older phones)'],
+    [/\.apk$/i, 'APK, Android'],
+    [/\.aab$/i, 'AAB, Play Store bundle'],
+    [/\.deb$/i, '.deb, Ubuntu / Debian / Mint (x64)'],
+    [/\.rpm$/i, '.rpm, Fedora / RHEL / openSUSE'],
+    [/\.appimage$/i, 'AppImage, any distro'],
+    [/\.tar\.gz$/i, '.tar.gz, manual install']
   ];
 
   function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -192,7 +192,7 @@
         label.textContent = 'View releases on GitHub';
         var others = ['android', 'macos', 'windows', 'linux'].filter(function (k) { return k !== os && find(rels, k); });
         note.innerHTML = OS_NAME[os] + ' downloads are not published yet.' + (others.length
-          ? ' Available now: ' + others.map(function (k) { return '<a href="#platforms">' + OS_NAME[k] + '</a>'; }).join(' · ') + '.' : '');
+          ? ' Available now: ' + others.map(function (k) { return '<a href="#platforms">' + OS_NAME[k] + '</a>'; }).join(', ') + '.' : '');
       }
 
       if (os === 'ios') {
@@ -207,7 +207,7 @@
         } else if (hit) {
           cta.href = hit.asset.browser_download_url;
           label.textContent = 'Download ' + (fam === 'deb' ? '.deb' : '.rpm') + ' for Linux';
-          extra = ' · <a href="#" data-pick>Other distro?</a>';
+          extra = ' (<a href="#" data-pick>other distro?</a>)';
         } else {
           label.textContent = 'Download for Linux';
           cta.href = '#linux-pick';
@@ -215,7 +215,7 @@
         }
       } else if (os === 'android') {
         var apk = find(rels, 'android');
-        if (apk) note.innerHTML = 'Or <a href="' + esc(apk.asset.browser_download_url) + '">download the APK</a> (' + esc(friendly(apk.asset.name).replace('APK · ', '')) + ', ' + fmtSize(apk.asset.size) + '). Allow installs from your browser when asked.';
+        if (apk) note.innerHTML = 'Or <a href="' + esc(apk.asset.browser_download_url) + '">download the APK</a> (' + esc(friendly(apk.asset.name).replace('APK, ', '')) + ', ' + fmtSize(apk.asset.size) + '). Allow installs from your browser when asked.';
       } else if (OS_FILES[os]) {
         var f = find(rels, os);
         if (!f) {
@@ -223,12 +223,12 @@
         } else {
           cta.href = f.asset.browser_download_url;
           label.textContent = 'Download for ' + OS_NAME[os] + ' (' + (f.asset.name.match(/\.[a-z0-9]+$/i) || [''])[0] + ')';
-          if (f.rel !== latest) extra = ' · ' + OS_NAME[os] + ' file is from ' + esc(f.rel.tag_name);
+          if (f.rel !== latest) extra = '; the ' + OS_NAME[os] + ' file is from ' + esc(f.rel.tag_name);
           if (os === 'windows') note.innerHTML = 'Unsigned build: SmartScreen may ask you to confirm. <a href="#win-why" data-open="win-why">Why this warning?</a>';
           if (os === 'macos') note.textContent = 'Unsigned build: on first launch right-click the app and choose Open.';
         }
       }
-      line.innerHTML = 'Latest: <b>' + esc(latest.tag_name) + '</b> · ' + fmtDate(latest.published_at) + extra + ' · <a href="#history">All versions</a>';
+      line.innerHTML = 'Latest version <b>' + esc(latest.tag_name) + '</b>, released ' + fmtDate(latest.published_at) + extra + '. <a href="#history">See all versions</a>';
       line.hidden = false;
       line.querySelectorAll('[data-pick]').forEach(function (el) { el.addEventListener('click', function (e) { e.preventDefault(); openLinuxPicker(rels); }); });
 
@@ -250,7 +250,7 @@
         box.className = 'assets';
         var files = hit ? listFor(hit.rel, key) : [];
         box.innerHTML = hit
-          ? '<small>' + esc(hit.rel.tag_name) + ' · ' + fmtDate(hit.rel.published_at) + '</small>' + files.map(fileRow).join('')
+          ? '<small>' + esc(hit.rel.tag_name) + ', ' + fmtDate(hit.rel.published_at) + '</small>' + files.map(fileRow).join('')
           : '<p>No ' + esc(OS_NAME[key]) + ' file has been published yet.</p>';
         card.insertBefore(box, card.querySelector('details.cli') || btn);
 
@@ -284,8 +284,8 @@
       // history: collapsed list, latest release open once expanded
       $('history-list').innerHTML = rels.map(function (r, i) {
         return '<details' + (i === 0 ? ' open' : '') + '><summary><b>' + esc(r.tag_name) + '</b>' + (i === 0 ? '<i>Latest</i>' : '') +
-          '<span>' + fmtDate(r.published_at) + ' · ' + r.assets.length + ' files</span></summary><div class="files-list">' + r.assets.map(fileRow).join('') +
-          '<a class="notes" href="' + esc(r.html_url) + '">Release notes on GitHub →</a></div></details>';
+          '<span>' + fmtDate(r.published_at) + ', ' + r.assets.length + ' files</span></summary><div class="files-list">' + r.assets.map(fileRow).join('') +
+          '<a class="notes" href="' + esc(r.html_url) + '">Read the release notes on GitHub</a></div></details>';
       }).join('');
       $('history-count').textContent = '(' + rels.length + ')';
       $('history').hidden = false;
@@ -457,5 +457,4 @@
   initDownload();
   initDevices();
   initShowcase();
-  initReveal();
 })();

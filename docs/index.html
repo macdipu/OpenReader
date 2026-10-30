@@ -28,7 +28,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Caveat:wght@500&amp;display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Caveat:wght@500&amp;family=Newsreader:opsz,wght@6..72,500;6..72,600&amp;display=swap" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -217,21 +217,13 @@
             </div>
             <img src="assets/screens/desktop-docx-dark.png" width="1262" height="750" alt="A Word document in night mode" loading="lazy" />
           </article>
-          <article class="tile t-small">
-            <span class="ico"><svg viewBox="0 0 24 24"><path d="M5 12.500a10 10 0 0 1 14 0M8.500 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/></svg></span>
-            <h3>Fully offline</h3><p>No network calls. Ever.</p>
-          </article>
-          <article class="tile t-small">
-            <span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-            <h3>No account</h3><p>Install it and start reading.</p>
-          </article>
-          <article class="tile t-small">
-            <span class="ico"><svg viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></span>
-            <h3>Open source</h3><p>Code and issues on <a href="https://github.com/macdipu/OpenReader">GitHub</a>.</p>
-          </article>
-          <ul class="proof" id="proof" hidden aria-label="OpenReader on GitHub"></ul>
-
+          <div class="facts">
+            <div><h3>Fully offline</h3><p>OpenReader makes no network calls, so it works on a plane.</p></div>
+            <div><h3>No account</h3><p>Install it and open a file. There is nothing to sign up for.</p></div>
+            <div><h3>Open source</h3><p>Read the code, report a bug or send a fix on <a href="https://github.com/macdipu/OpenReader">GitHub</a>.</p></div>
+          </div>
         </div>
+        <ul class="proof" id="proof" hidden aria-label="OpenReader on GitHub"></ul>
       </div>
     </section>
 
@@ -291,7 +283,7 @@
             <span class="tag">Your device</span>
             <div class="head">
               <span class="logo"><svg viewBox="0 0 24 24"><path d="M3 5.500 10.500 4.400v7.100H3V5.500Zm8.700-1.300L21 3v8.500h-9.300V4.200ZM3 12.500h7.500v7.100L3 18.500v-6Zm8.700 0H21V21l-9.300-1.300v-7.200Z"/></svg></span>
-              <div><h3>Windows</h3><span class="req">Windows 10 or later · 64-bit</span></div>
+              <div><h3>Windows</h3><span class="req">Windows 10 or later, 64-bit</span></div>
             </div>
             <ul>
               <li class="when-asset" hidden>Download <code data-fill="win-name"></code> and run it, no admin rights needed</li>
@@ -332,7 +324,7 @@
             <span class="tag">Your device</span>
             <div class="head">
               <span class="logo"><svg viewBox="0 0 24 24"><path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5Zm2 0v14h14V5H5Zm2.300 3.300 1.400-1.400 4 4-4 4-1.400-1.400 2.600-2.600-2.600-2.600ZM13 15h4v2h-4v-2Z"/></svg></span>
-              <div><h3>Linux</h3><span class="req">x64 · GTK 3</span></div>
+              <div><h3>Linux</h3><span class="req">x64, GTK 3</span></div>
             </div>
             <ul>
               <li><code>.deb</code> for Ubuntu, Debian and Mint; <code>.rpm</code> for Fedora, RHEL and openSUSE</li>
@@ -389,7 +381,7 @@
 
   <footer class="site">
     <div class="wrap">
-      <span>© 2026 OpenReader · Built with Flutter</span>
+      <span>© 2026 OpenReader. Built with Flutter.</span>
       <span>
         <a href="https://github.com/macdipu/OpenReader">GitHub</a> ·
         <a href="https://github.com/macdipu/OpenReader/releases">Releases</a> ·

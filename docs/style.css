@@ -292,7 +292,6 @@ dialog::backdrop { background: rgba(5, 8, 20, .72); backdrop-filter: blur(8px); 
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; transition: border-color .2s ease, transform .2s ease; }
-.card:hover { border-color: var(--accent); transform: translateY(-3px); }
 .card .ico { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 20px; background: var(--accent-soft); color: var(--accent); }
 .card .ico svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .card h3 { margin: 0 0 8px; font-size: 1.15rem; letter-spacing: -0.015em; }
@@ -641,3 +640,49 @@ p a, li a, .release-line a, .cta-note a { text-decoration: underline; text-under
   .frow .dl { flex-basis: 100%; }
   .frow .sumbtn { flex: 1; border-left: 0; border-top: 1px solid var(--border); min-height: 44px; }
 }
+
+
+/* ======== frontend-design pass ======== */
+:root { --serif: "Newsreader", Georgia, "Times New Roman", serif; }
+
+/* serif carries the reading identity below the hero; the hero keeps the sans from the mockup */
+.section-head h2, .showcase-copy h2, .privacy-band h2, .split h2, .tile h3, .facts h3, .history > summary h3 {
+  font-family: var(--serif); font-weight: 500; letter-spacing: -0.012em; }
+.section-head h2 { font-size: clamp(2.1rem, 4.8vw, 3.3rem); line-height: 1.08; }
+.split h2 { font-size: clamp(2rem, 4.2vw, 2.9rem); line-height: 1.1; }
+.tile h3 { font-size: 1.55rem; line-height: 1.15; }
+.privacy-band h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); line-height: 1.12; }
+.section-head p, .tile p { max-width: 60ch; }
+.section-head { margin-left: 0; text-align: left; max-width: 760px; }
+.section-head p { margin-left: 0; }
+.showcase .section-head, #features .section-head { margin-bottom: 40px; }
+.chips { justify-content: flex-start; }
+.caption, .showcase .shot-note { text-align: left; margin-left: auto; margin-right: auto; max-width: 1120px; }
+#platforms .section-head { max-width: 760px; }
+
+/* labels in sentence case outside the hero */
+.soon-tag, .platform .tag, .history summary i { text-transform: none; letter-spacing: 0; }
+
+/* showcase: a quiet panel, no gradient wash or dot grid */
+.panel { background: var(--bg-soft); border-radius: 22px; }
+:root[data-theme="dark"] .panel { background: var(--surface); }
+.panel::before, .panel-glow { display: none; }
+.shot { box-shadow: 0 0 0 1px var(--border), 0 24px 50px -30px rgba(30, 41, 90, .5); }
+
+/* features: hierarchy through size, not identical cards */
+.bento { gap: 20px; }
+.tile { border-radius: 14px; box-shadow: none; }
+.t-find { border-radius: 28px; background: var(--accent-soft); border-color: transparent; }
+.t-night { border-radius: 28px; }
+.t-search { background: transparent; border-style: dashed; }
+.facts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 12px; border-top: 1px solid var(--border); }
+.facts > div { padding: 26px 28px 4px 0; }
+.facts > div + div { padding-left: 28px; border-left: 1px solid var(--border); }
+.facts h3 { margin: 0 0 6px; font-size: 1.4rem; }
+.facts p { margin: 0; color: var(--text-muted); max-width: 36ch; }
+@media (max-width: 800px) { .facts { grid-template-columns: 1fr; } .facts > div, .facts > div + div { padding: 18px 0; border-left: 0; border-top: 1px solid var(--border); } .facts > div:first-child { border-top: 0; } }
+
+/* privacy: plain statement, not a card */
+.privacy-band { border: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0; background: none; padding: 40px 0; }
+
+.proof { justify-content: flex-start; }
