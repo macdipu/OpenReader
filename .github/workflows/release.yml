@@ -306,6 +306,18 @@ jobs:
           Compress-Archive -Path build/windows/x64/runner/Release/* `
             -DestinationPath "release/openreader-windows-x64-${{ steps.tag.outputs.tag }}.zip"
 
+      # Per-user setup.exe (no admin rights) that also registers "Open with".
+      - name: Build Windows installer
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=${{ steps.app.outputs.version }}" `
+            "/DSourceDir=$PWD\build\windows\x64\runner\Release" `
+            "/DOutputDir=$PWD\release" windows\installer\openreader.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+
       # A disk image: open it and drag OpenReader onto Applications. make-dmg.sh falls back to a plain
       # image (still with the Applications shortcut) if create-dmg cannot script Finder on the runner.
       - name: Package macOS

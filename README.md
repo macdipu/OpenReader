@@ -55,16 +55,30 @@ Every download is on the [**GitHub Releases** page](https://github.com/macdipu/O
 
 > **What is published today.** The newest release, **v1.0.10**, contains the Android APKs and AAB, `openreader-linux-x64-v1.0.10.tar.gz` and `openreader-macos-v1.0.10.zip`. It has **no Windows zip**, and the macOS `.dmg` and the Linux `.deb`, `.rpm` and AppImage described below are built by the release workflow but first appear with the **next tagged release**. Until then use the `.zip` / `.tar.gz` on those platforms.
 >
-> **There is no one-line install script.** OpenReader does not ship an `install.sh` or `install.ps1`, so use the steps below. Desktop builds are **not code-signed**, which is why Windows and macOS ask you to confirm the first launch.
+> **One-line install:**
+>
+> ```bash
+> # macOS and Linux (macOS: installs to /Applications; Linux: picks .deb / .rpm / AppImage / tarball)
+> curl -fsSL https://raw.githubusercontent.com/macdipu/OpenReader/main/install.sh | sh
+> ```
+>
+> ```powershell
+> # Windows (PowerShell)
+> irm https://raw.githubusercontent.com/macdipu/OpenReader/main/install.ps1 | iex
+> ```
+>
+> Desktop builds are **not code-signed**, which is why Windows and macOS ask you to confirm the first launch.
 
 ### Windows
 
-Asset: `openreader-windows-x64-<tag>.zip` (**not yet attached to any release**, see above; a portable folder; there is no `.exe` or `.msi` installer yet).
+Asset: `OpenReader-<version>-windows-x64-setup.exe` (**not yet attached to any release**, see above), plus a portable `openreader-windows-x64-<tag>.zip`.
 
-1. Download the zip from Releases and extract it, for example to `C:\Users\<you>\OpenReader`.
-2. Run `openreader.exe`. If SmartScreen appears, choose **More info → Run anyway**.
-3. Optional, so OpenReader appears in **Open with**: in that folder run
-   `powershell -ExecutionPolicy Bypass -File register-file-types.ps1` (per user, no admin rights).
+1. Download the `setup.exe` from Releases and run it. It installs per user (no admin rights) and, by default, adds OpenReader to **Open with**.
+2. If SmartScreen appears, choose **More info → Run anyway**.
+
+Or in PowerShell: `irm https://raw.githubusercontent.com/macdipu/OpenReader/main/install.ps1 | iex`
+
+Prefer no installer? Extract the zip anywhere, run `openreader.exe`, and optionally run `powershell -ExecutionPolicy Bypass -File register-file-types.ps1`.
 
 Needs 64-bit Windows 10 or later.
 
@@ -82,6 +96,9 @@ Needs macOS 12 or later. The release workflow builds on GitHub's `macos-latest` 
 Assets (x86_64 only): `openreader_<version>-<build>_amd64.deb`, `openreader-<version>-<build>.x86_64.rpm`, `OpenReader-<version>-x86_64.AppImage`, `openreader-linux-x64-<tag>.tar.gz`.
 
 ```bash
+# Any distribution, one line (picks .deb / .rpm / AppImage / tarball)
+curl -fsSL https://raw.githubusercontent.com/macdipu/OpenReader/main/install.sh | sh
+
 # Debian, Ubuntu, Linux Mint
 sudo apt install ./openreader_<version>-<build>_amd64.deb
 
@@ -118,7 +135,7 @@ Not sure of your CPU? Use `arm64-v8a`; Android refuses an APK that does not fit.
 
 | Platform | Steps |
 |---|---|
-| Windows | Run `register-file-types.ps1 -Unregister` (if you used it), then delete the folder |
+| Windows | Settings → Apps → OpenReader → Uninstall (zip install: run `register-file-types.ps1 -Unregister`, then delete the folder) |
 | macOS | Drag **OpenReader** from Applications to the Bin |
 | Linux | `sudo apt remove openreader` / `sudo dnf remove openreader`; AppImage: delete the file; tarball: `install-desktop-entry.sh --remove`, then delete the folder |
 | Android | Settings → Apps → OpenReader → Uninstall |
