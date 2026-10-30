@@ -13,6 +13,11 @@ abstract class RecentRepository {
   /// Records that [documentId] was opened, updating its reading position.
   ResultFuture<void> markOpened(String documentId, {Map<String, Object?> readingPosition = const {}});
 
+  /// Puts [documentId] in History as just opened, without touching a stored
+  /// reading position (unlike [markOpened], which replaces it). A document
+  /// opened and closed without scrolling still belongs in History.
+  ResultFuture<void> touch(String documentId);
+
   ResultFuture<void> remove(String documentId);
 
   ResultFuture<void> clearAll();
