@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
+import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
 
 import '../../../core/presentation/utils/screen_utils.dart';
@@ -43,10 +45,10 @@ class TextReaderView extends GetView<TextReaderController> {
         child: Obx(() {
           if (controller.status.value.isBusy) return const LoadingView();
           if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
-          return Obx(() => PlainTextView(
+          return Obx(() => ReaderSafeZone(kind: ReaderContent.text, child: ReaderScrollbar(controller: controller.textDocument.scrollController, child: PlainTextView(
                 controller: controller.textDocument,
                 fontSize: controller.fontSize.value,
-              ));
+              ))));
         }),
       ),
       ),

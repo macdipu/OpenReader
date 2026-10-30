@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
+import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
 import 'package:universal_document_viewer/word.dart';
 
@@ -56,7 +58,7 @@ class WordReaderView extends GetView<WordReaderController> {
             child: ReaderNightModeView(
               enabled: controller.nightMode.value && controller.isPaged.value,
               paper: true,
-              child: WordView(controller: controller.word),
+              child: ReaderSafeZone(kind: ReaderContent.document, child: ReaderScrollbar(controller: controller.word.scrollController, child: WordView(controller: controller.word))),
             ),
           ),
         );

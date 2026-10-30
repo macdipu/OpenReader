@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import 'package:get/get.dart';
 
 import '../../../core/domain/models/document_category.dart';
@@ -51,10 +52,10 @@ class CsvReaderView extends GetView<CsvReaderController> {
             borderRadius: BorderRadius.circular(12),
           ),
           clipBehavior: Clip.antiAlias,
-          child: SpreadsheetView(
+          child: ReaderScrollbar(controller: controller.sheet.verticalController, child: SpreadsheetView(
             controller: controller.sheet,
             emptyMessage: 'Empty file',
-          ),
+          )),
         );
       }),
       ),
