@@ -8,6 +8,7 @@ import '../../features/favorites/presentation/favorites_view.dart';
 import '../../features/browse/presentation/browse_view.dart';
 import '../../features/home/presentation/home_view.dart';
 import 'app_shell_controller.dart';
+import '../../core/presentation/widgets/fold_aware_sub_screen.dart';
 import 'desktop_sidebar.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../core/presentation/utils/platform_info.dart';
@@ -27,7 +28,7 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AppShellController>();
-    final wide = !context.isCompactScreen;
+    final wide = context.usesSideNav;
 
     final pages = Obx(() => IndexedStack(
           index: controller.currentIndex.value,
@@ -44,7 +45,8 @@ class AppShell extends StatelessWidget {
               children: [
                 DesktopSidebar(controller: controller, extended: context.isExpandedScreen),
                 VerticalDivider(width: 1, color: context.outlineVariant),
-                Expanded(child: ContentConstraint(child: pages)),
+                // A hinge or fold splits the window: keep the pages on one side of it.
+                Expanded(child: FoldAwareSubScreen(child: ContentConstraint(child: pages))),
               ],
             )
           : pages,

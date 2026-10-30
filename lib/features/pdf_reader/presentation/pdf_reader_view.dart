@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/utils/platform_info.dart';
 import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
@@ -55,7 +56,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
                         padding: EdgeInsets.only(
                           bottom: controller.isFullscreen.value
                               ? 0
-                              : 76 + MediaQuery.paddingOf(context).bottom + (controller.showThumbnails.value ? 128 : 0),
+                              : context.readerToolbarClearance + MediaQuery.paddingOf(context).bottom + (controller.showThumbnails.value ? 128 : 0),
                         ),
                         // Under the night-mode filter's theme, for the backdrop.
                         child: Builder(builder: _buildViewer),

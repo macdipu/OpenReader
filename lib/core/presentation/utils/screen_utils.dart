@@ -37,6 +37,18 @@ class ScreenUtils {
   /// Widest a single reader page (text, document) may grow.
   static const double maxReaderWidth = 820;
 
+
+  /// A window this short (a phone on its side, a half-open flip phone) needs
+  /// slimmer chrome: toolbars, navigation and padding all give back height.
+  static const double shortHeightBreakpoint = 500;
+
+  static bool isShortHeight(Size size) => size.height < shortHeightBreakpoint;
+
+  /// Whether navigation should be a side rail rather than a bottom bar:
+  /// any window of at least [mediumBreakpoint] width, and a phone on its side
+  /// even when narrower (a bottom bar would take a fifth of its height).
+  static bool usesSideNav(Size size) =>
+      size.width >= mediumBreakpoint || (size.width > size.height && isShortHeight(size));
   static ScreenSize sizeForWidth(double width) {
     if (width >= expandedBreakpoint) return ScreenSize.expanded;
     if (width >= mediumBreakpoint) return ScreenSize.medium;
@@ -63,6 +75,15 @@ extension ScreenUtilsContext on BuildContext {
   bool get isCompactScreen => screenSize.isCompact;
   bool get isExpandedScreen => screenSize.isExpanded;
   Size get screenDimensions => MediaQuery.sizeOf(this);
+
+  /// See [ScreenUtils.isShortHeight].
+  bool get isShortScreen => ScreenUtils.isShortHeight(screenDimensions);
+
+  /// See [ScreenUtils.usesSideNav].
+  bool get usesSideNav => ScreenUtils.usesSideNav(screenDimensions);
+
+  /// Space a reader keeps clear at the bottom for its floating toolbar.
+  double get readerToolbarClearance => isShortScreen ? 60 : 76;
 
   /// [base] grown with the system text size (clamped to 2x), for fixed-size
   /// boxes that hold text - so large text doesn't clip (UX-31).

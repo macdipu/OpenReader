@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/theme_extensions.dart';
+import '../fold_aware_sub_screen.dart';
 
 /// What a reader shows, which decides how wide its reading column may get.
 enum ReaderContent {
@@ -27,6 +28,11 @@ enum ReaderContent {
 /// narrow windows are untouched: below [wideBreakpoint] the content fills the
 /// width.
 ///
+/// On a folding device the column stays on one side of a hinge or fold that
+/// separates the screen (a Surface Duo, a Fold in book posture), and in
+/// tabletop posture (a Flip half-open, a horizontal fold) it sits in the top
+/// half, leaving the bottom half for the reader's toolbar.
+///
 /// The widget tree is the same at every width, so resizing the window (or
 /// folding a device) never rebuilds the reader and loses its position.
 class ReaderSafeZone extends StatelessWidget {
@@ -38,21 +44,28 @@ class ReaderSafeZone extends StatelessWidget {
 
   const ReaderSafeZone({super.key, required this.kind, required this.child});
 
+  /// The width the column gets in a window [available] wide.
+  static double columnWidth(ReaderContent kind, double available) {
+    if (available < wideBreakpoint) return available;
+    return available < kind.maxWidth ? available : kind.maxWidth;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final available = constraints.maxWidth;
-      final width = available < wideBreakpoint ? available : (available < kind.maxWidth ? available : kind.maxWidth);
-      return ColoredBox(
-        color: context.surfaceContainerLow,
-        child: Center(
-          child: SizedBox(
-            width: width,
-            height: constraints.hasBoundedHeight ? constraints.maxHeight : null,
-            child: child,
+    return FoldAwareSubScreen(
+      child: LayoutBuilder(builder: (context, constraints) {
+        final width = columnWidth(kind, constraints.maxWidth);
+        return ColoredBox(
+          color: context.surfaceContainerLow,
+          child: Center(
+            child: SizedBox(
+              width: width,
+              height: constraints.hasBoundedHeight ? constraints.maxHeight : null,
+              child: child,
+            ),
           ),
-        ),
-      );
-    });
+        );
+      }),
+    );
   }
 }

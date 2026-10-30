@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../controllers/reader_fullscreen.dart';
 import '../../theme/theme_extensions.dart';
+import '../../utils/screen_utils.dart';
 
 /// The floating pill every reader shows at the bottom (first drawn for the
 /// PDF reader, DESIGN_SPEC.md #09). Each reader fills it in the same order:
@@ -49,7 +50,8 @@ class ReaderBottomBar extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+        // Slimmer on a short (landscape) screen so the page keeps its height.
+        padding: EdgeInsets.fromLTRB(12, 4, 12, context.isShortScreen ? 6 : 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
