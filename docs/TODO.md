@@ -13,31 +13,13 @@ Only what is still open. Finished items are removed; `git log` has the history.
 
 ## Landing page
 
-The page (`index.html`) is OS-aware and falls back to the Windows screenshots, with a visible note, for any platform
-whose images are missing. Add the files and it picks them up with no code change.
+The device lineup (`docs/assets/devices/`) uses real captures: Windows desktop and Android phone, tablet and foldable (emulator size overrides). The **macOS laptop frame shows the Windows build** with its title bar cropped, and the page says so.
 
-macOS and Linux screenshots still need capturing on a real machine (Windows and Android are done):
-
-| File (in `docs/assets/screens/`) | What |
-|---|---|
-| `macos-pdf.png`, `macos-docx.png`, `macos-docx-dark.png`, `macos-xlsx.png` | macOS |
-| `linux-pdf.png`, `linux-docx.png`, `linux-docx-dark.png`, `linux-xlsx.png` | Linux |
-
-How to capture (keeps all platforms consistent):
-
-1. Build and run the release app (`flutter build macos --release` / `flutter build linux --release`).
-2. Finish onboarding, then open the files in `tool/screenshot_samples/` (neutral sample content, safe to publish):
-   `Quarterly Report.pdf`, `Project Atlas Brief.docx`, `Sales 2026.xlsx`.
-3. Use a window of about 1280x760, light theme first.
-   - `*-pdf.png`: PDF reader. `*-docx.png`: Word. `*-xlsx.png`: Excel.
-   - `*-docx-dark.png`: the Word file with night mode on (moon button in the bottom bar).
-4. Capture the window only (macOS: `Cmd+Shift+4`, Space, click the window; Linux: your screenshot tool's window
-   mode). Crop transparent shadow edges; keep the native title bar.
-5. Save as PNG (about 1262x750), under about 150 KB each (`pngquant` is fine).
-
+- [ ] Capture the real macOS app (light, `Exploring the World.docx`, about 1280x800) and replace `assets/devices/macos-laptop.png` (`tool/make_device_assets.ps1` resizes it), then drop the footnote in `index.html`.
+- [ ] Capture Linux and add it to the downloads section if wanted.
 - [ ] Link each platform button straight to its release asset instead of `releases/latest`, once file names are stable.
-- [ ] Add a macOS-style and Linux-style window frame if the native title bars look inconsistent side by side.
-- [ ] `docs/` is the published site, so this file is served publicly. Move it to the repo root if that is not wanted.
+- [ ] Add a `LICENSE` file: the site and README say open source, but the repo has none.
+- [ ] `docs/` is the published site, so this file and `docs/ui-audit/` are served publicly. Move them out if that is not wanted.
 
 ## Needs a real device or machine (built, not run)
 

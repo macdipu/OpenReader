@@ -22,7 +22,7 @@ out=${5:?output directory}
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
 icon="$repo/assets/icon/icon.png"
-homepage="https://macdipu.github.io/OpenDocs/"
+homepage="https://macdipu.github.io/OpenReader/"
 maintainer="macdipu <macdipu@users.noreply.github.com>"
 summary="Reader for PDF, Word, Excel, PowerPoint, text and CSV files"
 
