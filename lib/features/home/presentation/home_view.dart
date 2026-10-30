@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../core/domain/models/recent_document_model.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
@@ -66,7 +68,11 @@ class HomeView extends GetView<HomeController> {
           );
         }
 
-        return RefreshIndicator(
+        return LayoutBuilder(builder: (context, constraints) {
+        final twoPane = constraints.maxWidth >= _twoPaneMinWidth && controller.recentDocuments.isNotEmpty;
+        void choose(RecentDocumentModel r) =>
+            twoPane ? controller.select(r.document.id) : interactions.openDocument(r.document);
+        final feed = RefreshIndicator(
           onRefresh: controller.load,
           child: ListView(
             padding: const EdgeInsets.only(bottom: 96),
@@ -113,7 +119,7 @@ class HomeView extends GetView<HomeController> {
                       final recent = controller.recentDocuments[index];
                       return _ContinueReadingCard(
                         recent: recent,
-                        onTap: () => interactions.openDocument(recent.document),
+                        onTap: () => choose(recent),
                       );
                     },
                   ),
@@ -126,11 +132,14 @@ class HomeView extends GetView<HomeController> {
                     child: Text('Recent Documents', style: context.headlineSmall),
                   ),
                 for (final recent in controller.recentDocuments.skip(HomeController.continueReadingCount))
-                  Obx(() => DocumentListTile(
+                  Obx(() => _Pickable(
+                      selected: twoPane && controller.selectedRecent?.document.id == recent.document.id,
+                      onDoubleTap: twoPane ? () => interactions.openDocument(recent.document) : null,
+                      child: DocumentListTile(
                         document: recent.document,
                         dense: true,
                         isFavorite: interactions.isFavorite(recent.document.id),
-                        onTap: () => interactions.openDocument(recent.document),
+                        onTap: () => choose(recent),
                         onToggleFavorite: (_) => interactions.toggleFavorite(recent.document.id),
                         onShare: () => interactions.shareDocument(recent.document),
                         onShowInfo: () => showFileInformationSheet(context, recent.document),
@@ -141,7 +150,7 @@ class HomeView extends GetView<HomeController> {
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                         progress: recent.progress,
                         readingPosition: recent.readingPosition,
-                      )),
+                      ))),
               ] else
                 _EmptyState(
                   icon: Icons.history_rounded,
@@ -153,6 +162,21 @@ class HomeView extends GetView<HomeController> {
             ],
           ),
         );
+        if (!twoPane) return feed;
+        // Wide windows (desktop, large tablets, an unfolded Fold): the list on the left and
+        // the selected document on the right. Click selects; double-click or Open reads it.
+        return Row(
+          children: [
+            SizedBox(width: _listPaneWidth, child: feed),
+            VerticalDivider(width: 1, color: context.outlineVariant),
+            Expanded(child: Obx(() {
+              final selected = controller.selectedRecent;
+              if (selected == null) return const SizedBox.shrink();
+              return _DocumentDetailsPane(recent: selected, interactions: interactions);
+            })),
+          ],
+        );
+        });
       }),
     );
   }
@@ -335,6 +359,153 @@ class _PermissionBanner extends StatelessWidget {
             const SizedBox(height: 16),
             FilledButton(onPressed: onRequestAccess, child: const Text('Grant Access')),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+const double _twoPaneMinWidth = 1000;
+const double _listPaneWidth = 440;
+
+/// A list row that can show it is selected and open on double-click, for the
+/// two-pane layout. Without [onDoubleTap] it is just the row.
+class _Pickable extends StatelessWidget {
+  final bool selected;
+  final VoidCallback? onDoubleTap;
+  final Widget child;
+
+  const _Pickable({required this.selected, required this.onDoubleTap, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTap: onDoubleTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? context.secondaryContainer.withValues(alpha: 0.45) : Colors.transparent,
+          border: Border(left: BorderSide(color: selected ? context.secondary : Colors.transparent, width: 3)),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// The right-hand pane of Home on wide windows: the selected document's
+/// preview, its details and the things you can do with it.
+class _DocumentDetailsPane extends StatelessWidget {
+  final RecentDocumentModel recent;
+  final DocumentInteractionController interactions;
+
+  const _DocumentDetailsPane({required this.recent, required this.interactions});
+
+  @override
+  Widget build(BuildContext context) {
+    final document = recent.document;
+    final accent = document.category.accentColor(context);
+    final folder = p.dirname(document.path);
+    final dateFormat = DateFormat.yMMMd().add_jm();
+    final progress = recent.progress;
+
+    Widget row(String label, String value) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 110, child: Text(label, style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant))),
+              Expanded(child: Text(value, style: context.bodyMedium)),
+            ],
+          ),
+        );
+
+    return Container(
+      color: context.surfaceContainerLowest,
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: context.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: context.outlineVariant),
+                    ),
+                    child: DocumentThumbnail(document: document, size: 168, readingPosition: recent.readingPosition),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(document.displayName, style: context.headlineSmall, textAlign: TextAlign.center),
+                const SizedBox(height: 6),
+                Text(
+                  '${document.category.label} • ${formatFileSize(document.sizeBytes)}',
+                  style: context.bodyMedium?.copyWith(color: accent),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                if (progress != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 4,
+                      backgroundColor: context.surfaceContainerHigh,
+                      valueColor: AlwaysStoppedAnimation(context.secondary),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('${(progress * 100).round()}% read', style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+                  const SizedBox(height: 16),
+                ],
+                FilledButton.icon(
+                  onPressed: () => interactions.openDocument(document),
+                  icon: const Icon(Icons.menu_book_rounded),
+                  label: Text(progress != null ? 'Continue reading' : 'Open'),
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Obx(() => OutlinedButton.icon(
+                          onPressed: () => interactions.toggleFavorite(document.id),
+                          icon: Icon(interactions.isFavorite(document.id) ? Icons.star_rounded : Icons.star_outline_rounded),
+                          label: Text(interactions.isFavorite(document.id) ? 'Favorited' : 'Favorite'),
+                        )),
+                    OutlinedButton.icon(
+                      onPressed: () => interactions.shareDocument(document),
+                      icon: const Icon(Icons.ios_share_rounded),
+                      label: const Text('Share'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => interactions.openWithExternalApp(document),
+                      icon: const Icon(Icons.open_in_new_rounded),
+                      label: const Text('Open with'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => showFileInformationSheet(context, document),
+                      icon: const Icon(Icons.info_outline_rounded),
+                      label: const Text('Info'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Divider(color: context.outlineVariant),
+                row('Last opened', dateFormat.format(recent.lastOpenedAt)),
+                row('Modified', dateFormat.format(document.modifiedAt)),
+                row('Size', formatFileSize(document.sizeBytes)),
+                row('Location', folder),
+              ],
+            ),
+          ),
         ),
       ),
     );

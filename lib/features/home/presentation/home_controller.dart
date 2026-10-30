@@ -34,6 +34,18 @@ class HomeController extends BaseController {
   final hasAccess = true.obs;
   final recentDocuments = <RecentDocumentModel>[].obs;
 
+  /// The document shown in the details pane on wide windows; null means the
+  /// most recent one.
+  final selectedId = RxnString();
+
+  RecentDocumentModel? get selectedRecent {
+    if (recentDocuments.isEmpty) return null;
+    final id = selectedId.value;
+    return recentDocuments.firstWhereOrNull((r) => r.document.id == id) ?? recentDocuments.first;
+  }
+
+  void select(String documentId) => selectedId.value = documentId;
+
   /// Bumped per [load]; one that finishes after a newer one started (a tab
   /// tap or a delete) discards its stale result.
   int _loadSession = 0;
