@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../app/shell/app_shell_controller.dart';
-import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import 'workspace_controller.dart';
@@ -24,8 +23,13 @@ class WorkspaceView extends StatelessWidget {
     // pages and this view, so they work whichever widget last held keyboard focus.
     return Column(
       children: [
-        _TabStrip(workspace: workspace),
-        Divider(height: 1, color: context.outlineVariant),
+        // Full screen in a reader hides the tab strip too.
+        Obx(() => workspace.chromeHidden.value
+            ? const SizedBox.shrink()
+            : Column(children: [
+                _TabStrip(workspace: workspace),
+                Divider(height: 1, color: context.outlineVariant),
+              ])),
         Expanded(child: _Panes(workspace: workspace)),
       ],
     );
@@ -249,7 +253,7 @@ class _Panes extends StatelessWidget {
                         // The header is always in the tree (empty when not split) so the reader keeps its
                         // place in it, and its state, when side by side is switched on or off.
                         child: Column(children: [
-                          _PaneHeader(workspace: workspace, pane: pane, tab: tab, visible: split),
+                          _PaneHeader(workspace: workspace, pane: pane, tab: tab, visible: split && !workspace.chromeHidden.value),
                           Expanded(child: buildTabReader(tab)),
                         ]),
                       ),
@@ -266,7 +270,7 @@ class _Panes extends StatelessWidget {
                   split: true,
                   onFocus: () => workspace.focusPane(1),
                   child: Column(children: [
-                    _PaneHeader(workspace: workspace, pane: 1, tab: null, visible: true),
+                    _PaneHeader(workspace: workspace, pane: 1, tab: null, visible: !workspace.chromeHidden.value),
                     Expanded(child: _EmptyPane(workspace: workspace)),
                   ]),
                 ),
@@ -365,22 +369,34 @@ class _PaneHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!visible) return const SizedBox.shrink();
+    // The document's name is already in the reader's own app bar just below, so this strip only
+    // says which side it is (and which view, for a second view of one document) and holds the
+    // controls for the split.
+    final side = pane == 0 ? 'Left' : 'Right';
+    final copy = tab != null && tab!.copy > 1 ? '  ·  view ${tab!.copy}' : '';
     return Container(
-      height: 32,
+      height: 30,
       padding: const EdgeInsets.only(left: 12, right: 2),
       color: context.surfaceContainerLowest,
       child: Row(
         children: [
           Expanded(
             child: Text(
-              tab?.title ?? 'Empty',
+              '$side$copy',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.labelMedium?.copyWith(color: context.onSurfaceVariant),
+              style: context.labelSmall?.copyWith(color: context.onSurfaceVariant, letterSpacing: 0.4),
             ),
           ),
           IconButton(
-            tooltip: 'Close this side (Ctrl+\ closes side by side)',
+            tooltip: 'Swap sides',
+            visualDensity: VisualDensity.compact,
+            iconSize: 16,
+            icon: const Icon(Icons.swap_horiz_rounded),
+            onPressed: workspace.swapPanes,
+          ),
+          IconButton(
+            tooltip: 'Close this side',
             visualDensity: VisualDensity.compact,
             iconSize: 16,
             icon: const Icon(Icons.close_rounded),

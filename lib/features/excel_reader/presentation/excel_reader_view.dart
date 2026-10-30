@@ -68,7 +68,9 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: ReaderScrollbar(controller: controller.sheet.verticalController, child: SpreadsheetView(
+// The scrollbar needs the kit's scroll controller; the kit should expose it publicly.
+// ignore: invalid_use_of_internal_member
+                child: ReaderScrollbar(controller: controller.sheet.verticalController, horizontalController: controller.sheet.horizontalController, child: SpreadsheetView(
                   key: ValueKey(sheetIndex),
                   controller: controller.sheet,
                   emptyMessage: 'Empty workbook',

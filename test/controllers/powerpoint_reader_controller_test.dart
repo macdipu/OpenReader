@@ -5,6 +5,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/temp_dir.dart';
 import 'package:openreader/core/presentation/widgets/reader/reader_preview_strip.dart';
 import 'package:get/get.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
@@ -97,7 +98,7 @@ void main() {
 
   tearDown(() async {
     Get.reset();
-    await root.delete(recursive: true);
+    await deleteTempDir(root);
   });
 
   final threeSlides = [

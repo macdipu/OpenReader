@@ -15,7 +15,10 @@ import 'settings_controller.dart';
 /// Library's History. Wide windows (desktop, tablets) lay the cards out in two
 /// columns under a page header.
 class SettingsView extends GetView<SettingsController> {
-  const SettingsView({super.key});
+  /// True when it is a page of the shell (wide windows): no app bar of its own, the sidebar stays.
+  final bool embedded;
+
+  const SettingsView({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +99,7 @@ class SettingsView extends GetView<SettingsController> {
     final right = [cache, about];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: embedded ? null : AppBar(title: const Text('Settings')),
       body: ContentConstraint(
         maxWidth: wide ? 1040 : ScreenUtils.maxContentWidth,
         child: ListView(

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/utils/platform_info.dart';
-import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
 import 'package:universal_document_viewer/pdf.dart';

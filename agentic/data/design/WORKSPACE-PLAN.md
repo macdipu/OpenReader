@@ -80,3 +80,13 @@ reader per screen, pushed on top of the list.
   keys only bubble through the focused widget's ancestors.
 - A bug found on the way: `embed(Get.put(...))` made Dart infer the controller's type from `embed`'s parameter and
   register every reader as a `ReaderFullscreen`; the readers then could not find their controller.
+
+## Added after the first version
+
+- Pane headers say "Left" / "Right" (the document's name is in the reader's own app bar) with swap and close.
+- Full screen in a tab hides the sidebar, tab strip and pane headers too; Esc leaves it without closing the tab.
+- Settings is a page of the shell on wide windows, so the sidebar and the open tabs stay put.
+- Open tabs (not extra views) and the active one are saved and restored on the next start.
+- Sidebar [<] / [>] and Ctrl+B switch between labels and the icon rail; the choice is remembered.
+- "Open beside": a document goes to the right pane without disturbing the left one.
+- Home details pane: Beside, Show in folder, Copy path, Remove from history, and Up / Down to move the selection.

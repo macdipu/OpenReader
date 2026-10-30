@@ -11,6 +11,7 @@ import 'package:openreader/features/csv_reader/presentation/csv_reader_controlle
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/temp_dir.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 
@@ -95,7 +96,7 @@ void main() {
 
   tearDown(() async {
     Get.reset();
-    await root.delete(recursive: true);
+    await deleteTempDir(root);
   });
 
   group('loading a real CSV file', () {

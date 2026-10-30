@@ -61,17 +61,17 @@ How to capture (keeps all platforms consistent):
 
 ## Tabs and side by side (built on Windows; plan: `agentic/data/design/WORKSPACE-PLAN.md`)
 
-- [ ] **Keyboard shortcuts are untested live.** Ctrl+W, Ctrl+Tab, Ctrl+Shift+Tab and Ctrl+\ are bound in the shell
-      (`app_shell.dart`), but key presses sent by my test script never reached the Flutter window (even the existing
-      Ctrl+F did nothing), so press them by hand: they act only while open documents are on screen.
-- [ ] Middle-click to close a tab, right-click menu, drag to reorder: built, not exercised by hand.
-- [ ] Restore the open tabs (and the split) after a restart.
+- [ ] Right-click tab menu ("Show in left / right pane", "Split right", close others) and drag to reorder were
+      built but not exercised by hand. Shortcuts (Ctrl+W, Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+\, Ctrl+B) and middle-click
+      close were tested live.
+- [ ] The split (which tab is on which side, the ratio) is not remembered across a restart; the tabs and the active
+      one are.
+- [ ] Home details pane: "Show in folder" and "Copy path" were not clicked in the live test (Open, Beside and
+      Up / Down selection were).
 - [ ] Opening a file from another process while the app runs works on Windows only. Linux (a `GApplication` is
       non-unique, so a second window opens) and macOS (a second launch is the OS's job) are not wired.
 - [ ] Tabs on phones and small tablets (today they open one screen at a time).
 - [ ] More than two panes, and dragging a tab out into its own window.
-- [ ] A reader in full-screen mode inside a tab only hides that pane's bars, not the tab strip and sidebar.
-- [ ] Each pane header repeats the document's name that the reader's own app bar shows; merge them.
 - [ ] Every tab keeps its reader mounted (PDF engine included), up to 12; measure memory with several large PDFs.
 
 ## Layout and reader work still to do
@@ -86,7 +86,6 @@ How to capture (keeps all platforms consistent):
       are in.
 - [ ] Word document view: draw real page edges (A4 sheet with margins) instead of a wide text column.
 - [ ] Reader app bars could be shorter in landscape (56 dp now).
-- [ ] Spreadsheet readers: a horizontal scrollbar on desktop (only vertical exists).
 
 ## Icons and packaging
 
@@ -100,7 +99,5 @@ How to capture (keeps all platforms consistent):
 
 ## Housekeeping
 
-- [ ] Two `pdf_reader_controller_test.dart` tests fail on most full runs, a different pair each time (also seen
-      before the recent changes). Likely shared state or timing; find and fix.
-- [ ] Settings is a pushed route, so the sidebar and the open tabs disappear while it is open; it could live inside
-      the shell on wide windows.
+- [ ] The kit marks its scroll controllers `@internal`, and the Word, text, Excel and CSV readers use them for the
+      desktop scrollbars behind an `ignore` comment. Expose them publicly in `universal_document_viewer`.

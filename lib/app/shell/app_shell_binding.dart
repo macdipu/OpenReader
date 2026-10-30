@@ -7,6 +7,7 @@ import '../../features/home/presentation/home_controller.dart';
 import '../../features/recents/presentation/recents_controller.dart';
 import '../../features/workspace/presentation/workspace_controller.dart';
 import '../../features/workspace/presentation/workspace_readers.dart';
+import '../../features/settings/presentation/settings_controller.dart';
 import 'app_shell_controller.dart';
 
 class AppShellBinding extends Bindings {
@@ -35,6 +36,8 @@ class AppShellBinding extends Bindings {
       ..onTabClosed = disposeTabReader;
 
     Get.lazyPut<AppShellController>(() => AppShellController());
+    // Settings also lives in the shell on wide windows.
+    Get.lazyPut<SettingsController>(() => SettingsController(), fenix: true);
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
     Get.lazyPut<BrowseController>(() => BrowseController(), fenix: true);
     Get.lazyPut<FavoritesController>(() => FavoritesController(), fenix: true);
