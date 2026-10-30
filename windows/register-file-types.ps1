@@ -28,8 +28,25 @@ foreach ($e in $extensions) {
   Remove-ItemProperty "$classes\$e\OpenWithProgids" -Name 'OpenReader.Document' -ErrorAction SilentlyContinue
 }
 
+# Capabilities make OpenReader show up in Settings > Default apps, where the
+# user can pick it per file type (Windows does not let an app set defaults itself).
+$capabilities = 'HKCU:\Software\OpenReader\Capabilities'
+if ($Unregister) {
+  Remove-Item 'HKCU:\Software\OpenReader' -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-ItemProperty 'HKCU:\Software\RegisteredApplications' -Name 'OpenReader' -ErrorAction SilentlyContinue
+} else {
+  New-Item "$capabilities\FileAssociations" -Force | Out-Null
+  Set-ItemProperty $capabilities -Name 'ApplicationName' -Value 'OpenReader'
+  Set-ItemProperty $capabilities -Name 'ApplicationDescription' -Value 'Read PDF, Word, Excel, PowerPoint, text and CSV files.'
+  New-Item 'HKCU:\Software\RegisteredApplications' -Force | Out-Null
+  Set-ItemProperty 'HKCU:\Software\RegisteredApplications' -Name 'OpenReader' -Value 'Software\OpenReader\Capabilities'
+}
+
 foreach ($e in $extensions) {
   $progId = "OpenReader$e"
+  if (-not $Unregister) {
+    Set-ItemProperty "$capabilities\FileAssociations" -Name $e -Value $progId
+  }
   if ($Unregister) {
     Remove-Item "$classes\$progId" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-ItemProperty "$classes\$e\OpenWithProgids" -Name $progId -ErrorAction SilentlyContinue

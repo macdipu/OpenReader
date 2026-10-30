@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
+import '../../../services/platform_integration/default_app_service.dart';
+import 'default_app_dialog.dart';
 import 'settings_controller.dart';
 
 /// Settings & Storage (DESIGN_SPEC.md #01): segmented appearance control,
@@ -42,6 +44,19 @@ class SettingsView extends GetView<SettingsController> {
                 )),
           ),
           const SizedBox(height: 24),
+          if (DefaultAppService.instance.isSupported) ...[
+            const _SectionLabel('Default app'),
+            _SectionCard(
+              padding: const EdgeInsets.all(4),
+              child: _ActionRow(
+                icon: Icons.open_in_new_rounded,
+                title: 'Make OpenReader your default reader',
+                trailing: Icons.chevron_right_rounded,
+                onTap: showDefaultAppDialog,
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
           // No storage scan any more (CR-OPENREADER-BROWSE), so no index
           // count or Rescan here - just the render cache.
           const _SectionLabel('Cache'),
