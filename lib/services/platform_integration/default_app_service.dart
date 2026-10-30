@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../../core/presentation/utils/logger.dart';
 import '../../core/presentation/utils/platform_info.dart';
-import '../utilities/storage_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// A document type the user can make OpenReader the default app for.
 enum DocumentType {
@@ -57,19 +57,22 @@ class DefaultAppService {
   bool get appliesDirectly => PlatformInfo.isLinux || PlatformInfo.isMacOS;
 
   /// The first-run prompt appears a few times at most, and never after "Don't ask again".
-  bool shouldPrompt() {
+  Future<bool> shouldPrompt() async {
     if (!isSupported) return false;
-    final storage = StorageService.instance;
-    if (storage.getBool(_dismissedKey) ?? false) return false;
-    return (storage.getInt(_shownKey) ?? 0) < _maxPrompts;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_dismissedKey) ?? false) return false;
+    return (prefs.getInt(_shownKey) ?? 0) < _maxPrompts;
   }
 
   Future<void> recordPromptShown() async {
-    final storage = StorageService.instance;
-    await storage.setInt(_shownKey, (storage.getInt(_shownKey) ?? 0) + 1);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_shownKey, (prefs.getInt(_shownKey) ?? 0) + 1);
   }
 
-  Future<void> dismissPromptForever() => StorageService.instance.setBool(_dismissedKey, true);
+  Future<void> dismissPromptForever() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_dismissedKey, true);
+  }
 
   Future<DefaultAppResult> makeDefault(Set<DocumentType> types) async {
     if (types.isEmpty) {
