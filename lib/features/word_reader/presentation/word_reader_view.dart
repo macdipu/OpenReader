@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
+import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
 import 'package:universal_document_viewer/word.dart';
 
@@ -14,7 +16,13 @@ import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.11 Word Reader Screen (DESIGN_SPEC.md #02 / #13 - light + AMOLED).
 class WordReaderView extends GetView<WordReaderController> {
-  const WordReaderView({super.key});
+  /// Set when the reader is a workspace tab: its controller is registered under this tag.
+  final String? tabTag;
+
+  const WordReaderView({super.key, this.tabTag});
+
+  @override
+  String? get tag => tabTag;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +64,9 @@ class WordReaderView extends GetView<WordReaderController> {
             child: ReaderNightModeView(
               enabled: controller.nightMode.value && controller.isPaged.value,
               paper: true,
-              child: WordView(controller: controller.word),
+// The scrollbar needs the kit's scroll controller; the kit should expose it publicly.
+// ignore: invalid_use_of_internal_member
+              child: ReaderSafeZone(kind: ReaderContent.document, child: ReaderScrollbar(controller: controller.word.scrollController, child: WordView(controller: controller.word))),
             ),
           ),
         );
@@ -257,7 +267,7 @@ class _ReaderErrorView extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(onPressed: () => Get.back(), child: const Text('Close')),
+                TextButton(onPressed: controller.exitReader, child: const Text('Close')),
                 const SizedBox(width: 8),
                 FilledButton(onPressed: controller.openWith, child: const Text('Try another app')),
               ],

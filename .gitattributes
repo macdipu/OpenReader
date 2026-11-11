@@ -1,0 +1,6 @@
+# Scripts and packaging files run on Linux and macOS: keep LF line endings even when checked out on
+# Windows, where git would otherwise convert them to CRLF and break the shebang line.
+*.sh text eol=lf
+*.desktop text eol=lf
+*.spec text eol=lf
+*.xml text eol=lf

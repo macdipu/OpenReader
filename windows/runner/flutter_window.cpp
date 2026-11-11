@@ -1,8 +1,17 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <sstream>
+#include <string>
+
+#include <flutter/encodable_value.h>
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
 
 #include "flutter/generated_plugin_registrant.h"
+
+// Tag on the WM_COPYDATA a second instance sends: "ORDR".
+static constexpr ULONG_PTR kForwardedFilesTag = 0x4F524452;
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -62,6 +71,30 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   switch (message) {
+    case WM_COPYDATA: {
+      // A second OpenReader process forwarded the files it was started with (see main.cpp):
+      // hand them to Dart, which opens each as a tab, and bring this window forward.
+      const auto* data = reinterpret_cast<const COPYDATASTRUCT*>(lparam);
+      if (data && data->dwData == kForwardedFilesTag && flutter_controller_ && flutter_controller_->engine()) {
+        const std::string joined(static_cast<const char*>(data->lpData),
+                                 data->cbData > 0 ? data->cbData - 1 : 0);
+        flutter::EncodableList paths;
+        std::istringstream lines(joined);
+        for (std::string line; std::getline(lines, line);) {
+          if (!line.empty()) paths.push_back(flutter::EncodableValue(line));
+        }
+        if (!paths.empty()) {
+          flutter::MethodChannel<flutter::EncodableValue> channel(
+              flutter_controller_->engine()->messenger(), "openreader/open_files",
+              &flutter::StandardMethodCodec::GetInstance());
+          channel.InvokeMethod("openFiles", std::make_unique<flutter::EncodableValue>(std::move(paths)));
+        }
+        if (::IsIconic(hwnd)) ::ShowWindow(hwnd, SW_RESTORE);
+        ::SetForegroundWindow(hwnd);
+        return TRUE;
+      }
+      break;
+    }
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;

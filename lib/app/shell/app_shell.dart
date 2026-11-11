@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/presentation/theme/theme_extensions.dart';
@@ -8,6 +11,11 @@ import '../../features/favorites/presentation/favorites_view.dart';
 import '../../features/browse/presentation/browse_view.dart';
 import '../../features/home/presentation/home_view.dart';
 import 'app_shell_controller.dart';
+import '../../core/presentation/widgets/fold_aware_sub_screen.dart';
+import '../../features/workspace/presentation/workspace_controller.dart';
+import '../../features/workspace/presentation/workspace_view.dart';
+import '../../features/settings/presentation/settings_view.dart';
+import 'desktop_sidebar.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../core/presentation/widgets/app_shortcuts.dart';
@@ -26,7 +34,8 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AppShellController>();
-    final wide = !context.isCompactScreen;
+    final wide = context.usesSideNav;
+    final workspace = Get.find<WorkspaceController>()..enabled = wide;
 
     final pages = Obx(() => IndexedStack(
           index: controller.currentIndex.value,
@@ -34,6 +43,7 @@ class AppShell extends StatelessWidget {
             HomeView(),
             BrowseView(),
             FavoritesView(),
+            SettingsView(embedded: true),
           ],
         ));
 
@@ -41,9 +51,52 @@ class AppShell extends StatelessWidget {
       body: wide
           ? Row(
               children: [
-                _AppNavRail(controller: controller, extended: context.isExpandedScreen),
-                VerticalDivider(width: 1, color: context.outlineVariant),
-                Expanded(child: ContentConstraint(child: pages)),
+                // Full screen in a tab hides the sidebar as well.
+                Obx(() {
+                  final hide = workspace.chromeHidden.value && workspace.visible.value && workspace.tabs.isNotEmpty;
+                  if (hide) return const SizedBox.shrink();
+                  return Row(mainAxisSize: MainAxisSize.min, children: [
+                    DesktopSidebar(
+                      controller: controller,
+                      extended: controller.sidebarExtended(auto: context.isExpandedScreen),
+                      onToggle: () => controller.toggleSidebar(auto: context.isExpandedScreen),
+                    ),
+                    VerticalDivider(width: 1, color: context.outlineVariant),
+                  ]);
+                }),
+                // A hinge or fold splits the window: keep the pages on one side of it.
+                Expanded(
+                  child: FoldAwareSubScreen(
+                    child: Obx(() {
+                      // Open documents (tabs, side by side) replace the pages while they are shown;
+                      // both stay mounted so neither loses its state.
+                      final showWorkspace = workspace.visible.value && workspace.tabs.isNotEmpty;
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Offstage(
+                            offstage: showWorkspace,
+                            child: TickerMode(
+                              enabled: !showWorkspace,
+                              // Home splits into list and details, so it gets more room than the lists.
+                              child: ContentConstraint(
+                                maxWidth: controller.currentIndex.value == AppShellController.homeIndex
+                                    ? 1240
+                                    : ScreenUtils.maxContentWidth,
+                                child: pages,
+                              ),
+                            ),
+                          ),
+                          if (workspace.tabs.isNotEmpty)
+                            Offstage(
+                              offstage: !showWorkspace,
+                              child: TickerMode(enabled: showWorkspace, child: const WorkspaceView()),
+                            ),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
               ],
             )
           : pages,
@@ -55,10 +108,35 @@ class AppShell extends StatelessWidget {
               )),
     );
 
-    final shell = AppShortcuts(
-      onOpenFile: controller.pickAndOpenFile,
-      onSearch: () => Get.toNamed(AppRoutes.search),
-      child: scaffold,
+    // Tab shortcuts only act while open documents are on screen. They live here, above both the
+    // pages and the workspace, so they work whichever widget last held keyboard focus.
+    void whenWorkspaceShown(void Function() action) {
+      if (wide && workspace.visible.value && workspace.tabs.isNotEmpty) action();
+    }
+
+    final shell = CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyW, control: true): () => whenWorkspaceShown(() {
+              final id = workspace.activeId;
+              if (id != null) workspace.close(id);
+            }),
+        const SingleActivator(LogicalKeyboardKey.keyB, control: true): () {
+          if (wide) unawaited(controller.toggleSidebar(auto: context.isExpandedScreen));
+        },
+        const SingleActivator(LogicalKeyboardKey.keyB, meta: true): () {
+          if (wide) unawaited(controller.toggleSidebar(auto: context.isExpandedScreen));
+        },
+        const SingleActivator(LogicalKeyboardKey.tab, control: true): () => whenWorkspaceShown(workspace.next),
+        const SingleActivator(LogicalKeyboardKey.tab, control: true, shift: true): () =>
+            whenWorkspaceShown(workspace.previous),
+        const SingleActivator(LogicalKeyboardKey.backslash, control: true): () =>
+            whenWorkspaceShown(workspace.toggleSplit),
+      },
+      child: AppShortcuts(
+        onOpenFile: controller.pickAndOpenFile,
+        onSearch: () => Get.toNamed(AppRoutes.search),
+        child: scaffold,
+      ),
     );
     if (!PlatformInfo.isDesktop) return shell;
     // Desktop: drop a file onto the window to open it (UX-34).
@@ -109,76 +187,13 @@ class _DropOverlay extends StatelessWidget {
   }
 }
 
-class _AppNavRail extends StatelessWidget {
-  final AppShellController controller;
-  final bool extended;
-
-  const _AppNavRail({required this.controller, required this.extended});
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() => NavigationRail(
-          extended: extended,
-          backgroundColor: context.surfaceContainerLowest,
-          selectedIndex: controller.currentIndex.value,
-          onDestinationSelected: controller.changeTab,
-          labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
-          indicatorColor: context.secondaryContainer,
-          leading: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: extended
-                ? FilledButton.icon(
-                    onPressed: controller.pickAndOpenFile,
-                    icon: const Icon(Icons.file_open_outlined),
-                    label: const Text('Open file'),
-                  )
-                : IconButton.filledTonal(
-                    tooltip: 'Open file',
-                    onPressed: controller.pickAndOpenFile,
-                    icon: const Icon(Icons.file_open_outlined),
-                  ),
-          ),
-          trailing: Expanded(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Settings',
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => Get.toNamed(AppRoutes.settings),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          destinations: [
-            for (final item in _AppNavBar._items)
-              NavigationRailDestination(
-                icon: Icon(item.icon),
-                selectedIcon: Icon(item.activeIcon),
-                label: Text(item.label),
-              ),
-          ],
-        ));
-  }
-}
-
 class _AppNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
   const _AppNavBar({required this.currentIndex, required this.onTap});
 
-  static const _items = [
-    (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded, label: 'Browse'),
-    (icon: Icons.star_outline_rounded, activeIcon: Icons.star_rounded, label: 'Library'),
-  ];
+  static const _items = shellDestinations;
 
   @override
   Widget build(BuildContext context) {

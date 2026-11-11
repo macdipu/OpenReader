@@ -1,0 +1,2 @@
+What's new in 1.0.11
+• Fixed a blank screen when opening a document from another app

@@ -123,7 +123,7 @@ class PowerPointReaderController extends BaseController with ReaderFullscreen, R
     } else if (isSearching.value) {
       stopSearching();
     } else {
-      Get.back();
+      escapeReader();
     }
   }
 

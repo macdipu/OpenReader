@@ -31,6 +31,9 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
+# Plugins (gal, local_auth_windows, permission_handler_windows) build with /await and
+# <experimental/coroutine>, which MSVC 14.51 (Visual Studio 2026) turns into a hard error.
+add_definitions(-D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 
 # Compilation settings that should be applied to most targets.
 #
@@ -74,6 +77,14 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
+
+# Lets the app register itself in Settings > Default apps (see DefaultAppService).
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/register-file-types.ps1"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
+
+# Per-document-type icons used by register-file-types.ps1.
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/runner/resources/file_icons"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)

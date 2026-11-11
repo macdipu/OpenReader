@@ -33,6 +33,13 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Opened documents arrive as ACTION_VIEW URIs handled by
+                 receive_sharing_intent. With Flutter deep linking on, the URI is
+                 also used as the initial route name, which matches no page and
+                 leaves a blank screen on a cold start. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

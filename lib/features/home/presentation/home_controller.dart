@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart' show FocusNode;
 import 'package:get/get.dart';
 
 import '../../../core/data/repositories/recent_repository_impl.dart';
@@ -34,6 +35,29 @@ class HomeController extends BaseController {
   final hasAccess = true.obs;
   final recentDocuments = <RecentDocumentModel>[].obs;
 
+  /// The document shown in the details pane on wide windows; null means the
+  /// most recent one.
+  final selectedId = RxnString();
+
+  /// Focus for the list pane on wide windows, so Up / Down / Enter reach it after a row is chosen.
+  final listFocus = FocusNode(debugLabel: 'home-list');
+
+  RecentDocumentModel? get selectedRecent {
+    if (recentDocuments.isEmpty) return null;
+    final id = selectedId.value;
+    return recentDocuments.firstWhereOrNull((r) => r.document.id == id) ?? recentDocuments.first;
+  }
+
+  void select(String documentId) => selectedId.value = documentId;
+
+  /// Up / Down in the list pane: moves the selection by [delta] rows, staying within the list.
+  void moveSelection(int delta) {
+    if (recentDocuments.isEmpty) return;
+    final current = recentDocuments.indexWhere((r) => r.document.id == selectedRecent?.document.id);
+    final next = (current + delta).clamp(0, recentDocuments.length - 1);
+    selectedId.value = recentDocuments[next].document.id;
+  }
+
   /// Bumped per [load]; one that finishes after a newer one started (a tab
   /// tap or a delete) discards its stale result.
   int _loadSession = 0;
@@ -53,6 +77,7 @@ class HomeController extends BaseController {
   @override
   void onClose() {
     _readerClosedWorker?.dispose();
+    listFocus.dispose();
     super.onClose();
   }
 

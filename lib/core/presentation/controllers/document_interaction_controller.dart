@@ -16,6 +16,7 @@ import '../widgets/show_dialog/confirm_dialog.dart';
 import '../widgets/snackbar/custom_snackbar.dart';
 import '../../../services/utilities/storage_access_service.dart';
 import '../../domain/models/document_category.dart';
+import '../../../features/workspace/presentation/workspace_controller.dart';
 import '../../../res/routes/app_routes.dart';
 
 /// Cross-screen document actions (favorite toggling, opening, sharing, Open
@@ -135,8 +136,50 @@ class DocumentInteractionController extends GetxController {
     }
   }
 
+  /// Opens [document] in the right-hand pane next to what is open (wide windows only; elsewhere it
+  /// just opens). The document keeps its own tab, so closing the side leaves it open.
+  Future<void> openBeside(DocumentModel document) async {
+    final workspace = Get.isRegistered<WorkspaceController>() ? Get.find<WorkspaceController>() : null;
+    if (workspace == null || !workspace.enabled) return openDocument(document);
+    if (!await _verifyStillAccessible(document)) return;
+    unawaited(_recordOpen(document));
+    Get.until((route) => route.isFirst || route.settings.name == AppRoutes.appShell);
+    if (!workspace.openBeside(document)) {
+      CustomSnackbar.info('Close a tab to open another document (up to ${WorkspaceController.maxTabs}).');
+    }
+  }
+
+  /// On wide windows a document opens as a tab (or beside another) instead of replacing the screen.
+  /// Returns false when the workspace is off (phones, narrow windows), so the caller pushes the route.
+  bool _openInWorkspace(DocumentModel document) {
+    if (!Get.isRegistered<WorkspaceController>()) return false;
+    final workspace = Get.find<WorkspaceController>();
+    if (!workspace.enabled) return false;
+    // Search and similar pages sit on top of the shell: come back to it first.
+    Get.until((route) => route.isFirst || route.settings.name == AppRoutes.appShell);
+    if (!workspace.open(document)) {
+      CustomSnackbar.info('Close a tab to open another document (up to ${WorkspaceController.maxTabs}).');
+    }
+    return true;
+  }
+
   void _openReader(String route, DocumentModel document) {
+    unawaited(_recordOpen(document));
+    if (_openInWorkspace(document)) return;
     unawaited(Get.toNamed(route, arguments: document));
+  }
+
+  /// Every open lands in History - a double-clicked file, an Android intent,
+  /// the picker, a drop - not just ones the reader later saves a position for
+  /// (some readers only save once the user has scrolled). Indexed first:
+  /// history rows reference index rows. Never blocks or fails the open.
+  Future<void> _recordOpen(DocumentModel document) async {
+    try {
+      await _documentRepository.indexDocument(document);
+      await _recentRepository.touch(document.id);
+    } catch (_) {
+      // History is best-effort.
+    }
   }
 
   /// Opens a document picked in the in-app browser. Browsed files aren't in

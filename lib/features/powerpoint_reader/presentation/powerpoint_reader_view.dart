@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -16,7 +17,13 @@ import 'powerpoint_reader_controller.dart';
 /// PowerPoint reader (CR-OPENREADER-PPTX): one slide at a time - swipe, the
 /// bottom bar's arrows or the keyboard's Left/Right move between slides.
 class PowerPointReaderView extends GetView<PowerPointReaderController> {
-  const PowerPointReaderView({super.key});
+  /// Set when the reader is a workspace tab: its controller is registered under this tag.
+  final String? tabTag;
+
+  const PowerPointReaderView({super.key, this.tabTag});
+
+  @override
+  String? get tag => tabTag;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +56,7 @@ class PowerPointReaderView extends GetView<PowerPointReaderController> {
                 if (status.isEmpty) {
                   return Center(child: Text('This presentation has no slides.', style: context.bodyMedium));
                 }
-                return Container(color: context.background, child: SlidesView(controller: controller.deck));
+                return ReaderSafeZone(kind: ReaderContent.slides, child: Container(color: context.background, child: SlidesView(controller: controller.deck)));
               }),
               ),
               bottomNavigationBar: controller.isFullscreen.value ||
@@ -279,7 +286,7 @@ class _ReaderErrorView extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(onPressed: () => Get.back(), child: const Text('Close')),
+                TextButton(onPressed: controller.exitReader, child: const Text('Close')),
                 const SizedBox(width: 8),
                 FilledButton(onPressed: controller.openWith, child: const Text('Try another app')),
               ],

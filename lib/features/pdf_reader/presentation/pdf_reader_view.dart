@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../core/presentation/utils/screen_utils.dart';
+import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
 import 'package:universal_document_viewer/pdf.dart';
 
@@ -15,7 +17,13 @@ import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.10 PDF Reader Screen (DESIGN_SPEC.md #09 / #14 - light + AMOLED).
 class PdfReaderView extends GetView<PdfReaderController> {
-  const PdfReaderView({super.key});
+  /// Set when the reader is a workspace tab: its controller is registered under this tag.
+  final String? tabTag;
+
+  const PdfReaderView({super.key, this.tabTag});
+
+  @override
+  String? get tag => tabTag;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +60,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
                         padding: EdgeInsets.only(
                           bottom: controller.isFullscreen.value
                               ? 0
-                              : 76 + MediaQuery.paddingOf(context).bottom + (controller.showThumbnails.value ? 128 : 0),
+                              : context.readerToolbarClearance + MediaQuery.paddingOf(context).bottom + (controller.showThumbnails.value ? 128 : 0),
                         ),
                         // Under the night-mode filter's theme, for the backdrop.
                         child: Builder(builder: _buildViewer),
@@ -85,7 +93,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
   }
 
   Widget _buildViewer(BuildContext context) {
-    return PdfView(
+    return ReaderSafeZone(kind: ReaderContent.page, child: PdfView(
       controller: controller.pdf,
       backgroundColor: context.background,
       // In fullscreen, a tap on the page brings the controls back.
@@ -95,7 +103,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
         return true;
       },
       errorBuilder: (context, error) => _ReaderErrorView(controller: controller, error: error),
-    );
+    ));
   }
 }
 
@@ -427,7 +435,7 @@ class _ReaderErrorView extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(onPressed: () => Get.back(), child: const Text('Close')),
+                TextButton(onPressed: controller.exitReader, child: const Text('Close')),
                 const SizedBox(width: 8),
                 FilledButton(onPressed: controller.openWith, child: const Text('Try another app')),
               ],

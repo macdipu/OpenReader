@@ -106,7 +106,7 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
     } else if (isSearching.value) {
       stopSearching();
     } else {
-      Get.back();
+      escapeReader();
     }
   }
 
@@ -183,7 +183,7 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
     );
     _passwordPreviouslyWrong = true;
     if (entered == null) {
-      Get.back();
+      exitReader();
     }
     return entered;
   }

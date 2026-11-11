@@ -3,11 +3,16 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/domain/models/document_category.dart';
 import '../../features/favorites/presentation/favorites_controller.dart';
 import '../../features/browse/presentation/browse_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
+import '../../features/workspace/presentation/workspace_controller.dart';
+import '../../core/presentation/utils/platform_info.dart';
+import '../../features/settings/presentation/default_app_dialog.dart';
+import '../../services/platform_integration/desktop_open_files.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
 import '../../services/utilities/app_update_service.dart';
@@ -19,7 +24,31 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   static const filesIndex = 1;
   static const favoritesIndex = 2;
 
+  /// Settings is a page of the shell on wide windows (sidebar and open tabs stay put); phones push a route.
+  static const settingsIndex = 3;
+
   final RxInt currentIndex = homeIndex.obs;
+
+  static const _sidebarKey = 'shell_sidebar_extended';
+
+  /// The user's choice for the sidebar: true expanded, false the icon rail, null (never chosen)
+  /// follows the window width. Remembered between launches.
+  final sidebarPref = RxnBool();
+
+  /// Whether the sidebar shows labels, given what the window width alone would pick.
+  bool sidebarExtended({required bool auto}) => sidebarPref.value ?? auto;
+
+  /// The [<] / [>] button and Ctrl+B.
+  Future<void> toggleSidebar({required bool auto}) async {
+    sidebarPref.value = !sidebarExtended(auto: auto);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_sidebarKey, sidebarPref.value!);
+  }
+
+  Future<void> _loadSidebarPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    sidebarPref.value = prefs.getBool(_sidebarKey);
+  }
 
   final IncomingIntentService _incomingIntentService;
   final StorageAccessService _storageAccess;
@@ -34,11 +63,18 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     // BRD §7.7 / TASK-009: by the time the shell exists, onboarding/storage
     // access has already been resolved, so it's safe to start listening for
     // an incoming file here.
+    unawaited(_loadSidebarPref());
     unawaited(_incomingIntentService.init());
     _openLaunchFiles();
     WidgetsBinding.instance.addObserver(this);
     // After the first frame, so the sheet has a navigator to open on.
     WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(AppUpdateService.instance.checkForUpdate()));
+    // Wide windows bring back the tabs from the last session (enabled is set by the shell on its first build).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!Get.isRegistered<WorkspaceController>()) return;
+      final workspace = Get.find<WorkspaceController>();
+      if (workspace.enabled) unawaited(workspace.restore());
+    });
   }
 
   /// Storage access can change while the app is in the background (the
@@ -64,7 +100,29 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   /// Desktop: a file passed on the command line when the app was launched.
   void _openLaunchFiles() {
     final files = LaunchArguments.take();
-    if (files.isNotEmpty) unawaited(_incomingIntentService.handlePath(files.first));
+    if (files.isNotEmpty) {
+      unawaited(_incomingIntentService.handlePath(files.first));
+    } else {
+      // Not when the app was just launched to read a file.
+      unawaited(maybePromptDefaultApp());
+    }
+    if (PlatformInfo.isMacOS || PlatformInfo.isWindows) unawaited(_listenForForwardedFiles());
+  }
+
+  /// Files handed to the running app: macOS delivers "Open With" / double-clicked files as Apple
+  /// Events (at launch and while running), and on Windows a second launch forwards its files to
+  /// this window instead of opening another one. With tabs on, every file opens as a tab;
+  /// otherwise only the first, as a screen of its own.
+  Future<void> _listenForForwardedFiles() async {
+    void open(List<String> paths) {
+      if (paths.isEmpty) return;
+      final tabs = Get.isRegistered<WorkspaceController>() && Get.find<WorkspaceController>().enabled;
+      for (final path in tabs ? paths : [paths.first]) {
+        unawaited(_incomingIntentService.handlePath(path));
+      }
+    }
+
+    open(await DesktopOpenFiles.listen(open));
   }
 
   /// "Open file" - lets desktop users read a document outside the scanned
@@ -101,6 +159,8 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
 
   void changeTab(int index) {
     currentIndex.value = index;
+    // Home / Browse / Library replace the open documents on screen; the tabs stay open.
+    if (Get.isRegistered<WorkspaceController>()) Get.find<WorkspaceController>().hide();
     // Belt-and-suspenders reload on tab select: verified on a real device
     // that FavoritesController's own `ever(...favoriteIds...)` reactive
     // subscription (favorites_controller.dart) does not reliably pick up a
@@ -131,7 +191,7 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   }
 
   /// Switches to the Browse tab (Home's "Browse files").
-  void openBrowse() => currentIndex.value = filesIndex;
+  void openBrowse() => changeTab(filesIndex);
 
   /// Search screen's "Search on device": Browse tab, searching the folder
   /// it's in (or all storage) for [query].

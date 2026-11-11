@@ -2,7 +2,7 @@ name: openreader
 description: 'A new Flutter project.'
 publish_to: 'none'
 
-version: 1.0.10+12
+version: 1.0.12+14
 
 environment:
   sdk: '>=3.2.3 <4.0.0'
@@ -118,6 +118,7 @@ flutter:
 
   assets:
     - assets/svgs/
+    - assets/icon/icon.png
 
   # OpenReader is offline-only (BRD - zero network calls), so type is bundled
   # as local variable-font assets instead of package:google_fonts' default

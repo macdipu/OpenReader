@@ -20,8 +20,12 @@ class OnboardingView extends GetView<OnboardingController> {
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: max(0, constraints.maxHeight - 48)),
+            // The scroll view gives its child loose width, so without the
+            // Center + maxWidth the column shrank to its widest child and
+            // sat at the left edge on wide desktop windows.
+            child: Center(
+              child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: max(0, constraints.maxHeight - 48), maxWidth: 480),
               child: IntrinsicHeight(child: Obx(() {
             final status = controller.status.value;
             // Only Android has a storage permission to ask for; desktop gets a
@@ -46,10 +50,10 @@ class OnboardingView extends GetView<OnboardingController> {
                 const SizedBox(height: 12),
                 Text(
                   askForAccess
-                      ? 'OpenReader reads PDF, Word, Excel, PowerPoint, Text, and CSV files stored on this device.\n\n'
+                      ? 'OpenReader reads PDF, Word, Excel, PowerPoint, CSV, Markdown and text files stored on this device.\n\n'
                           'Tapping Allow Access requests Android\'s "All Files Access" permission, so you can '
                           'browse your documents in any folder, not just Downloads or Documents.'
-                      : 'OpenReader reads PDF, Word, Excel, PowerPoint, Text, and CSV files stored on this computer.',
+                      : 'OpenReader reads PDF, Word, Excel, PowerPoint, CSV, Markdown and text files stored on this computer.',
                   textAlign: TextAlign.center,
                   style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
                 ),
@@ -111,6 +115,7 @@ class OnboardingView extends GetView<OnboardingController> {
               ],
             );
               })),
+            ),
             ),
           ),
         ),

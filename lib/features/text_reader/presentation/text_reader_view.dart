@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
+import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
 
 import '../../../core/presentation/utils/screen_utils.dart';
@@ -14,7 +16,13 @@ import '../../../core/presentation/widgets/app_shortcuts.dart';
 
 /// BRD §9.14 Text Reader Screen.
 class TextReaderView extends GetView<TextReaderController> {
-  const TextReaderView({super.key});
+  /// Set when the reader is a workspace tab: its controller is registered under this tag.
+  final String? tabTag;
+
+  const TextReaderView({super.key, this.tabTag});
+
+  @override
+  String? get tag => tabTag;
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +51,12 @@ class TextReaderView extends GetView<TextReaderController> {
         child: Obx(() {
           if (controller.status.value.isBusy) return const LoadingView();
           if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
-          return Obx(() => PlainTextView(
+// The scrollbar needs the kit's scroll controller; the kit should expose it publicly.
+// ignore: invalid_use_of_internal_member
+          return Obx(() => ReaderSafeZone(kind: ReaderContent.text, child: ReaderScrollbar(controller: controller.textDocument.scrollController, child: PlainTextView(
                 controller: controller.textDocument,
                 fontSize: controller.fontSize.value,
-              ));
+              ))));
         }),
       ),
       ),
@@ -255,7 +265,7 @@ class _ReaderErrorView extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(onPressed: () => Get.back(), child: const Text('Close')),
+                TextButton(onPressed: controller.exitReader, child: const Text('Close')),
                 const SizedBox(width: 8),
                 FilledButton(onPressed: controller.openWith, child: const Text('Try another app')),
               ],
