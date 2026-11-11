@@ -58,5 +58,20 @@ Tests: package 279 pass, analyze clean; app 264 pass, analyze 0 errors/0 warning
 ### Housekeeping (2026-11-11)
 The user asked to merge the worktree into main and code on main. The only worktree, `.claude/worktrees/agent-a414f7b607def1150` (branch `worktree-agent-a414f7b607def1150`, from an earlier session), had no commits beyond main and no changes; it was removed with `git worktree remove` and `git branch -d`. All S1/S2 work is on `main` in both repos, uncommitted.
 
+### S3 touch selection: code and tests done, uncommitted
+- Long press (touch only, not mouse) selects the cell and starts range mode, with a haptic. The same finger then drags to extend. In range mode a swipe extends instead of scrolling (scroll physics locked). Two handles (48 px hit area) move the top-left and bottom-right corners. Holding near an edge auto-scrolls and keeps extending. A bottom toolbar offers Copy, Copy address (icon) and Done. Done or Esc leaves range mode and keeps the selection.
+- Pinch zoom with two fingers (0.75x to 2x); a pinch never selects.
+- A normal swipe scrolls and never selects; a tap selects one cell.
+- Bug found and fixed: the selection bar used to appear above the grid and push every cell down about 48 px on the first press, so drags landed a row off. It now sits below the grid (status-bar position), and pointer positions are recomputed from global coordinates on every move. Regression test added.
+- Bug found and fixed: the touch toolbar overflowed on a 390 px phone.
+Tests: package 288 pass, analyze clean; app 264 pass, analyze 0 errors/0 warnings. New `test/grid_touch_selection_test.dart` (8, phone portrait and tablet landscape).
+
+### Remaining (not started)
+- S4 reading gaps: `.xlsm`/`.tsv` extensions, password-protected message, hidden-sheet indicator, unsupported-feature notice, workbook-wide search with case/exact/formula options run off the UI thread, frozen-pane jump fix, wrapped row heights, range hyperlinks, sheet picker for many tabs.
+- S5 responsive layout (app): formula/name bar, read-only indicator, phone/tablet/desktop layouts.
+- S6 accessibility: cell semantics, focus ring, reduced motion, header touch targets.
+- On-device check of S1 to S3 on the connected Android phone (only the user can operate it).
+- Then: commit (both repos), IMPLEMENTATION result for the run, REVIEW/QA, package release and app pin bump (user approval).
+
 ## Status
-IMPLEMENTATION. S1 and S2 code and tests complete, not committed (both repos, on main). Next: S3 (touch selection). The Implementation result for the run is recorded once, when the slices the user wants in this run are done (operator closes the task).
+IMPLEMENTATION. S1, S2 and S3 code and tests complete, not committed (both repos, on main). Next: S4 (reading gaps). The Implementation result for the run is recorded once, when the slices the user wants in this run are done (operator closes the task).
