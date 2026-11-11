@@ -1,0 +1,21 @@
+{
+ "status": "READY",
+ "evidence": [
+  "agentic/data/project-context/features/CR-EXCEL-READER-AUDIT/TECH-SPEC.md"
+ ],
+ "blocking_issues": [],
+ "open_questions": [
+  "First tap on a cell selects it; the existing cell sheet opens on a second tap of the active cell. Not explicitly approved by the user.",
+  "Package release (0.2.0 unreleased) and the app's git pin: user approval at RELEASE"
+ ],
+ "recommended_next_step": "TECHNICAL",
+ "outputs": {
+  "verdict": "IMPACT_READY",
+  "modules": [
+   "universal_document_viewer: lib/src/spreadsheet (spreadsheet_view.dart, spreadsheet_controller.dart), lib/src/common/document_format.dart, document_viewer_strings.dart, engines/spreadsheet",
+   "app: lib/core/presentation (excel/csv reader views, SheetReaderController, sheet_reader_toolbar, app_shortcuts), app_shell drop/picker, Android intent filters",
+   "tests in both repos"
+  ],
+  "risk": "medium-high: gesture conflicts with TableView scrolling; cell-tap behaviour change; two-repo version coupling"
+ }
+}

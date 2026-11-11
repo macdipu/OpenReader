@@ -1,0 +1,10 @@
+# Local only, not committed: develop against the sibling universal_document_viewer
+# checkout. Repeats pubspec.yaml's overrides, which this file replaces.
+dependency_overrides:
+  universal_document_viewer:
+    path: ../universal_document_viewer
+  file_picker:
+    path: packages/file_picker
+  win32: ^6.3.0
+  package_info_plus: 10.1.0
+  meta: ^1.18.0

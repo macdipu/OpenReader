@@ -1,0 +1,15 @@
+{
+ "status": "READY",
+ "evidence": [
+  "agentic/data/work-items/CR-EXCEL-READER-AUDIT.md"
+ ],
+ "blocking_issues": [],
+ "open_questions": [],
+ "recommended_next_step": "CONTEXT",
+ "outputs": {
+  "verdict": "INTAKE_READY",
+  "work_item": "CR-EXCEL-READER-AUDIT",
+  "classification": "CR_TASKS",
+  "note": "Prompt-first: pasted audit-first requirements for the read-only Excel reader. Audit before implementation."
+ }
+}
