@@ -25,5 +25,38 @@ The full text is in the session that created this work item; it is not copied he
 2. CONTEXT: reconnaissance and behaviour audit, producing `agentic/data/project-context/features/CR-EXCEL-READER-AUDIT/AUDIT-REPORT.md`.
 3. Stop for the user's approval of the prioritized gap list. No implementation before that.
 
+## Progress
+
+### Run stage history (2026-11-11)
+INTAKE, CONTEXT, IMPACT and TECHNICAL results recorded and closed by the user; the technical gate was approved by `macdipu` (the user told the agent to run the approve command). Stage is IMPLEMENTATION. Plan: `agentic/data/project-context/features/CR-EXCEL-READER-AUDIT/TECH-SPEC.md` (approved as written, including first tap selects / second tap on the active cell opens the cell sheet).
+
+### S1 selection core: code and tests done, uncommitted (package repo `../universal_document_viewer` and this repo)
+Package:
+- New `lib/src/spreadsheet/grid_selection.dart`: `GridSelection` (cell, range, row, column, all; anchor and active cell; `contains`, `bounds`, `address`, `extendedTo`), `columnLabel`. Exported from `spreadsheet.dart`.
+- `SpreadsheetController`: `selection` (ValueListenable), `select`, `clearSelection`, `selectAll`, `moveSelection`, `moveSelectionTo`, `pageRows`, `revealCell`. Cleared when the sheet changes or a file loads.
+- `SheetGeometry`: `visibleRowAtY`, `visibleColumnAtX`, `contentHeight`, `contentWidth`.
+- `SpreadsheetView`: mouse press/drag selects, Shift+click extends, tap selects (touch), a second tap on the active cell opens the cell sheet; arrows, Shift+arrows, Tab/Shift+Tab, Enter, Home/End (Ctrl for the sheet corners), PgUp/PgDn, Ctrl/Cmd+A, Esc (only when something is selected); the corner selects all; active-cell border and range outline (borders, not colour alone); selection bar shows the address, size, count, sum and average; selection summary is cached per selection and rows, and ranges over 100,000 cells are not totalled. Cell, header and corner `InkWell`s no longer take focus (the grid keeps it).
+- New strings: `selectAll`, `dimensions`, `rangeTooLargeToSummarize`, `selected`.
+Tests: package 268 pass (was 250), analyze clean; app 264 pass, analyze 0 errors/0 warnings. New: `test/grid_selection_test.dart`, `test/grid_selection_view_test.dart` (12 widget tests incl. phone, tablet and desktop sizes, swipe does not select, virtualized far cells, sheet switch). Two existing tests changed for the approved tap behaviour: package `spreadsheet_view_test.dart`, app `excel_reader_controller_test.dart` (UX-32).
+
+Known limits of S1 (to be closed in later slices or recorded in the final report):
+- Keyboard moves do not treat a merged area as one cell; a click on a merged area selects its top-left cell.
+- Copy for cell and range selections is S2 (the bar hides Copy for them); Ctrl/Cmd+C is S2.
+- Touch range selection (long press, handles, auto-scroll, pinch) is S3; a touch tap selects one cell only.
+- No on-device check yet; widget tests only.
+- Found while testing: tapping a cell and scrolling it out of the grid while its ink splash runs trips a framework assertion in widget tests, on the original code too (probe run with S1 stashed). Tests turn the splash off; not fixed in the product.
+- `Tab` is consumed only while something is selected, so keyboard focus can still leave the grid with no selection or after Esc.
+
+### S2 copy and statistics: code and tests done, uncommitted
+Package:
+- `SpreadsheetController.selectedText()`: TSV (rows by newline, cells by tab), Excel-style quoting of cells holding a tab, line break or quote; one cell copies as it reads; whole row/column/select-all drop trailing blank rows and columns; null over `maxCopiedCells` (1,000,000).
+- Ctrl/Cmd+C copies the selection (only when something is selected). The bar has Copy (TSV) and Copy address for every kind of selection.
+- Every clipboard write (bar, keyboard, cell sheet value and formula) is awaited; a refusal shows "Could not copy..." instead of "copied". Strings go through `DocumentViewerStrings` (`copied`, `couldNotCopy`, `tooLargeToCopy`, `copyAddress`, `min`, `max`, `numbers`).
+- Statistics: Count, Numbers (shown only when some cells are not numbers), Sum, Avg, Min, Max. Date/time cells are counted but never added; when every number shares one format the results use it (10% + 20% shows Sum 30%).
+Tests: package 279 pass, analyze clean; app 264 pass, analyze 0 errors/0 warnings. New `test/grid_selection_copy_test.dart` (11). App UX-32 header test updated for the new bar wording ("Count 2 · Numbers 1 · Sum 97 · Avg 97 · Min 97 · Max 97").
+
+### Housekeeping (2026-11-11)
+The user asked to merge the worktree into main and code on main. The only worktree, `.claude/worktrees/agent-a414f7b607def1150` (branch `worktree-agent-a414f7b607def1150`, from an earlier session), had no commits beyond main and no changes; it was removed with `git worktree remove` and `git branch -d`. All S1/S2 work is on `main` in both repos, uncommitted.
+
 ## Status
-INTAKE. Audit in progress.
+IMPLEMENTATION. S1 and S2 code and tests complete, not committed (both repos, on main). Next: S3 (touch selection). The Implementation result for the run is recorded once, when the slices the user wants in this run are done (operator closes the task).

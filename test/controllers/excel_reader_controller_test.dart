@@ -416,6 +416,11 @@ void main() {
       Finder cellOf(String text) => find.ancestor(of: find.text(text), matching: find.byType(Container)).first;
       expect(tester.getSize(cellOf('Alice')).width, SpreadsheetController.cellWidth);
 
+      // CR-EXCEL-READER-AUDIT S1: the first tap selects the cell, a second
+      // tap on the active cell opens its details.
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cell A2'), findsNothing);
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
       expect(find.text('Cell A2'), findsOneWidget);
@@ -443,8 +448,9 @@ void main() {
 
       await tester.tap(find.bySemanticsLabel('Column B'));
       await tester.pump();
-      // 'Score' is text, so only 97 counts toward Sum/Average.
-      expect(find.textContaining('Count 2 · Sum 97 · Avg 97'), findsOneWidget);
+      // 'Score' is text, so only 97 counts toward Sum/Average, and the bar
+      // says how many cells were numbers (CR-EXCEL-READER-AUDIT S2).
+      expect(find.textContaining('Count 2 · Numbers 1 · Sum 97 · Avg 97 · Min 97 · Max 97'), findsOneWidget);
       await tester.tap(find.byTooltip('Copy column b'));
       await tester.pump();
       expect(copied, 'Score\n97');
