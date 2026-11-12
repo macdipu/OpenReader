@@ -1,4 +1,4 @@
-name: Build Android and Desktop Release
+name: Release (Android + Desktop)
 
 on:
   push:
@@ -8,9 +8,11 @@ on:
     inputs:
       version:
         description: >
-          Release tag to publish (e.g. v1.2.3). Leave empty to fall back to
-          a run-numbered tag - useful for testing this workflow without
-          cutting a real release.
+          Release tag to publish, in the form vX.Y.Z (with the leading "v").
+          It must equal the version in pubspec.yaml without the "+build"
+          part (pubspec 1.0.18+18 -> v1.0.18), otherwise the run fails.
+          Leave empty to use v<pubspec version>; with play_track "none" an
+          empty value gives a run-numbered test tag (build-N) instead.
         required: false
       play_track:
         description: >
@@ -46,6 +48,36 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Release tag must be vX.Y.Z and equal pubspec's version (minus "+build"),
+      # so the tag, the release name and the app's own version never drift.
+      # Checked first so a typo fails in seconds, not after a 20-minute build.
+      - name: Determine release tag
+        id: tag
+        shell: bash
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          PLAY_TRACK: ${{ inputs.play_track }}
+        run: |
+          full=$(grep '^version:' pubspec.yaml | head -1 | sed 's/version:[[:space:]]*//' | tr -d '\r')
+          expected="v${full%%+*}"
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            tag="$REF_NAME"
+          elif [[ -n "$INPUT_VERSION" ]]; then
+            tag="$INPUT_VERSION"
+          elif [[ "$PLAY_TRACK" != "none" ]]; then
+            tag="$expected"   # real release: default to pubspec's version
+          else
+            tag="build-${{ github.run_number }}"   # test build, no real release
+          fi
+          if [[ "$tag" != build-* && "$tag" != "$expected" ]]; then
+            echo "::error::Release tag '$tag' does not match pubspec.yaml version '$full' (expected '$expected'). Bump pubspec.yaml or fix the tag."
+            exit 1
+          fi
+          echo "Release tag: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       # This repo requires Java 17 (see android/app/build.gradle
       # compileOptions/kotlinOptions - needed by flutter_local_notifications
@@ -144,17 +176,6 @@ jobs:
           if echo "$SIGNER" | grep -q 'CN=Android Debug'; then
             echo "::error::Release artifact is signed with the DEBUG key - refusing to publish."
             exit 1
-          fi
-
-      - name: Determine release tag
-        id: tag
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          elif [[ -n "${{ inputs.version }}" ]]; then
-            echo "tag=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=build-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Collect release artifacts
@@ -272,6 +293,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Release tag must be vX.Y.Z and equal pubspec's version (minus "+build"),
+      # so the tag, the release name and the app's own version never drift.
+      # Checked first so a typo fails in seconds, not after a 20-minute build.
+      - name: Determine release tag
+        id: tag
+        shell: bash
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          PLAY_TRACK: ${{ inputs.play_track }}
+        run: |
+          full=$(grep '^version:' pubspec.yaml | head -1 | sed 's/version:[[:space:]]*//' | tr -d '\r')
+          expected="v${full%%+*}"
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            tag="$REF_NAME"
+          elif [[ -n "$INPUT_VERSION" ]]; then
+            tag="$INPUT_VERSION"
+          elif [[ "$PLAY_TRACK" != "none" ]]; then
+            tag="$expected"   # real release: default to pubspec's version
+          else
+            tag="build-${{ github.run_number }}"   # test build, no real release
+          fi
+          if [[ "$tag" != build-* && "$tag" != "$expected" ]]; then
+            echo "::error::Release tag '$tag' does not match pubspec.yaml version '$full' (expected '$expected'). Bump pubspec.yaml or fix the tag."
+            exit 1
+          fi
+          echo "Release tag: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -298,18 +349,6 @@ jobs:
 
       - name: Build release
         run: flutter build ${{ matrix.platform }} --release
-
-      - name: Determine release tag
-        id: tag
-        shell: bash
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          elif [[ -n "${{ inputs.version }}" ]]; then
-            echo "tag=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=build-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          fi
 
       # pubspec's "1.0.11+13" -> version 1.0.11, build 13 (for the installer file names).
       - name: Read app version
