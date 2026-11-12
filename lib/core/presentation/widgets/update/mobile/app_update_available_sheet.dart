@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/theme_extensions.dart';
-import '../app_sheet/show_app_sheet.dart';
-import '../buttons/common_button.dart';
+import '../../../theme/theme_extensions.dart';
+import '../../app_sheet/show_app_sheet.dart';
+import '../../buttons/common_button.dart';
 
-/// "Update available" sheet. Resolves to `true` when the user chooses to
-/// update, `false`/`null` for "Later" or a dismiss.
-Future<bool?> showAppUpdateSheet({required String message, String actionLabel = 'Update now'}) =>
-    showAppSheet<bool>(child: AppUpdateSheet(message: message, actionLabel: actionLabel));
+/// Mobile "update available" bottom sheet (Android / Google Play). Resolves to
+/// `true` when the user chooses to update, `false`/`null` for "Later" or a dismiss.
+Future<bool?> showAppUpdateAvailableSheet({required String message, String actionLabel = 'Update now'}) =>
+    showAppSheet<bool>(child: AppUpdateAvailableSheet(message: message, actionLabel: actionLabel));
 
-class AppUpdateSheet extends StatelessWidget {
+class AppUpdateAvailableSheet extends StatelessWidget {
   final String message;
   final String actionLabel;
 
-  const AppUpdateSheet({super.key, required this.message, this.actionLabel = 'Update now'});
+  const AppUpdateAvailableSheet({super.key, required this.message, this.actionLabel = 'Update now'});
 
   @override
   Widget build(BuildContext context) {
@@ -41,11 +41,7 @@ class AppUpdateSheet extends StatelessWidget {
               const SizedBox(height: 16),
               Text('Update available', style: context.titleLarge, textAlign: TextAlign.center),
               const SizedBox(height: 8),
-              Text(
-                message,
-                style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
-                textAlign: TextAlign.center,
-              ),
+              Text(message, style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant), textAlign: TextAlign.center),
               const SizedBox(height: 24),
               CommonButton.filled(title: actionLabel, onTap: () => Navigator.of(context).pop(true)),
               const SizedBox(height: 8),

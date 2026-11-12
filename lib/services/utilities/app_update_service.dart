@@ -3,12 +3,17 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/presentation/utils/platform_info.dart';
 import '../../core/presentation/widgets/snackbar/custom_snackbar.dart';
-import '../../core/presentation/widgets/update/app_update_sheet.dart';
+import '../../core/presentation/widgets/update/desktop/app_update_available_dialog.dart';
+import '../../core/presentation/widgets/update/mobile/app_update_available_sheet.dart';
+import '../../core/presentation/widgets/update/desktop/app_update_progress.dart';
+import '../../res/routes/global_navigator.dart';
+import 'desktop_update_installer.dart';
 import 'url_launcher_service.dart';
 
 /// Tells the user when a newer build is out:
@@ -19,7 +24,8 @@ class AppUpdateService {
   AppUpdateService._();
   static final AppUpdateService instance = AppUpdateService._();
 
-  static const _latestReleaseUrl = 'https://api.github.com/repos/macdipu/OpenReader/releases/latest';
+  static const _latestReleaseUrl =
+      'https://api.github.com/repos/macdipu/OpenReader/releases/latest';
 
   bool _checked = false;
 
@@ -56,8 +62,9 @@ class AppUpdateService {
     if (info.updateAvailability != UpdateAvailability.updateAvailable) return;
     if (!info.flexibleUpdateAllowed && !info.immediateUpdateAllowed) return;
 
-    final accepted = await showAppUpdateSheet(
-      message: 'A new version of OpenReader is ready. It downloads in the background, so you can keep reading.',
+    final accepted = await showAppUpdateAvailableSheet(
+      message:
+          'A new version of OpenReader is ready. It downloads in the background, so you can keep reading.',
     );
     if (accepted != true) return;
 
@@ -69,7 +76,8 @@ class AppUpdateService {
         await InAppUpdate.performImmediateUpdate();
       }
     } catch (_) {
-      CustomSnackbar.error('Could not download the update. Try again from Google Play.');
+      CustomSnackbar.error(
+          'Could not download the update. Try again from Google Play.');
     }
   }
 
@@ -100,40 +108,112 @@ class AppUpdateService {
     final tag = release['tag_name'] as String? ?? '';
     final latest = _parseVersion(tag);
     final current = _parseVersion((await PackageInfo.fromPlatform()).version);
-    if (latest == null || current == null || _compare(latest, current) <= 0) return;
+    if (latest == null || current == null || _compare(latest, current) <= 0)
+      return;
 
     // Only offer a release that actually has a build for this platform.
     final asset = (release['assets'] as List? ?? const [])
         .cast<Map<String, dynamic>>()
-        .where((a) => (a['name'] as String? ?? '').startsWith(_assetPrefix))
+        .where((a) =>
+            DesktopUpdateInstaller.isPlatformAsset(a['name'] as String? ?? ''))
         .firstOrNull;
     final downloadUrl = asset?['browser_download_url'] as String?;
     if (downloadUrl == null) return;
 
-    final accepted = await showAppUpdateSheet(
-      message: 'OpenReader $tag is available. Download it, then replace this copy with the new one.',
+    final accepted = await showAppUpdateAvailableDialog(
+      message:
+          'OpenReader $tag is available. It downloads inside the app; restart when it is ready.',
       actionLabel: 'Download',
     );
     if (accepted != true) return;
 
-    final result = await UrlLauncherService.instance.launch(downloadUrl);
-    result.fold((_) => CustomSnackbar.error('Could not open the download link.'), (_) {});
+    await _downloadAndInstall(downloadUrl, tag);
   }
 
-  /// Asset names from release.yml's "Package <platform>" steps.
-  String get _assetPrefix {
-    if (PlatformInfo.isWindows) return 'openreader-windows-';
-    if (PlatformInfo.isMacOS) return 'openreader-macos-';
-    return 'openreader-linux-';
+  void _closeDialog() {
+    final context = rootContext;
+    if (context != null) Navigator.of(context, rootNavigator: true).pop();
+  }
+
+  Future<void> _openInBrowser(String url) async {
+    final result = await UrlLauncherService.instance.launch(url);
+    result.fold(
+        (_) => CustomSnackbar.error('Could not open the download link.'),
+        (_) {});
+  }
+
+  /// Downloads with a progress sheet, stages the build, then offers Restart.
+  Future<void> _downloadAndInstall(String url, String tag) async {
+    final state = ValueNotifier(const UpdateProgress(UpdatePhase.downloading));
+    final cancel = UpdateCancelToken();
+    var restart = false;
+    var browser = false;
+
+    final dialog = showAppUpdateProgress(
+      AppUpdateProgress(
+        state: state,
+        version: tag,
+        onCancel: () {
+          cancel.cancel();
+          _closeDialog();
+        },
+        onRestart: () {
+          restart = true;
+          _closeDialog();
+        },
+        onDownloadInBrowser: () {
+          browser = true;
+          _closeDialog();
+        },
+      ),
+    );
+
+    String? staged;
+    try {
+      await DesktopUpdateInstaller.ensureInstallable();
+      final file = await DesktopUpdateInstaller.download(
+        url,
+        cancel: cancel,
+        onProgress: (p) =>
+            state.value = UpdateProgress(UpdatePhase.downloading, progress: p),
+      );
+      state.value = const UpdateProgress(UpdatePhase.installing);
+      staged = await DesktopUpdateInstaller.stage(file);
+      state.value = const UpdateProgress(UpdatePhase.ready);
+    } on UpdateInstallException catch (e) {
+      if (cancel.isCancelled) return;
+      state.value = UpdateProgress(UpdatePhase.failed, error: e.message);
+    } catch (e) {
+      if (cancel.isCancelled) return;
+      state.value = const UpdateProgress(UpdatePhase.failed,
+          error: 'Could not install the update.');
+    }
+
+    await dialog;
+    state.dispose();
+    if (browser) {
+      await _openInBrowser(url);
+    } else if (restart && staged != null) {
+      try {
+        await DesktopUpdateInstaller.launchInstallerAndRelaunch(staged);
+        exit(0);
+      } catch (_) {
+        CustomSnackbar.error('Could not restart to finish the update.');
+      }
+    }
   }
 
   Future<Map<String, dynamic>> _fetchLatestRelease() async {
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 10);
     try {
       final request = await client.getUrl(Uri.parse(_latestReleaseUrl));
-      request.headers.set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
-      final response = await request.close().timeout(const Duration(seconds: 15));
-      if (response.statusCode != HttpStatus.ok) throw HttpException('HTTP ${response.statusCode}');
+      request.headers
+          .set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
+      final response =
+          await request.close().timeout(const Duration(seconds: 15));
+      if (response.statusCode != HttpStatus.ok)
+        throw HttpException('HTTP ${response.statusCode}');
       final body = await response.transform(utf8.decoder).join();
       return jsonDecode(body) as Map<String, dynamic>;
     } finally {
