@@ -36,10 +36,6 @@ class _DefaultAppDialogState extends State<_DefaultAppDialog> {
   bool _busy = false;
 
   String get _explain {
-    if (PlatformInfo.isAndroid) {
-      return 'Android asks you per file type: open a document, pick OpenReader and tap Always. '
-          'We\'ll open the default-apps settings for you.';
-    }
     if (PlatformInfo.isWindows) {
       return 'Windows keeps this choice to itself, so we\'ll open Settings > Default apps with OpenReader '
           'selected. Pick it for the types you want.';
@@ -48,7 +44,7 @@ class _DefaultAppDialogState extends State<_DefaultAppDialog> {
     return 'Sets OpenReader as the default app for the types you choose.';
   }
 
-  String get _action => PlatformInfo.isWindows || PlatformInfo.isAndroid ? 'Open settings' : 'Make default';
+  String get _action => PlatformInfo.isWindows ? 'Open settings' : 'Make default';
 
   Future<void> _apply() async {
     setState(() => _busy = true);

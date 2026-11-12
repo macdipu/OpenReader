@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
-import '../../../core/presentation/utils/platform_info.dart';
 import '../../../services/platform_integration/default_app_service.dart';
 import 'default_app_dialog.dart';
 import 'settings_controller.dart';
@@ -46,14 +45,12 @@ class SettingsView extends GetView<SettingsController> {
     );
 
     final defaultApp = DefaultAppService.instance.isSupported
-        ? _Section(
+        ? const _Section(
             label: 'Default app',
             child: _ActionRow(
               icon: Icons.menu_book_rounded,
               title: 'Make OpenReader your default reader',
-              subtitle: PlatformInfo.isAndroid
-                  ? 'Open PDFs, Word, Excel and more here by default'
-                  : 'For every document type, or just the ones you pick (like PDFs)',
+              subtitle: 'For every document type, or just the ones you pick (like PDFs)',
               trailing: Icons.chevron_right_rounded,
               onTap: showDefaultAppDialog,
             ),

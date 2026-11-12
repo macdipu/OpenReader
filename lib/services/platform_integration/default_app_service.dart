@@ -26,7 +26,7 @@ enum DocumentType {
 /// Outcome of [DefaultAppService.makeDefault].
 class DefaultAppResult {
   /// True when OpenReader is now the default; false when the OS needs the user
-  /// to confirm (Android, Windows) and the right settings screen was opened.
+  /// to confirm (Windows) and the right settings screen was opened.
   final bool applied;
   final bool success;
   final String message;
@@ -39,19 +39,18 @@ class DefaultAppResult {
 /// - macOS: `NSWorkspace.setDefaultApplication` per type (macOS asks the user to confirm).
 /// - Windows: apps cannot set a default silently (the choice is protected), so it registers
 ///   OpenReader and opens Settings > Default apps with OpenReader selected.
-/// - Android: there is no API for document defaults, so it opens the system default-apps
-///   settings; "Always" in the open-with chooser sets it per file type.
+/// - Android / iOS: unsupported, so the prompt and the settings row are never shown.
 class DefaultAppService {
   DefaultAppService._();
   static final DefaultAppService instance = DefaultAppService._();
 
-  static const _channel = MethodChannel('openreader/default_app');
   static const _macChannel = MethodChannel('openreader/open_files');
   static const _dismissedKey = 'default_app_prompt_dismissed';
   static const _shownKey = 'default_app_prompt_shown';
   static const _maxPrompts = 3;
 
-  bool get isSupported => PlatformInfo.isAndroid || PlatformInfo.isDesktop;
+  /// Desktop only: Android and iOS expose no supported way to become the default document app.
+  bool get isSupported => PlatformInfo.isDesktop;
 
   /// Whether this platform can set the default itself (versus sending the user to settings).
   bool get appliesDirectly => PlatformInfo.isLinux || PlatformInfo.isMacOS;
@@ -82,7 +81,6 @@ class DefaultAppService {
       if (PlatformInfo.isLinux) return await _linux(types);
       if (PlatformInfo.isMacOS) return await _macos(types);
       if (PlatformInfo.isWindows) return await _windows(types);
-      if (PlatformInfo.isAndroid) return await _android(types);
     } catch (e, st) {
       AppLogger.error('makeDefault failed', e, st);
     }
@@ -153,17 +151,6 @@ class DefaultAppService {
       applied: false,
       success: true,
       message: 'In Windows Settings, choose OpenReader for ${_list(types)}.',
-    );
-  }
-
-  Future<DefaultAppResult> _android(Set<DocumentType> types) async {
-    final opened = await _channel.invokeMethod<bool>('openDefaultAppSettings') ?? false;
-    return DefaultAppResult(
-      applied: false,
-      success: opened,
-      message: opened
-          ? 'Open a ${types.map((t) => t.label).join(' / ')} file and choose OpenReader, then tap Always.'
-          : 'Open a document from your file manager and choose OpenReader, then tap Always.',
     );
   }
 }
