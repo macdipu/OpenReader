@@ -135,6 +135,8 @@ Known limits of S6:
 ### Cell look and density (CR-SHEET-CELL-UI), 2026-11-12
 Implemented from `agentic/data/project-context/features/CR-SHEET-CELL-UI/AUDIT-AND-DESIGN-PROPOSAL.md` on the user's instruction. Summary and limits are at the end of that file; package CHANGELOG has the entries. Engine 349 tests, app 283. Behaviour changes to note at release: touch columns 104 px (was 110), row numbers 40 px (was 48), vertical cell padding 4 (was 2), selection drawn as a tint plus outline, and a desktop mouse gets compact 28 px rows.
 
+Touch drag/select rework and mouse/keyboard on touch devices were added on 2026-11-12 (see the end of that proposal): handles on any tapped cell or range, scroll lock only while a finger holds a handle, no Done toolbar, grab-offset handle drags, haptic ticks; layout follows the pointer in use on every platform; Ctrl/Cmd +/-/0 zoom.
+
 ### Remaining (not started)
 - S6 accessibility: cell semantics, focus ring, reduced motion, header touch targets.
 - On-device check of S1 to S3 on the connected Android phone (only the user can operate it).
