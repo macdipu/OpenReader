@@ -14,7 +14,8 @@ import '../../../../core/presentation/widgets/reader/go_to_cell_dialog.dart';
 /// desktop); otherwise (phones) it appears only while a cell is selected.
 /// The selection's size and totals are the grid's own status bar.
 class SheetFormulaBar extends StatefulWidget {
-  const SheetFormulaBar({super.key, required this.sheet, required this.alwaysShown});
+  const SheetFormulaBar(
+      {super.key, required this.sheet, required this.alwaysShown});
 
   final SpreadsheetController sheet;
   final bool alwaysShown;
@@ -33,16 +34,21 @@ class _SheetFormulaBarState extends State<SheetFormulaBar> {
       listenable: Listenable.merge([sheet, sheet.selection]),
       builder: (context, _) {
         final selection = sheet.selection.value;
-        if (selection == null && !widget.alwaysShown) return const SizedBox.shrink();
+        if (selection == null && !widget.alwaysShown)
+          return const SizedBox.shrink();
         final rows = sheet.currentRows;
-        final cell = selection == null ? null : _cellAt(rows, selection.activeRow, selection.activeColumn);
+        final cell = selection == null
+            ? null
+            : _cellAt(rows, selection.activeRow, selection.activeColumn);
         final value = cell?.value;
         final formula = switch (value) {
           FormulaValue(:final formula) => '=$formula',
           _ => null,
         };
         final text = formula ?? cell?.text ?? '';
-        final name = selection == null ? '' : '${columnLabel(selection.activeColumn)}${selection.activeRow + 1}';
+        final name = selection == null
+            ? ''
+            : '${columnLabel(selection.activeColumn)}${selection.activeRow + 1}';
         final canExpand = text.contains('\n') || text.length > 60;
         final muted = context.onSurfaceVariant;
 
@@ -65,22 +71,30 @@ class _SheetFormulaBarState extends State<SheetFormulaBar> {
                 // Name box: the address; tapping it goes to a cell (Excel's name box drop-down).
                 InkWell(
                   key: const Key('formula-bar-goto'),
-                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                  borderRadius:
+                      const BorderRadius.horizontal(left: Radius.circular(10)),
                   onTap: () => showGoToCellDialog(context, sheet),
                   child: Tooltip(
                     message: 'Go to cell',
                     child: Container(
                       key: const Key('formula-bar-name'),
-                      constraints: const BoxConstraints(minWidth: 84, minHeight: 40),
+                      constraints:
+                          const BoxConstraints(minWidth: 84, minHeight: 40),
                       padding: const EdgeInsets.only(left: 12, right: 4),
                       alignment: Alignment.centerLeft,
-                      decoration: BoxDecoration(border: Border(right: BorderSide(color: context.outlineVariant))),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              right:
+                                  BorderSide(color: context.outlineVariant))),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(name, style: context.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                          Text(name,
+                              style: context.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600)),
                           const SizedBox(width: 4),
-                          Icon(Icons.arrow_drop_down_rounded, size: 20, color: muted),
+                          Icon(Icons.arrow_drop_down_rounded,
+                              size: 20, color: muted),
                         ],
                       ),
                     ),
@@ -94,36 +108,57 @@ class _SheetFormulaBarState extends State<SheetFormulaBar> {
                       'fx',
                       style: context.bodyMedium?.copyWith(
                         fontStyle: FontStyle.italic,
-                        color: formula != null ? context.primary : muted.withValues(alpha: 0.5),
-                        fontWeight: formula != null ? FontWeight.bold : FontWeight.normal,
+                        color: formula != null
+                            ? context.primary
+                            : muted.withValues(alpha: 0.5),
+                        fontWeight: formula != null
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                   ),
                 ),
                 Expanded(
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: 40, maxHeight: _expanded ? 120 : 40),
-                    child: _expanded
-                        ? SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: SelectableText(text, key: const Key('formula-bar-value'), style: context.bodyMedium),
-                          )
-                        : Align(
+                    constraints: BoxConstraints(
+                        minHeight: 40, maxHeight: _expanded ? 120 : 40),
+                    child: selection == null
+                        // Nothing selected (tablet and desktop): say what to do.
+                        ? Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              text.replaceAll('\n', ' '),
-                              key: const Key('formula-bar-value'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: context.bodyMedium,
+                              'Select a cell',
+                              key: const Key('formula-bar-hint'),
+                              style: context.bodyMedium?.copyWith(
+                                  color: muted.withValues(alpha: 0.7)),
                             ),
-                          ),
+                          )
+                        : _expanded
+                            ? SingleChildScrollView(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                child: SelectableText(text,
+                                    key: const Key('formula-bar-value'),
+                                    style: context.bodyMedium),
+                              )
+                            : Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  text.replaceAll('\n', ' '),
+                                  key: const Key('formula-bar-value'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.bodyMedium,
+                                ),
+                              ),
                   ),
                 ),
                 if (canExpand)
                   IconButton(
                     tooltip: _expanded ? 'Collapse' : 'Show all',
-                    icon: Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded),
+                    icon: Icon(_expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded),
                     color: muted,
                     onPressed: () => setState(() => _expanded = !_expanded),
                   )

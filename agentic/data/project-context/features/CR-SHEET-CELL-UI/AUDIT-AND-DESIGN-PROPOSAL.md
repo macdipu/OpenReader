@@ -172,3 +172,13 @@ Checked on the Android emulator (screenshots): ghost grid fills the view, tinted
 - Golden-image tests: font rendering differs between macOS and the Linux CI, so they would fail there; behaviour is asserted instead (decoration colours, sizes, a rendered-pixel check of the ghost grid).
 - A fill handle, corner dots on a single selected cell, a `+` sheet tab: editing-related or undecided (questions 7, 4).
 - Open questions 2 and 8 were decided by default as above; reverse them by passing `density:` or `selectionColor:`.
+
+### Changes made after reviewing the running apps (2026-11-12)
+Reviewed on the Android emulator (a realistic 8-column, 60-row orders sheet) and the macOS app (real mouse events, window captures at 800x632 and 1400x880). Fixed:
+- **Text room on phones:** the proposed 96 px / 8 px padding cut common names ("Alex Morg...", "Docking s...") shorter than the old layout. Touch is now 104 px columns with 6 px side padding (92 px of text; was 98 px at 110 px columns). Proposal table value "96" is superseded.
+- **Focus ring after a mouse click (desktop):** a desktop is always in "traditional" focus mode, so a green frame surrounded the grid after every click. The ring now shows only after a key press.
+- **Right-click flipped the desktop to touch rows:** a menu opening sends a cancel event that Flutter marks as touch. Only a finger lifting (a pointer-up) switches density now.
+- **Grey active cell under the mouse:** the framework's grey hover wash on the InkWell showed through; replaced by an accent hover tint, skipped on the active cell.
+- **Blank strips beside a small sheet (desktop):** the ghost grid now runs under the scrollbar gutters, and its lines are a little stronger.
+- **Empty name box:** shows "Select a cell" until a cell is chosen (tablet and desktop).
+Not changed: the file-dependent app-bar and tab layout; no tablet device was available to try.

@@ -119,7 +119,7 @@ void main() {
     final controller = await open(tester);
     await showExcelReader(tester, controller, size: desktop);
     expect(nameBox(), findsOneWidget);
-    expect(value(tester), '');
+    expect(find.byKey(const Key('formula-bar-hint')), findsOneWidget, reason: 'tells what to do with nothing selected');
     expect(find.text('Read-only'), findsOneWidget);
     expect(find.byTooltip('Add to favorites'), findsOneWidget);
   });
