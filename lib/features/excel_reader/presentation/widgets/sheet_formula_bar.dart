@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:universal_document_viewer/spreadsheet.dart';
 
 import '../../../../core/presentation/theme/theme_extensions.dart';
+import '../../../../core/presentation/widgets/reader/go_to_cell_dialog.dart';
 
 /// Excel's name box and formula bar, read-only (CR-EXCEL-READER-AUDIT S5):
 /// the active cell's address, an `fx` mark when it holds a formula, and
@@ -61,14 +62,29 @@ class _SheetFormulaBarState extends State<SheetFormulaBar> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Name box.
-                Container(
-                  key: const Key('formula-bar-name'),
-                  constraints: const BoxConstraints(minWidth: 64, minHeight: 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(border: Border(right: BorderSide(color: context.outlineVariant))),
-                  child: Text(name, style: context.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                // Name box: the address; tapping it goes to a cell (Excel's name box drop-down).
+                InkWell(
+                  key: const Key('formula-bar-goto'),
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                  onTap: () => showGoToCellDialog(context, sheet),
+                  child: Tooltip(
+                    message: 'Go to cell',
+                    child: Container(
+                      key: const Key('formula-bar-name'),
+                      constraints: const BoxConstraints(minWidth: 84, minHeight: 40),
+                      padding: const EdgeInsets.only(left: 12, right: 4),
+                      alignment: Alignment.centerLeft,
+                      decoration: BoxDecoration(border: Border(right: BorderSide(color: context.outlineVariant))),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(name, style: context.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 4),
+                          Icon(Icons.arrow_drop_down_rounded, size: 20, color: muted),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 SizedBox(
                   width: 36,

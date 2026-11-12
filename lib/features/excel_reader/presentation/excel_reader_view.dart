@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import 'package:get/get.dart';
 
 import '../../../core/domain/models/document_category.dart';
@@ -79,13 +78,13 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 clipBehavior: Clip.antiAlias,
-// The scrollbar needs the kit's scroll controller; the kit should expose it publicly.
-// ignore: invalid_use_of_internal_member
-                child: ReaderScrollbar(controller: controller.sheet.verticalController, horizontalController: controller.sheet.horizontalController, child: SpreadsheetView(
+                // The grid draws its own scrollbars; the format's accent colours its selection.
+                child: SpreadsheetView(
                   key: ValueKey(sheetIndex),
                   controller: controller.sheet,
                   emptyMessage: 'Empty workbook',
-                )),
+                  selectionColor: DocumentCategory.excel.accentColor(context),
+                ),
               ),
             ),
             _SheetTabBar(controller: controller),

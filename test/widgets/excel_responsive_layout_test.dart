@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
-import 'package:universal_document_viewer/spreadsheet.dart' show GridSelection;
+import 'package:universal_document_viewer/spreadsheet.dart' show GridSelection, SpreadsheetView;
 import 'package:universal_document_viewer/testing.dart';
 
 import '../helpers/excel_reader_harness.dart';
@@ -134,6 +135,38 @@ void main() {
     controller.sheet.select(const GridSelection.cell(1, 1));
     await tester.pumpAndSettle();
     expect(value(tester), '1200');
+  });
+
+  testWidgets('tapping the name box goes to a cell', (tester) async {
+    final controller = await open(tester);
+    await showExcelReader(tester, controller, size: desktop);
+    controller.sheet.select(const GridSelection.cell(0, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('formula-bar-goto')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget, reason: 'the Go to cell dialog');
+    await tester.enterText(find.byType(TextField).last, 'B3');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(controller.sheet.goToTarget?.row, 2);
+    expect(controller.sheet.goToTarget?.column, 1);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('the selection uses the Excel accent, and the grid has its own scrollbars', (tester) async {
+    final controller = await open(tester);
+    await showExcelReader(tester, controller, size: phone);
+    final accent = DocumentCategory.excel.accentColor(tester.element(find.byType(Scaffold).first));
+    controller.sheet.select(const GridSelection.cell(1, 0));
+    await tester.pump();
+    // (The name bar also shows "Rent" once it is selected: look inside the grid.)
+    final rent = find.descendant(of: find.byType(SpreadsheetView), matching: find.text('Rent'));
+    final cell = tester.widget<Container>(find.ancestor(of: rent, matching: find.byType(Container)).first);
+    final border = (cell.foregroundDecoration! as BoxDecoration).border! as Border;
+    expect(border.top.color, accent);
+    // One pair, the grid's: the app no longer wraps a second set around it.
+    expect(find.byType(Scrollbar), findsNWidgets(2));
   });
 
   testWidgets('a long value is one line until expanded', (tester) async {

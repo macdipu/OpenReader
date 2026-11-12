@@ -132,6 +132,9 @@ Known limits of S6:
 - Not checked by hand: long-press range selection with handles, pinch zoom, copy to the clipboard, wrapped-row sheet, a real password-protected file, TalkBack/VoiceOver (emulator only, no physical phone connected).
 - Gap seen: the CSV/TSV reader has no read-only mark and keeps Favorite in the app bar (known, not in scope).
 
+### Cell look and density (CR-SHEET-CELL-UI), 2026-11-12
+Implemented from `agentic/data/project-context/features/CR-SHEET-CELL-UI/AUDIT-AND-DESIGN-PROPOSAL.md` on the user's instruction. Summary and limits are at the end of that file; package CHANGELOG has the entries. Engine 349 tests, app 283. Behaviour changes to note at release: touch columns 96 px (was 110), row numbers 40 px (was 48), cell padding 8/4, selection drawn as a tint plus outline, and a desktop mouse gets compact 28 px rows.
+
 ### Remaining (not started)
 - S6 accessibility: cell semantics, focus ring, reduced motion, header touch targets.
 - On-device check of S1 to S3 on the connected Android phone (only the user can operate it).
