@@ -18,7 +18,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$extensions = '.pdf', '.docx', '.xlsx', '.pptx', '.txt', '.md', '.csv'
+$extensions = '.pdf', '.docx', '.xlsx', '.xlsm', '.pptx', '.txt', '.md', '.csv', '.tsv'
 $classes = 'HKCU:\Software\Classes'
 
 # An earlier version registered one shared handler; clean it up.

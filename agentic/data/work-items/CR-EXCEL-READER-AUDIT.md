@@ -66,12 +66,76 @@ The user asked to merge the worktree into main and code on main. The only worktr
 - Bug found and fixed: the touch toolbar overflowed on a 390 px phone.
 Tests: package 288 pass, analyze clean; app 264 pass, analyze 0 errors/0 warnings. New `test/grid_touch_selection_test.dart` (8, phone portrait and tablet landscape).
 
+### Commits (2026-11-12 check)
+S1 to S3 are committed: package `efe5abe` (version 0.1.5), app `5399988`.
+
+### S4 reading gaps, part 1: code and tests done, uncommitted (2026-11-12)
+Package:
+- `DocumentFormat`: `.xlsm` (excel) and `.tsv` (csv); MIME `application/vnd.ms-excel.sheet.macroenabled.12` and `text/tab-separated-values`. Macros are never read (the reader opens only the parts it draws).
+- `.tsv` files split on tabs (no delimiter guessing); `.csv` still detects.
+- `ZipSafetyGuard.isEncryptedOfficeFile`: OLE2 header plus an `EncryptedPackage` stream name. Only runs once a file already failed the ZIP check. An encrypted workbook now fails with `DocumentLoadError.passwordRequired`, a legacy `.xls` renamed `.xlsx` stays `corrupted`.
+- `SpreadsheetController.hiddenSheetNames` (hidden, not very hidden, as Excel lists them).
+- `Worksheet.unshown` / `UnshownContent`: drawings (pictures, charts, shapes), chart sheets, tables, pivot tables, data validation, conditional-formatting rules the reader can't evaluate (expression, timePeriod, iconSet), sparklines.
+- Range hyperlinks: every cell of a linked range carries the link (budget 100,000 cells per sheet).
+App:
+- Password message: "This workbook is password protected. OpenReader can't open protected workbooks yet; try another app."
+- Tab bar: "All sheets" button (bottom-sheet picker listing every sheet, then the hidden ones, greyed), "N hidden" chip; the bar shows when there are 2+ sheets or any hidden sheet.
+- "Not shown: ..." notice above the grid, per sheet, dismissible (stays dismissed for that sheet while the reader is open).
+- `.xlsm`/`.tsv` registered: Android intent filters (lowercase MIME), macOS Info.plist, Windows `register-file-types.ps1`. Not added to the "make default" type list (`DefaultAppService`, one type per format).
+Tests: package 306 pass (new `test/sheet_reading_gaps_test.dart`, 18), analyze clean; app 270 pass (new `test/widgets/excel_reading_gaps_test.dart`, 6), analyze 0 errors/0 warnings.
+
+### S4 reading gaps, part 2: code and tests done, uncommitted (2026-11-12)
+Package:
+- Search: `SheetSearchOptions` (matchCase, wholeCell, inFormulas, allSheets) on `SpreadsheetController.searchOptions`; changing them re-runs the search. `CellMatch.sheet` (optional, always set by search). All-sheets search covers visible sheets in order and starts at the first match on or after the sheet on screen; Next/Previous switch sheets. A sheet switch ends a one-sheet search and keeps an all-sheets one. Hidden rows, columns and sheets are skipped.
+- Big workbooks (over 200,000 cells in scope) are searched in 50,000-cell slices between frames after a 200 ms pause; a newer query or clear cancels the older one; `isSearching` / `DocumentSearchState.isSearching` while running. Smaller ones stay synchronous (existing behaviour and tests).
+- Timing check (test): 300,000 cells, all sheets: 208 ms total including the 200 ms pause, longest slice 2 ms (desktop test run).
+- Frozen-pane jump: audit listed it as suspected Broken. Not reproduced: geometry already subtracts frozen panes. Regression tests added (file-frozen rows+columns at zoom 1 and 1.5, and "Freeze header row"). No code change.
+- Wrapped rows: `SheetGeometry.fitWrappedRows` measures wrapped cells (TextPainter, column width minus padding) in rows the file gave no height and grows them, up to Excel's 409 pt. Stored heights, merged and hidden cells are left alone. Budget 2,000 measured cells per sheet (5,000 took 41 ms on the desktop test run). Cached per sheet in the controller.
+App:
+- Search options menu (tune icon) in the search status bar: Match case, Match entire cell, Search formulas, All sheets (only with 2+ sheets). The Excel reader defaults to all sheets, so the "Search in workbook" tooltip is now true; it reads "Search in sheet" when off. Label shows "Searching..." while a big search runs and "3 of 12 · Sheet2" for all-sheets results.
+- Tapping a sheet tab still ends the search (now also an all-sheets one); stepping to a match on another sheet doesn't.
+Tests: package 327 pass (new `sheet_search_test.dart` 14, `sheet_wrapped_rows_test.dart` 7), analyze clean; app 271 pass (search options widget test added to `excel_reading_gaps_test.dart`), analyze 0 errors/0 warnings.
+
+Known limits of S4:
+- Fitted row heights use the default font family and ignore the system text scale (cells already scale with it; rows didn't before either). Bottom-aligned text is still drawn centred (a deliberate earlier choice for taller touch rows).
+- Search options are in the Excel reader only; the CSV reader keeps plain search.
+- `.xlsm`/`.tsv` are not in the "make OpenReader the default app" list.
+- Encrypted workbooks are detected, not opened (no decryption).
+
+### S5 responsive layout (app): code and tests done, uncommitted (2026-11-12)
+- New `lib/features/excel_reader/presentation/widgets/sheet_formula_bar.dart`: name box (active cell address), `fx` mark for formula cells, the formula (`=SUM(B2:B2)`) or full value; one line, "Show all" expands to a scrolling, selectable area. Reads `SpreadsheetController.selection`; the selection's size and totals stay in the grid's own status bar (no duplicate bar).
+- Phone (compact width, or short height such as a phone on its side): name bar only while a cell is selected, 4 px grid frame, Favorite moves into More, read-only shown as a lock. Tablet and desktop: name bar always shown, "Read-only" chip spelled out, Favorite in the app bar. Body keeps clear of side insets (notches) in landscape.
+- Breakpoints reuse `ScreenUtils` (`isCompactScreen`, `isShortScreen`); no new layout system.
+- Test helpers moved to `test/helpers/excel_reader_harness.dart` (used by the S4 and S5 widget tests; tapped cells use `NoSplash`).
+Tests: app 281 pass (new `test/widgets/excel_responsive_layout_test.dart`, 10: phone portrait/landscape, tablet both orientations, desktop; no overflow; name bar behaviour; formula; expand), analyze 0 errors/0 warnings. Package unchanged by S5.
+
+Known limits of S5:
+- The CSV reader keeps its old layout (no name bar or read-only mark).
+- No on-device check yet.
+
+### S6 accessibility (package): code and tests done, uncommitted (2026-11-12)
+- Cell semantics: each cell says "B2, value 40, formula, link, has note, selected" (`DocumentViewerStrings.cellDescription`), as a button with tap and long-press actions. The name bar and selection bar already had labels.
+- Keyboard focus ring: a 2 px primary border around the grid while it has focus and the user is on the keyboard (`FocusHighlightMode.traditional`); gone for pointer/touch. The active cell keeps its own border.
+- Reduced motion: `jumpToCell` (search, go to, links) jumps instead of animating when the system asks for it (`accessibilityFeatures.disableAnimations`).
+- Column-header row is 44 px at zoom 1 (new `SpreadsheetController.headerHeight`, was the 36 px row height); row headers are 48 wide. Applies at every size, not only touch.
+Tests: package 331 pass (new `sheet_accessibility_test.dart`, 4), analyze clean; app 281 pass, analyze 0 errors/0 warnings.
+
+Known limits of S6:
+- Not tested with a real screen reader (TalkBack, VoiceOver, NVDA); only the semantics tree is asserted.
+- Cells are individual buttons: a big grid is a long list for a screen reader; no row/column grouping or table semantics.
+- Contrast of the selection fill and fitted themes not measured.
+
+### Release preparation and platform check (2026-11-12)
+- Package committed: `9ab6e68` (CHANGELOG entries under "Unreleased (0.2.0)"). CI steps run locally on the package: format, analyze, 331 tests pass. `dart pub publish --dry-run` warns only that pubspec says 0.1.5 while the changelog's top section is "Unreleased (0.2.0)": the version number is for the user to choose at release.
+- macOS: debug build OK against the local engine; built Info.plist lists `xlsm` and `tsv`; the app launches and opens a window with the sample `.xlsm` (no visual check: screen capture only sees the terminal).
+- Android (Pixel 4a emulator, debug APK): merged manifest has the `.xlsm` (lowercase MIME) and `.tsv` intent filters. Opened `budget.xlsm` and `data.tsv` through VIEW intents: read-only lock, 44 px headers, name bar, tap selects with "Count 1" status bar, "1 hidden" chip and sheet menu, workbook search "apple" jumped to the April sheet ("1 of 1 · April"), `.tsv` split into two columns.
+- Not checked by hand: long-press range selection with handles, pinch zoom, copy to the clipboard, wrapped-row sheet, a real password-protected file, TalkBack/VoiceOver (emulator only, no physical phone connected).
+- Gap seen: the CSV/TSV reader has no read-only mark and keeps Favorite in the app bar (known, not in scope).
+
 ### Remaining (not started)
-- S4 reading gaps: `.xlsm`/`.tsv` extensions, password-protected message, hidden-sheet indicator, unsupported-feature notice, workbook-wide search with case/exact/formula options run off the UI thread, frozen-pane jump fix, wrapped row heights, range hyperlinks, sheet picker for many tabs.
-- S5 responsive layout (app): formula/name bar, read-only indicator, phone/tablet/desktop layouts.
 - S6 accessibility: cell semantics, focus ring, reduced motion, header touch targets.
 - On-device check of S1 to S3 on the connected Android phone (only the user can operate it).
 - Then: commit (both repos), IMPLEMENTATION result for the run, REVIEW/QA, package release and app pin bump (user approval).
 
 ## Status
-IMPLEMENTATION. S1, S2 and S3 code and tests complete, not committed (both repos, on main). Next: S4 (reading gaps). The Implementation result for the run is recorded once, when the slices the user wants in this run are done (operator closes the task).
+IMPLEMENTATION. S1 to S3 committed. S4 to S6 done and uncommitted (both repos, on main). All approved slices coded. Next: on-device check by the user, commit, IMPLEMENTATION result, REVIEW/QA, release (needs approval). The Implementation result for the run is recorded once, when the slices the user wants in this run are done (operator closes the task).

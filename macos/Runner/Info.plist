@@ -20,20 +20,24 @@
 				<string>pdf</string>
 				<string>docx</string>
 				<string>xlsx</string>
+				<string>xlsm</string>
 				<string>pptx</string>
 				<string>txt</string>
 				<string>md</string>
 				<string>csv</string>
+				<string>tsv</string>
 			</array>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>com.adobe.pdf</string>
 				<string>org.openxmlformats.wordprocessingml.document</string>
 				<string>org.openxmlformats.spreadsheetml.sheet</string>
+				<string>org.openxmlformats.spreadsheetml.sheet.macroenabled</string>
 				<string>org.openxmlformats.presentationml.presentation</string>
 				<string>public.plain-text</string>
 				<string>net.daringfireball.markdown</string>
 				<string>public.comma-separated-values-text</string>
+				<string>public.tab-separated-values-text</string>
 			</array>
 		</dict>
 	</array>

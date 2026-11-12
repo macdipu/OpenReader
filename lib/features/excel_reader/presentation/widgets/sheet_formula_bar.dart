@@ -1,0 +1,129 @@
+import 'package:flutter/material.dart';
+import 'package:universal_document_viewer/spreadsheet.dart';
+
+import '../../../../core/presentation/theme/theme_extensions.dart';
+
+/// Excel's name box and formula bar, read-only (CR-EXCEL-READER-AUDIT S5):
+/// the active cell's address, an `fx` mark when it holds a formula, and
+/// its formula (`=SUM(A1:A3)`) or its full value, which a narrow cell cuts
+/// short. A long value shows on one line and expands to a few scrolling
+/// lines.
+///
+/// [alwaysShown] keeps the bar on screen with nothing selected (tablet and
+/// desktop); otherwise (phones) it appears only while a cell is selected.
+/// The selection's size and totals are the grid's own status bar.
+class SheetFormulaBar extends StatefulWidget {
+  const SheetFormulaBar({super.key, required this.sheet, required this.alwaysShown});
+
+  final SpreadsheetController sheet;
+  final bool alwaysShown;
+
+  @override
+  State<SheetFormulaBar> createState() => _SheetFormulaBarState();
+}
+
+class _SheetFormulaBarState extends State<SheetFormulaBar> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final sheet = widget.sheet;
+    return ListenableBuilder(
+      listenable: Listenable.merge([sheet, sheet.selection]),
+      builder: (context, _) {
+        final selection = sheet.selection.value;
+        if (selection == null && !widget.alwaysShown) return const SizedBox.shrink();
+        final rows = sheet.currentRows;
+        final cell = selection == null ? null : _cellAt(rows, selection.activeRow, selection.activeColumn);
+        final value = cell?.value;
+        final formula = switch (value) {
+          FormulaValue(:final formula) => '=$formula',
+          _ => null,
+        };
+        final text = formula ?? cell?.text ?? '';
+        final name = selection == null ? '' : '${columnLabel(selection.activeColumn)}${selection.activeRow + 1}';
+        final canExpand = text.contains('\n') || text.length > 60;
+        final muted = context.onSurfaceVariant;
+
+        return Semantics(
+          container: true,
+          label: selection == null
+              ? 'No cell selected'
+              : '$name${formula != null ? ', formula' : ''}, ${text.isEmpty ? 'empty' : text}',
+          excludeSemantics: true,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            decoration: BoxDecoration(
+              color: context.surfaceContainerLowest,
+              border: Border.all(color: context.outlineVariant),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Name box.
+                Container(
+                  key: const Key('formula-bar-name'),
+                  constraints: const BoxConstraints(minWidth: 64, minHeight: 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(border: Border(right: BorderSide(color: context.outlineVariant))),
+                  child: Text(name, style: context.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                ),
+                SizedBox(
+                  width: 36,
+                  height: 40,
+                  child: Center(
+                    child: Text(
+                      'fx',
+                      style: context.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: formula != null ? context.primary : muted.withValues(alpha: 0.5),
+                        fontWeight: formula != null ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: 40, maxHeight: _expanded ? 120 : 40),
+                    child: _expanded
+                        ? SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: SelectableText(text, key: const Key('formula-bar-value'), style: context.bodyMedium),
+                          )
+                        : Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              text.replaceAll('\n', ' '),
+                              key: const Key('formula-bar-value'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.bodyMedium,
+                            ),
+                          ),
+                  ),
+                ),
+                if (canExpand)
+                  IconButton(
+                    tooltip: _expanded ? 'Collapse' : 'Show all',
+                    icon: Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded),
+                    color: muted,
+                    onPressed: () => setState(() => _expanded = !_expanded),
+                  )
+                else
+                  const SizedBox(width: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static SheetCell? _cellAt(List<List<SheetCell?>> rows, int row, int column) {
+    if (row < 0 || row >= rows.length) return null;
+    final cells = rows[row];
+    return column < 0 || column >= cells.length ? null : cells[column];
+  }
+}
