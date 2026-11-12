@@ -26,6 +26,19 @@ subprojects {
         }
     }
 }
+// desktop_drop 0.4.4 pins compileSdk 33, but it depends on AndroidX artifacts
+// that require 34+. Override to the app's compileSdk to satisfy AAR metadata checks.
+subprojects {
+    if (project.name == "desktop_drop") {
+        pluginManager.withPlugin("com.android.library") {
+            extensions.findByName("android")?.let { androidExtension ->
+                androidExtension.javaClass.methods
+                    .firstOrNull { it.name == "setCompileSdk" && it.parameterCount == 1 }
+                    ?.invoke(androidExtension, 37)
+            }
+        }
+    }
+}
 subprojects {
     project.evaluationDependsOn(":app")
 }
