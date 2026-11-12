@@ -33,9 +33,16 @@ on:
 permissions:
   contents: write
 
+# A second run for the same ref (re-pushed tag, double-clicked dispatch) would
+# race the first on the same release; let the newest win only for non-tags.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,6 +63,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          # Caches ~/.gradle (dependencies + wrapper) keyed on the gradle files.
+          cache: gradle
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -63,6 +72,7 @@ jobs:
           flutter-version: "3.50.0"
           channel: stable
           cache: true
+          pub-cache-key: pub-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
 
       # Resolve from pubspec.yaml alone: a stale lock or a local-dev override
       # (path deps) must never leak into a CI build.
@@ -257,6 +267,7 @@ jobs:
           - os: ubuntu-latest
             platform: linux
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -267,6 +278,7 @@ jobs:
           flutter-version: "3.50.0"
           channel: stable
           cache: true
+          pub-cache-key: pub-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
 
       - name: Install Linux build dependencies
         if: matrix.platform == 'linux'

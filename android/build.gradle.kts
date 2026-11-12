@@ -15,6 +15,17 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+// android.builtInKotlin=false (gradle.properties) is needed by plugins that
+// apply KGP themselves, but file_picker assumes AGP 9's built-in Kotlin and
+// applies nothing, so its Kotlin sources (FilePickerPlugin) were never
+// compiled. Apply KGP to it here, as soon as AGP is applied.
+subprojects {
+    if (project.name == "file_picker") {
+        pluginManager.withPlugin("com.android.library") {
+            pluginManager.apply("org.jetbrains.kotlin.android")
+        }
+    }
+}
 subprojects {
     project.evaluationDependsOn(":app")
 }
