@@ -1,0 +1,253 @@
+name: Build on demand
+
+# Manual build of one chosen target from any branch. Nothing is released or
+# uploaded to Google Play; the output is a downloadable workflow artifact
+# (Actions run page -> Artifacts, kept for 14 days).
+#
+# Pick the branch in the "Use workflow from" dropdown at the top of the Run
+# workflow popup; that branch is what gets checked out and built.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to build
+        required: true
+        default: android-aab
+        type: choice
+        options:
+          - android-aab
+          - android-apk
+          - windows-exe
+          - macos-dmg
+          - linux-packages
+          - all-desktop
+          - all
+
+permissions:
+  contents: read
+
+# One build per branch and target at a time; a newer run replaces an older one.
+concurrency:
+  group: build-on-demand-${{ github.ref }}-${{ inputs.target }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.50.0"
+
+jobs:
+  android:
+    if: ${{ inputs.target == 'android-aab' || inputs.target == 'android-apk' || inputs.target == 'all' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk/ndk \
+            /usr/local/lib/android/sdk/cmake "$AGENT_TOOLSDIRECTORY" \
+            /opt/hostedtoolcache/CodeQL
+          sudo docker image prune -a -f || true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          pub-cache-key: pub-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+
+      - name: Install dependencies
+        run: |
+          rm -f pubspec.lock pubspec_overrides.yaml
+          flutter pub get
+
+      - name: Check for signing keystore
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ANDROID_KEYSTORE_BASE64 not set - the output is debug-signed and cannot be uploaded to Google Play."
+          fi
+
+      - name: Restore signing keystore
+        if: steps.keystore.outputs.present == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Name the build
+        id: name
+        run: |
+          full=$(grep '^version:' pubspec.yaml | head -1 | sed 's/version:[[:space:]]*//')
+          branch=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
+          echo "label=openreader-${full/+/-b}-${branch}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # --target-platform drops the emulator-only x86_64 slice, as in release.yml.
+      - name: Build app bundle
+        if: ${{ inputs.target == 'android-aab' || inputs.target == 'all' }}
+        run: flutter build appbundle --release --target-platform android-arm,android-arm64
+
+      - name: Build APKs
+        if: ${{ inputs.target == 'android-apk' || inputs.target == 'all' }}
+        run: flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
+
+      - name: Collect files
+        run: |
+          mkdir -p out
+          L='${{ steps.name.outputs.label }}'
+          [ -f build/app/outputs/bundle/release/app-release.aab ] &&
+            cp build/app/outputs/bundle/release/app-release.aab "out/$L.aab"
+          for abi in arm64-v8a armeabi-v7a; do
+            src="build/app/outputs/flutter-apk/app-$abi-release.apk"
+            [ -f "$src" ] && cp "$src" "out/$L-$abi.apk"
+          done
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ steps.name.outputs.label }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: 14
+
+  desktop:
+    if: ${{ inputs.target == 'windows-exe' || inputs.target == 'macos-dmg' || inputs.target == 'linux-packages' || inputs.target == 'all-desktop' || inputs.target == 'all' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            key: windows-exe
+          - platform: macos
+            os: macos-latest
+            key: macos-dmg
+          - platform: linux
+            os: ubuntu-latest
+            key: linux-packages
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      # Skip the matrix legs that were not asked for. A job-level `if` cannot
+      # see matrix values, so each leg exits early instead.
+      - name: Is this platform wanted?
+        id: want
+        shell: bash
+        run: |
+          t='${{ inputs.target }}'
+          if [[ "$t" == "${{ matrix.key }}" || "$t" == "all-desktop" || "$t" == "all" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping ${{ matrix.platform }}: not selected."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.want.outputs.run == 'true'
+
+      - uses: subosito/flutter-action@v2
+        if: steps.want.outputs.run == 'true'
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          pub-cache-key: pub-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+
+      - name: Install Linux build dependencies
+        if: steps.want.outputs.run == 'true' && matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev rpm
+
+      - name: Install dependencies
+        if: steps.want.outputs.run == 'true'
+        shell: bash
+        run: |
+          rm -f pubspec.lock pubspec_overrides.yaml
+          flutter pub get
+
+      - name: Build release
+        if: steps.want.outputs.run == 'true'
+        run: flutter build ${{ matrix.platform }} --release
+
+      - name: Read app version
+        if: steps.want.outputs.run == 'true'
+        id: app
+        shell: bash
+        run: |
+          full=$(grep '^version:' pubspec.yaml | head -1 | sed 's/version:[[:space:]]*//')
+          echo "version=${full%%+*}" >> "$GITHUB_OUTPUT"
+          echo "build=${full#*+}" >> "$GITHUB_OUTPUT"
+          branch=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
+          echo "suffix=${branch}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Package Windows (zip and setup.exe)
+        if: steps.want.outputs.run == 'true' && matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item windows/register-file-types.ps1 build/windows/x64/runner/Release/
+          Compress-Archive -Path build/windows/x64/runner/Release/* `
+            -DestinationPath "release/openreader-windows-x64-${{ steps.app.outputs.suffix }}.zip"
+          choco install innosetup -y --no-progress
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=${{ steps.app.outputs.version }}" `
+            "/DSourceDir=$PWD\build\windows\x64\runner\Release" `
+            "/DOutputDir=$PWD\release" windows\installer\openreader.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+
+      - name: Package macOS (dmg)
+        if: steps.want.outputs.run == 'true' && matrix.platform == 'macos'
+        run: |
+          mkdir -p release
+          brew install create-dmg
+          bash macos/dmg/make-dmg.sh \
+            build/macos/Build/Products/Release/OpenReader.app \
+            "release/OpenReader-${{ steps.app.outputs.version }}-${{ steps.app.outputs.suffix }}-macos.dmg" \
+            "${{ steps.app.outputs.version }}"
+
+      - name: Package Linux (deb, rpm, AppImage, tar.gz)
+        if: steps.want.outputs.run == 'true' && matrix.platform == 'linux'
+        run: |
+          mkdir -p release
+          bundle=build/linux/x64/release/bundle
+          v='${{ steps.app.outputs.version }}'
+          b='${{ steps.app.outputs.build }}'
+          curl -fsSL -o /tmp/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /tmp/appimagetool
+          bash linux/packaging/package-linux.sh deb "$bundle" "$v" "$b" release
+          bash linux/packaging/package-linux.sh rpm "$bundle" "$v" "$b" release
+          APPIMAGETOOL="/tmp/appimagetool --appimage-extract-and-run" \
+            bash linux/packaging/package-linux.sh appimage "$bundle" "$v" "$b" release
+          cp linux/packaging/openreader.desktop linux/packaging/install-desktop-entry.sh "$bundle/"
+          cp assets/icon/icon.png "$bundle/openreader.png"
+          tar -czf "release/openreader-linux-x64-${{ steps.app.outputs.suffix }}.tar.gz" -C "$bundle" .
+          ls -l release
+
+      - uses: actions/upload-artifact@v4
+        if: steps.want.outputs.run == 'true'
+        with:
+          name: ${{ matrix.platform }}-${{ steps.app.outputs.version }}-${{ steps.app.outputs.suffix }}
+          path: release/*
+          if-no-files-found: error
+          retention-days: 14
