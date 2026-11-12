@@ -1,0 +1,9 @@
+What's new in 1.0.18
+• Excel: select and copy cells, rows and columns
+• New name and formula bar – type a cell to jump to it
+• Search the whole workbook, with match case, whole cell and formula options
+• See hidden sheets and content the reader can't show
+• Better layout on tablets and foldables; resize columns by touch
+• Open .xlsm and .tsv files from other apps
+• Clearer message for password-protected workbooks
+• Removed the "default app" prompt on Android
