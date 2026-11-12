@@ -60,11 +60,17 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.50.0"
           channel: stable
           cache: true
 
+      # Resolve from pubspec.yaml alone: a stale lock or a local-dev override
+      # (path deps) must never leak into a CI build.
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          rm -f pubspec.lock pubspec_overrides.yaml
+          flutter pub get
 
       # The keystore never lives in the repo. It is stored as a base64 secret
       # and materialised here for the length of the job only. Without these
@@ -258,6 +264,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.50.0"
           channel: stable
           cache: true
 
@@ -269,8 +276,13 @@ jobs:
           sudo apt-get install -y clang cmake ninja-build pkg-config \
             libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev rpm
 
+      # Resolve from pubspec.yaml alone: a stale lock or a local-dev override
+      # (path deps) must never leak into a CI build.
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          rm -f pubspec.lock pubspec_overrides.yaml
+          flutter pub get
 
       - name: Build release
         run: flutter build ${{ matrix.platform }} --release
