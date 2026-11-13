@@ -74,4 +74,10 @@ flutter {
 // Add desugaring dependency for Java language features required by some plugins
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // workmanager 0.6.0 pins androidx.work 2.9.0, whose consumer R8 rules are
+    // incomplete under R8 full mode (default on AGP 9) - WorkDatabase_Impl gets
+    // stripped and the app crashes at startup in InitializationProvider.
+    // 2.10+ ships corrected full-mode rules; binary compatible with the plugin.
+    implementation("androidx.work:work-runtime:2.10.5")
+    implementation("androidx.work:work-runtime-ktx:2.10.5")
 }
