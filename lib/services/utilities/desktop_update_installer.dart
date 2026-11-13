@@ -190,16 +190,24 @@ $apply
 Start-Process -FilePath "${_ps(exe)}"
 Remove-Item -Recurse -Force "${_ps(scriptDir)}" -ErrorAction SilentlyContinue
 ''');
+      // NOTE: spawning powershell directly with ProcessStartMode.detached
+      // silently dies on Windows (child exits before running the script).
+      // Routing through `cmd /c start /b` keeps the child alive - verified
+      // against a live update flow.
       await Process.start(
-        'powershell',
+        'cmd',
         [
+          '/c',
+          'start',
+          '/b',
+          'powershell',
           '-NoProfile',
           '-ExecutionPolicy',
           'Bypass',
           '-WindowStyle',
           'Hidden',
           '-File',
-          script.path
+          script.path,
         ],
         mode: ProcessStartMode.detached,
       );

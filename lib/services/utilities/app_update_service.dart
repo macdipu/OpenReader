@@ -121,8 +121,9 @@ class AppUpdateService {
     if (downloadUrl == null) return;
 
     final accepted = await showAppUpdateAvailableDialog(
-      message:
-          'OpenReader $tag is available. It downloads inside the app; restart when it is ready.',
+      message: 'A new version is ready. It downloads inside the app; '
+          'restart when it is ready.',
+      version: tag,
       actionLabel: 'Download',
     );
     if (accepted != true) return;
@@ -208,6 +209,10 @@ class AppUpdateService {
       ..connectionTimeout = const Duration(seconds: 10);
     try {
       final request = await client.getUrl(Uri.parse(_latestReleaseUrl));
+      // GitHub API rejects requests without a User-Agent (HTTP 403), and
+      // Dart's HttpClient sends none by default.
+      request.headers.set(HttpHeaders.userAgentHeader,
+          'OpenReader/${(await PackageInfo.fromPlatform()).version}');
       request.headers
           .set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
       final response =

@@ -45,54 +45,72 @@ class AppUpdateProgress extends StatelessWidget {
       canPop: false,
       child: AppUpdateDialogCard(
         child: ValueListenableBuilder<UpdateProgress>(
-              valueListenable: state,
-              builder: (context, s, _) => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    s.phase == UpdatePhase.ready
-                        ? Icons.check_circle_rounded
-                        : s.phase == UpdatePhase.failed
-                            ? Icons.error_outline_rounded
-                            : Icons.system_update_rounded,
-                    color: s.phase == UpdatePhase.failed
-                        ? context.error
+          valueListenable: state,
+          builder: (context, s, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppUpdateIconTile(
+                icon: switch (s.phase) {
+                  UpdatePhase.ready => Icons.check_circle_rounded,
+                  UpdatePhase.failed => Icons.error_outline_rounded,
+                  _ => Icons.downloading_rounded,
+                },
+                background: s.phase == UpdatePhase.failed
+                    ? context.error.withValues(alpha: 0.14)
+                    : s.phase == UpdatePhase.ready
+                        ? context.primaryContainer
+                        : context.primary.withValues(alpha: 0.12),
+                foreground: s.phase == UpdatePhase.failed
+                    ? context.error
+                    : s.phase == UpdatePhase.ready
+                        ? context.onPrimaryContainer
                         : context.primary,
-                    size: 40,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(_title(s),
-                      style: context.titleLarge, textAlign: TextAlign.center),
-                  const SizedBox(height: 8),
-                  Text(
-                    _message(s),
-                    style: context.bodyMedium
-                        ?.copyWith(color: context.onSurfaceVariant),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (s.phase == UpdatePhase.downloading ||
-                      s.phase == UpdatePhase.installing) ...[
-                    const SizedBox(height: 20),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: s.phase == UpdatePhase.downloading
-                            ? s.progress
-                            : null,
-                        minHeight: 8,
+              ),
+              const SizedBox(height: 20),
+              Text(_title(s),
+                  style: context.titleLarge, textAlign: TextAlign.center),
+              const SizedBox(height: 8),
+              Text(
+                _message(s),
+                style: context.bodyMedium
+                    ?.copyWith(color: context.onSurfaceVariant, height: 1.45),
+                textAlign: TextAlign.center,
+              ),
+              if (s.phase == UpdatePhase.downloading ||
+                  s.phase == UpdatePhase.installing) ...[
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Progress',
+                        style: context.labelMedium
+                            ?.copyWith(color: context.onSurfaceVariant)),
+                    Text(
+                      s.phase == UpdatePhase.downloading && s.progress != null
+                          ? '${(s.progress! * 100).floor()}%'
+                          : '...',
+                      style: context.labelLarge?.copyWith(
+                        color: context.primary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    if (s.phase == UpdatePhase.downloading &&
-                        s.progress != null) ...[
-                      const SizedBox(height: 8),
-                      Text('${(s.progress! * 100).floor()}%',
-                          style: context.labelLarge),
-                    ],
                   ],
-                  const SizedBox(height: 24),
-                  ..._actions(s),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: s.phase == UpdatePhase.downloading
+                        ? s.progress
+                        : null,
+                    minHeight: 10,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              ..._actions(context, s),
+            ],
+          ),
         ),
       ),
     );
@@ -112,19 +130,25 @@ class AppUpdateProgress extends StatelessWidget {
         UpdatePhase.failed => s.error ?? 'Something went wrong.',
       };
 
-  List<Widget> _actions(UpdateProgress s) => switch (s.phase) {
+  List<Widget> _actions(BuildContext context, UpdateProgress s) => switch (s.phase) {
         UpdatePhase.downloading => [
-            CommonButton.text(title: 'Cancel', onTap: onCancel)
+            CommonButton.ghost(title: 'Cancel', onTap: onCancel)
           ],
         UpdatePhase.installing => const [],
         UpdatePhase.ready => [
-            CommonButton.filled(title: 'Restart now', onTap: onRestart)
+            CommonButton.filled(
+                title: 'Restart now',
+                onTap: onRestart,
+                leading: Icon(Icons.restart_alt_rounded, color: context.onPrimary, size: 20),
+                borderRadius: 14)
           ],
         UpdatePhase.failed => [
             CommonButton.filled(
-                title: 'Download in browser', onTap: onDownloadInBrowser),
-            const SizedBox(height: 8),
-            CommonButton.text(title: 'Close', onTap: onCancel),
+                title: 'Download in browser',
+                onTap: onDownloadInBrowser,
+                borderRadius: 14),
+            const SizedBox(height: 4),
+            CommonButton.ghost(title: 'Close', onTap: onCancel),
           ],
       };
 }
