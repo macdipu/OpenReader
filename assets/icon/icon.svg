@@ -1,88 +1,158 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <!-- Background Gradient -->
-    <linearGradient id="bgC" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0b1120" />
-      <stop offset="50%" stop-color="#182234" />
-      <stop offset="100%" stop-color="#080c14" />
+    <!-- Soft outer drop shadow for the main icon -->
+    <filter id="icon-shadow" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.55" />
+    </filter>
+
+    <!-- Subtle inner depth shadow for pages -->
+    <filter id="spine-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.12" />
+    </filter>
+
+    <!-- Left Page Gradient (Clean Crisp White/Off-White) -->
+    <linearGradient id="left-page-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#EEF2F6" />
     </linearGradient>
 
-    <!-- Glass Rim Highlight -->
-    <linearGradient id="rimC" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22" />
-      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.04" />
+    <!-- Right Page Gradient (OpenReader Signature Blue) -->
+    <linearGradient id="right-page-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E90FF" />
+      <stop offset="100%" stop-color="#0052CC" />
+    </linearGradient>
+
+    <!-- Document Format Tab Gradients -->
+    <!-- PDF Red -->
+    <linearGradient id="tab-pdf" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF5252" />
+      <stop offset="100%" stop-color="#D32F2F" />
+    </linearGradient>
+    <!-- Word Blue -->
+    <linearGradient id="tab-word" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#448AFF" />
+      <stop offset="100%" stop-color="#1565C0" />
+    </linearGradient>
+    <!-- Excel Green -->
+    <linearGradient id="tab-excel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00E676" />
+      <stop offset="100%" stop-color="#2E7D32" />
+    </linearGradient>
+    <!-- PowerPoint Orange -->
+    <linearGradient id="tab-ppt" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFAB40" />
+      <stop offset="100%" stop-color="#EF6C00" />
+    </linearGradient>
+    <!-- Markdown / Code / Media Teal -->
+    <linearGradient id="tab-md" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1DE9B6" />
+      <stop offset="100%" stop-color="#00838F" />
+    </linearGradient>
+
+    <!-- Background: OpenReader navy -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B1120" />
+      <stop offset="50%" stop-color="#182234" />
+      <stop offset="100%" stop-color="#080C14" />
+    </linearGradient>
+    <!-- Glass rim highlight -->
+    <linearGradient id="rim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22" />
+      <stop offset="30%" stop-color="#FFFFFF" stop-opacity="0.04" />
       <stop offset="100%" stop-color="#000000" stop-opacity="0.4" />
     </linearGradient>
-
-    <!-- Left Wing Gradient: Clean Architectural Pure White to Cool Gray -->
-    <linearGradient id="wingLeftC" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="60%" stop-color="#f8fafc" />
-      <stop offset="100%" stop-color="#cbd5e1" />
-    </linearGradient>
-
-    <!-- Right Wing Gradient: Electric Cyan to Rich Cobalt -->
-    <linearGradient id="wingRightC" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="50%" stop-color="#0284c7" />
-      <stop offset="100%" stop-color="#1d4ed8" />
-    </linearGradient>
-
-    <!-- Spine Ribbon Gradient -->
-    <linearGradient id="spineC" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#60a5fa" />
-      <stop offset="100%" stop-color="#0284c7" />
-    </linearGradient>
-
-    <!-- Ambient Glow -->
-    <radialGradient id="glowC" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.32" />
-      <stop offset="65%" stop-color="#0284c7" stop-opacity="0.08" />
-      <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+    <!-- Ambient glow behind the book -->
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.2" />
+      <stop offset="65%" stop-color="#0284C7" stop-opacity="0.07" />
+      <stop offset="100%" stop-color="#0284C7" stop-opacity="0" />
     </radialGradient>
-
-    <!-- 3D Shadow -->
-    <filter id="shadowC" x="-20%" y="-20%" width="140%" height="150%">
-      <feDropShadow dx="0" dy="20" stdDeviation="18" flood-color="#000000" flood-opacity="0.65" />
-      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0284c7" flood-opacity="0.3" />
-    </filter>
   </defs>
 
-  <!-- Base Squircle -->
-  <rect width="512" height="512" rx="116" fill="url(#bgC)" />
-  <rect width="512" height="512" rx="116" fill="none" stroke="url(#rimC)" stroke-width="2.5" />
 
-  <!-- Ambient Glow -->
-  <circle cx="256" cy="256" r="185" fill="url(#glowC)" />
+  <!-- Base squircle -->
+  <rect width="1024" height="1024" rx="232" fill="url(#bg)" />
+  <rect x="2.5" y="2.5" width="1019" height="1019" rx="229.5" fill="none" stroke="url(#rim)" stroke-width="5" />
+  <circle cx="512" cy="520" r="400" fill="url(#glow)" />
 
-  <!-- Pure Geometric Open Wings (Left Page + Right Page forming dynamic Open Book) -->
-  <g filter="url(#shadowC)">
-    <!-- Left Wing (White Document Page) -->
-    <path d="M 124 168 
-             C 124 154 136 144 150 148 
-             L 246 178 
-             C 252 180 256 186 256 192 
-             L 256 364 
-             C 256 374 246 382 236 378 
-             L 142 344 
-             C 131 340 124 330 124 318 Z" 
-          fill="url(#wingLeftC)" />
+  <!-- Main Icon Group five format tabs (PDF, Word, Excel, PowerPoint, Markdown/text) rising from an open book -->
+  <g filter="url(#icon-shadow)">
+    
+    <!-- Multi-Format Top Document Tabs (Emerging from Binding) -->
+    <!-- Tab 1: PDF (Red) -->
+    <g transform="translate(274, 210)">
+      <rect x="0" y="0" width="84" height="190" rx="22" fill="url(#tab-pdf)" />
+      <!-- Minimal Document Lines Symbol -->
+      <rect x="22" y="28" width="40" height="8" rx="4" fill="#FFFFFF" opacity="0.9" />
+      <rect x="22" y="44" width="26" height="8" rx="4" fill="#FFFFFF" opacity="0.7" />
+    </g>
 
-    <!-- Right Wing (Luminous Cyan Digital Reader Wing) -->
-    <path d="M 388 168 
-             C 388 154 376 144 362 148 
-             L 266 178 
-             C 260 180 256 186 256 192 
-             L 256 364 
-             C 256 374 266 382 276 378 
-             L 370 344 
-             C 381 340 388 330 388 318 Z" 
-          fill="url(#wingRightC)" />
+    <!-- Tab 2: Word / Text (Royal Blue) -->
+    <g transform="translate(372, 190)">
+      <rect x="0" y="0" width="84" height="210" rx="22" fill="url(#tab-word)" />
+      <!-- Minimal Paragraph Lines Symbol -->
+      <rect x="20" y="26" width="44" height="7" rx="3.5" fill="#FFFFFF" opacity="0.9" />
+      <rect x="20" y="40" width="44" height="7" rx="3.5" fill="#FFFFFF" opacity="0.9" />
+      <rect x="20" y="54" width="30" height="7" rx="3.5" fill="#FFFFFF" opacity="0.7" />
+    </g>
 
-    <!-- Minimal Modern Spine Notch (Center Vertical Accent) -->
-    <path d="M 252 176 L 260 176 L 260 376 L 252 376 Z" fill="#090d16" opacity="0.35" />
+    <!-- Tab 3: Excel / Spreadsheets (Emerald Green) -->
+    <g transform="translate(470, 180)">
+      <rect x="0" y="0" width="84" height="220" rx="22" fill="url(#tab-excel)" />
+      <!-- Minimal Grid / Cells Symbol -->
+      <rect x="22" y="26" width="17" height="14" rx="3" fill="#FFFFFF" opacity="0.9" />
+      <rect x="45" y="26" width="17" height="14" rx="3" fill="#FFFFFF" opacity="0.75" />
+      <rect x="22" y="46" width="17" height="14" rx="3" fill="#FFFFFF" opacity="0.75" />
+      <rect x="45" y="46" width="17" height="14" rx="3" fill="#FFFFFF" opacity="0.9" />
+    </g>
 
-    <!-- Floating Bookmark Ribbon Tip (Top Notch) -->
-    <path d="M 244 136 L 268 136 L 268 184 L 256 174 L 244 184 Z" fill="url(#spineC)" />
+    <!-- Tab 4: PowerPoint / Slides (Amber Orange) -->
+    <g transform="translate(568, 190)">
+      <rect x="0" y="0" width="84" height="210" rx="22" fill="url(#tab-ppt)" />
+      <!-- Minimal Presentation Chart / Slide Symbol -->
+      <rect x="20" y="26" width="44" height="32" rx="6" fill="none" stroke="#FFFFFF" stroke-width="6" opacity="0.9" />
+      <circle cx="42" cy="42" r="5" fill="#FFFFFF" opacity="0.9" />
+    </g>
+
+    <!-- Tab 5: Markdown / Images (Teal) -->
+    <g transform="translate(666, 210)">
+      <rect x="0" y="0" width="84" height="190" rx="22" fill="url(#tab-md)" />
+      <!-- Minimal Code / Markdown Chevron Symbol -->
+      <path d="M35 30 L24 41 L35 52 M49 30 L60 41 L49 52" fill="none" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+    </g>
+
+    <!-- Center Book Spine -->
+    <rect x="488" y="340" width="48" height="470" rx="16" fill="#0D3B66" />
+
+    <!-- Left Book Page (Crisp White) -->
+    <path d="M 220 355 
+             C 220 325, 245 308, 275 316 
+             L 476 368 
+             C 496 373, 508 390, 508 410 
+             L 508 795 
+             C 508 818, 488 832, 466 826 
+             L 265 774 
+             C 238 767, 220 743, 220 715 Z" fill="url(#left-page-grad)" />
+
+    <!-- Subtle Visual Cue on Left Page (Clean Document Lines) -->
+    <g opacity="0.22" fill="#1E293B">
+      <rect x="275" y="425" width="130" height="14" rx="7" />
+      <rect x="275" y="460" width="175" height="12" rx="6" />
+      <rect x="275" y="490" width="160" height="12" rx="6" />
+      <rect x="275" y="520" width="110" height="12" rx="6" />
+    </g>
+
+    <!-- Right Book Page (OpenReader Signature Blue) -->
+    <path d="M 804 355 
+             C 804 325, 779 308, 749 316 
+             L 548 368 
+             C 528 373, 516 390, 516 410 
+             L 516 795 
+             C 516 818, 536 832, 558 826 
+             L 759 774 
+             C 786 767, 804 743, 804 715 Z" fill="url(#right-page-grad)" />
+
+    <!-- Subtle Center Crease Highlight -->
+    <line x1="512" y1="382" x2="512" y2="812" stroke="#082544" stroke-width="6" stroke-linecap="round" opacity="0.35" />
   </g>
 </svg>

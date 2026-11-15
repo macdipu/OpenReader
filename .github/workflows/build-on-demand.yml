@@ -240,7 +240,7 @@ jobs:
           APPIMAGETOOL="/tmp/appimagetool --appimage-extract-and-run" \
             bash linux/packaging/package-linux.sh appimage "$bundle" "$v" "$b" release
           cp linux/packaging/openreader.desktop linux/packaging/install-desktop-entry.sh "$bundle/"
-          cp assets/icon/icon.png "$bundle/openreader.png"
+          cp assets/icon/icon_rounded.png "$bundle/openreader.png"
           tar -czf "release/openreader-linux-x64-${{ steps.app.outputs.suffix }}.tar.gz" -C "$bundle" .
           ls -l release
 

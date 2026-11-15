@@ -417,7 +417,7 @@ jobs:
 
           # The tarball: "Open With" / launcher integration via install-desktop-entry.sh.
           cp linux/packaging/openreader.desktop linux/packaging/install-desktop-entry.sh "$bundle/"
-          cp assets/icon/icon.png "$bundle/openreader.png"
+          cp assets/icon/icon_rounded.png "$bundle/openreader.png"
           tar -czf "release/openreader-linux-x64-${{ steps.tag.outputs.tag }}.tar.gz" -C "$bundle" .
           ls -l release
 

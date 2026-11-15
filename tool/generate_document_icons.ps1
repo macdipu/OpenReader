@@ -11,7 +11,7 @@ $types = [ordered]@{
   md   = @('MD',  '#7C3AED')
 }
 
-$logo = [Drawing.Image]::FromFile((Join-Path $PSScriptRoot '../assets/icon/icon.png'))
+$logo = [Drawing.Image]::FromFile((Join-Path $PSScriptRoot '../assets/icon/icon_rounded.png'))
 
 function New-Page([string]$label, [string]$hex, [int]$s) {
   $c = [Drawing.ColorTranslator]::FromHtml($hex)

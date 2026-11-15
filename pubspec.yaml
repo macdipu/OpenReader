@@ -52,7 +52,7 @@ dependencies:
   # kit's example app. The package has its own repository and is published on
   # pub.dev. To work on both at once, use a pubspec_overrides.yaml with
   # `path: ../universal_document_viewer`.
-  universal_document_viewer: ^0.2.1
+  universal_document_viewer: ^0.2.2
 
 
   # Unused by Dart code but wired into the Android build (WorkManager R8
@@ -94,7 +94,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/svgs/
     - assets/icon/icon.png
 
   # OpenReader is offline-only (BRD - zero network calls), so type is bundled
@@ -127,11 +126,28 @@ flutter:
         - asset: assets/fonts/JetBrainsMono.ttf
           weight: 500
 
+# Every asset comes from one master drawing: flutter test tool/generate_app_icon.dart
+# then dart run flutter_launcher_icons.
 flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
   android: true
+  adaptive_icon_background: "assets/icon/icon_background.png"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  adaptive_icon_monochrome: "assets/icon/icon_monochrome.png"
   ios: true
   remove_alpha_ios: true
-  image_path: "assets/icon/icon.png"
+  web:
+    generate: true
+    image_path: "assets/icon/icon_rounded.png"
+    background_color: "#0B1120"
+    theme_color: "#0B1120"
+  windows:
+    generate: true
+    image_path: "assets/icon/icon_rounded.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/icon/icon_rounded.png"
 
 flutter_native_splash:
   color: "#F8FAFC"
