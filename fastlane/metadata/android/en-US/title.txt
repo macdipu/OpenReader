@@ -1,1 +1,1 @@
-OpenReader
+OpenReader: PDF, DOCX & XLSX

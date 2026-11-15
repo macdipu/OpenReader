@@ -1,1 +1,1 @@
-All-in-one PDF, Word, Excel & text document reader
+Document viewer: PDF, Word, Excel, PowerPoint, Markdown & text reader

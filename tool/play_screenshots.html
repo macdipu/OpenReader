@@ -1,0 +1,92 @@
+<!doctype html>
+<!--
+  Source of fastlane/metadata/android/en-US/images/phoneScreenshots/*.png (1080 x 1920).
+  Each page is #1..#8: a headline, one line of support, and the app screenshot
+  from tool/store_screens in a phone frame that bleeds off the bottom edge.
+
+  Store-listing choices:
+  - the first three shots carry the pitch (all formats, PDF, Word), since only
+    those show before the listing is scrolled;
+  - one short benefit-led headline per shot, naming the format people search for;
+  - the background colour is that format's tab colour from the app icon, so the
+    row of screenshots reads as the same five tabs;
+  - captions only promise what the screenshot beneath them shows.
+
+  Render with tool/render_play_screenshots.ps1.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: "Space Grotesk"; src: url("../assets/fonts/SpaceGrotesk.ttf"); font-weight: 300 700; }
+  @font-face { font-family: Inter; src: url("../assets/fonts/Inter.ttf"); font-weight: 100 900; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; }
+  body { font-family: Inter, system-ui, sans-serif; color: #fff; position: relative; background: var(--c1); }
+
+  .bg { position: absolute; inset: 0; background: linear-gradient(165deg, var(--c1) 0%, var(--c2) 100%); }
+  .glow { position: absolute; left: 50%; top: 1000px; width: 1300px; height: 1300px; margin: -650px 0 0 -650px; border-radius: 50%;
+    background: radial-gradient(closest-side, var(--glow), transparent); opacity: .5; }
+
+  .copy { position: absolute; left: 84px; top: 118px; width: 912px; display: flex; flex-direction: column; }
+  h1 { font-family: "Space Grotesk", Inter, sans-serif; font-weight: 700; font-size: 88px; line-height: 1.04; letter-spacing: -2.5px; }
+  p.sub { margin-top: 26px; font-size: 38px; line-height: 1.32; font-weight: 500; max-width: 800px; color: rgba(255, 255, 255, .86); }
+
+  /* the five format tabs from the icon, on the overview shot only */
+  .tabs { display: none; order: -1; margin-bottom: 30px; gap: 14px; }
+  .tabs i { display: block; width: 74px; height: 30px; border-radius: 15px; }
+  body.overview .tabs { display: flex; }
+
+  /* phone */
+  .phone { position: absolute; left: 144px; top: 500px; width: 792px; height: 1580px; padding: 16px; border-radius: 96px;
+    background: linear-gradient(145deg, #2a2e3b, #0b0c12 40%, #1a1d28);
+    box-shadow: 0 70px 120px -30px rgba(0, 0, 0, .6), 0 20px 50px -20px rgba(0, 0, 0, .5), inset 0 0 0 2px rgba(255, 255, 255, .14); }
+  .screen { position: relative; width: 760px; height: 1520px; border-radius: 82px; overflow: hidden; background: #fff; }
+  .screen img { display: block; width: 760px; height: 1520px; }
+  .screen::after { content: ""; position: absolute; left: 50%; top: 36px; width: 30px; height: 30px; margin-left: -15px; border-radius: 50%;
+    background: #05060a; box-shadow: 0 0 0 4px rgba(5, 6, 10, .25); }
+  .phone::before { content: ""; position: absolute; right: -5px; top: 330px; width: 7px; height: 150px; border-radius: 4px; background: #1b1e29; }
+</style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="glow"></div>
+  <section class="copy">
+    <h1 id="head"></h1>
+    <p class="sub" id="sub"></p>
+    <div class="tabs" aria-hidden="true">
+      <i style="background:#FF5252"></i><i style="background:#448AFF"></i><i style="background:#00E676"></i><i style="background:#FFAB40"></i><i style="background:#1DE9B6"></i>
+    </div>
+  </section>
+  <div class="phone"><div class="screen"><img id="shot" alt="" /></div></div>
+
+<script>
+  var SHOTS = [
+    { img: '01_home', head: 'All your documents in one reader', sub: 'PDF, Word, Excel, PowerPoint, Markdown.',
+      c1: '#0B1120', c2: '#16233B', glow: '#2B6CF0', overview: true },
+    { img: '02_pdf', head: 'Read PDFs smoothly', sub: 'Continuous scroll, page thumbnails and zoom.',
+      c1: '#C62828', c2: '#7F1717', glow: '#FF6B6B' },
+    { img: '03_word', head: 'Open Word documents', sub: 'Headings, lists, tables and images stay intact.',
+      c1: '#1565C0', c2: '#0B3A80', glow: '#5AA2FF' },
+    { img: '04_excel', head: 'View Excel spreadsheets', sub: 'Switch between sheets and tap any cell.',
+      c1: '#2E7D32', c2: '#184A1C', glow: '#5BE08A' },
+    { img: '05_markdown', head: 'Markdown, nicely rendered', sub: 'Tables, task lists and code you can copy.',
+      c1: '#00838F', c2: '#004A55', glow: '#33E0C7' },
+    { img: '06_split', head: 'Preview, code or both', sub: 'One button switches the view.',
+      c1: '#00695C', c2: '#003B34', glow: '#2DD4BF' },
+    { img: '07_files', head: 'Find files in any folder', sub: 'Browse by format or search everything.',
+      c1: '#0A4FC4', c2: '#08265F', glow: '#6AA8FF' },
+    { img: '08_dark', head: 'Night mode for late reading', sub: 'A dark theme for every document.',
+      c1: '#05080F', c2: '#0C1426', glow: '#2A6CF0' }
+  ];
+  var n = Math.max(1, Math.min(SHOTS.length, parseInt(location.hash.slice(1), 10) || 1));
+  var s = SHOTS[n - 1];
+  var root = document.documentElement.style;
+  root.setProperty('--c1', s.c1); root.setProperty('--c2', s.c2); root.setProperty('--glow', s.glow);
+  document.body.className = s.overview ? 'overview' : '';
+  document.getElementById('head').textContent = s.head;
+  document.getElementById('sub').textContent = s.sub;
+  document.getElementById('shot').src = 'store_screens/' + s.img + '.png';
+</script>
+</body>
+</html>

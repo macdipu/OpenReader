@@ -1,11 +1,25 @@
-OpenReader is your all-in-one document reader for Android. Open, read, search, and organize your PDF, Word, Excel, CSV, and text files - all in a single app.
+OpenReader is a free document viewer and PDF reader for Android. Open PDF, Word (DOCX), Excel (XLSX, CSV), PowerPoint (PPTX), Markdown (MD) and text files in one fast app. No account, no sign-up, and it works without an internet connection.
 
-FEATURES
-- Read PDF, DOC/DOCX, XLS/XLSX, CSV, and TXT files
-- On-device document scanner finds files already on your phone
-- Recents and Favorites for quick access
-- Search across your documents
-- Share files, view file info, and open documents from other apps
-- Clean, fast, distraction-free reading experience
+ONE READER FOR EVERY DOCUMENT
+- PDF reader: smooth scrolling, page thumbnails, zoom, search and jump to page. Password-protected PDFs are supported.
+- Word document viewer (DOCX): headings, lists, tables, images and links keep their layout.
+- Excel and spreadsheet viewer (XLSX, XLSM, CSV, TSV): switch between sheets, tap a cell to see its value and formula, search the whole workbook, select and copy cells.
+- PowerPoint viewer (PPTX): read slides with their text, tables and pictures.
+- Markdown reader (MD): a clean rendered preview with tables, task lists and code blocks you can copy, plus a source view and a side-by-side split view.
+- Text file reader (TXT, logs): line numbers, adjustable text size and search.
 
-No accounts, no setup - just install and start reading. Whether you're reviewing a PDF, checking a spreadsheet, or reading a Word document, OpenReader gives you one simple app for all your documents.
+FIND AND ORGANIZE YOUR FILES
+- Browse any folder and filter by format: PDF, Word, Excel, PowerPoint, CSV, Markdown or text.
+- Search across file names and the text of documents you have opened.
+- Recents and Favorites to pick up where you left off.
+- Open documents from your file manager, email or chat apps with Open With, and share or check file details.
+
+COMFORTABLE READING
+- Night mode and a dark theme for reading late.
+- Adjustable text size, full screen reading and a distraction-free layout.
+- Works on phones, tablets and foldables.
+
+FREE AND OPEN SOURCE
+OpenReader is free and open source. Also available for Windows, macOS and Linux, so your documents look the same on every device.
+
+Legacy binary .doc, .xls and .ppt files are not supported yet. Save them as DOCX, XLSX or PPTX to open them.

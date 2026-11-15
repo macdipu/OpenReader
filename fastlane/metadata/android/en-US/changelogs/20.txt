@@ -1,0 +1,6 @@
+What's new in 1.0.20
+• New app icon: one book, five format tabs
+• Markdown (.md) files: rendered preview, source view or both side by side; one button switches the view
+• Copy button on Markdown code blocks
+• Markdown files show an MD badge and are labelled Markdown
+• Text and Markdown files with Windows line endings display correctly
