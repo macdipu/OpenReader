@@ -177,7 +177,8 @@ void main() {
     final cached = Directory('${temp.path}/document_thumbnails').listSync().map((e) => e.path).toList();
     expect(cached, hasLength(3));
     expect(cached.where((path) => path.endsWith('.tmp')), isEmpty);
-    expect(cached, contains(newest!.path));
+    String slashes(String path) => path.replaceAll(r'\', '/');
+    expect(cached.map(slashes), contains(slashes(newest!.path)));
   });
 
   test('previews a real non-PDF file through universal_document_viewer', () async {

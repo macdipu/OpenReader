@@ -16,7 +16,6 @@ import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/controllers/reader_night_mode.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
-import 'package:universal_document_viewer/plain_text.dart';
 
 /// Drives the Text reader (BRD §9.14, ODF-019, ODF-008 for TXT) on top of
 /// universal_document_viewer's [PlainTextController], which owns the lines,
@@ -43,17 +42,24 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
         _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl() {
     void report(ReadingPosition p) => onScrolled(p[PositionKeys.scrollOffset]! as double, line: p[PositionKeys.line] as int?);
     // .md/.markdown get the kit's Preview/Code/Split reader; other text stays plain.
-    textDocument = MarkdownController.isMarkdownExtension(document.extension)
+    lineSource = MarkdownController.isMarkdownExtension(document.extension)
         ? MarkdownController(onPositionChanged: report, baseDirectory: p.dirname(document.path))
         : PlainTextController(onPositionChanged: report);
-    textDocument.addListener(_mirrorSearch);
+    lineSource.addListener(_mirrorSearch);
     markdown?.viewMode.addListener(_mirrorViewMode);
   }
 
-  late final PlainTextController textDocument;
+  /// The lines, search and zoom of either reader: plain text or Markdown.
+  late final TextLinesController lineSource;
+
+  /// The plain-text document, or null for a Markdown file.
+  PlainTextController? get plainText => lineSource is PlainTextController ? lineSource as PlainTextController : null;
+
+  /// The plain-text document; only for the plain reader.
+  PlainTextController get textDocument => lineSource as PlainTextController;
 
   /// The Markdown document, or null for any other text file.
-  MarkdownController? get markdown => textDocument is MarkdownController ? textDocument as MarkdownController : null;
+  MarkdownController? get markdown => lineSource is MarkdownController ? lineSource as MarkdownController : null;
 
   bool get isMarkdown => markdown != null;
 
@@ -70,10 +76,10 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   /// Puts the whole source on the clipboard.
   Future<void> copySource() => Clipboard.setData(ClipboardData(text: markdown?.source ?? lines.join('\n')));
 
-  List<String> get lines => textDocument.lines;
+  List<String> get lines => lineSource.lines;
 
 
-  double get initialScrollOffset => textDocument.initialScrollOffset;
+  double get initialScrollOffset => lineSource.initialScrollOffset;
 
   /// A comfortable reading size until the reader picks one (UX-20).
   static const double defaultFontSize = 16;
@@ -92,9 +98,9 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   final currentMatchIndex = (-1).obs;
 
   void _mirrorSearch() {
-    searchQuery.value = textDocument.searchQuery;
-    if (!listEquals(matches, textDocument.matches)) matches.assignAll(textDocument.matches);
-    currentMatchIndex.value = textDocument.currentMatch;
+    searchQuery.value = lineSource.searchQuery;
+    if (!listEquals(matches, lineSource.matches)) matches.assignAll(lineSource.matches);
+    currentMatchIndex.value = lineSource.currentMatch;
   }
 
   /// Last offset reported by [onScrolled]. A close saves this: by `onClose`
@@ -132,7 +138,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
       final wrap = await _settingsRepository.getTextReaderLineWrap();
       if (wrap != null && !_lineWrapChosen) {
         lineWrap.value = wrap;
-        textDocument.wrap = wrap;
+        plainText?.wrap = wrap;
       }
     } catch (_) {
       // Preferences are a convenience; the reader works with the defaults.
@@ -146,16 +152,16 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
       positionResult.fold((_) {}, (position) {
         final offset = position[PositionKeys.scrollOffset];
         if (offset is num && offset > 0) {
-          textDocument.initialScrollOffset = _lastScrollOffset = offset.toDouble();
+          lineSource.initialScrollOffset = _lastScrollOffset = offset.toDouble();
           if (position[PositionKeys.line] case final int line) _lastLine = line;
         }
       });
 
       // Refuses an oversized file before reading it into memory.
-      await textDocument.loadFile(document.path);
+      await lineSource.loadFile(document.path);
       if (isClosed) return;
-      if (textDocument.error != null) {
-        _fail(textDocument.error == DocumentLoadError.tooLarge
+      if (lineSource.error != null) {
+        _fail(lineSource.error == DocumentLoadError.tooLarge
             ? 'This document is too large to render safely on this device.'
             : 'This document may be damaged or incomplete.');
         return;
@@ -204,7 +210,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   void toggleLineWrap() {
     _lineWrapChosen = true;
     lineWrap.value = !lineWrap.value;
-    textDocument.wrap = lineWrap.value;
+    plainText?.wrap = lineWrap.value;
     unawaited(_settingsRepository.setTextReaderLineWrap(lineWrap.value));
   }
 
@@ -215,7 +221,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   bool get canDecreaseFontSize => fontSize.value > minFontSize;
 
   /// Scrolls line [number] (1-based) to the top.
-  void goToLine(int number) => textDocument.goTo(number);
+  void goToLine(int number) => lineSource.goTo(number);
 
   void startSearching() {
     setFullscreen(false);
@@ -235,12 +241,12 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
 
   void stopSearching() {
     isSearching.value = false;
-    textDocument.clearSearch();
+    lineSource.clearSearch();
   }
 
-  void search(String query) => textDocument.search(query);
-  void goToNextMatch() => textDocument.nextMatch();
-  void goToPrevMatch() => textDocument.previousMatch();
+  void search(String query) => lineSource.search(query);
+  void goToNextMatch() => lineSource.nextMatch();
+  void goToPrevMatch() => lineSource.previousMatch();
 
   bool get isFavorite => _interactions.isFavorite(document.id);
   Future<void> toggleFavorite() => _interactions.toggleFavorite(document.id);
@@ -253,7 +259,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
     final save = _scrolledThisSession || _lastScrollOffset > 0;
     _interactions.readerClosedAfter(save ? _savePosition(_lastScrollOffset, _lastLine) : null);
     markdown?.viewMode.removeListener(_mirrorViewMode);
-    textDocument.dispose();
+    lineSource.dispose();
     super.onClose();
   }
 }

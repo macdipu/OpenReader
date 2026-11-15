@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/domain/models/document_model.dart';
 import '../../../../core/presentation/theme/theme_extensions.dart';
 import '../../../../core/presentation/utils/file_size_formatter.dart';
-import 'package:universal_document_viewer/plain_text.dart';
+import 'package:universal_document_viewer/markdown.dart';
 
 /// Shows the file's metadata and the figures [MarkdownStats] measured.
 /// Everything listed is read from the file or counted from its text.

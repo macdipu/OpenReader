@@ -10,6 +10,7 @@ import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
+import 'package:universal_document_viewer/markdown.dart';
 import 'package:universal_document_viewer/plain_text.dart';
 import 'markdown/markdown_details_dialog.dart';
 import 'text_reader_controller.dart';
@@ -272,7 +273,7 @@ class _SearchStatusBar extends StatelessWidget {
       // Read so this Obx rebuilds as the query and the current match change.
       controller.searchQuery.value;
       controller.currentMatchIndex.value;
-      final label = DocumentViewerStrings.of(context).searchStatus(controller.textDocument.searchState.value);
+      final label = DocumentViewerStrings.of(context).searchStatus(controller.lineSource.searchState.value);
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
