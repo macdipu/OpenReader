@@ -55,6 +55,7 @@ android {
 
     buildTypes {
         release {
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Falls back to debug signing when key.properties is absent (e.g. local
             // `flutter run --release`); CI always has it, so published builds are
             // never debug-signed - enforced by the verification step in release.yml.
