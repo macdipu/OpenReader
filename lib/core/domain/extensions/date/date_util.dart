@@ -80,8 +80,8 @@ extension DateUtil on DateTime {
 
   static DateTime parseFromDMY(String date, {String separator = "/"}) {
     try {
-      var dateSplitted = date.split(separator);
-      var mysqlString =
+      final dateSplitted = date.split(separator);
+      final mysqlString =
           "${dateSplitted[2]}-${dateSplitted[1]}-${dateSplitted[0]}";
       return DateTime.parse(mysqlString);
     } catch (_) {

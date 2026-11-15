@@ -304,7 +304,7 @@ void main() {
       );
       browser.listings['$root/Docs'] = FolderListing(documents: [
         doc('beta.txt', size: 10, modified: 3),
-        doc('Alpha.pdf', size: 30, modified: 1),
+        doc('Alpha.pdf', size: 30),
         doc('gamma.csv', size: 20, modified: 2),
       ]);
     });

@@ -15,7 +15,7 @@ Future<T?> showAppSheet<T>({
   bool useSafeArea = true,
 }) {
   final context = rootContext;
-  if (context == null) return Future.value(null);
+  if (context == null) return Future.value();
 
   return showModalBottomSheet<T>(
     context: context,

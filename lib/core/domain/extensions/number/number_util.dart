@@ -6,7 +6,7 @@ class NumberFormatterUtil {
 
   static String currencyFormatterEn(double? number) {
     String formattedValue = number.toString();
-    var formatCurrency = NumberFormat(
+    final formatCurrency = NumberFormat(
       "##,##,##,##0.00",
       "en_US",
     );
@@ -20,7 +20,7 @@ class NumberFormatterUtil {
 
   static String currencyCalculationEn(double number) {
     String formattedValue = number.toString();
-    var formatCurrency = NumberFormat(
+    final formatCurrency = NumberFormat(
       "##,##,##,###.##",
       "en_US",
     );
@@ -47,7 +47,7 @@ class NumberFormatterUtil {
 
   static String currencyFormatterBn(double? number) {
     String formattedValue = number.toString();
-    var formatCurrency = NumberFormat(
+    final formatCurrency = NumberFormat(
       "##,##,##,###.##",
       "ja_JP",
     );
@@ -61,7 +61,7 @@ class NumberFormatterUtil {
 
   static String numberFormatterBn(int number) {
     String formattedValue = number.toString();
-    var formatCurrency = NumberFormat(
+    final formatCurrency = NumberFormat(
       "##,##,##,###.##",
       "ja_JP",
     );
@@ -115,7 +115,7 @@ class NumberFormatterUtil {
   }
 
   static String convertNumberIntoBangaliDouble(double engInput) {
-    String eng = engInput.toStringAsFixed(2);
+    final String eng = engInput.toStringAsFixed(2);
     String bengali = '';
     for (int i = 0; i < eng.toString().length; i++) {
       switch (eng.toString()[i]) {
@@ -202,7 +202,7 @@ class NumberFormatterUtil {
 
   static String convertMonthIntoBangaliMonth(String mName) {
     String bengaliMonth = '';
-    String monthName = mName.toLowerCase();
+    final String monthName = mName.toLowerCase();
     for (int i = 0; i < monthName.length; i++) {
       switch (monthName) {
         case 'january ':
@@ -290,10 +290,10 @@ class NumberFormatterUtil {
   }
 
   static String readTimestamp(int timestamp) {
-    var now = DateTime.now();
-    var format = DateFormat('HH:mm a');
-    var date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    var diff = now.difference(date);
+    final now = DateTime.now();
+    final format = DateFormat('HH:mm a');
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    final diff = now.difference(date);
     var time = '';
 
     if (diff.inSeconds <= 0 ||

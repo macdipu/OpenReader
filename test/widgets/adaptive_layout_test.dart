@@ -1,7 +1,6 @@
 import 'dart:ui' show DisplayFeature, DisplayFeatureState, DisplayFeatureType;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openreader/core/presentation/utils/screen_utils.dart';
 import 'package:openreader/core/presentation/widgets/reader/reader_safe_zone.dart';

@@ -84,7 +84,7 @@ void main() {
 
   testWidgets('phone: the name bar appears only with a selection; Favorite is in More', (tester) async {
     final controller = await open(tester);
-    await showExcelReader(tester, controller, size: phone);
+    await showExcelReader(tester, controller);
     expect(nameBox(), findsNothing);
     expect(find.text('Read-only'), findsNothing, reason: 'just the lock on a phone');
     expect(find.byTooltip('Add to favorites'), findsNothing);
@@ -156,7 +156,7 @@ void main() {
 
   testWidgets('the selection uses the Excel accent, and the grid has its own scrollbars', (tester) async {
     final controller = await open(tester);
-    await showExcelReader(tester, controller, size: phone);
+    await showExcelReader(tester, controller);
     final accent = DocumentCategory.excel.accentColor(tester.element(find.byType(Scaffold).first));
     controller.sheet.select(const GridSelection.cell(1, 0));
     await tester.pump();

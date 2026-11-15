@@ -156,7 +156,7 @@ class HomeView extends GetView<HomeController> {
                         onShowInfo: () => showFileInformationSheet(context, recent.document),
                         onOpenWith: () => interactions.openWithExternalApp(recent.document),
                         onDelete: () async {
-                            if (await interactions.confirmAndDelete(recent.document)) controller.load();
+                            if (await interactions.confirmAndDelete(recent.document)) await controller.load();
                           },
                         trailingLabel: 'Opened ${formatRelativeTime(recent.lastOpenedAt)}',
                         progress: recent.progress,

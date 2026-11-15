@@ -76,7 +76,6 @@ class DocumentListTile extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: dense ? 10 : 14),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             DocumentThumbnail(document: document, size: badgeSize, readingPosition: readingPosition),
             const SizedBox(width: 12),

@@ -197,7 +197,7 @@ class _SidebarBrand extends StatelessWidget {
     final mark = ClipRRect(
       borderRadius: BorderRadius.circular(9),
       child: Image.asset('assets/icon/icon.png',
-          width: 34, height: 34, filterQuality: FilterQuality.medium),
+          width: 34, height: 34),
     );
     final toggle = _SidebarToggle(extended: extended, onPressed: onToggle);
     if (!extended) {

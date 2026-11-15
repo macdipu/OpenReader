@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:universal_document_viewer/spreadsheet.dart';

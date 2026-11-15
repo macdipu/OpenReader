@@ -16,7 +16,7 @@ Future<T?> showAppDialog<T>({
   Duration duration = const Duration(milliseconds: 300),
 }) {
   final context = rootContext;
-  if (context == null) return Future.value(null);
+  if (context == null) return Future.value();
 
   return showGeneralDialog<T>(
     context: context,

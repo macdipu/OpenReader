@@ -1,3 +1,6 @@
+// CLI tool: prints usage and progress to the terminal.
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 
 const _dartReservedWords = {
@@ -462,7 +465,7 @@ String toPascalCase(String input) {
   return input
       .split('_')
       .map((word) => word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1).toLowerCase())
-      .join('');
+      .join();
 }
 
 String toCamelCase(String input) {

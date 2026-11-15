@@ -3,7 +3,6 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
@@ -13,7 +12,6 @@ import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
-import 'package:universal_document_viewer/spreadsheet.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';

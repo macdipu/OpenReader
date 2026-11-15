@@ -5,95 +5,95 @@ import 'package:intl/date_symbol_data_local.dart';
 class DateTimeUtils {
   static String formattedDateFromDateTime(
       DateTime dateTime, String desiredDateFormat) {
-    DateFormat outputFormat = DateFormat(desiredDateFormat);
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat outputFormat = DateFormat(desiredDateFormat);
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String formatOfferDate(String? date) {
-    initializeDateFormatting('en', null);
+    initializeDateFormatting('en');
     if (date == null || date == "null") {
       return "";
     }
-    DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ssZZZZ");
-    DateTime dateTime = inputFormat.parse(date);
-    DateFormat outputFormat = DateFormat.yMMMMd('en');
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ssZZZZ");
+    final DateTime dateTime = inputFormat.parse(date);
+    final DateFormat outputFormat = DateFormat.yMMMMd('en');
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String formatTimeLineDate(String? date) {
-    initializeDateFormatting('en', null);
+    initializeDateFormatting('en');
     if (date == null || date == "null") {
       return "";
     }
-    DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ssZZZZ");
-    DateTime dateTime = inputFormat.parseUTC(date).toLocal();
-    DateFormat outputFormat = DateFormat(
+    final DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ssZZZZ");
+    final DateTime dateTime = inputFormat.parseUTC(date).toLocal();
+    final DateFormat outputFormat = DateFormat(
       'yyyy-MM-dd, hh:mm a',
     );
-    String dateInString = outputFormat.format(dateTime);
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String getTimeFromDisirededFormat(String date, String format) {
-    DateFormat inputFormat = DateFormat("HH:mm:ss");
-    DateTime dateTime = inputFormat.parse(date);
-    DateFormat outputFormat = DateFormat(format);
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat inputFormat = DateFormat("HH:mm:ss");
+    final DateTime dateTime = inputFormat.parse(date);
+    final DateFormat outputFormat = DateFormat(format);
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String getDateFromDisirededFormat(String date, String format) {
-    DateFormat inputFormat = DateFormat("yyyy-MM-dd");
-    DateTime dateTime = inputFormat.parse(date);
-    DateFormat outputFormat = DateFormat(format);
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat inputFormat = DateFormat("yyyy-MM-dd");
+    final DateTime dateTime = inputFormat.parse(date);
+    final DateFormat outputFormat = DateFormat(format);
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String getMonthYearFromDate(String date) {
-    DateFormat inputFormat = DateFormat("yyyy-MM-dd");
-    DateTime dateTime = inputFormat.parse(date);
-    DateFormat outputFormat = DateFormat("d MMM");
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat inputFormat = DateFormat("yyyy-MM-dd");
+    final DateTime dateTime = inputFormat.parse(date);
+    final DateFormat outputFormat = DateFormat("d MMM");
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String formatPromoDate(String date) {
-    DateFormat inputFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
-    DateTime dateTime = inputFormat.parse(date);
-    DateFormat outputFormat = DateFormat("MMM d, yyyy");
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat inputFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
+    final DateTime dateTime = inputFormat.parse(date);
+    final DateFormat outputFormat = DateFormat("MMM d, yyyy");
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String formatInDate(String date) {
-    DateFormat inputFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
-    DateTime dateTime = inputFormat.parse(date);
-    DateFormat outputFormat = DateFormat("MMM d");
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat inputFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
+    final DateTime dateTime = inputFormat.parse(date);
+    final DateFormat outputFormat = DateFormat("MMM d");
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String getTimeInHrsAndMnts(String date) {
-    DateFormat inputFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
-    DateTime dateTime = inputFormat.parse(date);
-    var d12 = DateFormat('hh:mm a').format(dateTime);
+    final DateFormat inputFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
+    final DateTime dateTime = inputFormat.parse(date);
+    final d12 = DateFormat('hh:mm a').format(dateTime);
     return d12;
   }
 
   static String formatComplainCreateDate(String date) {
-    DateFormat inputFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
-    DateTime dateTime = inputFormat.parse(date);
-    DateFormat outputFormat = DateFormat("d MMM yyyy");
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat inputFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
+    final DateTime dateTime = inputFormat.parse(date);
+    final DateFormat outputFormat = DateFormat("d MMM yyyy");
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String formatProfileDate(DateTime dateTime, String desiredFormate) {
-    DateFormat outputFormat = DateFormat(desiredFormate);
-    String dateInString = outputFormat.format(dateTime);
+    final DateFormat outputFormat = DateFormat(desiredFormate);
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
@@ -108,28 +108,28 @@ class DateTimeUtils {
   }
 
   static String getDayFromDate(String date) {
-    DateTime dateTime = DateTime.parse(date);
-    DateFormat outputFormat = DateFormat("dd");
-    String dateInString = outputFormat.format(dateTime);
+    final DateTime dateTime = DateTime.parse(date);
+    final DateFormat outputFormat = DateFormat("dd");
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String getMonthFromDate(String date) {
-    DateTime dateTime = DateTime.parse(date);
-    DateFormat outputFormat = DateFormat("MMM");
-    String dateInString = outputFormat.format(dateTime);
+    final DateTime dateTime = DateTime.parse(date);
+    final DateFormat outputFormat = DateFormat("MMM");
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static String getWeekDayFromDate(String date) {
-    DateTime dateTime = DateTime.parse(date);
-    DateFormat outputFormat = DateFormat("EEEE");
-    String dateInString = outputFormat.format(dateTime);
+    final DateTime dateTime = DateTime.parse(date);
+    final DateFormat outputFormat = DateFormat("EEEE");
+    final String dateInString = outputFormat.format(dateTime);
     return dateInString;
   }
 
   static bool isTheDateIsToday(String date) {
-    DateTime dateTime = DateTime.parse(date);
+    final DateTime dateTime = DateTime.parse(date);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return dateTime == today ? true : false;
@@ -137,20 +137,20 @@ class DateTimeUtils {
 
   static String getFormattedDateFromTimestamp(
       int timestamp, String desireFormat) {
-    var date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    var d12 = DateFormat(desireFormat).format(date);
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    final d12 = DateFormat(desireFormat).format(date);
     return d12;
   }
 
   static String getDateFromTimestamp(int timestamp) {
-    var date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    var d12 = DateFormat('dd MMMM, yyyy').format(date);
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    final d12 = DateFormat('dd MMMM, yyyy').format(date);
     return d12;
   }
 
   static String getTimeFromTimestamp12hFormat(int timestamp) {
-    var date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    var d12 = DateFormat('hh:mm a').format(date);
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    final d12 = DateFormat('hh:mm a').format(date);
     return d12;
   }
 
@@ -158,8 +158,8 @@ class DateTimeUtils {
     if (date == null || date.isEmpty) {
       return null;
     }
-    DateFormat inputFormat = DateFormat(desireFormat);
-    DateTime dateTime = inputFormat.parse(date);
+    final DateFormat inputFormat = DateFormat(desireFormat);
+    final DateTime dateTime = inputFormat.parse(date);
     return dateTime;
   }
 }

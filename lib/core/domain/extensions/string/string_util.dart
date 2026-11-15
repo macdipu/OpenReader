@@ -32,18 +32,18 @@ extension StringUtil on String {
   }
 
   String insertCharAt(String char, int position) {
-    String s = this;
+    final String s = this;
     if (s.length < position) {
       return s;
     }
-    var before = s.substring(0, position);
-    var after = s.substring(position, s.length);
+    final before = s.substring(0, position);
+    final after = s.substring(position, s.length);
     return before + char + after;
   }
 
   String lastWord() {
-    String s = trim();
-    List<String> words = s.split(" ");
+    final String s = trim();
+    final List<String> words = s.split(" ");
     return words[words.length - 1];
   }
 }
