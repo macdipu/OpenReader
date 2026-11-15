@@ -73,3 +73,60 @@ another run. Unknown or damaged state requires explicit recovery.
 Record execution timing through the harness. Before compaction, checkpoint
 active work and update affected task/context documents with remaining work.
 <!-- agentic-kit:end -->
+
+# OpenReader & universal_document_viewer development guidelines
+
+Applies to every analysis, implementation, refactor, test and release across the **OpenReader** app and the **universal_document_viewer** Flutter package ("the Kit").
+
+## 1. Feature ownership: decide before implementing
+
+Put a feature in the **Kit** when it provides generic document viewing, is reusable by other Flutter apps, improves the package's core capabilities, and needs no OpenReader-specific logic.
+
+Put it in **OpenReader** when it is specific to the product experience, app-level business logic or workflow, OpenReader UI/navigation/state, or has no meaningful value to other Kit users.
+
+Not every document feature belongs in the Kit. When it could go either way, keep it in OpenReader.
+
+## 2. Public package stability
+
+The Kit is a public pub.dev package. Before changing it:
+
+- Review its public APIs and their usage; preserve backward compatibility; avoid breaking changes.
+- Avoid new dependencies; keep APIs generic, configurable and reusable.
+- Never add OpenReader-specific logic, assumptions or workarounds.
+- Consider regressions for existing consumers; follow Flutter/Dart package conventions.
+- Add or update tests; update docs and examples when public APIs change.
+
+## 3. Local repository setup
+
+Keep both repositories as **siblings** under one root (`openreader/` and `universal_document_viewer/`). If the Kit is not cloned, clone it into OpenReader's parent directory, never inside OpenReader. Reuse an existing clone; verify both repos are on the intended branches before changing anything.
+
+## 4. Development dependency
+
+Develop against the local Kit with a path dependency, kept in the git-ignored `pubspec_overrides.yaml` (`universal_document_viewer: path: ../universal_document_viewer`). Use it only for development and testing; never commit or release it; track which unpublished Kit changes OpenReader depends on.
+
+## 5. Release dependency rules
+
+OpenReader releases **always** use the published pub.dev version of the Kit.
+
+1. Never release with a local path dependency or an unpublished Git commit/branch.
+2. If a needed Kit feature is unpublished, stop and wait for the Kit release. Do not copy Kit code into the app or add temporary workarounds.
+3. Verify the required Kit version is on pub.dev, update OpenReader's constraint, run `flutter pub get`, and confirm `pubspec.yaml` and `pubspec.lock` hold the release configuration.
+4. Run tests and release checks before releasing.
+
+Sequence: implement Kit feature -> test Kit alone -> integrate and test locally with OpenReader -> publish Kit -> verify it is on pub.dev -> update OpenReader to it -> test -> release OpenReader.
+
+## 6. Analysis before changes
+
+Inspect the structure and relevant code, check whether the functionality already exists, identify which repo owns the feature, review existing UI/UX, and list regression and compatibility risks. Do not assume a feature is missing, add needless architecture, or duplicate implementations.
+
+## 7. Implementation and testing
+
+Follow existing architecture and conventions; prefer small focused changes; avoid needless abstractions and dependencies; preserve UI/UX unless a redesign is requested; keep the Kit free of app code; document public APIs; add meaningful tests; test in isolation and through OpenReader; check for regressions. Change the Kit from OpenReader work only when the functionality genuinely belongs there.
+
+## 8. Final verification
+
+Before calling a task done, confirm: ownership was evaluated; changes are in the right repo; existing behaviour is preserved; no unnecessary Kit breaking changes; public APIs stay generic; tests pass; OpenReader integration works; no unintended dependency/config changes; the release dependency is the published version; any new Kit version is actually published before an OpenReader release.
+
+## 9. Principles
+
+Analyze first. Protect the Kit. Keep responsibilities separate. Develop locally with sibling clones. Release only against published packages. Wait for publication when needed. Never compromise stability with temporary release workarounds.
