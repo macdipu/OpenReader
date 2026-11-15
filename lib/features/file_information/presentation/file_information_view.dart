@@ -160,7 +160,7 @@ class FileInformationSheet extends GetView<FileInformationController> {
                             },
                           ),
                         ),
-                        _AttributeRow(label: 'Format', value: metadata.category.label),
+                        _AttributeRow(label: 'Format', value: document.formatLabel),
                         _AttributeRow(label: 'Physical Size', value: formatFileSize(metadata.sizeBytes)),
                         _AttributeRow(label: 'Last Modified', value: formatDocumentDate(metadata.modifiedAt)),
                         // UX-23/24: the access OpenReader really has; the former

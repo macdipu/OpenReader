@@ -19,7 +19,9 @@
 //   assets/icon/icon_monochrome.png  1024, white silhouette: Android 13 themed icon
 //   docs/icon.png                    512, rounded: README and website
 //   fastlane/.../images/icon.png     512, full-bleed: Google Play listing icon
-//   fastlane/.../images/featureGraphic.png  1024x500 Play feature graphic
+//
+// The Play feature graphic is tool/feature_graphic.html (device row, formats and
+// platforms); render it with tool/render_feature_graphic.ps1.
 //
 // Then regenerate platform assets:
 //   dart run flutter_launcher_icons
@@ -28,7 +30,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _playImages = 'fastlane/metadata/android/en-US/images';
@@ -42,16 +43,6 @@ void main() {
     await _write(tester, 'assets/icon/icon_monochrome.png', 1024, const _Icon(shape: _Shape.none, markScale: _adaptiveScale, mono: true));
     await _write(tester, 'docs/icon.png', 512, const _Icon(shape: _Shape.rounded));
     await _write(tester, '$_playImages/icon.png', 512, const _Icon(shape: _Shape.fullBleed));
-  });
-
-  testWidgets('generate Play feature graphic', (tester) async {
-    // Real file I/O must run outside the test's fake-async zone.
-    await tester.runAsync(() async {
-      final bytes = await File('assets/fonts/Inter.ttf').readAsBytes();
-      final inter = FontLoader('Inter')..addFont(Future.value(ByteData.sublistView(bytes)));
-      await inter.load();
-    });
-    await _write(tester, '$_playImages/featureGraphic.png', 1024, const _FeatureGraphic(), height: 500);
   });
 }
 
@@ -375,48 +366,4 @@ class _Tab {
   final Color top;
   final Color bottom;
   final _Symbol symbol;
-}
-
-/// Play Store feature graphic: the rounded icon, the name and the formats.
-class _FeatureGraphic extends StatelessWidget {
-  const _FeatureGraphic();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF0F1013),
-      child: Stack(
-        children: [
-          Positioned(
-            left: -60,
-            top: 20,
-            child: Container(
-              width: 520,
-              height: 460,
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(colors: [Color(0x330284C7), Color(0x000284C7)]),
-              ),
-            ),
-          ),
-          const Positioned(left: 80, top: 120, width: 260, height: 260, child: const _Icon(shape: _Shape.rounded)),
-          const Positioned(
-            left: 400,
-            top: 150,
-            child: Text(
-              'OpenReader',
-              style: TextStyle(fontFamily: 'Inter', fontSize: 72, fontWeight: FontWeight.w300, color: Color(0xFFF1F5F9), letterSpacing: -1),
-            ),
-          ),
-          const Positioned(
-            left: 402,
-            top: 252,
-            child: Text(
-              'PDF, Word, Excel, PowerPoint,\nMarkdown & text documents\nin one reader',
-              style: TextStyle(fontFamily: 'Inter', fontSize: 31, height: 1.35, color: Color(0xFF94A3B8)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

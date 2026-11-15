@@ -537,7 +537,7 @@ Future<void> _showFileActionSheet(
                       children: [
                         Text(document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: sheetContext.titleMedium),
                         Text(
-                          '${formatFileSize(document.sizeBytes)} • ${document.category.label}',
+                          '${formatFileSize(document.sizeBytes)} • ${document.formatLabel}',
                           style: sheetContext.bodySmall?.copyWith(color: sheetContext.onSurfaceVariant),
                         ),
                       ],

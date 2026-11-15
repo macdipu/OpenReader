@@ -1,0 +1,91 @@
+<!doctype html>
+<!--
+  Source of fastlane/metadata/android/en-US/images/featureGraphic.png (1024 x 500).
+  Reuses the landing page's device frames (docs/style.css) and screenshots
+  (docs/assets/devices). Render with tool/render_feature_graphic.ps1.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: Inter; src: url("../assets/fonts/Inter.ttf"); font-weight: 100 900; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1024px; height: 500px; overflow: hidden; }
+  body {
+    font-family: Inter, system-ui, sans-serif; color: #f1f5f9; position: relative;
+    background:
+      radial-gradient(520px 420px at 0% 100%, rgba(2, 132, 199, .22), transparent 70%),
+      radial-gradient(520px 380px at 100% 0%, rgba(99, 102, 241, .16), transparent 70%),
+      linear-gradient(135deg, #0b1120, #0f1319 55%, #080c14);
+  }
+
+  /* left: brand, formats, platforms */
+  .brand { position: absolute; left: 48px; top: 54px; width: 430px; }
+  .brand .row { display: flex; align-items: center; gap: 18px; }
+  .brand img.icon { width: 84px; height: 84px; }
+  .brand h1 { font-size: 50px; font-weight: 300; letter-spacing: -1.2px; line-height: 1; }
+  .brand p { margin-top: 22px; font-size: 22px; line-height: 1.4; color: #94a3b8; }
+  .brand p b { color: #e2e8f0; font-weight: 600; }
+  .chips { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 7px 14px; border-radius: 999px; font-size: 15px; font-weight: 600; color: #cbd5e1;
+    background: rgba(148, 163, 184, .12); border: 1px solid rgba(148, 163, 184, .28); }
+  .chip.android { color: #6ee7a8; border-color: rgba(61, 220, 132, .4); background: rgba(61, 220, 132, .1); }
+  .chip.windows { color: #7cc4ff; border-color: rgba(56, 160, 255, .4); background: rgba(56, 160, 255, .1); }
+  .chip.macos { color: #e2e8f0; }
+  .chip.linux { color: #fcd34d; border-color: rgba(252, 211, 77, .4); background: rgba(252, 211, 77, .09); }
+
+  /* right: device row, same frames as the landing page */
+  .lineup { position: absolute; left: 480px; right: 0; bottom: 40px; height: 320px; }
+  .dev { position: absolute; bottom: 0; display: block; }
+  .dev img { display: block; width: 100%; height: auto; }
+  :root { --bezel: #1b1d27; --bezel-edge: #3a3d4c; --shadow: 0 30px 50px -18px rgba(0, 0, 0, .7), 0 8px 20px -10px rgba(0, 0, 0, .5); }
+  .frame { display: block; position: relative; background: var(--bezel); box-shadow: var(--shadow), inset 0 0 0 1.5px var(--bezel-edge); }
+  .screen { display: block; position: relative; overflow: hidden; background: #fff; }
+  .screen::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,.05) 26%, transparent 27%); }
+
+  .dev-desktop { left: 0; width: 290px; display: flex; flex-direction: column; align-items: center; }
+  .monitor { padding: 7px 7px 18px; border-radius: 11px; width: 100%; background: linear-gradient(#c9cedb, #e8ebf3 40%, #bfc4d3); }
+  .monitor .screen { border-radius: 3px; border: 4px solid #0d0f17; }
+  .dev-desktop::before { content: ""; order: 2; width: 16%; height: 26px; margin-top: -1px; z-index: 1;
+    background: linear-gradient(90deg, #aeb3c4, #e3e6ef 50%, #aeb3c4); clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%); }
+  .dev-desktop::after { content: ""; order: 3; width: 36%; height: 6px; margin-top: -1px; border-radius: 4px; background: linear-gradient(#d3d7e3, #aab0c2); z-index: 1; }
+
+  .dev-laptop { left: 215px; width: 195px; display: flex; flex-direction: column; align-items: center; z-index: 2; }
+  .laptop { padding: 6px; border-radius: 10px 10px 3px 3px; width: 88%; }
+  .laptop .screen { border-radius: 3px; }
+  .dev-laptop::after { content: ""; order: 3; width: 100%; height: 10px; border-radius: 2px 2px 12px 12px; z-index: 1; margin-top: -1px;
+    background: linear-gradient(#e1e4ed, #b6bbcb); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .6); }
+
+  .tablet { padding: 6px; border-radius: 14px; width: 100%; }
+  .tablet .screen { border-radius: 8px; }
+  .dev-tablet { left: 338px; width: 150px; z-index: 3; }
+
+  .phone { padding: 4px; border-radius: 15px; width: 100%; }
+  .phone .screen { border-radius: 11px; }
+  .phone::before { content: ""; position: absolute; top: 8px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #05060a; z-index: 3; }
+  .dev-phone { left: 462px; width: 54px; z-index: 4; }
+</style>
+</head>
+<body>
+  <section class="brand">
+    <div class="row">
+      <img class="icon" src="../docs/icon.png" alt="" />
+      <h1>OpenReader</h1>
+    </div>
+    <p><b>PDF, Word, Excel, PowerPoint, Markdown</b> and text documents in one reader</p>
+    <div class="chips">
+      <span class="chip android">Android</span>
+      <span class="chip windows">Windows</span>
+      <span class="chip macos">macOS</span>
+      <span class="chip linux">Linux</span>
+    </div>
+  </section>
+
+  <section class="lineup">
+    <div class="dev dev-desktop"><span class="frame monitor"><span class="screen"><img src="../docs/assets/devices/windows-desktop.png" alt="" /></span></span></div>
+    <div class="dev dev-laptop"><span class="frame laptop"><span class="screen"><img src="../docs/assets/devices/macos-laptop.png" alt="" /></span></span></div>
+    <div class="dev dev-tablet"><span class="frame tablet"><span class="screen"><img src="../docs/assets/devices/android-tablet.png" alt="" /></span></span></div>
+    <div class="dev dev-phone"><span class="frame phone"><span class="screen"><img src="../docs/assets/devices/android-phone.png" alt="" /></span></span></div>
+  </section>
+</body>
+</html>

@@ -67,6 +67,9 @@ class DocumentModel extends Equatable {
   /// The short format badge: Markdown files show MD, not their Text category's TXT.
   String get badgeCode => MarkdownController.isMarkdownExtension(extension) ? 'MD' : category.shortCode;
 
+  /// The format name for display: Markdown files say Markdown, not Text.
+  String get formatLabel => MarkdownController.isMarkdownExtension(extension) ? 'Markdown' : category.label;
+
   @override
   List<Object?> get props => [id, path, displayName, extension, category, sizeBytes, modifiedAt, lastSeenAt];
 }

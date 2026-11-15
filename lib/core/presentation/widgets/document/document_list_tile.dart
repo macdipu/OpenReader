@@ -97,7 +97,7 @@ class DocumentListTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     trailingLabel ??
-                        '${formatFileSize(document.sizeBytes)} • ${formatDocumentDate(document.modifiedAt)} • ${document.category.label}',
+                        '${formatFileSize(document.sizeBytes)} • ${formatDocumentDate(document.modifiedAt)} • ${document.formatLabel}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),

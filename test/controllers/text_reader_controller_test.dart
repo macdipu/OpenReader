@@ -343,6 +343,8 @@ void main() {
       expect(named('md').badgeCode, 'MD');
       expect(named('markdown').badgeCode, 'MD');
       expect(named('txt').badgeCode, 'TXT');
+      expect(named('md').formatLabel, 'Markdown');
+      expect(named('txt').formatLabel, 'Text');
     });
 
     test('a .md file gets the kit Markdown controller, with details and view-mode mirroring', () async {

@@ -378,10 +378,11 @@
 
   // ---- screenshot showcase: tabs, arrows, gentle autoplay, lightbox ----------
   var SHOTS = {
-    pdf: { file: 'Quarterly Report.pdf', desc: 'Continuous scroll, page thumbnails, zoom and jump to page.', alt: 'PDF reader' },
-    docx: { file: 'Project Brief.docx', desc: 'Headings, lists, tables and images from .docx files.', alt: 'Word reader' },
+    pdf: { file: 'Reading Documents.pdf', desc: 'Continuous scroll, page thumbnails, zoom and jump to page.', alt: 'PDF reader' },
+    docx: { file: 'Quarterly Report.docx', desc: 'Headings, lists, tables and images from .docx files.', alt: 'Word reader' },
     xlsx: { file: 'Sales 2026.xlsx', desc: 'Workbooks as scrollable tables, one tab per sheet.', alt: 'Excel reader' },
-    'docx-dark': { file: 'Project Brief.docx', desc: 'Night mode: flip any document to a dark theme with one tap.', alt: 'Word reader in night mode' }
+    md: { file: 'Trail Guide.md', desc: 'Rendered Markdown with tables, task lists and code blocks. Switch to the source or a side-by-side view with one tap.', alt: 'Markdown reader' },
+    'md-dark': { file: 'Trail Guide.md', desc: 'Night mode: flip any document to a dark theme with one tap.', alt: 'Markdown reader in night mode' }
   };
   var DWELL = 6000;
 

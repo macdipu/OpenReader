@@ -276,7 +276,7 @@ class _ContinueReadingCard extends StatelessWidget {
                       Text(document.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.titleSmall),
                       const SizedBox(height: 2),
                       Text(
-                        '${document.category.label} • ${formatFileSize(document.sizeBytes)}',
+                        '${document.formatLabel} • ${formatFileSize(document.sizeBytes)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: context.bodySmall?.copyWith(color: context.onSurfaceVariant),
@@ -469,7 +469,7 @@ class _DocumentDetailsPane extends StatelessWidget {
                 Text(document.displayName, style: context.headlineSmall, textAlign: TextAlign.center),
                 const SizedBox(height: 6),
                 Text(
-                  '${document.category.label} • ${formatFileSize(document.sizeBytes)}',
+                  '${document.formatLabel} • ${formatFileSize(document.sizeBytes)}',
                   style: context.bodyMedium?.copyWith(color: accent),
                   textAlign: TextAlign.center,
                 ),
