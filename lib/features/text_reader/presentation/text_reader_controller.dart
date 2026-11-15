@@ -94,7 +94,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
 
   /// Mirrors of the kit's search state, for the app bar's Obx widgets.
   final searchQuery = ''.obs;
-  final matches = <TextMatch>[].obs; // every occurrence
+  final matches = <TextMatch>[].obs;
   final currentMatchIndex = (-1).obs;
 
   void _mirrorSearch() {
@@ -105,7 +105,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
 
   /// Last offset reported by [onScrolled]. A close saves this: by `onClose`
   /// the list has detached from [scrollController], so reading it then lost
-  /// any scrolling since the last debounced save (P2r1-review #2).
+  /// any scrolling since the last debounced save.
   double _lastScrollOffset = 0;
 
   /// The top line reported with [_lastScrollOffset], saved with it for the

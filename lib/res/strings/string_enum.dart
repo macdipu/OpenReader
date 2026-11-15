@@ -24,7 +24,6 @@ enum TextEnum {
   pin(en: "PIN", bn: "পিন"),
   forgotPin(en: "Forgot PIN?", bn: "পিন ভুলে গেছেন?"),
   createAccount(en: "Create new account", bn: "নতুন অ্যাকাউন্ট তৈরি করুন"),
-  // Add more entries as required
   ;
 
   final String en;

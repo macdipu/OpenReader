@@ -107,7 +107,6 @@ class FileInformationSheet extends GetView<FileInformationController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Doc identity card
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(

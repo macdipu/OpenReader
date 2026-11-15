@@ -15,10 +15,8 @@ class AdaptiveColor {
     return isDark ? dark : light;
   }
 
-  // Convenience method for cleaner syntax
   Color call(BuildContext context) => resolve(context);
 
-  // Add opacity support
   AdaptiveColor withAlpha(double opacity) {
     return AdaptiveColor(
       light: light.withValues(alpha: opacity),
@@ -28,11 +26,11 @@ class AdaptiveColor {
 }
 
 // =========================================================
-// APP COLORS - ORGANIZED & MAINTAINABLE
+// APP COLORS
 // =========================================================
 
 class AppColors {
-  AppColors._(); // Private constructor to prevent instantiation
+  AppColors._();
 
   // =========================================================
   // BRAND COLORS

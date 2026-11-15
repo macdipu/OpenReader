@@ -22,12 +22,9 @@ class AppShellBinding extends Bindings {
     // is ever disposed and lazily recreated (what `fenix` allows) —
     // toggling a favorite from a reader after that point updates the
     // database correctly but the Favorites tab never reflects it again for
-    // the rest of the session, despite the class's own doc comment already
-    // promising it is "the single reactive source of truth ... shared by
-    // Home, Files, Search, Recents, and Favorites". `permanent` keeps one
-    // stable instance identity for the whole app lifetime instead (`Get.put`
-    // because `Get.lazyPut` has no `permanent` parameter in this GetX
-    // version — only `fenix`, which is the behavior being removed here).
+    // the rest of the session. `permanent` keeps one stable instance
+    // identity for the whole app lifetime instead (`Get.put` because
+    // `Get.lazyPut` has no `permanent` parameter in this GetX version).
     Get.put<DocumentInteractionController>(DocumentInteractionController(), permanent: true);
 
     // Several documents open at once (tabs, side by side) on wide windows.
@@ -44,7 +41,5 @@ class AppShellBinding extends Bindings {
     // Favorites & History screen shows both tabs together (DESIGN_SPEC #06),
     // so History needs to be available as soon as the Favorites tab is.
     Get.lazyPut<RecentsController>(() => RecentsController(), fenix: true);
-    // Settings is a pushed route now (see AppRoutes.settings), not a shell
-    // tab - SettingsBinding registers its own controller.
   }
 }

@@ -74,7 +74,6 @@ class CustomSnackbar {
             ),
       snackbarStatus: (status) {
         if (status == SnackbarStatus.CLOSED) {
-          // Snackbar closed
         }
       },
     );

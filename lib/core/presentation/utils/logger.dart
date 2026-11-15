@@ -30,7 +30,7 @@ class AppLogger {
   }
 }
 
-// Global helper functions as requested by the user
+// Global helper functions
 void logInfo(String msg) => AppLogger.info(msg);
 void logSuccess(String msg) => AppLogger.success(msg);
 void logWarning(String msg) => AppLogger.warning(msg);
