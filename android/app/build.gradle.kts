@@ -3,6 +3,10 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
+    // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -55,6 +59,10 @@ android {
 
     buildTypes {
         release {
+            // R8 shrink + obfuscate + resource shrink (native size and Dart
+            // obfuscation are handled via --obfuscate --split-debug-info in CI).
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Falls back to debug signing when key.properties is absent (e.g. local
             // `flutter run --release`); CI always has it, so published builds are

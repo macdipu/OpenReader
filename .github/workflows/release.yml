@@ -159,11 +159,13 @@ jobs:
       - name: Build release APKs
         run: |
           flutter build apk --release --split-per-abi \
+            --obfuscate --split-debug-info=build/symbols \
             --target-platform android-arm,android-arm64
 
       - name: Build release app bundle
         run: |
           flutter build appbundle --release \
+            --obfuscate --split-debug-info=build/symbols \
             --target-platform android-arm,android-arm64
 
       - name: Verify the release APK is not debug-signed

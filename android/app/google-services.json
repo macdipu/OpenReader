@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "47633235737",
+    "project_id": "chowdhuryelab",
+    "storage_bucket": "chowdhuryelab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:47633235737:android:4979047bd31e6a81e90f88",
+        "android_client_info": {
+          "package_name": "com.chowdhury_elab.weight_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRIs81eOyNo4YJ_BISHNnWw-2O_9seEqc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:47633235737:android:22bb7b843c5649f8e90f88",
+        "android_client_info": {
+          "package_name": "com.chowdhuryelab.openreader"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRIs81eOyNo4YJ_BISHNnWw-2O_9seEqc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -103,11 +103,11 @@ jobs:
       # --target-platform drops the emulator-only x86_64 slice, as in release.yml.
       - name: Build app bundle
         if: ${{ inputs.target == 'android-aab' || inputs.target == 'all' }}
-        run: flutter build appbundle --release --target-platform android-arm,android-arm64
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols --target-platform android-arm,android-arm64
 
       - name: Build APKs
         if: ${{ inputs.target == 'android-apk' || inputs.target == 'all' }}
-        run: flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
+        run: flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/symbols --target-platform android-arm,android-arm64
 
       - name: Collect files
         run: |
