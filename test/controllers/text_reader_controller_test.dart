@@ -13,6 +13,7 @@ import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/text_reader/presentation/text_reader_controller.dart';
+import 'package:universal_document_viewer/plain_text.dart' show MarkdownViewMode;
 import 'package:dartz/dartz.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
@@ -319,6 +320,43 @@ void main() {
       await tester.pump();
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
+    });
+  });
+
+  group('Markdown files', () {
+    test('a .txt file stays a plain text reader', () {
+      expect(controller.isMarkdown, isFalse);
+      expect(controller.markdownStats, isNull);
+    });
+
+    test('a .md file gets the kit Markdown controller, with details and view-mode mirroring', () async {
+      final file = File(p.join(root.path, 'readme.md'));
+      await file.writeAsString('# Title\n\nSee [docs](https://x.y) and ![i](a.png).');
+      final md = TextReaderController(
+        document: DocumentModel(
+          id: file.path,
+          path: file.path,
+          displayName: 'readme.md',
+          extension: 'md',
+          category: DocumentCategory.text,
+          sizeBytes: await file.length(),
+          modifiedAt: DateTime(2026),
+          lastSeenAt: DateTime(2026),
+        ),
+        recentRepository: recents,
+        interactions: interactions,
+        settingsRepository: settings,
+      );
+      await loaded(md);
+      expect(md.isMarkdown, isTrue);
+      expect(md.markdown!.baseDirectory, root.path);
+      expect(md.markdownStats!.headings, 1);
+      expect(md.markdownStats!.links, 1);
+      expect(md.markdownStats!.images, 1);
+      expect(md.viewMode.value, MarkdownViewMode.preview);
+      md.setViewMode(MarkdownViewMode.split);
+      expect(md.viewMode.value, MarkdownViewMode.split);
+      md.onClose();
     });
   });
 }

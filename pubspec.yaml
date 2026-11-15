@@ -65,7 +65,7 @@ dependencies:
   # kit's example app. The package has its own repository and is published on
   # pub.dev. To work on both at once, use a pubspec_overrides.yaml with
   # `path: ../universal_document_viewer`.
-  universal_document_viewer: ^0.2.0
+  universal_document_viewer: ^0.2.1
   # ODF-P5-03: direct since ZipSafetyGuard imports it to inspect a DOCX/XLSX
   # ZIP container's central directory before the kit's engines decompress it.
   archive: ^4.5.0

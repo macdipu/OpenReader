@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
@@ -39,13 +41,34 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>(),
         _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl() {
-    textDocument = PlainTextController(
-      onPositionChanged: (p) => onScrolled(p[PositionKeys.scrollOffset]! as double, line: p[PositionKeys.line] as int?),
-    )
-      ..addListener(_mirrorSearch);
+    void report(ReadingPosition p) => onScrolled(p[PositionKeys.scrollOffset]! as double, line: p[PositionKeys.line] as int?);
+    // .md/.markdown get the kit's Preview/Code/Split reader; other text stays plain.
+    textDocument = MarkdownController.isMarkdownExtension(document.extension)
+        ? MarkdownController(onPositionChanged: report, baseDirectory: p.dirname(document.path))
+        : PlainTextController(onPositionChanged: report);
+    textDocument.addListener(_mirrorSearch);
+    markdown?.viewMode.addListener(_mirrorViewMode);
   }
 
   late final PlainTextController textDocument;
+
+  /// The Markdown document, or null for any other text file.
+  MarkdownController? get markdown => textDocument is MarkdownController ? textDocument as MarkdownController : null;
+
+  bool get isMarkdown => markdown != null;
+
+  /// Mirror of the kit's Markdown view mode, for the app bar's Obx widgets.
+  final viewMode = MarkdownViewMode.preview.obs;
+
+  void _mirrorViewMode() => viewMode.value = markdown!.viewMode.value;
+
+  void setViewMode(MarkdownViewMode mode) => markdown?.setViewMode(mode);
+
+  /// Counts for the Details dialog; null for non-Markdown files.
+  MarkdownStats? get markdownStats => markdown?.stats;
+
+  /// Puts the whole source on the clipboard.
+  Future<void> copySource() => Clipboard.setData(ClipboardData(text: markdown?.source ?? lines.join('\n')));
 
   List<String> get lines => textDocument.lines;
 
@@ -229,6 +252,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
     _positionSaveDebounce?.cancel();
     final save = _scrolledThisSession || _lastScrollOffset > 0;
     _interactions.readerClosedAfter(save ? _savePosition(_lastScrollOffset, _lastLine) : null);
+    markdown?.viewMode.removeListener(_mirrorViewMode);
     textDocument.dispose();
     super.onClose();
   }

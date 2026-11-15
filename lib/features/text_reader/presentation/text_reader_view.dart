@@ -11,6 +11,7 @@ import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'package:universal_document_viewer/plain_text.dart';
+import 'markdown/markdown_details_dialog.dart';
 import 'text_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 
@@ -51,6 +52,7 @@ class TextReaderView extends GetView<TextReaderController> {
         child: Obx(() {
           if (controller.status.value.isBusy) return const LoadingView();
           if (controller.status.value.isError) return _ReaderErrorView(controller: controller);
+          if (controller.isMarkdown) return Obx(() => MarkdownView(controller: controller.markdown!, fontSize: controller.fontSize.value));
 // The scrollbar needs the kit's scroll controller; the kit should expose it publicly.
 // ignore: invalid_use_of_internal_member
           return Obx(() => ReaderSafeZone(kind: ReaderContent.text, child: ReaderScrollbar(controller: controller.textDocument.scrollController, child: PlainTextView(
@@ -76,9 +78,13 @@ class _TextToolbar extends StatelessWidget {
     return Obx(() {
       final count = controller.lines.length;
       final line = controller.topLine.value.clamp(1, count < 1 ? 1 : count);
+      final markdown = controller.isMarkdown;
+      // Preview has no lines to count; Code and Split do.
+      final showLines = !markdown || controller.viewMode.value != MarkdownViewMode.preview;
       return ReaderBottomBar(
         children: [
-          ReaderPositionButton(
+          if (showLines)
+            ReaderPositionButton(
             label: 'Line $line of $count',
             onPressed: count < 1
                 ? null
@@ -92,12 +98,14 @@ class _TextToolbar extends StatelessWidget {
             onZoomOut: controller.canDecreaseFontSize ? controller.decreaseFontSize : null,
             onZoomIn: controller.canIncreaseFontSize ? controller.increaseFontSize : null,
           ),
-          ReaderToolbarButton(
-            icon: Icons.wrap_text_rounded,
-            tooltip: controller.lineWrap.value ? 'Don\'t wrap lines' : 'Wrap lines',
-            selected: controller.lineWrap.value,
-            onPressed: controller.toggleLineWrap,
-          ),
+          // Markdown's Code mode keeps one line per row so jumps stay exact.
+          if (!markdown)
+            ReaderToolbarButton(
+              icon: Icons.wrap_text_rounded,
+              tooltip: controller.lineWrap.value ? 'Don\'t wrap lines' : 'Wrap lines',
+              selected: controller.lineWrap.value,
+              onPressed: controller.toggleLineWrap,
+            ),
           ReaderNightModeButton(on: controller.nightMode.value, onPressed: controller.toggleNightMode),
           ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
         ],
@@ -165,6 +173,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
               ? IconButton(tooltip: 'Close search', icon: const Icon(Icons.close_rounded), onPressed: controller.stopSearching)
               : IconButton(tooltip: 'Search in document', icon: const Icon(Icons.search_rounded), onPressed: controller.startSearching),
         ),
+        if (controller.isMarkdown) _ViewModeButton(controller: controller),
         Obx(
           () => IconButton(
             tooltip: controller.isFavorite ? 'Remove from favorites' : 'Add to favorites',
@@ -177,10 +186,14 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         PopupMenuButton<_ReaderAction>(
           tooltip: 'More actions',
-          onSelected: (action) => _handle(action),
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
-            PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+          onSelected: (action) => _handle(context, action),
+          itemBuilder: (context) => [
+            if (controller.isMarkdown) ...const [
+              PopupMenuItem(value: _ReaderAction.details, child: Text('View details')),
+              PopupMenuItem(value: _ReaderAction.copySource, child: Text('Copy source')),
+            ],
+            const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
+            const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
           ],
         ),
       ],
@@ -190,8 +203,18 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _handle(_ReaderAction action) {
+  void _handle(BuildContext context, _ReaderAction action) {
     switch (action) {
+      case _ReaderAction.details:
+        showMarkdownDetails(context, document: controller.document, stats: controller.markdownStats!);
+      case _ReaderAction.copySource:
+        controller.copySource().then((_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Source copied'), duration: Duration(seconds: 2)),
+            );
+          }
+        });
       case _ReaderAction.share:
         controller.share();
       case _ReaderAction.openWith:
@@ -200,7 +223,42 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { share, openWith }
+enum _ReaderAction { details, copySource, share, openWith }
+
+/// Preview / Code / Split switcher for Markdown files.
+class _ViewModeButton extends StatelessWidget {
+  final TextReaderController controller;
+
+  const _ViewModeButton({required this.controller});
+
+  static const _labels = {
+    MarkdownViewMode.preview: 'Preview',
+    MarkdownViewMode.code: 'Code',
+    MarkdownViewMode.split: 'Split',
+  };
+  static const _icons = {
+    MarkdownViewMode.preview: Icons.visibility_outlined,
+    MarkdownViewMode.code: Icons.code_rounded,
+    MarkdownViewMode.split: Icons.vertical_split_outlined,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final current = controller.viewMode.value;
+      return PopupMenuButton<MarkdownViewMode>(
+        tooltip: 'View mode: ${_labels[current]}',
+        icon: Icon(_icons[current]),
+        initialValue: current,
+        onSelected: controller.setViewMode,
+        itemBuilder: (context) => [
+          for (final mode in MarkdownViewMode.values)
+            CheckedPopupMenuItem(value: mode, checked: mode == current, child: Text(_labels[mode]!)),
+        ],
+      );
+    });
+  }
+}
 
 class _SearchStatusBar extends StatelessWidget {
   final TextReaderController controller;
