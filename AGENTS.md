@@ -113,6 +113,8 @@ OpenReader releases **always** use the published pub.dev version of the Kit.
 3. Verify the required Kit version is on pub.dev, update OpenReader's constraint, run `flutter pub get`, and confirm `pubspec.yaml` and `pubspec.lock` hold the release configuration.
 4. Run tests and release checks before releasing.
 
+**Publishing needs the owner's approval, every time.** Never run `pub publish` (or any command that uploads a package version), push a release tag, or create a release on your own. Before each publish, stop and ask the owner: name the package and the exact version, say what changed since the last published version and that the dry-run passed, and wait for an explicit yes. Approval for one publish or release does not carry over to the next one, including a follow-up version needed for a change made after the first approval.
+
 Sequence: implement Kit feature -> test Kit alone -> integrate and test locally with OpenReader -> publish Kit -> verify it is on pub.dev -> update OpenReader to it -> test -> release OpenReader.
 
 ## 6. Analysis before changes
