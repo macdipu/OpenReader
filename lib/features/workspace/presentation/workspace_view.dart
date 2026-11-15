@@ -202,7 +202,7 @@ class _TabChip extends StatelessWidget {
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(
-                          category.shortCode,
+                          tab.document.badgeCode,
                           style: context.labelSmall?.copyWith(
                               color: accent,
                               fontWeight: FontWeight.w800,

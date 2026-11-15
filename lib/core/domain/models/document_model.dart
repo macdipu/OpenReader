@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:universal_document_viewer/markdown.dart' show MarkdownController;
 
 import 'document_category.dart';
 
@@ -62,6 +63,9 @@ class DocumentModel extends Equatable {
       lastSeenAt: DateTime.fromMillisecondsSinceEpoch(map['last_seen_at'] as int),
     );
   }
+
+  /// The short format badge: Markdown files show MD, not their Text category's TXT.
+  String get badgeCode => MarkdownController.isMarkdownExtension(extension) ? 'MD' : category.shortCode;
 
   @override
   List<Object?> get props => [id, path, displayName, extension, category, sizeBytes, modifiedAt, lastSeenAt];

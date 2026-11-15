@@ -157,7 +157,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(8)),
                     child: Text(
-                      DocumentCategory.text.shortCode,
+                      controller.document.badgeCode,
                       style: context.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800),
                     ),
                   ),

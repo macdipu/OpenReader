@@ -329,6 +329,22 @@ void main() {
       expect(controller.markdownStats, isNull);
     });
 
+    test('the format badge says MD for Markdown and TXT for other text', () {
+      DocumentModel named(String extension) => DocumentModel(
+            id: extension,
+            path: '/x/a.' + extension,
+            displayName: 'a.' + extension,
+            extension: extension,
+            category: DocumentCategory.text,
+            sizeBytes: 1,
+            modifiedAt: DateTime(2026),
+            lastSeenAt: DateTime(2026),
+          );
+      expect(named('md').badgeCode, 'MD');
+      expect(named('markdown').badgeCode, 'MD');
+      expect(named('txt').badgeCode, 'TXT');
+    });
+
     test('a .md file gets the kit Markdown controller, with details and view-mode mirroring', () async {
       final file = File(p.join(root.path, 'readme.md'));
       await file.writeAsString('# Title\n\nSee [docs](https://x.y) and ![i](a.png).');

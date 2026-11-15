@@ -266,7 +266,7 @@ class DocumentThumbnail extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Text(
-        document.category.shortCode,
+        document.badgeCode,
         style: context.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w800),
       ),
     );
