@@ -972,9 +972,10 @@ packages:
   universal_document_viewer:
     dependency: "direct main"
     description:
-      path: "../universal_document_viewer"
-      relative: true
-    source: path
+      name: universal_document_viewer
+      sha256: "156d8cf01740ed897e11ad19f6785971c80164cc6e970a66f3ad445eeb8285b5"
+      url: "https://pub.dev"
+    source: hosted
     version: "0.2.1"
   universal_io:
     dependency: transitive

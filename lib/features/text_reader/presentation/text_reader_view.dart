@@ -99,6 +99,7 @@ class _TextToolbar extends StatelessWidget {
             onZoomOut: controller.canDecreaseFontSize ? controller.decreaseFontSize : null,
             onZoomIn: controller.canIncreaseFontSize ? controller.increaseFontSize : null,
           ),
+          if (markdown) _ViewModeButton(controller: controller),
           // Markdown's Code mode keeps one line per row so jumps stay exact.
           if (!markdown)
             ReaderToolbarButton(
@@ -174,7 +175,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
               ? IconButton(tooltip: 'Close search', icon: const Icon(Icons.close_rounded), onPressed: controller.stopSearching)
               : IconButton(tooltip: 'Search in document', icon: const Icon(Icons.search_rounded), onPressed: controller.startSearching),
         ),
-        if (controller.isMarkdown) _ViewModeButton(controller: controller),
         Obx(
           () => IconButton(
             tooltip: controller.isFavorite ? 'Remove from favorites' : 'Add to favorites',
@@ -226,7 +226,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 enum _ReaderAction { details, copySource, share, openWith }
 
-/// Preview / Code / Split switcher for Markdown files.
+/// One button for Markdown files that cycles Preview -> Code -> Split -> Preview.
+/// Its icon shows the current mode; the tooltip names the next one.
 class _ViewModeButton extends StatelessWidget {
   final TextReaderController controller;
 
@@ -240,22 +241,18 @@ class _ViewModeButton extends StatelessWidget {
   static const _icons = {
     MarkdownViewMode.preview: Icons.visibility_outlined,
     MarkdownViewMode.code: Icons.code_rounded,
-    MarkdownViewMode.split: Icons.vertical_split_outlined,
+    MarkdownViewMode.split: Icons.vertical_split_rounded,
   };
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       final current = controller.viewMode.value;
-      return PopupMenuButton<MarkdownViewMode>(
-        tooltip: 'View mode: ${_labels[current]}',
-        icon: Icon(_icons[current]),
-        initialValue: current,
-        onSelected: controller.setViewMode,
-        itemBuilder: (context) => [
-          for (final mode in MarkdownViewMode.values)
-            CheckedPopupMenuItem(value: mode, checked: mode == current, child: Text(_labels[mode]!)),
-        ],
+      final next = MarkdownViewMode.values[(current.index + 1) % MarkdownViewMode.values.length];
+      return ReaderToolbarButton(
+        icon: _icons[current]!,
+        tooltip: '${_labels[current]} view. Switch to ${_labels[next]}',
+        onPressed: () => controller.setViewMode(next),
       );
     });
   }
