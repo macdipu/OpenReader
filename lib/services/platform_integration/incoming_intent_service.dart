@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import '../../core/presentation/controllers/document_interaction_controller.dart';
+import '../../core/presentation/utils/logger.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import 'incoming_document_resolver.dart';
@@ -32,7 +34,11 @@ import 'incoming_document_resolver.dart';
 /// environment gap, not a defect in this class.
 class IncomingIntentService {
   final IncomingDocumentResolver _resolver;
-  StreamSubscription<List<SharedMediaFile>>? _subscription;
+  StreamSubscription<dynamic>? _subscription;
+
+  /// Android delivers `{path, mimeType, displayName}` maps from `MainActivity`;
+  /// see that class for why intent intake is native on Android.
+  static const EventChannel _incomingDocuments = EventChannel('openreader/incoming_intent/events');
 
   IncomingIntentService({IncomingDocumentResolver? resolver}) : _resolver = resolver ?? IncomingDocumentResolver();
 
@@ -41,10 +47,22 @@ class IncomingIntentService {
   Future<void> handlePath(String path) => handle([SharedMediaFile(path: path, type: SharedMediaType.file)]);
 
   Future<void> init() async {
+    // Android: the activity resolves the intent itself (ContentResolver MIME
+    // lookup + cache copy), so shares from apps that omit the MIME type - the
+    // case the plugin cannot classify - still open. The plugin is iOS-only.
+    if (PlatformInfo.isAndroid) {
+      _subscription = _incomingDocuments.receiveBroadcastStream().listen(
+        _handleNativeDocument,
+        onError: (Object error) => AppLogger.warning('[INTENT] native document error: $error'),
+      );
+      return;
+    }
+
     // receive_sharing_intent only exists on Android/iOS; calling it on
     // Windows/macOS/Linux throws MissingPluginException.
     if (!PlatformInfo.isMobile) return;
     final initial = await ReceiveSharingIntent.instance.getInitialMedia();
+    AppLogger.info('[INTENT] init: initialMedia=${initial.length} ${_describe(initial)}');
     if (initial.isNotEmpty) {
       unawaited(handle(initial));
       // Consumes the launch intent so navigating away and back doesn't
@@ -54,6 +72,34 @@ class IncomingIntentService {
 
     _subscription = ReceiveSharingIntent.instance.getMediaStream().listen(handle);
   }
+
+  /// Turns a native `{path, mimeType}` payload into the same [handle] call the
+  /// rest of the app uses.
+  void _handleNativeDocument(dynamic event) {
+    if (event is! Map) {
+      AppLogger.warning('[INTENT] unexpected native payload: $event');
+      return;
+    }
+    final path = event['path'];
+    if (path is! String || path.isEmpty) {
+      AppLogger.warning('[INTENT] native payload without a path: $event');
+      return;
+    }
+    final mimeType = event['mimeType'];
+    AppLogger.info('[INTENT] native document: path=$path mime=$mimeType');
+    unawaited(
+      handle([
+        SharedMediaFile(path: path, type: SharedMediaType.file, mimeType: mimeType is String ? mimeType : null),
+      ]),
+    );
+  }
+
+  /// Log-safe summary of what the sharing plugin handed over. Kept as a single
+  /// line so `adb logcat -s OpenReaderIntent` and the Flutter console both stay
+  /// readable.
+  static String _describe(List<SharedMediaFile> files) => files
+      .map((f) => '{path: ${f.path}, type: ${f.type.name}, mime: ${f.mimeType}}')
+      .join(', ');
 
   /// The per-intent handling logic (BRD §7.7 steps 3-5). Public (and
   /// `@visibleForTesting`-marked, since [init] is the only real caller) so
@@ -65,9 +111,16 @@ class IncomingIntentService {
     // isn't a document use case OpenReader models, so only the first file is
     // handled - a deliberate scope line, not a silent drop.
     if (files.isEmpty) return;
-    final path = files.first.path;
+    final incoming = files.first;
+    AppLogger.info(
+      '[INTENT] handle: path=${incoming.path} mime=${incoming.mimeType} sourceType=${incoming.type.name}',
+    );
 
-    final resolution = await _resolver.resolve(path, mimeType: files.first.mimeType);
+    final path = incoming.path;
+    final mimeType = incoming.mimeType;
+
+    final resolution = await _resolver.resolve(path, mimeType: mimeType);
+    AppLogger.info('[INTENT] resolve outcome=${resolution.outcome.name} document=${resolution.document?.path}');
     switch (resolution.outcome) {
       case IncomingDocumentOutcome.success:
         // On a cold start this runs while the shell route is still building;
@@ -76,6 +129,10 @@ class IncomingIntentService {
         await _afterFirstFrame();
         unawaited(Get.find<DocumentInteractionController>().openDocument(resolution.document!, fromOtherApp: true));
       case IncomingDocumentOutcome.unsupported:
+        AppLogger.warning(
+          '[INTENT] unsupported: no reader for "$path" '
+          '(extension has no category and mime "$mimeType" matched no known format)',
+        );
         // BRD §13 "Unsupported format".
         CustomSnackbar.error(
           "OpenReader doesn't support this file type.",
@@ -83,6 +140,7 @@ class IncomingIntentService {
           onAction: () => OpenFilex.open(path),
         );
       case IncomingDocumentOutcome.inaccessible:
+        AppLogger.warning('[INTENT] inaccessible: "$path" is missing or unreadable');
         // BRD §13 "File missing".
         CustomSnackbar.error('This file may have been moved or deleted.');
     }

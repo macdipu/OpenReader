@@ -26,6 +26,12 @@ class AppLogger {
         error: error,
         stackTrace: stackTrace,
       );
+      // `developer.log` only reaches the VM service / DevTools. Mirror it to
+      // `debugPrint` so the same line shows up in `flutter run`, `flutter logs`
+      // and `adb logcat` - otherwise on-device bug reports have nothing to go on.
+      debugPrint('[${name.isEmpty ? 'LOG' : name}] $message');
+      if (error != null) debugPrint('[${name.isEmpty ? 'LOG' : name}] error: $error');
+      if (stackTrace != null) debugPrint('[${name.isEmpty ? 'LOG' : name}] $stackTrace');
     }
   }
 }

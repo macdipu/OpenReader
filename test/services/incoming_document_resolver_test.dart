@@ -143,4 +143,26 @@ void main() {
     expect(resolution.outcome, IncomingDocumentOutcome.inaccessible);
     expect(resolution.document, isNull);
   });
+
+  group('extensionOf', () {
+    test('reads the extension of a content:// URI that carries a query string', () {
+      // Messenger-style URI: without stripping the query this used to be
+      // "pdf?s=1", which made a valid PDF look unsupported.
+      const uri = 'content://com.facebook.orca.securefileprovider/temp/DSE%20Candle%20Desk.pdf?s=1';
+
+      expect(IncomingDocumentResolver.extensionOf(uri), 'pdf');
+    });
+
+    test('ignores fragments and normalizes case', () {
+      expect(IncomingDocumentResolver.extensionOf('content://provider/doc.DOCX#page=2'), 'docx');
+    });
+
+    test('still reads a plain file path', () {
+      expect(IncomingDocumentResolver.extensionOf('/storage/emulated/0/Download/report.PDF'), 'pdf');
+    });
+
+    test('returns empty for a path without an extension', () {
+      expect(IncomingDocumentResolver.extensionOf('content://provider/12345'), '');
+    });
+  });
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:path/path.dart' as p;
 
@@ -7,6 +8,7 @@ import '../../core/data/repositories/document_repository_impl.dart';
 import '../../core/domain/models/document_category.dart';
 import '../../core/domain/models/document_model.dart';
 import '../../core/domain/repositories/document_repository.dart';
+import '../../core/presentation/utils/logger.dart';
 
 /// What happened when [IncomingDocumentResolver.resolve] processed a raw
 /// path handed to OpenReader by another app.
@@ -54,9 +56,22 @@ class IncomingDocumentResolver {
 
   IncomingDocumentResolver({DocumentRepository? documentRepository}) : _documentRepository = documentRepository ?? DocumentRepositoryImpl();
 
+  /// Extension of [path] with any URL query/fragment removed first.
+  ///
+  /// Messaging apps hand over `content://` URIs like
+  /// `content://com.facebook.orca.securefileprovider/temp/Doc.pdf?s=1`, where
+  /// `p.extension()` would yield `pdf?s=1` and the document would look
+  /// unsupported even though its name ends in `.pdf`.
+  @visibleForTesting
+  static String extensionOf(String path) {
+    final cleaned = path.split('?').first.split('#').first;
+    return p.extension(cleaned).replaceFirst('.', '').toLowerCase();
+  }
+
   Future<IncomingDocumentResolution> resolve(String path, {String? mimeType}) async {
-    var extension = p.extension(path).replaceFirst('.', '').toLowerCase();
+    var extension = extensionOf(path);
     var category = DocumentCategory.fromExtension(extension);
+    final extensionFromPath = extension;
     if (category == DocumentCategory.unknown && mimeType != null) {
       // The sharing plugin names some `content://` copies `<prefix>_<time>.null`,
       // so the MIME type is the only clue to what they are.
@@ -66,6 +81,11 @@ class IncomingDocumentResolver {
         category = DocumentCategory.fromExtension(fromMime);
       }
     }
+    AppLogger.info(
+      '[INTENT] resolve: path="$path" mime=$mimeType '
+      'extensionFromPath="${extensionFromPath.isEmpty ? '<none>' : extensionFromPath}" '
+      'extension="$extension" category=${category.name}',
+    );
 
     if (category == DocumentCategory.unknown) {
       return const IncomingDocumentResolution.unsupported();
@@ -94,7 +114,10 @@ class IncomingDocumentResolver {
 
     final result = await _documentRepository.indexDocument(document);
     return result.fold(
-      (failure) => const IncomingDocumentResolution.inaccessible(),
+      (failure) {
+        AppLogger.error('[INTENT] indexing failed for "$path": ${failure.message}');
+        return const IncomingDocumentResolution.inaccessible();
+      },
       (indexed) => IncomingDocumentResolution.success(indexed),
     );
   }
