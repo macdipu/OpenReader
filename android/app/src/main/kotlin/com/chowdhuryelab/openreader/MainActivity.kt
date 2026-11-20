@@ -87,9 +87,23 @@ class MainActivity : FlutterActivity() {
         if (intent == null) return null
         when (intent.action) {
             Intent.ACTION_VIEW -> intent.dataString?.let { return it }
-            Intent.ACTION_SEND -> return intent.getParcelableExtraCompat<Uri>(Intent.EXTRA_STREAM)?.toString()
+            Intent.ACTION_SEND -> {
+                val uri: Uri? = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(Intent.EXTRA_STREAM)
+                }
+                return uri?.toString()
+            }
+
             Intent.ACTION_SEND_MULTIPLE -> {
-                val uris = intent.getParcelableArrayListExtraCompat<Uri>(Intent.EXTRA_STREAM)
+                val uris: List<Uri>? = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+                }
                 return uris?.firstOrNull()?.toString()
             }
         }
@@ -228,18 +242,6 @@ class MainActivity : FlutterActivity() {
                 "extras=[$extraKeys]",
         )
     }
-
-    @Suppress("DEPRECATION")
-    private inline fun <reified T> Intent.getParcelableExtraCompat(key: String): T? =
-        if (android.os.Build.VERSION.SDK_INT >= 33) getParcelableExtra(key, T::class.java) else getParcelableExtra(key) as? T
-
-    @Suppress("DEPRECATION")
-    private inline fun <reified T> Intent.getParcelableArrayListExtraCompat(key: String): ArrayList<T>? =
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            getParcelableArrayListExtra(key, T::class.java)
-        } else {
-            getParcelableArrayListExtra(key) as? ArrayList<T>
-        }
 
     private companion object {
         const val TAG = "OpenReaderIntent"
