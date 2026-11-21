@@ -35,7 +35,7 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 | ST-03 | **File handling section:** each document type (PDF, Word, Excel, PowerPoint, CSV, Text, Markdown) shows ✅ Default or ○ Other app, with Set per type, Set all, and a link to system settings where one exists. Reuses `DefaultAppService.makeDefault`. Status comes from a new `queryDefaults()`: Linux `xdg-mime query default <mime>`; Windows `reg query` of `UserChoice\ProgId` after a spike; if Windows can't be read reliably, show the button without status. Status refreshes on resume. The Linux missing-`xdg-utils` message is kept. | Windows, Linux |
 | ST-04 | **Reading section:** default PDF mode (continuous / single page); night mode for readers; text font size with a live preview; line wrap. Each value stays in sync with the reader toolbars in both directions. | All |
 | ST-05 | **Restore last reading position:** an on/off switch (default on, which is today's behaviour). When off, readers open at the start; saved positions are kept but not applied. | All |
-| ST-06 | **Privacy section:** a factual statement that documents are processed on the device and never uploaded, and that anonymous crash reports and usage analytics are always collected and sent to Google Firebase in release builds (debug builds send nothing). Decided 2026-11-21: always on, no switches, no opt-in or opt-out, no Privacy Policy link. Startup behaviour is unchanged (`setCrashlyticsCollectionEnabled(!kDebugMode)`, `setAnalyticsCollectionEnabled(!kDebugMode)`). | All |
+| ST-06 | **Privacy section:** a factual statement that documents are processed on the device and never uploaded, and that anonymous crash reports and usage analytics are always collected and sent to Google Firebase in release builds (debug builds send nothing). Decided 2026-11-21: always on, no switches, no opt-in or opt-out. **Privacy policy link done 2026-11-21 (Q2):** a "Privacy policy" row below the statement opens `https://macdipu.github.io/OpenReader/privacy.html` (external-link icon, error snackbar "Could not open the privacy policy." when it can't open), on every platform. Startup behaviour is unchanged (`setCrashlyticsCollectionEnabled(!kDebugMode)`, `setAnalyticsCollectionEnabled(!kDebugMode)`). | All |
 | ST-07 | **Files & storage:** Clear recent history (reuses the existing Library action, with confirmation); the render cache described in plain words. | All |
 
 ### Phase 2 (Should, no new dependencies)
@@ -53,11 +53,11 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 ### Phase 3 (Could, only with dependency approval)
 | ID | Requirement | Dependency |
 |---|---|---|
-| ST-16 | Keep the screen awake while reading (BRD §9.18) | `wakelock_plus` (Q4) |
+| ST-16 | Keep the screen awake while reading (BRD §9.18): a "Keep screen awake" switch in Settings > Reading (default off, `AppSettingsRepository.getKeepScreenAwake/setKeepScreenAwake`, removed by both clear methods). The lock is held only while the switch is on, a reader screen is visible (every reader's screen-level `ReaderNightModeView` holds a `ReaderKeepAwake`; a covered route or background workspace tab doesn't tick, so doesn't count) and the app is in the foreground; turning the switch off releases it at once. Failures and unsupported platforms are ignored (`ReaderWakelock`, injectable `WakelockAdapter`). **Built 2026-11-21.** | `wakelock_plus` ^1.8.0 (Q4 approved) |
 | ST-17 | Private mode: record no history | none |
 | ST-18 | Hide toolbars automatically (immersive reading) | none |
 | ST-19 | Hide thumbnails in Recents: a switch in Settings > Privacy (default off, `AppSettingsRepository.getHideThumbnails/setHideThumbnails`, removed by both clear methods); document rows in Recents, Home and History then show the format icon instead of the first-page preview. **Built 2026-11-21.** | none |
-| ST-20 | Dynamic colour (Material You) | `dynamic_color` (Q4) |
+| ST-20 | Dynamic colour (Material You): a switch in Settings > Appearance, shown only where the system offers a palette ("Use wallpaper colours" on Android 12+; "Use accent colour" on macOS, Windows and GTK Linux; hidden on iOS, older Android and when no colour is reported). Default off, `AppSettingsRepository.getUseDynamicColor/setUseDynamicColor`, removed by both clear methods; the theme rebuilds live. When on, the palette's primary family replaces the app's accent roles (`secondary*`, plus `primary*` in dark); surfaces, text ink, error and the success tertiary stay the brand's (`AppTheme.light/dark(dynamicScheme)`, `DynamicColorPreferences`). Off or unavailable, the theme is unchanged. Only `DynamicColorPlugin`'s raw palette is used, because `dynamic_color` 2.1 builds `material_ui` ColorSchemes, not the `flutter/material` type the app uses. **Built 2026-11-21.** | `dynamic_color` ^2.1.0 (Q4 approved) |
 
 ### Section order
 - **Mobile:** Permissions → Reading → Appearance → Files & storage → Privacy → Open with → Help & about.
@@ -104,7 +104,7 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 - AC-03 (ST-03): On Linux and Windows, status per type is parsed from mocked `xdg-mime` / `reg query` output; when it can't be read, the button shows without status; Set and Set all call `makeDefault` with the right types.
 - AC-04 (ST-04): A value changed in Settings appears in the reader toolbar, and the reverse, for PDF mode, night mode, font size and line wrap.
 - AC-05 (ST-05): With restore off, a document that has a saved position opens at the start; turning it back on restores it.
-- AC-06 (ST-06): The Privacy section has no telemetry switches and no policy link; its text says documents are never uploaded, that crash reports and analytics are always collected and sent to Google Firebase in release builds, and that debug builds send nothing.
+- AC-06 (ST-06): The Privacy section has no telemetry switches and has a Privacy policy link that opens the policy URL (error snackbar on failure); its text says documents are never uploaded, that crash reports and analytics are always collected and sent to Google Firebase in release builds, and that debug builds send nothing.
 - AC-07 (ST-07): Clear history asks for confirmation, then empties Recents/History. Clearing the cache while a document is open doesn't crash the reader.
 - AC-08 (ST-08, ST-09): At 1200px, the two-pane layout shows; arrow keys and Tab work; Ctrl/Cmd+, opens Settings from any shell page.
 - AC-09: Widget tests at 360px, 700px and 1200px wide check which sections each platform shows.
@@ -113,9 +113,9 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 
 ## Open Questions
 - Q1: DECIDED 2026-11-21 (user): Firebase crash reporting and analytics are always on; no opt-in, no opt-out, no per-user permission. Disclosure statement only (ST-06).
-- Q2: Privacy Policy URL?
+- Q2: DECIDED 2026-11-21 (user): the policy is approved; Settings > Privacy links `https://macdipu.github.io/OpenReader/privacy.html` on every platform (ST-06).
 - Q3: DECIDED 2026-11-21 (user): feedback goes to GitHub Issues (`https://github.com/macdipu/OpenReader/issues/new`, pre-filled body; needs a free GitHub account). No email address.
-- Q4: Approve `wakelock_plus` (ST-16) and/or `dynamic_color` (ST-20) for Phase 3?
+- Q4: DECIDED 2026-11-21 (user): `wakelock_plus` (ST-16) and `dynamic_color` (ST-20) approved; both built.
 - Q5: Default page fit / zoom: keep it as a later Kit CR, or drop it from the BRD?
 - Q6: Keep the language switch hidden until the UI is translated?
 - Q7: Windows: if the `UserChoice` spike fails, fall back to the button without status? (Recommended: yes.)

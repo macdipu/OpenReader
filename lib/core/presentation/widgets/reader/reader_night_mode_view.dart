@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../controllers/dynamic_color_preferences.dart';
+import '../../controllers/reader_wakelock.dart';
 import '../../theme/app_theme.dart';
 
 /// Draws a reader's content in night mode (UX-33).
@@ -9,7 +11,9 @@ import '../../theme/app_theme.dart';
 ///   backdrop too) and inverted, keeping hues (red stays reddish rather
 ///   than turning cyan).
 /// - Otherwise it wraps a whole reader screen - bars and theme-following
-///   content - in the app's dark theme; already dark, it's unchanged.
+///   content - in the app's dark theme; already dark, it's unchanged. Every
+///   reader screen has exactly one, so it also reports the screen to
+///   [ReaderWakelock] ("Keep screen awake while reading", ST-16).
 ///
 /// The filter is always there (identity when off), so toggling doesn't
 /// rebuild the content and lose the reading position.
@@ -45,9 +49,9 @@ class ReaderNightModeView extends StatelessWidget {
     }
     final dark = enabled && Theme.of(context).brightness == Brightness.light;
     return Theme(
-      data: dark ? AppTheme.darkTheme : Theme.of(context),
+      data: dark ? AppTheme.dark(DynamicColorPreferences.activeDark) : Theme.of(context),
       // Re-seeds the default text style from the theme in force.
-      child: Material(type: MaterialType.transparency, child: child),
+      child: Material(type: MaterialType.transparency, child: ReaderKeepAwake(child: child)),
     );
   }
 }

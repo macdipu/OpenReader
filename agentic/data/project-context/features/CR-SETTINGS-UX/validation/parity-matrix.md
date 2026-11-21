@@ -36,12 +36,15 @@ note); **hidden** = not rendered.
 | Text size with live preview | shown | shown | shown | shown | shown | Stepper 48dp buttons. |
 | Wrap long lines | shown | shown | shown | shown | shown | Switch row. |
 | Restore last position | shown | shown | shown | shown | shown | Switch row. |
+| Keep screen awake (ST-16) | shown | shown | shown | shown | shown | Switch row, default off. Holds the wakelock only while a reader is visible and the app is in the foreground. |
 | **Appearance**: Theme (Light / Dark / System) | shown | shown | shown | shown | shown | Segmented (3 options). |
+| Dynamic colour (ST-20) | adapted | hidden | adapted | adapted | adapted | Switch row, default off, shown only when the system reports a palette. Android 12+: "Use wallpaper colours" (hidden before 12). macOS / Windows / GTK Linux: "Use accent colour". iOS: no palette, hidden. Theme rebuilds live. |
 | **Files & storage**: Clear reading history | shown | shown | shown | shown | shown | Confirm (error colour), success snackbar. |
 | Keep reading history (Forever / 30 days / Off) | shown | shown | shown | shown | shown | Segmented (3 options); Off asks first. |
 | Render cache size + Clear render cache | shown | shown | shown | shown | shown | Confirm (error colour), snackbar names bytes freed. |
 | Cache size limit (No limit / 100 MB / 500 MB / 1 GB) | adapted | adapted | adapted | adapted | adapted | Row with current value + chevron; bottom sheet on mobile, dialog on desktop. |
 | **Privacy**: statement | shown | shown | shown | shown | shown | Firebase crash reports and analytics, tied to a random installation identifier. |
+| Privacy policy (ST-06, Q2) | shown | shown | shown | shown | shown | Action row with external-link icon; opens `https://macdipu.github.io/OpenReader/privacy.html`; error snackbar if it can't open. |
 | Hide thumbnails | shown | shown | shown | shown | shown | Switch row. |
 | **Open with** tip | adapted | adapted | hidden | hidden | hidden | Android: file manager "Open with"/"Always". iOS: Files app Share sheet. |
 | **Keyboard shortcuts** list | hidden | hidden | adapted | shown | shown | Read-only; macOS shows Cmd, others Ctrl. Includes Ctrl/Cmd+, (Open Settings). |
@@ -58,3 +61,8 @@ note); **hidden** = not rendered.
 - Real screen-reader output (TalkBack, VoiceOver, Narrator, Orca) for merged rows and selected state.
 - Windows `UserChoice` read and macOS channel status on real machines.
 - Bottom-sheet behaviour with system gesture navigation and the iOS home indicator.
+- Keep screen awake: that the screen really stays on past the OS timeout while reading, and sleeps
+  normally after leaving the reader or backgrounding the app (each OS, real device).
+- Dynamic colour: the real wallpaper palette on Android 12+ and accent colour on macOS / Windows /
+  Linux, the switch staying hidden on Android 11 and iOS, and a wallpaper/accent change while the app
+  runs (the palette is read once at start).

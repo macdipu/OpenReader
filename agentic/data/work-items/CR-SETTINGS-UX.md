@@ -25,3 +25,4 @@ Next: user decides on commit and on the RELEASE gate; real-device checks (AC-11)
 ## Decisions
 - 2026-11-21 (user), Q3: Send feedback goes to GitHub Issues (`https://github.com/macdipu/OpenReader/issues/new`), pre-filled body, every platform.
 - 2026-11-21 (user), Q1: Firebase crash reporting and analytics are ALWAYS ON. No opt-in, no opt-out, no per-user permission, no Privacy Policy link. ST-06 is a disclosure statement only; startup keeps `setCrashlyticsCollectionEnabled(!kDebugMode)` and `setAnalyticsCollectionEnabled(!kDebugMode)`. The opt-out machinery added earlier in the working tree (native off-by-default flags, telemetry switches, TelemetryService, repository getters/setters) was removed. TECH-SPEC.md is frozen for the harness run and was not edited; where it describes telemetry switches, this decision supersedes it.
+- Q4 (user, 2026-11-21): wakelock_plus and dynamic_color approved

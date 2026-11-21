@@ -12,7 +12,9 @@ import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
 import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
+import '../../../core/presentation/controllers/dynamic_color_preferences.dart';
 import '../../../core/presentation/controllers/reader_preferences.dart';
+import '../../../core/presentation/controllers/reader_wakelock.dart';
 import '../../../core/presentation/controllers/theme_controller.dart';
 import '../../../core/presentation/controllers/thumbnail_preferences.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
@@ -94,6 +96,13 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   final lineWrap = true.obs;
   final restorePosition = true.obs;
   final hideThumbnails = false.obs;
+  final keepScreenAwake = false.obs;
+
+  // Appearance
+  final useDynamicColor = false.obs;
+
+  /// Whether the system offers a dynamic palette (ST-20); the switch is hidden when it doesn't.
+  bool get dynamicColorAvailable => DynamicColorPreferences.available;
 
   // Files & storage
   final cacheCapMb = Rxn<int>();
@@ -192,6 +201,14 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
       hideThumbnails.value = await _settings.getHideThumbnails();
       ThumbnailPreferences.hidden.value = hideThumbnails.value;
     });
+    await read(() async {
+      keepScreenAwake.value = await _settings.getKeepScreenAwake();
+      ReaderWakelock.keepAwake.value = keepScreenAwake.value;
+    });
+    await read(() async {
+      useDynamicColor.value = await _settings.getUseDynamicColor();
+      DynamicColorPreferences.enabled.value = useDynamicColor.value;
+    });
     await read(() async => cacheCapMb.value = await _settings.getCacheCapMb());
     await read(() async => historyRetentionDays.value = await _settings.getHistoryRetentionDays());
   }
@@ -237,6 +254,22 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     hideThumbnails.value = value;
     ThumbnailPreferences.hidden.value = value;
     await _guard(() => _settings.setHideThumbnails(value));
+  }
+
+  /// Keep the screen awake while a reader is visible (ST-16); takes effect at once in an open reader.
+  Future<void> setKeepScreenAwake(bool value) async {
+    keepScreenAwake.value = value;
+    ReaderWakelock.keepAwake.value = value;
+    await _guard(() => _settings.setKeepScreenAwake(value));
+  }
+
+  // ---- Appearance ----
+
+  /// Use wallpaper / accent colours (ST-20); the theme rebuilds at once.
+  Future<void> setUseDynamicColor(bool value) async {
+    useDynamicColor.value = value;
+    DynamicColorPreferences.enabled.value = value;
+    await _guard(() => _settings.setUseDynamicColor(value));
   }
 
   Future<void> _guard(Future<void> Function() body) async {
@@ -485,6 +518,18 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
       opened = await _openUrl(playStoreUrl);
     } catch (_) {}
     if (!opened) CustomSnackbar.error('Could not open the Play Store.');
+  }
+
+  /// OpenReader's privacy policy (ST-06, Q2).
+  static const privacyPolicyUrl = 'https://macdipu.github.io/OpenReader/privacy.html';
+
+  /// Opens the privacy policy in the browser.
+  Future<void> openPrivacyPolicy() async {
+    var opened = false;
+    try {
+      opened = await _openUrl(privacyPolicyUrl);
+    } catch (_) {}
+    if (!opened) CustomSnackbar.error('Could not open the privacy policy.');
   }
 
   /// Where Send feedback goes: a new GitHub issue (needs a free GitHub account).

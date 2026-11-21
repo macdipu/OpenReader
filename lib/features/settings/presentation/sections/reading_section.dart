@@ -5,7 +5,7 @@ import '../../../../core/presentation/theme/theme_extensions.dart';
 import '../settings_controller.dart';
 import 'settings_widgets.dart';
 
-/// Reading preferences (ST-04, ST-05). They are the same values the reader toolbars change.
+/// Reading preferences (ST-04, ST-05, ST-16). They are the same values the reader toolbars change.
 class ReadingSection extends StatelessWidget {
   final SettingsController controller;
   final bool showLabel;
@@ -100,6 +100,14 @@ class ReadingSection extends StatelessWidget {
                 subtitle: 'Reopen documents where you stopped reading',
                 value: controller.restorePosition.value,
                 onChanged: controller.setRestorePosition,
+              )),
+          const SettingsDivider(),
+          Obx(() => SettingsSwitchRow(
+                icon: Icons.timer_off_outlined,
+                title: 'Keep screen awake',
+                subtitle: 'While a document is open',
+                value: controller.keepScreenAwake.value,
+                onChanged: controller.setKeepScreenAwake,
               )),
         ],
       ),

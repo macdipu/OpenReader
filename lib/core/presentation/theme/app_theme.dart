@@ -9,14 +9,22 @@ class AppTheme {
   static ThemeData get lightTheme => _buildTheme(isDark: false);
   static ThemeData get darkTheme => _buildTheme(isDark: true);
 
-  static ThemeData _buildTheme({required bool isDark}) {
+  /// The light theme, with its accent colours from [dynamicScheme] when given ("Use wallpaper
+  /// colours", ST-20); null gives exactly [lightTheme].
+  static ThemeData light([ColorScheme? dynamicScheme]) => _buildTheme(isDark: false, dynamicScheme: dynamicScheme);
+
+  /// The dark theme, with its accent colours from [dynamicScheme] when given; null gives exactly
+  /// [darkTheme].
+  static ThemeData dark([ColorScheme? dynamicScheme]) => _buildTheme(isDark: true, dynamicScheme: dynamicScheme);
+
+  static ThemeData _buildTheme({required bool isDark, ColorScheme? dynamicScheme}) {
     Color c(AdaptiveColor ac) => isDark ? ac.dark : ac.light;
     final textTheme = isDark ? AppTextTheme.darkTextTheme : AppTextTheme.lightTextTheme;
     // Nocturne (dark/AMOLED) reads as hairline-bordered flat panels on true
     // black - no ambient drop shadows. OpenReader (light) uses soft shadows.
     final shadowAlpha = isDark ? 0.0 : 0.04;
 
-    final colorScheme = ColorScheme(
+    var colorScheme = ColorScheme(
       brightness: isDark ? Brightness.dark : Brightness.light,
       primary: c(AppColors.primary),
       onPrimary: c(AppColors.onPrimary),
@@ -51,6 +59,7 @@ class AppTheme {
       inversePrimary: c(AppColors.inversePrimary),
       surfaceTint: c(AppColors.primary),
     );
+    if (dynamicScheme != null) colorScheme = _withDynamicAccent(colorScheme, dynamicScheme, isDark: isDark);
 
     return ThemeData(
       useMaterial3: true,
@@ -244,6 +253,29 @@ class AppTheme {
         selectedLabelStyle: textTheme.labelMedium,
         unselectedLabelStyle: textTheme.labelSmall,
       ),
+    );
+  }
+
+  /// Dynamic colour (ST-20) replaces only the accent roles: [ColorScheme.secondary] is the app's
+  /// interactive accent (buttons, switches, focus, progress) and takes the palette's primary
+  /// family; in dark, [ColorScheme.primary] is an accent too (sky text on black) and follows it.
+  /// Surfaces, text ink, error and the success/format tertiary stay the brand's, so the AMOLED
+  /// dark, the text contrast and status colours are unchanged.
+  static ColorScheme _withDynamicAccent(ColorScheme brand, ColorScheme dynamic, {required bool isDark}) {
+    final accent = brand.copyWith(
+      secondary: dynamic.primary,
+      onSecondary: dynamic.onPrimary,
+      secondaryContainer: dynamic.primaryContainer,
+      onSecondaryContainer: dynamic.onPrimaryContainer,
+      inversePrimary: dynamic.inversePrimary,
+    );
+    if (!isDark) return accent;
+    return accent.copyWith(
+      primary: dynamic.primary,
+      onPrimary: dynamic.onPrimary,
+      primaryContainer: dynamic.primaryContainer,
+      onPrimaryContainer: dynamic.onPrimaryContainer,
+      surfaceTint: dynamic.primary,
     );
   }
 }

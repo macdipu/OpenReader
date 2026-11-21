@@ -11,6 +11,8 @@ import 'package:get/get.dart';
 import 'package:openreader/core/data/repositories/app_settings_repository_impl.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
+import 'package:openreader/core/presentation/controllers/dynamic_color_preferences.dart';
+import 'package:openreader/core/presentation/controllers/reader_wakelock.dart';
 import 'package:openreader/core/presentation/controllers/theme_controller.dart';
 import 'package:openreader/core/presentation/controllers/thumbnail_preferences.dart';
 import 'package:openreader/core/presentation/widgets/document/document_list_tile.dart';
@@ -123,6 +125,25 @@ class _TempPathService implements PathService {
   ResultFuture<Directory> getTempDirectory() async => Right(dir);
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// A stand-in tonal palette for [DynamicColorPreferences.fromPrimaryTones]: the seed's hue at the
+/// CIE lightness [tone] (what a Material tonal palette guarantees), built through HSL steps.
+int _tone(Color seed, int tone) {
+  final hsl = HSLColor.fromColor(seed);
+  var best = hsl.withLightness(0).toColor();
+  var bestDiff = double.infinity;
+  for (var l = 0.0; l <= 1.0; l += 0.005) {
+    final c = hsl.withLightness(l).toColor();
+    final y = c.computeLuminance();
+    final double lstar = y <= 216 / 24389 ? y * 24389 / 27 : 116 * pow(y, 1 / 3) - 16;
+    final diff = (lstar - tone).abs();
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = c;
+    }
+  }
+  return best.toARGB32();
 }
 
 double _contrast(Color a, Color b) {
@@ -422,7 +443,7 @@ void main() {
   });
 
   group('privacy', () {
-    testWidgets('states always-on Firebase collection, with no switches or policy link', (tester) async {
+    testWidgets('states always-on Firebase collection, with no switches, and links the policy', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.textContaining('Google Firebase'), findsOneWidget);
       expect(find.textContaining('never uploaded'), findsOneWidget);
@@ -430,10 +451,56 @@ void main() {
       expect(find.textContaining('Debug builds send nothing'), findsOneWidget);
       expect(find.text('Send crash reports'), findsNothing);
       expect(find.text('Share usage analytics'), findsNothing);
-      expect(find.textContaining('Privacy Policy'), findsNothing);
+      expect(find.text('Privacy policy'), findsOneWidget);
       // Firebase uses a random installation identifier: the statement must not claim anonymity.
       expect(find.textContaining('nonymous'), findsNothing);
       expect(find.textContaining('random installation identifier'), findsOneWidget);
+    });
+  });
+
+  group('privacy policy link (ST-06, Q2)', () {
+    for (final platform in [...mobile, ...desktop]) {
+      testWidgets('$platform: Privacy shows the link with the external-link icon, below the statement', (tester) async {
+        await pump(tester, platform: platform, width: 360, height: 8000);
+        final row = find.widgetWithText(SettingsActionRow, 'Privacy policy');
+        expect(row, findsOneWidget);
+        expect(find.descendant(of: row, matching: find.byIcon(Icons.open_in_new_rounded)), findsOneWidget);
+        final y = tester.getTopLeft(find.text('Privacy policy')).dy;
+        expect(y, greaterThan(tester.getTopLeft(find.textContaining('never uploaded')).dy));
+        expect(y, lessThan(tester.getTopLeft(find.text('Hide thumbnails')).dy));
+      });
+    }
+
+    testWidgets('opens the exact policy URL', (tester) async {
+      final opened = <String>[];
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000, openUrl: (url) async {
+        opened.add(url);
+        return true;
+      });
+      await tester.tap(find.text('Privacy policy'));
+      await tester.pump();
+      expect(opened, ['https://macdipu.github.io/OpenReader/privacy.html']);
+      expect(find.text('Could not open the privacy policy.'), findsNothing);
+    });
+
+    testWidgets('a policy page that cannot be opened shows an error, no crash', (tester) async {
+      await pump(tester, platform: TargetPlatform.linux, width: 360, height: 8000, openUrl: (_) async => false);
+      await tester.tap(find.text('Privacy policy'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Could not open the privacy policy.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await drain(tester);
+    });
+
+    testWidgets('a launcher that throws also shows the error', (tester) async {
+      await pump(tester, platform: TargetPlatform.iOS, width: 360, height: 8000,
+          openUrl: (_) async => throw Exception('no browser'));
+      await tester.tap(find.text('Privacy policy'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Could not open the privacy policy.'), findsOneWidget);
+      await drain(tester);
     });
   });
 
@@ -918,6 +985,189 @@ void main() {
       SharedPreferences.setMockInitialValues({'app_settings:hide_thumbnails': true});
       await ThumbnailPreferences.load(repo);
       expect(ThumbnailPreferences.hidden.value, isTrue);
+    });
+  });
+
+  group('keep screen awake (ST-16)', () {
+    tearDown(() => ReaderWakelock.reset());
+
+    Finder switchOf(String title) =>
+        find.descendant(of: find.widgetWithText(SettingsSwitchRow, title), matching: find.byType(Switch));
+
+    for (final platform in [...mobile, ...desktop]) {
+      testWidgets('$platform: Reading has the switch, off by default', (tester) async {
+        final c = await pump(tester, platform: platform, width: 360, height: 8000);
+        expect(c.keepScreenAwake.value, isFalse);
+        expect(tester.widget<Switch>(switchOf('Keep screen awake')).value, isFalse);
+        expect(find.text('While a document is open'), findsOneWidget);
+      });
+    }
+
+    testWidgets('it saves, reaches the reader wakelock, and reset clears it', (tester) async {
+      final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
+      await tester.tap(find.text('Keep screen awake'));
+      await tester.pump();
+      expect(c.keepScreenAwake.value, isTrue);
+      expect(ReaderWakelock.keepAwake.value, isTrue);
+      await tester.runAsync(() async => expect(await repo.getKeepScreenAwake(), isTrue));
+      await tester.tap(find.text('Reset all settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reset'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump();
+      expect(c.keepScreenAwake.value, isFalse);
+      expect(ReaderWakelock.keepAwake.value, isFalse);
+      await drain(tester);
+    });
+
+    testWidgets('a saved choice is applied when Settings loads', (tester) async {
+      final c = await pump(tester, platform: TargetPlatform.windows, width: 360, height: 8000, prefs: {
+        'app_settings:keep_screen_awake': true,
+      });
+      await tester.pump();
+      expect(c.keepScreenAwake.value, isTrue);
+      expect(ReaderWakelock.keepAwake.value, isTrue);
+    });
+  });
+
+  group('dynamic colour (ST-20)', () {
+    final schemes = DynamicColorPreferences.fromSeed(const Color(0xFF2E7D32));
+    tearDown(() {
+      DynamicColorPreferences.enabled.value = false;
+      DynamicColorPreferences.light.value = null;
+      DynamicColorPreferences.dark.value = null;
+    });
+
+    Finder switchOf(String title) =>
+        find.descendant(of: find.widgetWithText(SettingsSwitchRow, title), matching: find.byType(Switch));
+
+    for (final platform in [...mobile, ...desktop]) {
+      testWidgets('$platform: no switch when the system offers no palette', (tester) async {
+        await pump(tester, platform: platform, width: 360, height: 8000);
+        expect(find.text('Use wallpaper colours'), findsNothing);
+        expect(find.text('Use accent colour'), findsNothing);
+        expect(find.text('Theme'), findsOneWidget);
+      });
+    }
+
+    testWidgets('Android with a palette: "Use wallpaper colours", off by default, saved and live', (tester) async {
+      DynamicColorPreferences.light.value = schemes.light;
+      DynamicColorPreferences.dark.value = schemes.dark;
+      final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
+      expect(find.text('Use wallpaper colours'), findsOneWidget);
+      expect(tester.widget<Switch>(switchOf('Use wallpaper colours')).value, isFalse);
+      expect(DynamicColorPreferences.activeLight, isNull);
+      await tester.tap(find.text('Use wallpaper colours'));
+      await tester.pump();
+      expect(c.useDynamicColor.value, isTrue);
+      expect(DynamicColorPreferences.activeLight, same(schemes.light));
+      expect(DynamicColorPreferences.activeDark, same(schemes.dark));
+      await tester.runAsync(() async => expect(await repo.getUseDynamicColor(), isTrue));
+      await tester.tap(find.text('Use wallpaper colours'));
+      await tester.pump();
+      expect(DynamicColorPreferences.activeLight, isNull);
+      await tester.runAsync(() async => expect(await repo.getUseDynamicColor(), isFalse));
+    });
+
+    testWidgets('desktop with an accent colour: "Use accent colour"', (tester) async {
+      DynamicColorPreferences.light.value = schemes.light;
+      DynamicColorPreferences.dark.value = schemes.dark;
+      await pump(tester, platform: TargetPlatform.macOS, width: 360, height: 8000);
+      expect(find.text('Use accent colour'), findsOneWidget);
+      expect(find.text('Use wallpaper colours'), findsNothing);
+    });
+
+    testWidgets('a saved choice loads; reset turns it off', (tester) async {
+      DynamicColorPreferences.light.value = schemes.light;
+      DynamicColorPreferences.dark.value = schemes.dark;
+      final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000, prefs: {
+        'app_settings:use_dynamic_color': true,
+      });
+      await tester.pump();
+      expect(c.useDynamicColor.value, isTrue);
+      expect(DynamicColorPreferences.enabled.value, isTrue);
+      await tester.tap(find.text('Reset all settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reset'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump();
+      expect(c.useDynamicColor.value, isFalse);
+      expect(DynamicColorPreferences.enabled.value, isFalse);
+      await drain(tester);
+    });
+
+    test('load reads the saved choice and the injected palette; a failing source leaves none', () async {
+      SharedPreferences.setMockInitialValues({'app_settings:use_dynamic_color': true});
+      await DynamicColorPreferences.load(repository: repo, source: () async => schemes);
+      expect(DynamicColorPreferences.enabled.value, isTrue);
+      expect(DynamicColorPreferences.available, isTrue);
+      await DynamicColorPreferences.load(repository: repo, source: () async => throw Exception('no plugin'));
+      expect(DynamicColorPreferences.available, isFalse);
+      expect(DynamicColorPreferences.activeLight, isNull);
+    });
+
+    test('the theme takes the dynamic accent when given, and is unchanged without one', () {
+      for (final (brand, dynamic, scheme) in [
+        (AppTheme.lightTheme, AppTheme.light(schemes.light), schemes.light),
+        (AppTheme.darkTheme, AppTheme.dark(schemes.dark), schemes.dark),
+      ]) {
+        expect(dynamic.colorScheme.secondary, scheme.primary);
+        expect(dynamic.colorScheme.onSecondary, scheme.onPrimary);
+        expect(dynamic.colorScheme.secondaryContainer, scheme.primaryContainer);
+        expect(dynamic.colorScheme.onSecondaryContainer, scheme.onPrimaryContainer);
+        // Surfaces, ink, error and the success tertiary stay the brand's.
+        expect(dynamic.colorScheme.surface, brand.colorScheme.surface);
+        expect(dynamic.colorScheme.onSurface, brand.colorScheme.onSurface);
+        expect(dynamic.colorScheme.surfaceContainerLowest, brand.colorScheme.surfaceContainerLowest);
+        expect(dynamic.colorScheme.error, brand.colorScheme.error);
+        expect(dynamic.colorScheme.tertiary, brand.colorScheme.tertiary);
+        expect(dynamic.scaffoldBackgroundColor, brand.scaffoldBackgroundColor);
+      }
+      expect(AppTheme.light().colorScheme, AppTheme.lightTheme.colorScheme);
+      expect(AppTheme.dark().colorScheme, AppTheme.darkTheme.colorScheme);
+      expect(AppTheme.light().switchTheme.thumbColor?.resolve({WidgetState.selected}),
+          AppTheme.lightTheme.colorScheme.secondary);
+    });
+
+    test('dynamic accents from Android palettes and accent colours keep WCAG AA', () {
+      final seeds = [const Color(0xFF2E7D32), const Color(0xFFD81B60), const Color(0xFFFFC107), const Color(0xFF0051D5)];
+      for (final seed in seeds) {
+        final fromSeed = DynamicColorPreferences.fromSeed(seed);
+        final fromTones = DynamicColorPreferences.fromPrimaryTones((tone) => _tone(seed, tone));
+        for (final s in [fromSeed, fromTones]) {
+          for (final theme in [AppTheme.light(s.light), AppTheme.dark(s.dark)]) {
+            final cs = theme.colorScheme;
+            final reason = '${theme.brightness.name} $seed';
+            expect(_contrast(cs.secondary, cs.surfaceContainerLowest), greaterThanOrEqualTo(4.5), reason: reason);
+            expect(_contrast(cs.onSecondary, cs.secondary), greaterThanOrEqualTo(4.5), reason: reason);
+            expect(_contrast(cs.onSecondaryContainer, cs.secondaryContainer), greaterThanOrEqualTo(4.5), reason: reason);
+            expect(_contrast(cs.secondary, cs.secondaryContainer), greaterThanOrEqualTo(3), reason: reason);
+          }
+        }
+      }
+    });
+
+    testWidgets('a theme built like the app\'s rebuilds live when the switch changes', (tester) async {
+      DynamicColorPreferences.light.value = schemes.light;
+      DynamicColorPreferences.dark.value = schemes.dark;
+      late ThemeData seen;
+      await tester.pumpWidget(Obx(() => MaterialApp(
+            theme: AppTheme.light(DynamicColorPreferences.activeLight),
+            darkTheme: AppTheme.dark(DynamicColorPreferences.activeDark),
+            home: Builder(builder: (context) {
+              seen = Theme.of(context);
+              return const SizedBox();
+            }),
+          )));
+      expect(seen.colorScheme.secondary, AppTheme.lightTheme.colorScheme.secondary);
+      DynamicColorPreferences.enabled.value = true;
+      await tester.pumpAndSettle();
+      expect(seen.colorScheme.secondary, schemes.light.primary);
+      DynamicColorPreferences.enabled.value = false;
+      await tester.pumpAndSettle();
+      expect(seen.colorScheme.secondary, AppTheme.lightTheme.colorScheme.secondary);
     });
   });
 

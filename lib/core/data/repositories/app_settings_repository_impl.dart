@@ -26,6 +26,8 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   static const String _cacheCapMbKey = 'app_settings:cache_cap_mb';
   static const String _historyRetentionDaysKey = 'app_settings:history_retention_days';
   static const String _hideThumbnailsKey = 'app_settings:hide_thumbnails';
+  static const String _keepScreenAwakeKey = 'app_settings:keep_screen_awake';
+  static const String _useDynamicColorKey = 'app_settings:use_dynamic_color';
 
   @override
   Future<AppThemeMode> getThemeMode() async {
@@ -194,6 +196,30 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   Future<void> setHideThumbnails(bool value) => _setBool(_hideThumbnailsKey, value);
 
   @override
+  Future<bool> getKeepScreenAwake() async {
+    try {
+      return await _getBool(_keepScreenAwakeKey, false);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> setKeepScreenAwake(bool value) => _setBool(_keepScreenAwakeKey, value);
+
+  @override
+  Future<bool> getUseDynamicColor() async {
+    try {
+      return await _getBool(_useDynamicColorKey, false);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> setUseDynamicColor(bool value) => _setBool(_useDynamicColorKey, value);
+
+  @override
   Future<void> clearSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await clearPreferencesKeepingSetup();
@@ -214,5 +240,7 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
     await prefs.remove(_cacheCapMbKey);
     await prefs.remove(_historyRetentionDaysKey);
     await prefs.remove(_hideThumbnailsKey);
+    await prefs.remove(_keepScreenAwakeKey);
+    await prefs.remove(_useDynamicColorKey);
   }
 }

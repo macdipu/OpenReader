@@ -76,6 +76,17 @@ abstract class AppSettingsRepository {
 
   Future<void> setHideThumbnails(bool value);
 
+  /// Keep the screen awake while a reader is visible (ST-16); default false.
+  Future<bool> getKeepScreenAwake();
+
+  Future<void> setKeepScreenAwake(bool value);
+
+  /// Build the theme's accent colours from the system's dynamic palette (Material You wallpaper
+  /// colours on Android 12+, the accent colour on desktop) (ST-20); default false.
+  Future<bool> getUseDynamicColor();
+
+  Future<void> setUseDynamicColor(bool value);
+
   /// Clear all app settings
   Future<void> clearSettings();
 

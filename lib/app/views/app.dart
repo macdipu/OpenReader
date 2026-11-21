@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../../core/presentation/controllers/dynamic_color_preferences.dart';
 import '../../core/presentation/controllers/locale_controller.dart';
+import '../../core/presentation/controllers/reader_wakelock.dart';
 import '../../core/presentation/controllers/theme_controller.dart';
 import '../../core/presentation/controllers/thumbnail_preferences.dart';
 import '../../core/presentation/theme/app_theme.dart';
@@ -30,19 +32,22 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     unawaited(ThumbnailPreferences.load());
+    unawaited(ReaderWakelock.load());
+    unawaited(DynamicColorPreferences.load());
   }
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
+    // Rebuilds when "Use wallpaper colours" or the system palette changes (ST-20).
+    return Obx(() => GetMaterialApp(
       locale: Locale(_localeController.currentLangCode.value),
       fallbackLocale: const Locale('en'),
       supportedLocales: AppTranslations.supportedLocales,
       translations: AppTranslations(),
       title: TextEnum.appName.en,
 
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.light(DynamicColorPreferences.activeLight),
+      darkTheme: AppTheme.dark(DynamicColorPreferences.activeDark),
       themeMode: _themeController.themeMode,
 
       initialRoute: AppPages.initial,
@@ -58,7 +63,7 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-    );
+    ));
   }
 }
 

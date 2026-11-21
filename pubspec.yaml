@@ -71,6 +71,8 @@ dependencies:
   firebase_core: ^5.1.0
   firebase_crashlytics: ^6.0.1
   firebase_analytics: ^13.0.1
+  wakelock_plus: ^1.8.0
+  dynamic_color: ^2.1.0
 
 dev_dependencies:
   # Tests build DOCX/XLSX ZIP fixtures.
