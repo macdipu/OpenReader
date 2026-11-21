@@ -21,10 +21,10 @@ note); **hidden** = not rendered.
 | Section / item | Android | iOS | macOS | Windows | Linux | Note |
 |---|---|---|---|---|---|---|
 | **Permissions** section | shown | adapted | hidden | hidden | hidden | iOS has no storage permission, so no status. |
-| File access status (Allowed / Not allowed / Blocked) | shown | hidden | hidden | hidden | hidden | Icon + text: check / warning / block. Refreshes on resume. Hidden when the state cannot be read. |
+| File access row (Allowed / Not allowed / Blocked) | shown | hidden | hidden | hidden | hidden | One compact row: icon, "File access", status chip (icon + text) on the title line, one supporting line. Allowed: the row opens the OS page to manage, no note, no help. Not allowed or Blocked: adds a full-width "Allow file access" button. Refreshes on resume, then re-checks at 0.7 s, 1.5 s and 3 s until it changes. Android 11+ shows Allowed / Not allowed only (All files access); Blocked appears on Android 10 and older only. Hidden when the state cannot be read. |
 | Fix-access action (Manage / Allow / Open settings to allow) | shown | hidden | hidden | hidden | hidden | Matches the state; Blocked explains first, then opens All files access. |
-| Limited-mode note | shown | hidden | hidden | hidden | hidden | |
-| How to allow it yourself | shown | hidden | hidden | hidden | hidden | Expanded from the start when Blocked. |
+| Limited-mode note | shown (not allowed or blocked only) | hidden | hidden | hidden | hidden | One-line caption under the button; never shown when Allowed. |
+| How to allow it yourself | shown (not allowed or blocked only) | hidden | hidden | hidden | hidden | Text button; opens a bottom sheet (dialog from 600 px) with the steps, "Open All files access" and "Open app settings". |
 | App permissions (opens OS app settings) | adapted | shown | hidden | hidden | hidden | Android: only when the status cannot be read. iOS: always, with a Files/Share-sheet note. |
 | **File handling** section | hidden | hidden | shown | shown | shown | `DefaultAppService.isSupported` = desktop. |
 | Per-type status (Default / Other app) + Set | hidden | hidden | adapted | adapted | adapted | Icon + text (check / neutral outline). macOS: method channel, re-read 1.5 s after Set. Windows: registry `UserChoice` (types it cannot read show Set without status). Linux: `xdg-mime query default`. |
@@ -43,7 +43,7 @@ note); **hidden** = not rendered.
 | Keep reading history (Forever / 30 days / Off) | shown | shown | shown | shown | shown | Segmented (3 options); Off asks first. |
 | Render cache size + Clear render cache | shown | shown | shown | shown | shown | Confirm (error colour), snackbar names bytes freed. |
 | Cache size limit (No limit / 100 MB / 500 MB / 1 GB) | adapted | adapted | adapted | adapted | adapted | Row with current value + chevron; bottom sheet on mobile, dialog on desktop. |
-| **Privacy**: statement | shown | shown | shown | shown | shown | Firebase crash reports and analytics, tied to a random installation identifier. |
+| **Privacy**: statement | shown | shown | shown | shown | shown | Firebase crash reports and analytics, tied to a random installation identifier; two short sentences. |
 | Privacy policy (ST-06, Q2) | shown | shown | shown | shown | shown | Action row with external-link icon; opens `https://macdipu.github.io/OpenReader/privacy.html`; error snackbar if it can't open. |
 | Hide thumbnails | shown | shown | shown | shown | shown | Switch row. |
 | **Open with** tip | adapted | adapted | hidden | hidden | hidden | Android: file manager "Open with"/"Always". iOS: Files app Share sheet. |

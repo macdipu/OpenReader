@@ -40,9 +40,14 @@ class FakeStorage implements StorageAccessService {
   int requests = 0;
   int opened = 0;
   int allFiles = 0;
+  int stateReads = 0;
 
   @override
-  Future<StorageAccessState> state() async => current;
+  Future<StorageAccessState> state() async {
+    stateReads++;
+    return current;
+  }
+
   @override
   Future<bool> requestOrOpenSettings() async {
     requests++;
@@ -185,6 +190,8 @@ void main() {
     Get.reset();
     debugDefaultTargetPlatformOverride = platform;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    // Closing the controller cancels its permission re-check timers.
+    addTearDown(Get.reset);
     SharedPreferences.setMockInitialValues(prefs);
     PackageInfo.setMockInitialValues(
         appName: 'OpenReader', packageName: 'p', version: '1.2', buildNumber: '3', buildSignature: '');
@@ -221,6 +228,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     }
   }
+
+  /// Lets the permission re-check timers (up to 3 s) finish, so no timer is pending at the end.
+  Future<void> drainWatch(WidgetTester tester) => tester.pump(const Duration(seconds: 4));
 
   /// Lets a snackbar's timers finish.
   Future<void> drain(WidgetTester tester) async {
@@ -278,59 +288,165 @@ void main() {
   });
 
   group('permissions', () {
-    testWidgets('Android allowed: label, and the action opens the app settings', (tester) async {
+    testWidgets('Android allowed: one compact row, no note, no help, and the row opens the app settings', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360);
       expect(find.text('Allowed'), findsOneWidget);
-      expect(find.textContaining('limited mode'), findsWidgets); // the note
-      await tester.tap(find.text('Manage in app settings'));
+      expect(find.text('OpenReader can find your documents'), findsOneWidget);
+      expect(find.textContaining('limited mode'), findsNothing);
+      expect(find.byType(HowToAllowAccess), findsNothing);
+      expect(find.text('Allow file access'), findsNothing);
+      await tester.tap(find.text('File access'));
       await tester.pump();
       expect(storage.opened, 1);
       expect(storage.requests, 0);
+      await drainWatch(tester);
     });
 
-    testWidgets('Android not allowed: label, and the action asks for access', (tester) async {
+    testWidgets('Android not allowed: chip, filled button, one-line note and the how-to link', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notAllowed);
-      expect(find.text('Not allowed (limited mode)'), findsOneWidget);
+      expect(find.text('Not allowed'), findsOneWidget);
+      expect(find.textContaining('(limited mode)'), findsNothing);
+      expect(find.text(PermissionsSection.limitedModeNote), findsOneWidget);
+      expect(find.byType(HowToAllowAccess), findsOneWidget);
+      expect(find.byKey(const ValueKey('allow-file-access')), findsOneWidget);
       await tester.tap(find.text('Allow file access'));
       await tester.pump();
       expect(storage.requests, 1);
       expect(storage.opened, 0);
+      await drainWatch(tester);
     });
 
-    testWidgets('Android blocked: label, then explain and open the app settings', (tester) async {
+    testWidgets('Android blocked: chip, then explain and open the page', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.blocked);
       expect(find.text('Blocked'), findsOneWidget);
-      await tester.tap(find.text('Open settings to allow'));
+      expect(find.text(PermissionsSection.limitedModeNote), findsOneWidget);
+      await tester.tap(find.text('Allow file access'));
       await tester.pumpAndSettle();
       expect(storage.allFiles, 0, reason: 'explained first');
       await tester.tap(find.text('Open page'));
       await tester.pumpAndSettle();
       expect(storage.allFiles, 1);
       expect(storage.opened, 0);
+      await drainWatch(tester);
+    });
+
+    testWidgets('the limited-mode note follows the state', (tester) async {
+      final c = await pump(tester, platform: TargetPlatform.android, width: 360);
+      expect(find.textContaining('limited mode'), findsNothing);
+      c.storageState.value = StorageAccessState.notAllowed;
+      await tester.pump();
+      expect(find.text(PermissionsSection.limitedModeNote), findsOneWidget);
+      c.storageState.value = StorageAccessState.allowed;
+      await tester.pump();
+      expect(find.textContaining('limited mode'), findsNothing);
+    });
+
+    for (final scale in [1.0, 2.0]) {
+      for (final access in [StorageAccessState.allowed, StorageAccessState.notAllowed, StorageAccessState.blocked]) {
+        testWidgets('360 px, text x$scale, $access: no overflow, chip on the title line, 48 dp targets', (tester) async {
+          await pump(tester, platform: TargetPlatform.android, width: 360, access: access, textScale: scale);
+          expect(tester.takeException(), isNull);
+          final chip = find.byKey(const ValueKey('file-access-status'));
+          final chipBox = tester.getRect(find.ancestor(of: chip, matching: find.byType(SettingsStatusChip)));
+          final titleBox = tester.getRect(find.text('File access'));
+          // The chip keeps one line of text (the test font is much wider than a real one, so on a
+          // real phone it also shares the title line at x1.0; here it may drop below as a whole).
+          if (scale == 1) expect(tester.getSize(chip).height, lessThan(28), reason: 'single line, not a wrapped column');
+          expect(chipBox.right, lessThanOrEqualTo(360));
+          final supporting = tester.getRect(find.byKey(const ValueKey('file-access-detail')));
+          expect(supporting.left, titleBox.left, reason: 'supporting text starts under the title, on the full row width');
+          expect(supporting.right, greaterThanOrEqualTo(chipBox.right));
+          if (access != StorageAccessState.allowed) {
+            expect(tester.getSize(find.byKey(const ValueKey('allow-file-access'))).height, greaterThanOrEqualTo(48));
+            expect(tester.getSize(find.byKey(const ValueKey('how-to-allow'))).height, greaterThanOrEqualTo(48));
+          }
+        });
+      }
+    }
+
+    testWidgets('API 30+ status never shows Blocked for the old permission: only allowed or not allowed', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notAllowed);
+      expect(find.text('Blocked'), findsNothing);
+    });
+
+    group('re-checks after the OS page', () {
+      testWidgets('resume refreshes at once, then at 0.7 s, 1.5 s and 3 s while the state is unchanged', (tester) async {
+        await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notAllowed);
+        final before = storage.stateReads;
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pump();
+        expect(storage.stateReads, before + 1, reason: 'immediately');
+        await tester.pump(const Duration(milliseconds: 650));
+        expect(storage.stateReads, before + 1);
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(storage.stateReads, before + 2, reason: '0.7 s');
+        await tester.pump(const Duration(milliseconds: 800));
+        expect(storage.stateReads, before + 3, reason: '1.5 s');
+        await tester.pump(const Duration(milliseconds: 1500));
+        expect(storage.stateReads, before + 4, reason: '3 s');
+        await tester.pump(const Duration(seconds: 10));
+        expect(storage.stateReads, before + 4, reason: 'no more');
+      });
+
+      testWidgets('a late grant shows at the next re-check and stops the rest', (tester) async {
+        await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notAllowed);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pump();
+        expect(find.text('Not allowed'), findsOneWidget);
+        storage.current = StorageAccessState.allowed;
+        await tester.pump(const Duration(milliseconds: 750));
+        expect(find.text('Allowed'), findsOneWidget);
+        final reads = storage.stateReads;
+        await tester.pump(const Duration(seconds: 5));
+        expect(storage.stateReads, reads, reason: 'stopped once it changed');
+      });
+
+      testWidgets('an immediate change stops the re-checks', (tester) async {
+        await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notAllowed);
+        storage.current = StorageAccessState.allowed;
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('Allowed'), findsOneWidget);
+        final reads = storage.stateReads;
+        await tester.pump(const Duration(seconds: 5));
+        expect(storage.stateReads, reads);
+      });
+
+      testWidgets('closing the controller cancels the re-checks', (tester) async {
+        final c = await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notAllowed);
+        await c.watchPermissions(c.storageState.value);
+        final reads = storage.stateReads;
+        c.onClose();
+        await tester.pump(const Duration(seconds: 5));
+        expect(storage.stateReads, reads);
+      });
+
+      testWidgets('opening the All files page from Settings watches too', (tester) async {
+        final c = await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notAllowed);
+        await c.openAllFilesAccess();
+        final reads = storage.stateReads;
+        storage.current = StorageAccessState.allowed;
+        await tester.pump(const Duration(milliseconds: 750));
+        expect(storage.stateReads, reads + 1);
+        expect(c.storageState.value, StorageAccessState.allowed);
+      });
     });
 
     testWidgets('Android: a status that cannot be read shows no status', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notApplicable);
-      for (final label in ['Allowed', 'Blocked', 'Not allowed (limited mode)']) {
+      for (final label in ['Allowed', 'Blocked', 'Not allowed']) {
         expect(find.text(label), findsNothing);
       }
       expect(find.text('App permissions'), findsOneWidget);
     });
 
-    testWidgets('the status refreshes when the app resumes', (tester) async {
-      await pump(tester, platform: TargetPlatform.android, width: 360, access: StorageAccessState.notAllowed);
-      expect(find.text('Not allowed (limited mode)'), findsOneWidget);
-      storage.current = StorageAccessState.allowed;
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pump();
-      await tester.pump();
-      expect(find.text('Allowed'), findsOneWidget);
-    });
-
     testWidgets('iOS: App permissions opens the app settings and no status shows', (tester) async {
       await pump(tester, platform: TargetPlatform.iOS, width: 360);
-      for (final label in ['Allowed', 'Blocked', 'Not allowed (limited mode)']) {
+      for (final label in ['Allowed', 'Blocked', 'Not allowed']) {
         expect(find.text(label), findsNothing);
       }
       expect(find.textContaining('Files app'), findsWidgets);
@@ -447,8 +563,7 @@ void main() {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.textContaining('Google Firebase'), findsOneWidget);
       expect(find.textContaining('never uploaded'), findsOneWidget);
-      expect(find.textContaining('always collected'), findsOneWidget);
-      expect(find.textContaining('Debug builds send nothing'), findsOneWidget);
+      expect(find.textContaining('always sent'), findsOneWidget);
       expect(find.text('Send crash reports'), findsNothing);
       expect(find.text('Share usage analytics'), findsNothing);
       expect(find.text('Privacy policy'), findsOneWidget);
@@ -813,32 +928,70 @@ void main() {
   });
 
   group('How to allow it yourself', () {
-    testWidgets('collapsed when allowed; tapping expands it', (tester) async {
+    testWidgets('hidden when allowed', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      expect(find.text('How to allow it yourself'), findsNothing);
+    });
+
+    testWidgets('opens a bottom sheet on a phone, not inline', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, access: StorageAccessState.notAllowed);
       expect(find.textContaining('Android 11 or newer'), findsNothing);
       await tester.tap(find.text('How to allow it yourself'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Android 11 or newer'), findsOneWidget);
-    });
-
-    testWidgets('open from the start when access is blocked', (tester) async {
-      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, access: StorageAccessState.blocked);
-      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
       expect(find.textContaining('Android 11 or newer'), findsOneWidget);
       expect(find.text('Open All files access'), findsOneWidget);
+      expect(find.text('Open app settings'), findsOneWidget);
     });
 
-    testWidgets('the buttons open the All files page and the app settings', (tester) async {
+    testWidgets('says to allow management of all files, lists the phone makers and fits 360 px at text scale 2 (A-14/A-15)',
+        (tester) async {
+      await pump(tester,
+          platform: TargetPlatform.android, width: 360, height: 640, access: StorageAccessState.notAllowed, textScale: 2.0);
+      await tester.ensureVisible(find.text('How to allow it yourself'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('How to allow it yourself'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.textContaining('Allow management of all files'), findsOneWidget);
+      expect(find.textContaining('Samsung One UI'), findsOneWidget);
+      await tester.scrollUntilVisible(find.textContaining('ColorOS / realme / OnePlus'), 100,
+          scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first);
+      await tester.scrollUntilVisible(find.textContaining('vivo: Settings'), 100,
+          scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first);
+      await tester.scrollUntilVisible(find.textContaining('Xiaomi / HyperOS'), -100,
+          scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first);
+      await tester.scrollUntilVisible(find.textContaining('Names differ'), 100,
+          scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('opens a dialog on a wide window', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 1000, height: 5000, access: StorageAccessState.notAllowed);
+      await tester.tap(find.text('How to allow it yourself'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.textContaining('Android 11 or newer'), findsOneWidget);
+    });
+
+    testWidgets('the sheet buttons open the All files page and the app settings, and close it', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, access: StorageAccessState.blocked);
+      await tester.tap(find.text('How to allow it yourself'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Open All files access'));
       await tester.pumpAndSettle();
       expect(storage.allFiles, 1);
       expect(storage.opened, 0);
+      expect(find.byType(BottomSheet), findsNothing);
+      await tester.tap(find.text('How to allow it yourself'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Open app settings'));
       await tester.pumpAndSettle();
       expect(storage.opened, 1);
       expect(storage.allFiles, 1);
+      await drainWatch(tester);
     });
 
     testWidgets('shown when the state cannot be read, with the app settings row', (tester) async {
@@ -1327,7 +1480,7 @@ void main() {
   group('standard UX: status is never colour only', () {
     for (final (state, label, kind) in [
       (StorageAccessState.allowed, 'Allowed', 'ok'),
-      (StorageAccessState.notAllowed, 'Not allowed (limited mode)', 'warning'),
+      (StorageAccessState.notAllowed, 'Not allowed', 'warning'),
       (StorageAccessState.blocked, 'Blocked', 'blocked'),
     ]) {
       testWidgets('file access $label has its icon and text', (tester) async {

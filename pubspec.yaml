@@ -13,15 +13,11 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # UI / Design
-  cupertino_icons: ^1.0.9
-
   # State Management
   get: ^4.7.3
 
   # Storage
   shared_preferences: ^2.5.4
-  flutter_secure_storage: ^10.0.0
   sqflite: ^2.4.1
   # Desktop (Windows/macOS/Linux): sqflite has no desktop implementation, so
   # the FFI factory is installed at startup (see lib/app/flavours/app_flavour.dart).
@@ -34,9 +30,6 @@ dependencies:
   dartz: ^0.10.1
   equatable: ^2.0.8
   intl: ^0.20.2
-
-  # Networking
-  internet_connection_checker_plus: ^2.9.1+2
 
 
   # Media / Files
@@ -55,14 +48,11 @@ dependencies:
   universal_document_viewer: ^0.2.2
 
 
-  # Unused by Dart code but wired into the Android build (WorkManager R8
-  # rules and androidx.work pin in android/app); remove together with that
-  # config and a release smoke test.
-  home_widget: ^0.7.0
-  workmanager: ^0.6.0
-
   # Platform / Device
   path_provider: ^2.1.5
+  # Already resolved transitively; direct so the desktop updater can verify the
+  # SHA-256 of a downloaded installer (CR-PERMISSIONS-NAV-AUDIT B-01).
+  crypto: ^3.0.6
   url_launcher: ^6.3.2
   share_plus: ^13.1.0
   permission_handler: ^12.0.2

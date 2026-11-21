@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../res/routes/app_routes.dart';
+import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/storage_access_service.dart';
 
 enum OnboardingStatus { initial, requesting, denied, permanentlyDenied }
@@ -13,8 +14,17 @@ enum OnboardingStatus { initial, requesting, denied, permanentlyDenied }
 /// Drives the storage-access permission flow (BRD 9.2). Scenarios A/B/C map
 /// to [OnboardingStatus.initial]/[denied]/[permanentlyDenied].
 class OnboardingController extends GetxController with WidgetsBindingObserver {
-  final StorageAccessService _storageAccess = StorageAccessService.instance;
-  final AppSettingsRepository _settingsRepository = AppSettingsRepositoryImpl();
+  final StorageAccessService _storageAccess;
+  final AppSettingsRepository _settingsRepository;
+  final AccessRecheck _recheck;
+
+  OnboardingController({
+    StorageAccessService? storageAccess,
+    AppSettingsRepository? settingsRepository,
+    AccessRecheck? recheck,
+  })  : _storageAccess = storageAccess ?? StorageAccessService.instance,
+        _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl(),
+        _recheck = recheck ?? AccessRecheck();
 
   final status = OnboardingStatus.initial.obs;
 
@@ -27,6 +37,7 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
   @override
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
+    _recheck.cancel();
     super.onClose();
   }
 
@@ -36,8 +47,15 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
     if (status.value != OnboardingStatus.denied && status.value != OnboardingStatus.permanentlyDenied) return;
-    unawaited(_completeIfGranted());
+    unawaited(_watchForGrant());
   }
+
+  /// Checks at once and again over the next seconds: the grant can reach the app late.
+  Future<void> _watchForGrant() => _recheck.run(
+        check: _completeIfGranted,
+        changed: () => _finished,
+        isClosed: () => isClosed,
+      );
 
   /// Set while a resume re-check runs, so a second resume during it can't
   /// finish onboarding twice. A private flag rather than `status`, which
@@ -67,6 +85,8 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
       status.value = await _storageAccess.isPermanentlyDenied()
           ? OnboardingStatus.permanentlyDenied
           : OnboardingStatus.denied;
+      // Back from the OS page, the grant may show up a moment later.
+      unawaited(_watchForGrant());
       return;
     }
 

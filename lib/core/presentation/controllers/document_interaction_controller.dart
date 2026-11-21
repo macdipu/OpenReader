@@ -14,7 +14,9 @@ import '../../domain/repositories/favorite_repository.dart';
 import '../../domain/repositories/recent_repository.dart';
 import '../widgets/show_dialog/confirm_dialog.dart';
 import '../widgets/snackbar/custom_snackbar.dart';
+import '../../../services/utilities/app_private_paths.dart';
 import '../../../services/utilities/storage_access_service.dart';
+import '../utils/storage_access_flow.dart';
 import '../../domain/models/document_category.dart';
 import '../../../features/workspace/presentation/workspace_controller.dart';
 import '../../../res/routes/app_routes.dart';
@@ -29,16 +31,19 @@ class DocumentInteractionController extends GetxController {
   final RecentRepository _recentRepository;
   final DocumentRepository _documentRepository;
   final StorageAccessService _storageAccess;
+  final AppPrivatePaths _privatePaths;
 
   DocumentInteractionController({
     FavoriteRepository? favoriteRepository,
     RecentRepository? recentRepository,
     DocumentRepository? documentRepository,
     StorageAccessService? storageAccess,
+    AppPrivatePaths? privatePaths,
   })  : _favoriteRepository = favoriteRepository ?? FavoriteRepositoryImpl(),
         _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _documentRepository = documentRepository ?? DocumentRepositoryImpl(),
-        _storageAccess = storageAccess ?? StorageAccessService.instance;
+        _storageAccess = storageAccess ?? StorageAccessService.instance,
+        _privatePaths = privatePaths ?? AppPrivatePaths.instance;
 
   final favoriteIds = <String>{}.obs;
 
@@ -95,22 +100,22 @@ class DocumentInteractionController extends GetxController {
     if (!await _verifyStillAccessible(document, skipAccessCheck: fromOtherApp)) return;
     switch (document.category) {
       case DocumentCategory.pdf:
-        _openReader(AppRoutes.pdfReader, document);
+        await _openReader(AppRoutes.pdfReader, document);
         return;
       case DocumentCategory.word:
-        _openReader(AppRoutes.wordReader, document);
+        await _openReader(AppRoutes.wordReader, document);
         return;
       case DocumentCategory.excel:
-        _openReader(AppRoutes.excelReader, document);
+        await _openReader(AppRoutes.excelReader, document);
         return;
       case DocumentCategory.text:
-        _openReader(AppRoutes.textReader, document);
+        await _openReader(AppRoutes.textReader, document);
         return;
       case DocumentCategory.csv:
-        _openReader(AppRoutes.csvReader, document);
+        await _openReader(AppRoutes.csvReader, document);
         return;
       case DocumentCategory.powerpoint:
-        _openReader(AppRoutes.powerpointReader, document);
+        await _openReader(AppRoutes.powerpointReader, document);
         return;
       case DocumentCategory.unknown:
         CustomSnackbar.info('This file type is not supported.', title: document.displayName);
@@ -163,9 +168,21 @@ class DocumentInteractionController extends GetxController {
     return true;
   }
 
-  void _openReader(String route, DocumentModel document) {
+  Future<void> _openReader(String route, DocumentModel document) async {
     unawaited(_recordOpen(document));
     if (_openInWorkspace(document)) return;
+    // Get.toNamed ignores a push of the route that is already on top (preventDuplicates), so a second
+    // document of the same reader type arriving while one is open would be dropped. Replacing the
+    // route in place (offNamed) would let the old route's disposal delete the new reader's controller
+    // (same type, same key), so close the open reader first, let it dispose, then push. A different
+    // reader type pushes on top as usual.
+    if (Get.currentRoute == route) {
+      // Every reader reports through [readerClosedAfter] once it has been disposed; the timeout only
+      // guards a reader that never does.
+      final disposed = readerClosed.stream.first.timeout(const Duration(seconds: 2), onTimeout: () => 0);
+      Get.back<void>();
+      await disposed;
+    }
     unawaited(Get.toNamed(route, arguments: document));
   }
 
@@ -228,16 +245,22 @@ class DocumentInteractionController extends GetxController {
       );
       return false;
     }
-    if (!skipAccessCheck && !await _storageAccess.hasAccess()) {
-      CustomSnackbar.error(
-        'OpenReader no longer has access to this file.',
-        title: document.displayName,
-        actionLabel: 'Grant Access',
-        onAction: () => _storageAccess.requestOrOpenSettings(),
-      );
+    // Only shared storage needs the permission; a copy in the app's own cache or files folders (a
+    // file shared or picked into OpenReader) opens in limited mode too.
+    if (!skipAccessCheck && !await _privatePaths.contains(document.path) && !await _storageAccess.hasAccess()) {
+      _showNoAccess(document);
       return false;
     }
     return true;
+  }
+
+  void _showNoAccess(DocumentModel document) {
+    CustomSnackbar.error(
+      'OpenReader no longer has access to this file.',
+      title: document.displayName,
+      actionLabel: 'Grant Access',
+      onAction: () => unawaited(requestStorageAccessFlow(access: _storageAccess, isClosed: () => isClosed)),
+    );
   }
 
   Future<void> removeFromRecent(String documentId) => _recentRepository.remove(documentId);
@@ -257,13 +280,8 @@ class DocumentInteractionController extends GetxController {
   }
 
   Future<bool> deleteDocument(DocumentModel document) async {
-    if (!await _storageAccess.hasAccess()) {
-      CustomSnackbar.error(
-        'OpenReader no longer has access to this file.',
-        title: document.displayName,
-        actionLabel: 'Grant Access',
-        onAction: () => _storageAccess.requestOrOpenSettings(),
-      );
+    if (!await _privatePaths.contains(document.path) && !await _storageAccess.hasAccess()) {
+      _showNoAccess(document);
       return false;
     }
     final result = await _documentRepository.deleteDocument(document);

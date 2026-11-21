@@ -24,6 +24,7 @@ import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/platform_integration/default_app_service.dart';
 import '../../../services/utilities/path_service.dart';
 import '../../../services/utilities/storage_access_service.dart';
+import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/url_launcher_service.dart';
 import '../../home/presentation/home_controller.dart';
 import '../../recents/presentation/recents_controller.dart';
@@ -127,15 +128,10 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
 
   StreamSubscription<ReaderPreferenceChange>? _preferenceSync;
   Timer? _delayedDefaultsRefresh;
-  final _permissionRechecks = <Timer>[];
 
-  /// After the OS permission page, the state can lag behind the user's choice: re-check this long
+  /// After the OS permission page, the state can lag behind the user's choice: re-check a few times
   /// after returning, until it differs from what it was before leaving.
-  static const permissionRecheckDelays = [
-    Duration(milliseconds: 700),
-    Duration(milliseconds: 1500),
-    Duration(seconds: 3),
-  ];
+  final _permissionRecheck = AccessRecheck();
 
   void _onPreferenceChanged(ReaderPreferenceChange change) {
     final value = change.value;
@@ -157,7 +153,7 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   void onClose() {
     unawaited(_preferenceSync?.cancel());
     _delayedDefaultsRefresh?.cancel();
-    _cancelPermissionRechecks();
+    _permissionRecheck.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.onClose();
   }
@@ -301,31 +297,14 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  void _cancelPermissionRechecks() {
-    for (final timer in _permissionRechecks) {
-      timer.cancel();
-    }
-    _permissionRechecks.clear();
-  }
-
-  /// Refreshes now, then again after each of [permissionRecheckDelays], stopping as soon as the state
+  /// Refreshes now, then again after each of [AccessRecheck.defaultDelays], stopping as soon as the state
   /// differs from [before] (the state shown before the user left for the OS page) or the controller
   /// closes. A grant can reach the app a moment after it returns to the foreground.
-  Future<void> watchPermissions(StorageAccessState? before) async {
-    _cancelPermissionRechecks();
-    for (final delay in permissionRecheckDelays) {
-      late final Timer timer;
-      timer = Timer(delay, () async {
-        _permissionRechecks.remove(timer);
-        if (isClosed || storageState.value != before) return;
-        await refreshPermissions();
-        if (storageState.value != before) _cancelPermissionRechecks();
-      });
-      _permissionRechecks.add(timer);
-    }
-    await refreshPermissions();
-    if (storageState.value != before) _cancelPermissionRechecks();
-  }
+  Future<void> watchPermissions(StorageAccessState? before) => _permissionRecheck.run(
+        check: refreshPermissions,
+        changed: () => storageState.value != before,
+        isClosed: () => isClosed,
+      );
 
   /// The action that matches the state: open the All files access page (Android 11+) or ask (older
   /// Android) when not allowed, explain and open the page when blocked, open the app's settings to

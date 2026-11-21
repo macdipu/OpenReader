@@ -21,6 +21,8 @@ import '../../../features/file_information/presentation/file_information_view.da
 import '../../../core/presentation/widgets/loading_view/loading_view.dart';
 import '../../../res/routes/app_routes.dart';
 import '../../../services/utilities/storage_access_service.dart';
+import '../../../core/presentation/utils/storage_access_flow.dart';
+import '../../../core/presentation/widgets/storage_privacy_note.dart';
 import 'home_controller.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../app/shell/app_shell_controller.dart';
@@ -61,10 +63,13 @@ class HomeView extends GetView<HomeController> {
       ),
       body: Obx(() {
         if (!controller.hasAccess.value) {
-          return _PermissionBanner(onRequestAccess: () async {
-            final granted = await StorageAccessService.instance.requestOrOpenSettings();
-            if (granted) await controller.load();
-          });
+          return _PermissionBanner(
+            onRequestAccess: () => requestStorageAccessFlow(
+              access: StorageAccessService.instance,
+              onGranted: controller.load,
+              isClosed: () => controller.isClosed,
+            ),
+          );
         }
         if (controller.status.value.isLoading) return const LoadingView();
         if (controller.status.value.isError) {
@@ -371,7 +376,7 @@ class _PermissionBanner extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
+        child: SingleChildScrollView(child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.folder_off_outlined, size: 56, color: context.onSurfaceVariant),
@@ -383,8 +388,10 @@ class _PermissionBanner extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             FilledButton(onPressed: onRequestAccess, child: const Text('Grant Access')),
+            const SizedBox(height: 12),
+            const StoragePrivacyNote(),
           ],
-        ),
+        )),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/presentation/theme/theme_extensions.dart';
 import '../../../../core/presentation/utils/platform_info.dart';
 import '../../../../core/presentation/utils/screen_utils.dart';
+import '../../../../core/presentation/utils/storage_access_flow.dart';
 import '../../../../services/utilities/storage_access_service.dart';
 import '../settings_controller.dart';
 import 'settings_widgets.dart';
@@ -144,7 +145,7 @@ class _FileAccessRow extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text(detail, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+                        Text(detail, key: const ValueKey('file-access-detail'), style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
                       ],
                     ),
                   ),
@@ -166,11 +167,15 @@ class HowToAllowAccess extends StatelessWidget {
   const HowToAllowAccess({super.key, required this.controller});
 
   static const steps = [
-    'Android 11 or newer: Settings > Apps > OpenReader > Permissions > Files and media (or All files access) > Allow. '
-        'Or Settings > Apps > Special app access > All files access > OpenReader > Allow.',
+    'Android 11 or newer: open OpenReader\'s All files access page and choose "Allow management of all files" '
+        '(not "media only" and not "Don\'t allow").',
     'Android 10 or older: Settings > Apps > OpenReader > Permissions > Storage > Allow.',
-    'Names differ a little between phone makers. Come back to OpenReader afterwards: this page updates by itself.',
   ];
+
+  static const vendorLines = storageAccessVendorLines;
+
+  static const namesDiffer =
+      'Names differ a little between phone makers. Come back to OpenReader afterwards: this page updates by itself.';
 
   /// Width from which the steps open in a dialog instead of a bottom sheet.
   static const dialogBreakpoint = 600.0;
@@ -231,6 +236,15 @@ class _HowToAllowContent extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(step, style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
             ),
+          for (final line in HowToAllowAccess.vendorLines)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(line, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Text(HowToAllowAccess.namesDiffer, style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
+          ),
           const SizedBox(height: 8),
           FilledButton.icon(
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),

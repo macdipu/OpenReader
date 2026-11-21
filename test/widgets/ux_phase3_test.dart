@@ -114,7 +114,12 @@ void main() {
       await tester.pumpWidget(const GetMaterialApp(home: OnboardingView()));
       expect(find.widgetWithText(FilledButton, 'Allow Access'), findsOneWidget);
       expect(find.text('Get started'), findsNothing);
-      expect(find.textContaining('"All Files Access"'), findsOneWidget);
+      expect(find.textContaining('"All files access"'), findsOneWidget);
+      expect(find.textContaining('Allow management of all files'), findsOneWidget);
+      // A-06: the purpose, never uploaded or shared, and the policy link.
+      expect(find.textContaining('find and open your documents'), findsOneWidget);
+      expect(find.textContaining('never uploaded or shared'), findsOneWidget);
+      expect(find.text('Privacy policy'), findsOneWidget);
     });
   });
 

@@ -8,6 +8,7 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/domain/models/document_model.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/utils/state_status.dart';
+import '../../../core/presentation/utils/storage_access_flow.dart';
 import '../../../services/utilities/folder_browser_service.dart';
 import '../../../services/utilities/storage_access_service.dart';
 
@@ -56,6 +57,9 @@ class BrowseController extends BaseController {
   int _loadSession = 0;
 
   bool get atRoots => currentPath.value == null;
+
+  /// Back has something to do inside Browse: up a folder, or out of search results.
+  bool get canGoUp => !atRoots || showingSearch.value;
 
   @override
   void onInit() {
@@ -259,7 +263,7 @@ class BrowseController extends BaseController {
   /// Browse's "Grant Access" - falls back to system settings once the OS
   /// stops prompting.
   Future<void> requestAccess() async {
-    if (await _storageAccess.requestOrOpenSettings()) await load();
+    await requestStorageAccessFlow(access: _storageAccess, onGranted: load, isClosed: () => isClosed);
   }
 
   /// After a delete, the folder (or search results) no longer has it.

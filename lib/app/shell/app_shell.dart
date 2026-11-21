@@ -8,6 +8,7 @@ import '../../core/presentation/theme/theme_extensions.dart';
 import '../../core/presentation/utils/screen_utils.dart';
 import '../../res/routes/app_routes.dart';
 import '../../features/favorites/presentation/favorites_view.dart';
+import '../../features/browse/presentation/browse_controller.dart';
 import '../../features/browse/presentation/browse_view.dart';
 import '../../features/home/presentation/home_view.dart';
 import 'app_shell_controller.dart';
@@ -141,7 +142,7 @@ class AppShell extends StatelessWidget {
           changeTab: controller.changeTab,
           push: Get.toNamed,
         ),
-        child: scaffold,
+        child: wide ? scaffold : _backToHome(controller, scaffold),
       ),
     );
     if (!PlatformInfo.isDesktop) return shell;
@@ -156,6 +157,43 @@ class AppShell extends StatelessWidget {
           Obx(() => controller.isDraggingFile.value ? const _DropOverlay() : const SizedBox.shrink()),
         ],
       ),
+    );
+  }
+}
+
+/// Narrow layouts: Back on Browse or Favorites goes to Home first; on Home it leaves the app.
+Widget _backToHome(AppShellController controller, Widget child) => Obx(() => ShellBackScope(
+      index: controller.currentIndex.value,
+      browseCanGoUp: Get.isRegistered<BrowseController>() && Get.find<BrowseController>().canGoUp,
+      onGoHome: () => controller.changeTab(AppShellController.homeIndex),
+      child: child,
+    ));
+
+/// The narrow shell's Back handling (see [backGoesToHome]). A PopScope deeper in the tree (Browse's
+/// folder up) is told of the same Back and keeps priority through [browseCanGoUp].
+class ShellBackScope extends StatelessWidget {
+  final int index;
+  final bool browseCanGoUp;
+  final VoidCallback onGoHome;
+  final Widget child;
+
+  const ShellBackScope({
+    super.key,
+    required this.index,
+    required this.browseCanGoUp,
+    required this.onGoHome,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final goesHome = backGoesToHome(index: index, browseCanGoUp: browseCanGoUp);
+    return PopScope(
+      canPop: !goesHome,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && goesHome) onGoHome();
+      },
+      child: child,
     );
   }
 }
@@ -295,4 +333,12 @@ void openSettingsShortcut({
   } else if (currentRoute != AppRoutes.settings) {
     push(AppRoutes.settings);
   }
+}
+
+/// Whether the system Back on the narrow shell should switch to Home: from Browse (unless Browse is
+/// deeper than its roots or showing search results, where Back goes up a folder first) and from
+/// Favorites. On Home, and anywhere else, Back is left alone.
+bool backGoesToHome({required int index, required bool browseCanGoUp}) {
+  if (index == AppShellController.favoritesIndex) return true;
+  return index == AppShellController.filesIndex && !browseCanGoUp;
 }

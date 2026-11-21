@@ -2,14 +2,12 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:openreader/core/data/cache/client/preference_cache.dart';
 import 'package:openreader/firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -57,7 +55,6 @@ Future<bool> _initFirebase() async {
 
 void _initialize() {
   _initDesktopDatabase();
-  Get.lazyPut<PreferenceCache>(() => PreferenceCache(), fenix: true);
 }
 
 /// sqflite only ships Android/iOS/macOS implementations; Windows and Linux

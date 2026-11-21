@@ -168,11 +168,16 @@ class MainActivity : FlutterActivity() {
         val name = safeFileName(displayName, mime)
         val dir = File(cacheDir, INCOMING_DIR).apply { mkdirs() }
 
-        val target = File(dir, name)
-        // Same name means the same document was opened again; reuse the copy.
-        if (!(target.exists() && target.length() > 0)) {
+        // The copy is keyed by the source uri, so two different documents that share a file
+        // name never collide. It is reused only when its size matches the source's reported
+        // size (a document edited in place, or a source with no size, is copied again).
+        val sourceSize = querySize(uri)
+        val key = Integer.toHexString(uriString.hashCode())
+        val target = File(dir, "${key}_$name")
+        val reusable = target.exists() && target.length() > 0 && sourceSize > 0 && target.length() == sourceSize
+        if (!reusable) {
             val stream = contentResolver.openInputStream(uri) ?: return null
-            val partial = File(dir, "$name.part")
+            val partial = File(dir, "${key}_$name.part")
             stream.use { input -> partial.outputStream().use { output -> input.copyTo(output) } }
             if (partial.length() == 0L) {
                 partial.delete()
@@ -187,6 +192,17 @@ class MainActivity : FlutterActivity() {
         pruneOldFiles(dir)
         Log.i(TAG, "materialize content uri=$uriString -> path=${target.absolutePath} mime=$mime name=$name")
         return mapOf("path" to target.absolutePath, "mimeType" to mime, "displayName" to displayName)
+    }
+
+    private fun querySize(uri: Uri): Long {
+        return try {
+            contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else -1L
+            } ?: -1L
+        } catch (t: Throwable) {
+            Log.w(TAG, "size query failed for $uri: $t")
+            -1L
+        }
     }
 
     private fun queryDisplayName(uri: Uri): String? {

@@ -291,6 +291,9 @@ jobs:
             platform: linux
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    # Same value in every matrix leg; the checksums job reads it.
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -427,3 +430,41 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: OpenReader ${{ steps.tag.outputs.tag }}
           files: release/*
+
+      # Kept for the checksums job below.
+      - name: Keep desktop assets for checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error
+
+  # --- Checksums --------------------------------------------------------------
+  # Runs after every desktop asset exists. The in-app updater downloads
+  # SHA256SUMS from the same release and refuses a file that does not match.
+  checksums:
+    needs: build-desktop
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download desktop assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: assets
+          merge-multiple: true
+
+      - name: Write SHA256SUMS
+        working-directory: assets
+        run: |
+          ls -l
+          # sha256sum format: "<hash>  <file name>", one line per asset.
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Attach SHA256SUMS to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build-desktop.outputs.tag }}
+          name: OpenReader ${{ needs.build-desktop.outputs.tag }}
+          files: assets/SHA256SUMS

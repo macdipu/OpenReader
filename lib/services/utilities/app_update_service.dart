@@ -26,6 +26,8 @@ class AppUpdateService {
 
   static const _latestReleaseUrl =
       'https://api.github.com/repos/macdipu/OpenReader/releases/latest';
+  static const _releasePageUrl =
+      'https://github.com/macdipu/OpenReader/releases/latest';
 
   bool _checked = false;
 
@@ -112,13 +114,17 @@ class AppUpdateService {
       return;
 
     // Only offer a release that actually has a build for this platform.
-    final asset = (release['assets'] as List? ?? const [])
-        .cast<Map<String, dynamic>>()
+    final assets =
+        (release['assets'] as List? ?? const []).cast<Map<String, dynamic>>();
+    final asset = assets
         .where((a) =>
             DesktopUpdateInstaller.isPlatformAsset(a['name'] as String? ?? ''))
         .firstOrNull;
     final downloadUrl = asset?['browser_download_url'] as String?;
     if (downloadUrl == null) return;
+    final sumsUrl = assets
+        .where((a) => a['name'] == 'SHA256SUMS')
+        .firstOrNull?['browser_download_url'] as String?;
 
     final accepted = await showAppUpdateAvailableDialog(
       message: 'A new version is ready. It downloads inside the app; '
@@ -128,7 +134,13 @@ class AppUpdateService {
     );
     if (accepted != true) return;
 
-    await _downloadAndInstall(downloadUrl, tag);
+    // An address outside github.com is never fetched: send the user to the
+    // release page instead.
+    if (!DesktopUpdateInstaller.isTrustedUpdateUrl(downloadUrl)) {
+      await _openInBrowser(_releasePageUrl);
+      return;
+    }
+    await _downloadAndInstall(downloadUrl, tag, sumsUrl, asset!['name'] as String);
   }
 
   void _closeDialog() {
@@ -144,7 +156,8 @@ class AppUpdateService {
   }
 
   /// Downloads with a progress sheet, stages the build, then offers Restart.
-  Future<void> _downloadAndInstall(String url, String tag) async {
+  Future<void> _downloadAndInstall(
+      String url, String tag, String? sumsUrl, String assetName) async {
     final state = ValueNotifier(const UpdateProgress(UpdatePhase.downloading));
     final cancel = UpdateCancelToken();
     var restart = false;
@@ -172,8 +185,16 @@ class AppUpdateService {
     String? staged;
     try {
       await DesktopUpdateInstaller.ensureInstallable();
+      if (sumsUrl == null) {
+        throw UpdateInstallException(
+            'This release has no checksum list (SHA256SUMS), so the update was not installed.');
+      }
+      final sums = await DesktopUpdateInstaller.fetchChecksums(sumsUrl);
+      final expected =
+          DesktopUpdateInstaller.expectedChecksum(sums, assetName);
       final file = await DesktopUpdateInstaller.download(
         url,
+        expectedSha256: expected,
         cancel: cancel,
         onProgress: (p) =>
             state.value = UpdateProgress(UpdatePhase.downloading, progress: p),
@@ -193,7 +214,8 @@ class AppUpdateService {
     await dialog;
     state.dispose();
     if (browser) {
-      await _openInBrowser(url);
+      await _openInBrowser(
+          DesktopUpdateInstaller.isTrustedUpdateUrl(url) ? url : _releasePageUrl);
     } else if (restart && staged != null) {
       try {
         await DesktopUpdateInstaller.launchInstallerAndRelaunch(staged);

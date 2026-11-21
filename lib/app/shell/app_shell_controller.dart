@@ -17,6 +17,7 @@ import '../../features/settings/presentation/settings_maintenance.dart';
 import '../../services/platform_integration/desktop_open_files.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
+import '../../services/utilities/access_recheck.dart';
 import '../../services/utilities/app_update_service.dart';
 import '../../services/utilities/storage_access_service.dart';
 import '../../core/presentation/widgets/snackbar/custom_snackbar.dart';
@@ -88,7 +89,24 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) unawaited(_recheckStorageAccess());
   }
 
-  Future<void> _recheckStorageAccess() async {
+  final _accessRecheck = AccessRecheck();
+
+  /// What the screens show (Home's view of access; true when it is not there yet).
+  bool get _shownAccess => !Get.isRegistered<HomeController>() || Get.find<HomeController>().hasAccess.value;
+
+  /// Checks at once and again over the next seconds (a grant can reach the app late), stopping when
+  /// the result differs from what was shown before.
+  Future<void> _recheckStorageAccess() {
+    final before = _shownAccess;
+    var latest = before;
+    return _accessRecheck.run(
+      check: () async => latest = await _reloadForAccess(),
+      changed: () => latest != before,
+      isClosed: () => isClosed,
+    );
+  }
+
+  Future<bool> _reloadForAccess() async {
     final access = await _storageAccess.hasAccess();
     if (Get.isRegistered<HomeController>()) {
       final home = Get.find<HomeController>();
@@ -98,6 +116,7 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
       final files = Get.find<BrowseController>();
       if (files.hasAccess.value != access) unawaited(files.load());
     }
+    return access;
   }
 
   /// Desktop: a file passed on the command line when the app was launched.
@@ -156,6 +175,7 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   @override
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
+    _accessRecheck.cancel();
     _incomingIntentService.dispose();
     super.onClose();
   }

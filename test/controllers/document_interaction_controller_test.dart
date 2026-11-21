@@ -7,6 +7,7 @@ import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/res/routes/app_routes.dart';
+import 'package:openreader/services/utilities/app_private_paths.dart';
 import 'package:openreader/services/utilities/storage_access_service.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
@@ -64,6 +65,16 @@ class FixtureAccess implements StorageAccessService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _ReaderStub extends GetxController {
+  final DocumentModel document;
+  _ReaderStub(this.document);
+  @override
+  void onClose() {
+    Get.find<DocumentInteractionController>().readerClosedAfter(null);
+    super.onClose();
+  }
+}
+
 void main() {
   late Directory root;
   late File existingFile;
@@ -106,6 +117,7 @@ void main() {
       favoriteRepository: FixtureFavorites(),
       recentRepository: recents,
       storageAccess: access,
+      privatePaths: AppPrivatePaths.fixed(const []),
     );
   });
 
@@ -226,7 +238,146 @@ void main() {
       await tester.tap(find.text('Grant Access'));
       await tester.pump();
       expect(access.requestCalls, 1);
+      // Still no access after the re-check window: the guidance follows (A-13), then goes away.
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.textContaining('Allow management of all files'), findsOneWidget);
+      expect(find.text('Open app settings'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 9));
+      await tester.pump(const Duration(seconds: 1));
+    });
+  });
+
+  group('limited mode and the app\'s own folders (A-03)', () {
+    late Directory cacheDir;
+    late DocumentModel cached;
+
+    setUp(() async {
+      cacheDir = Directory(p.join(root.path, 'cache'))..createSync();
+      final file = File(p.join(cacheDir.path, 'shared.pdf'))..writeAsStringSync('x');
+      cached = documentFor(file.path);
+      access.granted = false;
+      controller = DocumentInteractionController(
+        favoriteRepository: FixtureFavorites(),
+        recentRepository: recents,
+        storageAccess: access,
+        privatePaths: AppPrivatePaths.fixed([cacheDir.path]),
+      );
+    });
+
+    Widget app() => GetMaterialApp(
+          initialRoute: '/',
+          getPages: [
+            GetPage(name: '/', page: () => const Scaffold(body: SizedBox())),
+            GetPage(name: AppRoutes.pdfReader, page: () => const Scaffold(body: Text('pdf reader stand-in'))),
+          ],
+        );
+
+    testWidgets('a file in the app cache reopens without storage access', (tester) async {
+      await tester.pumpWidget(app());
+      await controller.openDocument(cached);
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, AppRoutes.pdfReader);
+      expect(find.text('OpenReader no longer has access to this file.'), findsNothing);
+    });
+
+    testWidgets('a shared-storage file still shows the Grant Access flow', (tester) async {
+      await tester.pumpWidget(app());
+      await controller.openDocument(accessibleDocument);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(Get.currentRoute, '/');
+      expect(find.text('OpenReader no longer has access to this file.'), findsOneWidget);
+      expect(find.text('Grant Access'), findsOneWidget);
       await drainSnackbar(tester);
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    test('AppPrivatePaths matches only paths inside its folders', () async {
+      final paths = AppPrivatePaths.fixed([cacheDir.path]);
+      expect(await paths.contains(p.join(cacheDir.path, 'a', 'b.pdf')), isTrue);
+      expect(await paths.contains(p.join(cacheDir.path, '..', 'cache2', 'b.pdf')), isFalse);
+      expect(await paths.contains(existingFile.path), isFalse);
+    });
+  });
+
+  group('a second document of the same reader type (N-01)', () {
+    testWidgets('replaces the open reader instead of being ignored', (tester) async {
+      final seen = <String>[];
+      await tester.pumpWidget(GetMaterialApp(
+        initialRoute: '/',
+        getPages: [
+          GetPage(name: '/', page: () => const Scaffold(body: SizedBox())),
+          GetPage(
+            name: AppRoutes.pdfReader,
+            page: () {
+              final d = Get.arguments as DocumentModel;
+              seen.add(d.id);
+              return Scaffold(body: Text('reading ${d.displayName}'));
+            },
+          ),
+          GetPage(name: AppRoutes.wordReader, page: () => const Scaffold(body: Text('word reader stand-in'))),
+        ],
+      ));
+      final second = File(p.join(root.path, 'second.pdf'))..writeAsStringSync('y');
+
+      await controller.openDocument(accessibleDocument);
+      await tester.pumpAndSettle();
+      expect(find.text('reading report.pdf'), findsOneWidget);
+
+      // The stand-in reader never reports its disposal, so the wait for it times out.
+      final opening = controller.openDocument(documentFor(second.path));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      await opening;
+      expect(find.text('reading second.pdf'), findsOneWidget, reason: 'the second document is shown');
+      expect(find.text('reading report.pdf'), findsNothing);
+
+      // Back leaves the reader, not a stack of them.
+      Get.back();
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, '/');
+
+      // A different type still pushes on top.
+      await controller.openDocument(accessibleDocument);
+      await tester.pumpAndSettle();
+      await controller.openDocument(documentFor(existingFile.path, category: DocumentCategory.word));
+      await tester.pumpAndSettle();
+      expect(find.text('word reader stand-in'), findsOneWidget);
+      Get.back();
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, AppRoutes.pdfReader);
+    });
+  });
+
+  group('replacing a reader keeps the new one\'s controller (N-01)', () {
+    testWidgets('the old route\'s disposal does not delete the new controller', (tester) async {
+      await tester.pumpWidget(GetMaterialApp(
+        initialRoute: '/',
+        getPages: [
+          GetPage(name: '/', page: () => const Scaffold(body: SizedBox())),
+          GetPage(
+            name: AppRoutes.pdfReader,
+            page: () => Scaffold(body: Text('reading ${Get.find<_ReaderStub>().document.displayName}')),
+            binding: BindingsBuilder(() {
+              final document = Get.arguments as DocumentModel;
+              Get.lazyPut<_ReaderStub>(() => _ReaderStub(document));
+            }),
+          ),
+        ],
+      ));
+      Get.put(controller);
+      final second = File(p.join(root.path, 'second.pdf'))..writeAsStringSync('y');
+      await controller.openDocument(accessibleDocument);
+      await tester.pumpAndSettle();
+      final opening = controller.openDocument(documentFor(second.path));
+      await tester.pumpAndSettle();
+      await opening;
+      expect(find.text('reading second.pdf'), findsOneWidget);
+      expect(Get.isRegistered<_ReaderStub>(), isTrue);
+      expect(Get.find<_ReaderStub>().isClosed, isFalse);
+      expect(Get.find<_ReaderStub>().document.displayName, 'second.pdf');
     });
   });
 

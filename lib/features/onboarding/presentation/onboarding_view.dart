@@ -4,11 +4,16 @@ import 'package:get/get.dart';
 import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/platform_info.dart';
+import '../../../core/presentation/widgets/storage_privacy_note.dart';
+import '../../../core/presentation/utils/storage_access_flow.dart';
 import 'onboarding_controller.dart';
 import 'dart:math';
 
 class OnboardingView extends GetView<OnboardingController> {
   const OnboardingView({super.key});
+
+  /// Where the switch lives on common phones, shared with Settings' how-to.
+  static final vendorHelp = storageAccessVendorLines.join('\n');
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +56,16 @@ class OnboardingView extends GetView<OnboardingController> {
                 Text(
                   askForAccess
                       ? 'OpenReader reads PDF, Word, Excel, PowerPoint, CSV, Markdown and text files stored on this device.\n\n'
-                          'Tapping Allow Access requests Android\'s "All Files Access" permission, so you can '
-                          'browse your documents in any folder, not just Downloads or Documents.'
+                          'Tapping Allow Access opens Android\'s "All files access" page. Choose "Allow management of '
+                          'all files" so you can browse your documents in any folder, not just Downloads or Documents.'
                       : 'OpenReader reads PDF, Word, Excel, PowerPoint, CSV, Markdown and text files stored on this computer.',
                   textAlign: TextAlign.center,
                   style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
                 ),
+                if (askForAccess) ...[
+                  const SizedBox(height: 8),
+                  const StoragePrivacyNote(),
+                ],
                 const SizedBox(height: 20),
                 Wrap(
                   alignment: WrapAlignment.center,
@@ -75,7 +84,7 @@ class OnboardingView extends GetView<OnboardingController> {
                   )
                 else if (status == OnboardingStatus.permanentlyDenied) ...[
                   Text(
-                    'Storage access was permanently denied. Open Settings to allow it.',
+                    'Storage access was permanently denied. Open Settings and choose "Allow management of all files".\n\n$vendorHelp',
                     textAlign: TextAlign.center,
                     style: context.bodyMedium?.copyWith(color: context.error),
                   ),
@@ -89,7 +98,8 @@ class OnboardingView extends GetView<OnboardingController> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
-                        'Access was denied. You can try again or continue in limited mode.',
+                        'Access was denied. Try again and choose "Allow management of all files" (not "media only" or '
+                        '"Don\'t allow"), or continue in limited mode.\n\n$vendorHelp',
                         textAlign: TextAlign.center,
                         style: context.bodyMedium?.copyWith(color: context.error),
                       ),
