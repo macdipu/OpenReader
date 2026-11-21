@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
@@ -17,20 +16,17 @@ import '../../../core/presentation/controllers/reader_preferences.dart';
 import '../../../core/presentation/controllers/reader_wakelock.dart';
 import '../../../core/presentation/controllers/theme_controller.dart';
 import '../../../core/presentation/controllers/thumbnail_preferences.dart';
-import '../../../core/presentation/utils/file_size_formatter.dart';
 import '../../../core/presentation/utils/platform_info.dart';
 import '../../../core/presentation/utils/storage_access_help.dart';
 import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/platform_integration/default_app_service.dart';
-import '../../../services/utilities/path_service.dart';
 import '../../../services/utilities/storage_access_service.dart';
 import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/url_launcher_service.dart';
 import '../../home/presentation/home_controller.dart';
 import '../../recents/presentation/recents_controller.dart';
 import '../../text_reader/presentation/text_reader_controller.dart';
-import 'settings_maintenance.dart';
 
 /// Settings screen (BRD 9.18, DESIGN_SPEC.md #01).
 ///
@@ -38,7 +34,6 @@ import 'settings_maintenance.dart';
 /// it from their toolbars); this controller mirrors it for the screen and [reload]s whenever
 /// Settings comes into view, so both sides show the same value. Theme stays with [ThemeController].
 class SettingsController extends GetxController with WidgetsBindingObserver {
-  final PathService _pathService;
   final AppSettingsRepository _settings;
   final RecentRepository _recents;
   final StorageAccessService _storageAccess;
@@ -48,7 +43,6 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   final Future<bool> Function(String url) _openUrl;
 
   SettingsController({
-    PathService? pathService,
     AppSettingsRepository? settings,
     RecentRepository? recents,
     StorageAccessService? storageAccess,
@@ -56,8 +50,7 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     Future<void> Function(String text)? share,
     ThemeController? themeController,
     Future<bool> Function(String url)? openUrl,
-  })  : _pathService = pathService ?? PathService.instance,
-        _settings = settings ?? AppSettingsRepositoryImpl(),
+  })  : _settings = settings ?? AppSettingsRepositoryImpl(),
         _recents = recents ?? RecentRepositoryImpl(),
         _storageAccess = storageAccess ?? StorageAccessService.instance,
         _defaultApp = defaultApp ?? DefaultAppService.instance,
@@ -80,16 +73,7 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
 
   ThemeController get themeController => _theme ?? Get.find<ThemeController>();
 
-  /// Cache cap choices in MB (null = no cap) and history retention choices in days (null =
-  /// forever, 0 = off).
-  static const cacheCapChoices = <int?>[null, 100, 500, 1024];
-  static const retentionChoices = <int?>[null, 30, 0];
-
   final appVersion = ''.obs;
-
-  /// Real cache size for the Cache card - never fabricated.
-  final cacheSizeBytes = 0.obs;
-  final isLoadingStats = true.obs;
 
   // Reading
   final pdfContinuous = true.obs;
@@ -105,10 +89,6 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
 
   /// Whether the system offers a dynamic palette (ST-20); the switch is hidden when it doesn't.
   bool get dynamicColorAvailable => DynamicColorPreferences.available;
-
-  // Files & storage
-  final cacheCapMb = Rxn<int>();
-  final historyRetentionDays = Rxn<int>();
 
   /// Android file access; null until read, or when it cannot be read (nothing is shown then).
   final storageState = Rxn<StorageAccessState>();
@@ -175,15 +155,11 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     } catch (_) {}
   }
 
-  /// Re-reads every preference and the platform status, then applies the cache cap and the
-  /// history retention. Called when Settings is shown.
+  /// Re-reads every preference and the platform status. Called when Settings is shown.
   Future<void> reload() async {
     await _loadPreferences();
     unawaited(refreshPermissions());
     unawaited(refreshDefaults());
-    if (await enforceHistoryRetention(settings: _settings, recents: _recents)) _refreshHistoryViews();
-    await _applyCacheCap();
-    await _loadStats();
   }
 
   Future<void> _loadPreferences() async {
@@ -216,8 +192,6 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
       useDynamicColor.value = await _settings.getUseDynamicColor();
       DynamicColorPreferences.enabled.value = useDynamicColor.value;
     });
-    await read(() async => cacheCapMb.value = await _settings.getCacheCapMb());
-    await read(() async => historyRetentionDays.value = await _settings.getHistoryRetentionDays());
   }
 
   // ---- Reading ----
@@ -388,40 +362,7 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     CustomSnackbar.success('OpenReader will offer to become your default reader again the next time it starts.');
   }
 
-  // ---- Files & storage ----
-
-  Future<void> setCacheCap(int? mb) async {
-    cacheCapMb.value = mb;
-    await _guard(() => _settings.setCacheCapMb(mb));
-    await _applyCacheCap();
-    await _loadStats();
-  }
-
-  Future<void> setHistoryRetention(int? days) async {
-    if (days == 0 && historyRetentionDays.value != 0) {
-      final turnOff = await showConfirmDialog(
-        title: 'Turn off reading history?',
-        message: 'OpenReader will stop recording what you open, and will no longer remember where '
-            'you stopped reading, so Restore last position will not work.',
-        confirmLabel: 'Turn off',
-      );
-      if (!turnOff) return;
-      final clear = await showConfirmDialog(
-        title: 'Also clear existing history?',
-        message: 'Remove the entries already in your history and their saved reading positions. '
-            'Your documents are not deleted. Cancel keeps them.',
-        confirmLabel: 'Clear history',
-        destructive: true,
-      );
-      if (clear) {
-        final result = await _recents.clearAll();
-        if (result.isRight()) _refreshHistoryViews();
-      }
-    }
-    historyRetentionDays.value = days;
-    await _guard(() => _settings.setHistoryRetentionDays(days));
-    if (await enforceHistoryRetention(settings: _settings, recents: _recents)) _refreshHistoryViews();
-  }
+  // ---- Data ----
 
   /// Clear reading history (ST-07): asks first, then empties Recents/History and says so. The
   /// documents themselves are never touched.
@@ -448,86 +389,6 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   void _refreshHistoryViews() {
     if (Get.isRegistered<RecentsController>()) unawaited(Get.find<RecentsController>().load());
     if (Get.isRegistered<HomeController>()) unawaited(Get.find<HomeController>().load());
-  }
-
-  Future<void> _applyCacheCap() async {
-    final cap = cacheCapMb.value;
-    if (cap == null) return;
-    final result = await _pathService.getTempDirectory();
-    await result.fold((_) async {}, (directory) async {
-      await trimRenderCachesToCap(directory, cap * 1024 * 1024);
-    });
-  }
-
-  Future<void> _loadStats() async {
-    isLoadingStats.value = true;
-
-    final tempDirResult = await _pathService.getTempDirectory();
-    await tempDirResult.fold(
-      (_) async {},
-      (directory) async => cacheSizeBytes.value = await _cacheSize(directory),
-    );
-    isLoadingStats.value = false;
-  }
-
-  /// Bytes of render cache under the temp [directory], leaving out [protectedTempEntries].
-  static Future<int> _cacheSize(Directory directory) async {
-    var size = 0;
-    try {
-      if (await directory.exists()) {
-        await for (final entity in directory.list(followLinks: false)) {
-          if (protectedTempEntries.contains(p.basename(entity.path))) continue;
-          try {
-            if (entity is File) {
-              size += await entity.length();
-            } else if (entity is Directory) {
-              await for (final inner in entity.list(recursive: true, followLinks: false)) {
-                if (inner is File) size += await inner.length();
-              }
-            }
-          } catch (_) {}
-        }
-      }
-    } catch (_) {}
-    return size;
-  }
-
-  /// Clear render cache from Settings: asks first, then [clearCache].
-  Future<void> confirmClearCache() async {
-    final confirmed = await showConfirmDialog(
-      title: 'Clear render cache?',
-      message: 'Page images and thumbnails are deleted and rebuilt as you read. Your documents are not touched.',
-      confirmLabel: 'Clear',
-      destructive: true,
-    );
-    if (confirmed) await clearCache();
-  }
-
-  /// The success message after clearing the cache, naming how much was freed.
-  static String cacheClearedMessage(int freedBytes) => 'Render cache cleared. ${formatFileSize(freedBytes)} freed.';
-
-  Future<void> clearCache() async {
-    final result = await _pathService.getTempDirectory();
-    await result.fold(
-      (failure) async => CustomSnackbar.error(failure.message),
-      (directory) async {
-        try {
-          final before = await _cacheSize(directory);
-          if (await directory.exists()) {
-            await for (final entity in directory.list()) {
-              if (protectedTempEntries.contains(p.basename(entity.path))) continue;
-              await entity.delete(recursive: true);
-            }
-          }
-          final freed = before - await _cacheSize(directory);
-          CustomSnackbar.success(cacheClearedMessage(freed < 0 ? 0 : freed));
-          await _applyCacheCap();
-          await _loadStats();
-        } catch (e) {
-          CustomSnackbar.error('Could not clear cache: $e');
-        }
-      },
-    );
   }
 
   // ---- Help & about ----

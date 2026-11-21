@@ -13,7 +13,6 @@ import 'package:openreader/core/presentation/controllers/document_interaction_co
 import 'package:openreader/features/pdf_reader/presentation/pdf_reader_controller.dart';
 import 'package:openreader/features/settings/presentation/settings_controller.dart';
 import 'package:openreader/features/text_reader/presentation/text_reader_controller.dart';
-import 'package:openreader/services/utilities/path_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_document_viewer/pdf.dart' show PdfViewMode;
 
@@ -28,15 +27,6 @@ class _Recents implements RecentRepository {
   @override
   ResultFuture<void> markOpened(String documentId, {Map<String, Object?> readingPosition = const {}}) async =>
       const Right(null);
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class _TempPathService implements PathService {
-  _TempPathService(this.dir);
-  final Directory dir;
-  @override
-  ResultFuture<Directory> getTempDirectory() async => Right(dir);
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -75,7 +65,7 @@ void main() {
     root = await Directory.systemTemp.createTemp('openreader-live-sync-');
     final file = File('${root.path}/a.txt')..writeAsStringSync('one\ntwo');
     final interactions = DocumentInteractionController(favoriteRepository: _Favorites(), recentRepository: _Recents());
-    settings = SettingsController(pathService: _TempPathService(root), recents: _Recents())..onInit();
+    settings = SettingsController(recents: _Recents())..onInit();
     text = TextReaderController(
       document: doc(file.path, 'txt', DocumentCategory.text),
       recentRepository: _Recents(),

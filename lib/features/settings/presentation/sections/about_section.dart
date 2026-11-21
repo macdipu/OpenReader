@@ -5,7 +5,7 @@ import '../settings_controller.dart';
 import 'settings_widgets.dart';
 
 /// Help & about (ST-10): send feedback (a pre-filled GitHub issue, every platform), rate (Android,
-/// where the store page is known), share, the welcome screens, reset, version and licenses.
+/// where the store page is known), share, the welcome screens, version and licenses.
 class AboutSection extends StatelessWidget {
   final SettingsController controller;
   final bool showLabel;
@@ -47,13 +47,6 @@ class AboutSection extends StatelessWidget {
             icon: Icons.waving_hand_outlined,
             title: 'Show welcome screens again',
             onTap: controller.showWelcomeAgain,
-          ),
-          const SettingsDivider(),
-          SettingsActionRow(
-            icon: Icons.restore_rounded,
-            title: 'Reset all settings',
-            subtitle: 'Your documents are not touched',
-            onTap: controller.resetAllSettings,
           ),
           const SettingsDivider(),
           Obx(() => SettingsActionRow(

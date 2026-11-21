@@ -23,10 +23,9 @@ import 'package:openreader/features/settings/presentation/sections/permissions_s
 import 'package:openreader/core/presentation/theme/app_theme.dart';
 import 'package:openreader/core/presentation/widgets/app_shortcuts.dart';
 import 'package:openreader/features/settings/presentation/settings_controller.dart';
-import 'package:openreader/features/settings/presentation/settings_maintenance.dart';
+import 'package:openreader/features/settings/presentation/settings_sections.dart';
 import 'package:openreader/features/settings/presentation/settings_view.dart';
 import 'package:openreader/services/platform_integration/default_app_service.dart';
-import 'package:openreader/services/utilities/path_service.dart';
 import 'package:openreader/services/utilities/storage_access_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -131,15 +130,6 @@ class FakeRecents implements RecentRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _TempPathService implements PathService {
-  _TempPathService(this.dir);
-  final Directory dir;
-  @override
-  ResultFuture<Directory> getTempDirectory() async => Right(dir);
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 /// A stand-in tonal palette for [DynamicColorPreferences.fromPrimaryTones]: the seed's hue at the
 /// CIE lightness [tone] (what a Material tonal palette guarantees), built through HSL steps.
 int _tone(Color seed, int tone) {
@@ -193,7 +183,6 @@ void main() {
     Future<bool> Function(String url)? openUrl,
     Future<void> Function(String text)? share,
     double textScale = 1,
-    PathService? pathService,
   }) async {
     Get.reset();
     debugDefaultTargetPlatformOverride = platform;
@@ -211,7 +200,6 @@ void main() {
     recents = FakeRecents();
     Get.put(ThemeController());
     final controller = SettingsController(
-      pathService: pathService,
       storageAccess: storage,
       defaultApp: defaultApp,
       recents: recents,
@@ -257,8 +245,8 @@ void main() {
           await pump(tester, platform: platform, width: width);
           final isMobile = mobile.contains(platform);
           final expected = isMobile
-              ? ['Permissions', 'Reading', 'Appearance', 'Files & storage', 'Privacy', 'Open with', 'Help & about']
-              : ['File handling', 'Reading', 'Appearance', 'Files & storage', 'Privacy', 'Keyboard shortcuts', 'Help & about'];
+              ? ['Permissions', 'Reading', 'Appearance', 'Data', 'Privacy', 'Open with', 'Help & about']
+              : ['File handling', 'Reading', 'Appearance', 'Data', 'Privacy', 'Keyboard shortcuts', 'Help & about'];
           final hidden = isMobile ? ['File handling', 'Keyboard shortcuts'] : ['Permissions', 'Open with'];
           final ys = <double>[];
           for (final label in expected) {
@@ -278,8 +266,8 @@ void main() {
         await pump(tester, platform: platform, width: 1200, height: 1400);
         final isMobile = mobile.contains(platform);
         final expected = isMobile
-            ? ['Permissions', 'Reading', 'Appearance', 'Files & storage', 'Privacy', 'Open with', 'Help & about']
-            : ['File handling', 'Reading', 'Appearance', 'Files & storage', 'Privacy', 'Keyboard shortcuts', 'Help & about'];
+            ? ['Permissions', 'Reading', 'Appearance', 'Data', 'Privacy', 'Open with', 'Help & about']
+            : ['File handling', 'Reading', 'Appearance', 'Data', 'Privacy', 'Keyboard shortcuts', 'Help & about'];
         final hidden = isMobile ? ['File handling', 'Keyboard shortcuts'] : ['Permissions', 'Open with'];
         final list = find.byKey(const ValueKey('settings-section-list'));
         expect(list, findsOneWidget);
@@ -629,88 +617,7 @@ void main() {
     });
   });
 
-  group('storage limits', () {
-    testWidgets('history retention is saved and enforced; Off stops recording and deletes nothing', (tester) async {
-      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      await tester.tap(find.text('30 days'));
-      await tester.pump();
-      await tester.runAsync(() async {
-        expect(await repo.getHistoryRetentionDays(), 30);
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-      });
-      expect(recents.cutoffs, hasLength(1));
-      final age = DateTime.now().difference(recents.cutoffs.single);
-      expect(age.inDays, 30);
-
-      await tester.tap(find.text('Off'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('where you stopped reading'), findsWidgets);
-      await tester.tap(find.text('Turn off'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancel')); // keep the existing history
-      await tester.pumpAndSettle();
-      await tester.runAsync(() async => expect(await repo.getHistoryRetentionDays(), 0));
-      expect(recents.cutoffs, hasLength(1));
-      expect(recents.cleared, 0);
-    });
-
-    testWidgets('picking Off asks first; Cancel keeps the previous value', (tester) async {
-      final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, prefs: {
-        'app_settings:history_retention_days': 30,
-      });
-      await tester.tap(find.text('Off'));
-      await tester.pumpAndSettle();
-      expect(find.text('Turn off reading history?'), findsOneWidget);
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-      expect(c.historyRetentionDays.value, 30);
-      await tester.runAsync(() async => expect(await repo.getHistoryRetentionDays(), 30));
-      expect(recents.cleared, 0);
-    });
-
-    testWidgets('picking Off can also clear the existing history', (tester) async {
-      final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      await tester.tap(find.text('Off'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Turn off'));
-      await tester.pumpAndSettle();
-      expect(find.text('Also clear existing history?'), findsOneWidget);
-      await tester.tap(find.text('Clear history'));
-      await tester.pumpAndSettle();
-      expect(c.historyRetentionDays.value, 0);
-      expect(recents.cleared, 1);
-    });
-
-    test('trimRenderCachesToCap trims only the render cache, oldest first', () async {
-      final temp = Directory.systemTemp.createTempSync('cache_roots');
-      addTearDown(() => temp.deleteSync(recursive: true));
-      final base = DateTime(2026);
-      File write(String path, int day) {
-        final f = File('${temp.path}/$path')
-          ..createSync(recursive: true)
-          ..writeAsBytesSync(List.filled(100, 1));
-        f.setLastModifiedSync(base.add(Duration(days: day)));
-        return f;
-      }
-
-      final t0 = write('document_thumbnails/a.png', 0);
-      final t1 = write('document_thumbnails/b.png', 1);
-      final t2 = write('document_thumbnails/c.png', 2);
-      final incoming = write('incoming/old.pdf', -100);
-      final update = write('openreader_update/setup.exe', -100);
-      final stray = write('other.bin', -100);
-
-      expect(await trimRenderCachesToCap(temp, 150), 200);
-      expect(t0.existsSync(), isFalse);
-      expect(t1.existsSync(), isFalse);
-      expect(t2.existsSync(), isTrue);
-      expect(incoming.existsSync(), isTrue);
-      expect(update.existsSync(), isTrue);
-      expect(stray.existsSync(), isTrue);
-      expect(await trimRenderCachesToCap(temp, 150), 0, reason: 'within the cap');
-      expect(await trimRenderCachesToCap(Directory('${temp.path}/missing'), 0), 0, reason: 'missing dir');
-    });
-
+  group('storage access', () {
     testWidgets('fixStorageAccess does what the state calls for', (tester) async {
       final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       c.storageState.value = StorageAccessState.notAllowed;
@@ -743,54 +650,6 @@ void main() {
       expect(storage.opened, 0);
     });
 
-    testWidgets('cache cap is saved', (tester) async {
-      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      await tester.tap(find.byKey(const ValueKey('cache-cap-picker')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('500 MB'));
-      await tester.pumpAndSettle();
-      await tester.runAsync(() async => expect(await repo.getCacheCapMb(), 500));
-      await tester.tap(find.byKey(const ValueKey('cache-cap-picker')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('No limit'));
-      await tester.pumpAndSettle();
-      await tester.runAsync(() async => expect(await repo.getCacheCapMb(), isNull));
-    });
-
-    test('enforceHistoryRetention: forever and off delete nothing', () async {
-      for (final days in [null, 0]) {
-        SharedPreferences.setMockInitialValues({if (days != null) 'app_settings:history_retention_days': days});
-        final fake = FakeRecents();
-        expect(await enforceHistoryRetention(settings: repo, recents: fake), isFalse);
-        expect(fake.cutoffs, isEmpty);
-      }
-    });
-
-    test('enforceHistoryRetention deletes older than the cutoff', () async {
-      SharedPreferences.setMockInitialValues({'app_settings:history_retention_days': 30});
-      final fake = FakeRecents();
-      final now = DateTime(2026, 6);
-      expect(await enforceHistoryRetention(settings: repo, recents: fake, now: now), isTrue);
-      expect(fake.cutoffs.single, DateTime(2026, 5, 2));
-    });
-
-    test('trimDirectoryToCap removes the oldest files first and keeps the rest', () async {
-      final dir = Directory.systemTemp.createTempSync('cap_test');
-      addTearDown(() => dir.deleteSync(recursive: true));
-      final base = DateTime(2026);
-      for (var i = 0; i < 4; i++) {
-        final f = File('${dir.path}/f$i')..writeAsBytesSync(List.filled(100, i));
-        f.setLastModifiedSync(base.add(Duration(days: i)));
-      }
-      final removed = await trimDirectoryToCap(dir, 250);
-      expect(removed, 200);
-      expect(File('${dir.path}/f0').existsSync(), isFalse);
-      expect(File('${dir.path}/f1').existsSync(), isFalse);
-      expect(File('${dir.path}/f2').existsSync(), isTrue);
-      expect(File('${dir.path}/f3').existsSync(), isTrue);
-      expect(await trimDirectoryToCap(dir, 250), 0, reason: 'already within the cap');
-      expect(await trimDirectoryToCap(Directory('${dir.path}/missing'), 0), 0);
-    });
   });
 
   group('two-pane keyboard', () {
@@ -846,12 +705,116 @@ void main() {
     });
   });
 
+  group('Data section (CR-SETTINGS-UX, ST-07; ST-11/ST-12 removed 2026-11-21)', () {
+    const removed = ['cache', 'limit', 'retention', 'Clear render cache', 'Forever', '30 days', 'No limit', 'Keep reading history'];
+
+    testWidgets('shows exactly Clear all history and Reset all settings, and nothing about cache, limit or retention',
+        (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      final dataLabel = find.text('Data');
+      expect(dataLabel, findsOneWidget);
+      // The section sits between Appearance and Privacy; its rows are the only action rows in it.
+      final top = tester.getTopLeft(dataLabel).dy;
+      final bottom = tester.getTopLeft(find.text('Privacy')).dy;
+      final rows = find.byType(SettingsActionRow).evaluate().where((e) {
+        final y = (e.renderObject! as RenderBox).localToGlobal(Offset.zero).dy;
+        return y > top && y < bottom;
+      }).toList();
+      expect(rows, hasLength(2));
+      expect(find.text('Clear all history'), findsOneWidget);
+      expect(find.text('Removes your recent files. Your documents are not deleted.'), findsOneWidget);
+      expect(find.text('Reset all settings'), findsOneWidget);
+      expect(find.text('Puts every setting back to its default.'), findsOneWidget);
+      for (final word in removed) {
+        expect(find.textContaining(word, findRichText: true), findsNothing, reason: word);
+        expect(find.textContaining(word.toLowerCase()), findsNothing, reason: word);
+      }
+      expect(find.byType(SettingsSegmented<int?>), findsNothing);
+    });
+
+    testWidgets('Clear all history: Cancel does nothing; confirm clears and shows the success message', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      await tester.tap(find.text('Clear all history'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(recents.cleared, 0);
+      expect(find.text(SettingsController.historyClearedMessage), findsNothing);
+
+      await tester.tap(find.text('Clear all history'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Clear'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(recents.cleared, 1);
+      expect(find.text(SettingsController.historyClearedMessage), findsOneWidget);
+      await drain(tester);
+    });
+
+    testWidgets('Reset all settings: Cancel does nothing; confirm resets and shows the success message', (tester) async {
+      final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, prefs: {
+        'app_settings:pdf_night_mode': true,
+      });
+      await tester.pump();
+      expect(c.nightMode.value, isTrue);
+      await tester.tap(find.text('Reset all settings'));
+      await tester.pumpAndSettle();
+      expect(find.text('Reset all settings?'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async => expect(await repo.getReaderNightMode(), isTrue));
+      expect(find.text(SettingsController.resetMessage), findsNothing);
+
+      await tester.tap(find.text('Reset all settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Reset'));
+      await settle(tester, () => find.text(SettingsController.resetMessage).evaluate().isNotEmpty);
+      expect(find.text(SettingsController.resetMessage), findsOneWidget);
+      expect(c.nightMode.value, isFalse);
+      await drain(tester);
+    });
+
+    for (final platform in [...mobile, ...desktop]) {
+      testWidgets('$platform: Data is between Appearance and Privacy in the platform order', (tester) async {
+        final order = (() { debugDefaultTargetPlatformOverride = platform; addTearDown(() => debugDefaultTargetPlatformOverride = null); return settingsSectionsForPlatform(); })().map((e) => e.title).toList();
+        expect(order, contains('Data'));
+        expect(order.indexOf('Data'), order.indexOf('Appearance') + 1);
+        expect(order.indexOf('Privacy'), order.indexOf('Data') + 1);
+        expect(order, isNot(contains('Files & storage')));
+      });
+    }
+
+    for (final platform in desktop) {
+      testWidgets('$platform: the Data pane has the two actions in the two-pane layout', (tester) async {
+        await pump(tester, platform: platform, width: 1200, height: 1400);
+        final list = find.byKey(const ValueKey('settings-section-list'));
+        await tester.tap(find.descendant(of: list, matching: find.text('Data')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('settings-pane-data')), findsOneWidget);
+        expect(find.text('Clear all history'), findsOneWidget);
+        expect(find.text('Reset all settings'), findsOneWidget);
+        expect(find.text('Clear render cache'), findsNothing);
+      });
+    }
+
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('360 px, text x$scale: no overflow, both rows are 48 dp or taller', (tester) async {
+        await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, textScale: scale);
+        expect(tester.takeException(), isNull);
+        for (final title in ['Clear all history', 'Reset all settings']) {
+          final row = find.ancestor(of: find.text(title), matching: find.byType(SettingsActionRow));
+          expect(tester.getSize(row.first).height, greaterThanOrEqualTo(48), reason: title);
+        }
+      });
+    }
+  });
+
   group('help and about', () {
-    testWidgets('has Send feedback, Rate (Android), Share, welcome screens and reset', (tester) async {
+    testWidgets('has Send feedback, Rate (Android), Share and welcome screens', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.text('Share app'), findsOneWidget);
       expect(find.text('Show welcome screens again'), findsOneWidget);
-      expect(find.text('Reset all settings'), findsOneWidget);
+      expect(find.text('Reset all settings'), findsNothing, reason: 'it lives in Data now');
       expect(find.text('Open-source licenses'), findsOneWidget);
       expect(find.text('Send feedback'), findsOneWidget);
       expect(find.textContaining('Rate'), findsOneWidget, reason: 'Android has the Play Store page');
@@ -1470,76 +1433,12 @@ void main() {
     }
   });
 
-  group('standard UX: cache cap picker (4+ options)', () {
-    for (final platform in mobile) {
-      testWidgets('$platform: a row with the current value opens a bottom sheet; the pick is saved', (tester) async {
-        final c = await pump(tester, platform: platform, width: 360, height: 5000);
-        final row = find.byKey(const ValueKey('cache-cap-picker'));
-        expect(row, findsOneWidget);
-        // Not a segmented row any more: the other options are not on the page.
-        expect(find.text('500 MB'), findsNothing);
-        expect(find.descendant(of: row, matching: find.text('No limit')), findsOneWidget);
-        expect(find.descendant(of: row, matching: find.byIcon(Icons.chevron_right_rounded)), findsOneWidget);
-
-        await tester.tap(row);
-        await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('settings-picker-sheet')), findsOneWidget);
-        expect(find.byType(BottomSheet), findsOneWidget);
-        expect(find.byKey(const ValueKey('settings-picker-dialog')), findsNothing);
-        expect(find.byType(RadioListTile<int>), findsNWidgets(4));
-        for (final label in ['No limit', '100 MB', '500 MB', '1 GB']) {
-          expect(find.descendant(of: find.byType(BottomSheet), matching: find.text(label)), findsOneWidget, reason: label);
-        }
-
-        await tester.tap(find.text('1 GB'));
-        await tester.pumpAndSettle();
-        expect(find.byType(BottomSheet), findsNothing, reason: 'closes on pick, no Save step');
-        expect(c.cacheCapMb.value, 1024);
-        await tester.runAsync(() async => expect(await repo.getCacheCapMb(), 1024));
-        expect(find.descendant(of: row, matching: find.text('1 GB')), findsOneWidget);
-      });
-    }
-
-    for (final platform in desktop) {
-      testWidgets('$platform: the row opens a dialog; Cancel keeps the value, a pick is saved', (tester) async {
-        final c = await pump(tester, platform: platform, width: 1200, height: 1400);
-        final list = find.byKey(const ValueKey('settings-section-list'));
-        await tester.tap(find.descendant(of: list, matching: find.text('Files & storage')));
-        await tester.pumpAndSettle();
-        final row = find.byKey(const ValueKey('cache-cap-picker'));
-        await tester.tap(row);
-        await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('settings-picker-dialog')), findsOneWidget);
-        expect(find.byType(BottomSheet), findsNothing);
-        await tester.tap(find.text('Cancel'));
-        await tester.pumpAndSettle();
-        expect(c.cacheCapMb.value, isNull);
-
-        await tester.tap(row);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('100 MB'));
-        await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('settings-picker-dialog')), findsNothing);
-        await tester.runAsync(() async => expect(await repo.getCacheCapMb(), 100));
-        expect(tester.widget<Text>(find.byKey(const ValueKey('settings-picker-value'))).data, '100 MB');
-      });
-    }
-
-    testWidgets('a saved value is shown and pre-selected in the picker', (tester) async {
-      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, prefs: {'app_settings:cache_cap_mb': 500});
-      await tester.pump();
-      expect(tester.widget<Text>(find.byKey(const ValueKey('settings-picker-value'))).data, '500 MB');
-      await tester.tap(find.byKey(const ValueKey('cache-cap-picker')));
-      await tester.pumpAndSettle();
-      final group = tester.widget<RadioGroup<int>>(find.byType(RadioGroup<int>));
-      expect(group.groupValue, 2);
-    });
-
+  group('standard UX: segmented choices', () {
     testWidgets('2-3 option choices stay segmented', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.byType(SettingsSegmented<ThemeMode>), findsOneWidget);
       expect(find.byType(SettingsSegmented<bool>), findsNothing, reason: 'the PDF mode row is not on this page');
-      expect(find.byType(SettingsSegmented<int?>), findsOneWidget, reason: 'history retention');
+      expect(find.byType(SettingsSegmented<int?>), findsNothing, reason: 'history retention was removed');
     });
   });
 
@@ -1575,7 +1474,7 @@ void main() {
     testWidgets('headers are sentence case and announced as headings', (tester) async {
       final handle = tester.ensureSemantics();
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
-      for (final title in ['Permissions', 'Reading', 'Files & storage', 'Help & about']) {
+      for (final title in ['Permissions', 'Reading', 'Data', 'Help & about']) {
         expect(find.text(title.toUpperCase()), findsNothing, reason: title);
         final label = find.descendant(of: find.byType(SettingsSectionLabel), matching: find.text(title));
         expect(label, findsOneWidget, reason: title);
@@ -1588,7 +1487,7 @@ void main() {
   group('standard UX: destructive actions confirm, then say what happened', () {
     testWidgets('clear history: error-coloured confirm, Cancel keeps it, Clear shows the success message', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      await tester.tap(find.text('Clear reading history'));
+      await tester.tap(find.text('Clear all history'));
       await tester.pumpAndSettle();
       expect(find.text('Clear all reading history?'), findsOneWidget);
       final confirm = tester.widget<TextButton>(find.widgetWithText(TextButton, 'Clear'));
@@ -1598,38 +1497,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(recents.cleared, 0);
 
-      await tester.tap(find.text('Clear reading history'));
+      await tester.tap(find.text('Clear all history'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, 'Clear'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(recents.cleared, 1);
       expect(find.text(SettingsController.historyClearedMessage), findsOneWidget);
-      await drain(tester);
-    });
-
-    testWidgets('clear render cache: asks first, then reports how much was freed', (tester) async {
-      final temp = Directory.systemTemp.createTempSync('settings_cache');
-      addTearDown(() => temp.deleteSync(recursive: true));
-      File('${temp.path}/document_thumbnails/a.png')
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(List.filled(2048, 1));
-      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, pathService: _TempPathService(temp));
-      await tester.tap(find.text('Clear render cache'));
-      await tester.pumpAndSettle();
-      expect(find.text('Clear render cache?'), findsOneWidget);
-      final confirm = tester.widget<TextButton>(find.widgetWithText(TextButton, 'Clear'));
-      expect(confirm.style?.foregroundColor?.resolve({}), AppTheme.lightTheme.colorScheme.error);
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-      expect(File('${temp.path}/document_thumbnails/a.png').existsSync(), isTrue, reason: 'Cancel keeps the cache');
-
-      await tester.tap(find.text('Clear render cache'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Clear'));
-      await settle(tester, () => find.text(SettingsController.cacheClearedMessage(2048)).evaluate().isNotEmpty);
-      expect(File('${temp.path}/document_thumbnails/a.png').existsSync(), isFalse);
-      expect(find.text(SettingsController.cacheClearedMessage(2048)), findsOneWidget);
       await drain(tester);
     });
 
@@ -1647,7 +1521,7 @@ void main() {
 
     testWidgets('action rows that only act carry no chevron', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      for (final title in ['Clear reading history', 'Reset all settings', 'Show welcome screens again']) {
+      for (final title in ['Clear all history', 'Reset all settings', 'Show welcome screens again']) {
         final row = find.ancestor(of: find.text(title), matching: find.byType(SettingsActionRow));
         expect(find.descendant(of: row, matching: find.byIcon(Icons.chevron_right_rounded)), findsNothing, reason: title);
       }

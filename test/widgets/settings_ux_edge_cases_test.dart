@@ -16,11 +16,9 @@ import 'package:openreader/core/presentation/controllers/document_interaction_co
 import 'package:openreader/core/presentation/controllers/theme_controller.dart';
 import 'package:openreader/core/presentation/theme/app_theme.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
-import 'package:openreader/features/settings/presentation/settings_controller.dart';
 import 'package:openreader/features/text_reader/presentation/text_reader_controller.dart';
 import 'package:openreader/features/text_reader/presentation/text_reader_view.dart';
 import 'package:openreader/res/routes/app_routes.dart';
-import 'package:openreader/services/utilities/path_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _Favorites implements FavoriteRepository {
@@ -53,17 +51,8 @@ class _ReaderSettings implements AppSettingsRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _TempPathService implements PathService {
-  _TempPathService(this.dir);
-  final Directory dir;
-  @override
-  ResultFuture<Directory> getTempDirectory() async => Right(dir);
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 /// CR-SETTINGS-UX review gaps: the Ctrl/Cmd+, decision, BRD 9.18 "theme changes while a reader is
-/// active" and "cache cleared while a document is open".
+/// active".
 void main() {
   group('Ctrl/Cmd+, in the shell (openSettingsShortcut)', () {
     late List<int> tabs;
@@ -169,36 +158,5 @@ void main() {
         await tester.pump(const Duration(seconds: 3));
       });
     }
-  });
-
-  group('cache cleared while a document is open', () {
-    testWidgets('the open document under incoming/ survives, and the reader keeps showing it', (tester) async {
-      Get.reset();
-      Get.testMode = true;
-      SharedPreferences.setMockInitialValues({});
-      final (controller, dir) = await openReader(tester, subdirectory: 'incoming');
-      File('${dir.path}/document_thumbnails/a.png').createSync(recursive: true);
-      await tester.pumpWidget(GetMaterialApp(theme: AppTheme.lightTheme, home: const TextReaderView()));
-      await loaded(tester, controller);
-      expect(find.text('first line'), findsOneWidget);
-
-      final settings = SettingsController(
-        pathService: _TempPathService(dir),
-        settings: _ReaderSettings(),
-        recents: _Recents(),
-      );
-      await tester.runAsync(settings.clearCache);
-      await tester.pump(const Duration(seconds: 6));
-      await tester.pump(const Duration(seconds: 1));
-
-      expect(File('${dir.path}/document_thumbnails/a.png').existsSync(), isFalse, reason: 'the cache is gone');
-      expect(File('${dir.path}/incoming/note.txt').existsSync(), isTrue, reason: 'the open document stays');
-      expect(find.text('first line'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      Get.closeAllSnackbars();
-      await tester.pumpAndSettle();
-      await tester.pumpWidget(const SizedBox());
-      Get.reset();
-    });
   });
 }

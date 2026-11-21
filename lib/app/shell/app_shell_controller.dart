@@ -13,7 +13,6 @@ import '../../features/workspace/presentation/workspace_controller.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../features/settings/presentation/default_app_dialog.dart';
 import '../../features/settings/presentation/settings_controller.dart';
-import '../../features/settings/presentation/settings_maintenance.dart';
 import '../../services/platform_integration/desktop_open_files.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
@@ -68,7 +67,6 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     // access has already been resolved, so it's safe to start listening for
     // an incoming file here.
     unawaited(_loadSidebarPref());
-    unawaited(enforceHistoryRetention());
     unawaited(_incomingIntentService.init());
     _openLaunchFiles();
     WidgetsBinding.instance.addObserver(this);

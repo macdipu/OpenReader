@@ -9,7 +9,7 @@ import 'sections/permissions_section.dart';
 import 'sections/privacy_section.dart';
 import 'sections/reading_section.dart';
 import 'sections/shortcuts_section.dart';
-import 'sections/storage_section.dart';
+import 'sections/data_section.dart';
 import 'settings_controller.dart';
 
 /// The sections of Settings (CR-SETTINGS-UX "Section order").
@@ -18,7 +18,7 @@ enum SettingsSectionId {
   fileHandling('File handling', Icons.menu_book_rounded),
   reading('Reading', Icons.chrome_reader_mode_outlined),
   appearance('Appearance', Icons.palette_outlined),
-  storage('Files & storage', Icons.storage_rounded),
+  data('Data', Icons.storage_rounded),
   privacy('Privacy', Icons.shield_outlined),
   openWith('Open with', Icons.open_in_new_rounded),
   shortcuts('Keyboard shortcuts', Icons.keyboard_outlined),
@@ -33,7 +33,7 @@ enum SettingsSectionId {
         fileHandling => FileHandlingSection(controller: controller, showLabel: showLabel),
         reading => ReadingSection(controller: controller, showLabel: showLabel),
         appearance => AppearanceSection(controller: controller, showLabel: showLabel),
-        storage => StorageSection(controller: controller, showLabel: showLabel),
+        data => DataSection(controller: controller, showLabel: showLabel),
         privacy => PrivacySection(controller: controller, showLabel: showLabel),
         openWith => OpenWithSection(showLabel: showLabel),
         shortcuts => ShortcutsSection(showLabel: showLabel),
@@ -50,7 +50,7 @@ List<SettingsSectionId> settingsSectionsForPlatform() {
       SettingsSectionId.fileHandling,
       SettingsSectionId.reading,
       SettingsSectionId.appearance,
-      SettingsSectionId.storage,
+      SettingsSectionId.data,
       SettingsSectionId.privacy,
       SettingsSectionId.shortcuts,
       SettingsSectionId.about,
@@ -60,7 +60,7 @@ List<SettingsSectionId> settingsSectionsForPlatform() {
     SettingsSectionId.permissions,
     SettingsSectionId.reading,
     SettingsSectionId.appearance,
-    SettingsSectionId.storage,
+    SettingsSectionId.data,
     SettingsSectionId.privacy,
     SettingsSectionId.openWith,
     SettingsSectionId.about,

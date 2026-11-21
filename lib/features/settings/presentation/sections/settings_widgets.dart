@@ -8,7 +8,6 @@ class SettingsSection extends StatelessWidget {
   final String label;
   final Widget child;
   final bool padded;
-  final bool bare;
 
   /// Omit the label (the two-pane layout already names the section in its list).
   final bool showLabel;
@@ -18,7 +17,6 @@ class SettingsSection extends StatelessWidget {
     required this.label,
     required this.child,
     this.padded = false,
-    this.bare = false,
     this.showLabel = true,
   });
 
@@ -30,10 +28,7 @@ class SettingsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showLabel) SettingsSectionLabel(label),
-          if (bare)
-            child
-          else
-            SettingsSectionCard(padding: padded ? const EdgeInsets.all(12) : const EdgeInsets.all(4), child: child),
+          SettingsSectionCard(padding: padded ? const EdgeInsets.all(12) : const EdgeInsets.all(4), child: child),
         ],
       ),
     );
@@ -414,111 +409,7 @@ class SettingsChoice<T> {
   const SettingsChoice(this.value, this.label, {this.icon});
 }
 
-/// A choice of four or more options: a row showing the current value that opens a picker (a
-/// bottom sheet of radio options on Android and iOS, a dialog on desktop). The choice applies as
-/// soon as it is picked; there is no Save step.
-class SettingsPickerRow<T> extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final T value;
-  final List<SettingsChoice<T>> choices;
-  final ValueChanged<T> onChanged;
-
-  const SettingsPickerRow({
-    super.key,
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    required this.value,
-    required this.choices,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final current = choices.where((c) => c.value == value).firstOrNull;
-    return SettingsActionRow(
-      icon: icon,
-      title: title,
-      subtitle: subtitle,
-      status: current?.label,
-      statusKey: const ValueKey('settings-picker-value'),
-      trailing: Icons.chevron_right_rounded,
-      onTap: () async {
-        final picked = await showSettingsPicker<T>(context, title: title, value: value, choices: choices);
-        if (picked != null) onChanged(picked.value);
-      },
-    );
-  }
-}
-
-/// Shows the options of [choices] with [value] selected and resolves to the picked choice, or null
-/// when dismissed. Android and iOS get a modal bottom sheet, desktop gets a dialog.
-Future<SettingsChoice<T>?> showSettingsPicker<T>(
-  BuildContext context, {
-  required String title,
-  required T value,
-  required List<SettingsChoice<T>> choices,
-}) async {
-  final selected = choices.indexWhere((c) => c.value == value);
-  Widget options(BuildContext context) => RadioGroup<int>(
-        groupValue: selected,
-        onChanged: (index) => Navigator.of(context).pop(index),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < choices.length; i++)
-              RadioListTile<int>(
-                key: ValueKey('settings-picker-option-$i'),
-                value: i,
-                title: Text(choices[i].label),
-              ),
-          ],
-        ),
-      );
-
-  final int? index;
-  if (PlatformInfo.isMobile) {
-    index = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => SingleChildScrollView(
-        key: const ValueKey('settings-picker-sheet'),
-        padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom + 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-              child: Semantics(header: true, child: Text(title, style: context.titleMedium)),
-            ),
-            options(context),
-          ],
-        ),
-      ),
-    );
-  } else {
-    index = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const ValueKey('settings-picker-dialog'),
-        title: Text(title),
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        content: SingleChildScrollView(child: options(context)),
-        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel'))],
-      ),
-    );
-  }
-  if (index == null || index < 0 || index >= choices.length) return null;
-  return choices[index];
-}
-
-/// Equal-width choice tiles for two or three options (Light / Dark / System, Forever / 30 days /
-/// Off, ...). Four or more options use [SettingsPickerRow].
+/// Equal-width choice tiles for two or three options (Light / Dark / System, ...).
 class SettingsSegmented<T> extends StatelessWidget {
   final T value;
   final List<SettingsChoice<T>> choices;
@@ -575,62 +466,6 @@ class SettingsSegmented<T> extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// Bento-style stat card for Storage & Cache Manager (DESIGN_SPEC #01):
-/// icon + big number + action button, real data only.
-class SettingsStatBento extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final String actionLabel;
-  final VoidCallback? onAction;
-  final bool destructive;
-
-  const SettingsStatBento({
-    super.key,
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.actionLabel,
-    required this.onAction,
-    this.destructive = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: context.onSurfaceVariant, size: 20),
-          const SizedBox(height: 10),
-          Text(value, style: context.headlineSmall),
-          const SizedBox(height: 2),
-          Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: onAction,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: destructive ? context.error : context.secondary,
-                side: BorderSide(color: destructive ? context.error : context.outlineVariant),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-              ),
-              child: Text(actionLabel, style: context.labelSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
