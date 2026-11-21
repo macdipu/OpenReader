@@ -143,4 +143,6 @@ Touch drag/select rework and mouse/keyboard on touch devices were added on 2026-
 - Then: commit (both repos), IMPLEMENTATION result for the run, REVIEW/QA, package release and app pin bump (user approval).
 
 ## Status
-IMPLEMENTATION. S1 to S3 committed. S4 to S6 done and uncommitted (both repos, on main). All approved slices coded. Next: on-device check by the user, commit, IMPLEMENTATION result, REVIEW/QA, release (needs approval). The Implementation result for the run is recorded once, when the slices the user wants in this run are done (operator closes the task).
+COMPLETED (2026-11-21). Shipped in universal_document_viewer 0.2.0 (followed by 0.2.1, 0.2.2 on pub.dev) and OpenReader 1.0.21+21. Run RUN-6780549E98B74690B709F92E03DE3083 closed through IMPLEMENTATION, REVIEW, QA, RELEASE (release approval by macdipu, 2026-11-21, retroactive). QA on 2026-11-21: app 292/292 tests, analyze 0 errors/0 warnings. Results in `agentic/data/project-context/features/CR-EXCEL-READER-AUDIT/validation/`.
+
+Open follow-ups (not in this run): screen-reader test (TalkBack/VoiceOver/NVDA); hand check on a physical phone of long-press handles, pinch zoom, clipboard and a password-protected file; CSV/TSV read-only mark; text spill, golden images, Ctrl+wheel zoom.

@@ -1,0 +1,16 @@
+{
+  "status": "READY",
+  "evidence": [
+    "flutter test (app, 2026-11-21, against published universal_document_viewer 0.2.2): 292 pass, 0 fail - validation/qa-2026-11-21-test.txt",
+    "flutter analyze (app, 2026-11-21): 0 errors, 0 warnings, 80 infos - validation/qa-2026-11-21-analyze.txt",
+    "test/widgets/excel_responsive_layout_test.dart and the Excel reader harness tests pass in that run",
+    "pubspec.yaml universal_document_viewer ^0.2.2; pubspec.lock 0.2.2 from pub.dev; no pubspec_overrides.yaml present"
+  ],
+  "blocking_issues": [],
+  "open_questions": [],
+  "recommended_next_step": "Record release approval, then RELEASE",
+  "outputs": {
+    "verdict": "QA_PASSED",
+    "manual_gaps": "Screen-reader and physical-device gesture checks listed under REVIEW known_limits were not run."
+  }
+}

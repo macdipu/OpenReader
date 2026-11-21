@@ -1,0 +1,2 @@
++292: All tests passed!
+EXIT 0
