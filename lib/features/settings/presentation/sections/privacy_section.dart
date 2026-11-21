@@ -46,7 +46,7 @@ class PrivacySection extends StatelessWidget {
           ),
           const SettingsDivider(),
           SettingsActionRow(
-            icon: Icons.restore_rounded,
+            icon: Icons.restart_alt_rounded,
             title: 'Reset all settings',
             subtitle: 'Puts every setting back to its default.',
             destructive: true,

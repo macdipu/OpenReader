@@ -12,7 +12,7 @@ import 'settings_controller.dart';
 
 /// The sections of Settings (CR-SETTINGS-UX "Section order").
 enum SettingsSectionId {
-  fileAccess('File access', Icons.verified_user_outlined),
+  fileAccess('Permissions', Icons.verified_user_outlined),
   fileHandling('File handling', Icons.menu_book_rounded),
   reading('Reading', Icons.chrome_reader_mode_outlined),
   appearance('Appearance', Icons.palette_outlined),

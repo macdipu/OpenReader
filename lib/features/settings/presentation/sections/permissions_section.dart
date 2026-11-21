@@ -26,7 +26,7 @@ class PermissionsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (PlatformInfo.isIOS) {
       return SettingsSection(
-        label: 'File access',
+        label: 'Permissions',
         showLabel: showLabel,
         child: Column(
           children: [
@@ -44,7 +44,7 @@ class PermissionsSection extends StatelessWidget {
     }
 
     return SettingsSection(
-      label: 'File access',
+      label: 'Permissions',
       showLabel: showLabel,
       child: Obx(() {
         final state = controller.storageState.value;

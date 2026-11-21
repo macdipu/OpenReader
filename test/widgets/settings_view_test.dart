@@ -245,17 +245,15 @@ void main() {
           await pump(tester, platform: platform, width: width);
           final isMobile = mobile.contains(platform);
           final expected = isMobile
-              ? ['File access', 'Reading', 'Appearance', 'Privacy & data', 'About']
+              ? ['Permissions', 'Reading', 'Appearance', 'Privacy & data', 'About']
               : ['File handling', 'Reading', 'Appearance', 'Privacy & data', 'Keyboard shortcuts', 'About'];
           final hidden = isMobile
-              ? ['File handling', 'Keyboard shortcuts', 'Files & storage', 'Data', 'Privacy', 'Open with', 'Permissions', 'Help & about']
-              : ['File access', 'Files & storage', 'Data', 'Privacy', 'Open with', 'Permissions', 'Help & about'];
+              ? ['File handling', 'Keyboard shortcuts', 'Files & storage', 'Data', 'Privacy', 'Open with', 'Help & about']
+              : ['File access', 'Permissions', 'Files & storage', 'Data', 'Privacy', 'Open with', 'Help & about'];
           final ys = <double>[];
           for (final label in expected) {
-            // On Android the File access row repeats the section name in its own title.
             final found = find.text(label);
-            expect(found, label == 'File access' && platform == TargetPlatform.android ? findsNWidgets(2) : findsOneWidget,
-                reason: label);
+            expect(found, findsOneWidget, reason: label);
             ys.add(tester.getTopLeft(found.first).dy);
           }
           expect(ys, [...ys]..sort(), reason: 'sections follow the platform order');
@@ -271,11 +269,11 @@ void main() {
         await pump(tester, platform: platform, width: 1200, height: 1400);
         final isMobile = mobile.contains(platform);
         final expected = isMobile
-            ? ['File access', 'Reading', 'Appearance', 'Privacy & data', 'About']
+            ? ['Permissions', 'Reading', 'Appearance', 'Privacy & data', 'About']
             : ['File handling', 'Reading', 'Appearance', 'Privacy & data', 'Keyboard shortcuts', 'About'];
         final hidden = isMobile
             ? ['File handling', 'Keyboard shortcuts', 'Files & storage', 'Data', 'Privacy', 'Open with']
-            : ['File access', 'Files & storage', 'Data', 'Privacy', 'Open with'];
+            : ['File access', 'Permissions', 'Files & storage', 'Data', 'Privacy', 'Open with'];
         final list = find.byKey(const ValueKey('settings-section-list'));
         expect(list, findsOneWidget);
         for (final title in expected) {
@@ -1387,9 +1385,9 @@ void main() {
         expect(
             labels,
             mobile.contains(platform)
-                ? ['File access', 'Reading', 'Appearance', 'Privacy & data', 'About']
+                ? ['Permissions', 'Reading', 'Appearance', 'Privacy & data', 'About']
                 : ['File handling', 'Reading', 'Appearance', 'Privacy & data', 'Keyboard shortcuts', 'About']);
-        for (final old in ['Files & storage', 'Data', 'Open with', 'Privacy', 'Permissions', 'Help & about']) {
+        for (final old in ['Files & storage', 'Data', 'Open with', 'Privacy', 'Help & about']) {
           expect(find.text(old), findsNothing, reason: old);
         }
       });
@@ -1579,7 +1577,7 @@ void main() {
     testWidgets('headers are sentence case and announced as headings', (tester) async {
       final handle = tester.ensureSemantics();
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
-      for (final title in ['File access', 'Reading', 'Privacy & data', 'About']) {
+      for (final title in ['Permissions', 'Reading', 'Privacy & data', 'About']) {
         expect(find.text(title.toUpperCase()), findsNothing, reason: title);
         final label = find.descendant(of: find.byType(SettingsSectionLabel), matching: find.text(title));
         expect(label, findsOneWidget, reason: title);
