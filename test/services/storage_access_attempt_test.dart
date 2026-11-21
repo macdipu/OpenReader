@@ -51,7 +51,7 @@ void main() {
   group('waitUntilForeground', () {
     testWidgets('returns at once when the app is in front', (tester) async {
       var done = false;
-      unawaited(waitUntilForeground().then((_) => done = true));
+      unawaited(waitUntilForeground(settle: Duration.zero).then((_) => done = true));
       await tester.pump();
       expect(done, isTrue);
     });
@@ -64,6 +64,26 @@ void main() {
       expect(done, isFalse);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
+      expect(done, isTrue);
+    });
+
+    testWidgets('waits for the app to stay in front: a brief return that is covered again does not count',
+        (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      var done = false;
+      unawaited(waitUntilForeground(settle: const Duration(seconds: 1)).then((_) => done = true));
+      await tester.pump();
+      // The system page hands control back for half a second, then App info covers the app again.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump(const Duration(milliseconds: 500));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump(const Duration(seconds: 5));
+      expect(done, isFalse);
+      // The user really comes back and stays.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump(const Duration(milliseconds: 900));
+      expect(done, isFalse);
+      await tester.pump(const Duration(milliseconds: 200));
       expect(done, isTrue);
     });
 

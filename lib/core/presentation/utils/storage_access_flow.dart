@@ -53,31 +53,54 @@ class StorageAccessAttempt {
   }
 }
 
-/// Completes when the app is in front again (at once if it already is, or the lifecycle is unknown, as
-/// in tests). Gives up when [isClosed] turns true or after [timeout].
-Future<void> waitUntilForeground({bool Function()? isClosed, Duration timeout = const Duration(minutes: 10)}) {
+/// Completes when the app is in front again *and stays there* for [settle] (at once if it already is,
+/// or the lifecycle is unknown, as in tests). Some system pages hand control back to the app for a
+/// moment and then cover it again (One UI's toolbar arrow on the All files access page goes on to
+/// App info), so the first "resumed" is not enough: the wait restarts if the app leaves again before
+/// [settle] has passed. Gives up when [isClosed] turns true or after [timeout].
+Future<void> waitUntilForeground({
+  bool Function()? isClosed,
+  Duration timeout = const Duration(minutes: 10),
+  Duration settle = const Duration(milliseconds: 1200),
+}) {
   final binding = WidgetsBinding.instance;
   bool inFront() {
     final state = binding.lifecycleState;
     return state == null || state == AppLifecycleState.resumed;
   }
 
-  if (inFront()) return Future.value();
+  if (inFront() && settle == Duration.zero) return Future.value();
   final done = Completer<void>();
   late final _ForegroundObserver observer;
   Timer? giveUp;
+  Timer? settling;
   void finish() {
     if (done.isCompleted) return;
     binding.removeObserver(observer);
     giveUp?.cancel();
+    settling?.cancel();
     done.complete();
   }
 
+  // The app is in front now (or came back): finish once it has stayed for [settle].
+  void startSettling() {
+    settling?.cancel();
+    settling = Timer(settle, () {
+      if (inFront() || (isClosed?.call() ?? false)) finish();
+    });
+  }
+
   observer = _ForegroundObserver((state) {
-    if (state == AppLifecycleState.resumed || (isClosed?.call() ?? false)) finish();
+    if (isClosed?.call() ?? false) return finish();
+    if (state == AppLifecycleState.resumed) {
+      startSettling();
+    } else {
+      settling?.cancel();
+    }
   });
   binding.addObserver(observer);
   giveUp = Timer(timeout, finish);
+  if (inFront()) startSettling();
   return done.future;
 }
 
