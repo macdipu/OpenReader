@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy — OpenReader</title>
-  <meta name="description" content="OpenReader privacy policy: fully offline document reader, no accounts, no data collection, no tracking." />
+  <meta name="description" content="OpenReader privacy policy: your documents never leave your device. The mobile apps send crash reports and usage analytics to Google Firebase." />
   <link rel="icon" type="image/png" href="icon.png" />
   <script>(function(){var t=null;try{t=localStorage.getItem("openreader-theme")}catch(e){}if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)})();</script>
   <link rel="stylesheet" href="style.css" />
@@ -24,60 +24,114 @@
     <div class="wrap doc">
       <a class="back-link" href="index.html">&larr; Back to OpenReader</a>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: October 22, 2026</p>
+      <p class="updated">Last updated: November 21, 2026</p>
 
       <p>
-        OpenReader ("the app") is a fully offline document reader for Android, Windows, macOS
-        and Linux. This policy explains what happens (and, more importantly, what does not
-        happen) to your data when you use it.
+        OpenReader ("the app") is a document reader for Android, Windows, macOS and Linux. This
+        policy explains what data the app handles, what leaves your device and what never does.
       </p>
 
-      <h2>No data collection</h2>
-      <p>OpenReader does not collect, transmit, or sell any personal data. Specifically, the app:</p>
+      <h2>In short</h2>
       <ul>
-        <li>Does not require account creation or sign-in</li>
-        <li>Does not upload your documents or any file content to any server</li>
-        <li>Does not use analytics, advertising, or tracking SDKs</li>
-        <li>Does not have a backend or cloud dependency — it works entirely offline</li>
+        <li>Your documents and their contents are read on your device and are never uploaded.</li>
+        <li>There are no accounts, no sign-in and no advertising.</li>
+        <li>The mobile app sends crash reports and usage analytics to Google Firebase. These do not
+          include your documents, their names or their contents.</li>
+        <li>The app checks for updates (Google Play on Android, GitHub on desktop).</li>
       </ul>
 
       <h2>What stays on your device</h2>
       <p>
-        To provide features like browsing, Search, History and Favorites, OpenReader keeps a
-        local index of the documents it finds on your device's storage (file name, location,
-        size, type and dates), plus your reading history, reading positions and favorites. This
-        is stored in an on-device SQLite database and local app preferences. It never leaves your
-        device and is not accessible to the app developer or any third party.
+        To provide features like Browse, Search, History and Favorites, OpenReader keeps a local
+        record of documents you open (file name, location, size, type and dates), your reading
+        history, reading positions, favorites, page previews and your settings. This is stored in an
+        on-device database, local app preferences and the app's cache. It is not sent to the
+        developer or to any third party. You can clear reading history and the cache in Settings, and
+        choose how long history is kept.
+      </p>
+
+      <h2>Crash reports and usage analytics (Android)</h2>
+      <p>
+        Release builds of the Android app use two Google Firebase services. They are not used in the
+        desktop apps.
+      </p>
+      <ul>
+        <li>
+          <strong>Firebase Crashlytics</strong> sends a report when the app crashes or hits a serious
+          error: the error and where in the app's code it happened, the app version, device model,
+          operating system version, and a random identifier for this installation.
+        </li>
+        <li>
+          <strong>Google Analytics for Firebase</strong> records how the app is used, such as app
+          opens, sessions and screens viewed, together with the app version, device model, operating
+          system, language, an app-instance identifier and an approximate location (country or
+          region) that Google derives from your network address. It may also read your device's
+          advertising ID where Android makes it available. OpenReader shows no ads and does not use
+          this identifier for advertising; you can reset or delete it in Android's settings
+          (Settings &gt; Privacy &gt; Ads, or Google &gt; Ads, depending on your device).
+        </li>
+      </ul>
+      <p>
+        We use this information only to find and fix crashes and to understand which features are
+        used, so we can improve the app. It does not include the names, paths or contents of your
+        documents, and we do not sell it or use it for advertising. Collection is always on in release
+        builds; the app has no switch to turn it off. The identifiers above are reset when you clear
+        the app's data or reinstall it.
+      </p>
+      <p>
+        Google processes this data on our behalf under its own terms. See
+        <a href="https://firebase.google.com/support/privacy">Privacy and Security in Firebase</a>
+        and the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.
+        Google keeps this data for the retention periods set for the project in Firebase and
+        Google Analytics, after which it is deleted.
+      </p>
+
+      <h2>Update checks</h2>
+      <p>
+        On Android, the app asks Google Play whether a newer version is available. On Windows, macOS
+        and Linux, it asks GitHub for the latest release of OpenReader, and downloads the installer
+        only if you choose to update. These requests reveal your network address to Google or GitHub,
+        as any connection does, but carry no information about your documents.
       </p>
 
       <h2>File and storage access</h2>
       <p>
         On Android, OpenReader asks for the "All files access" permission
-        (<code>MANAGE_EXTERNAL_STORAGE</code>). It uses it only to find supported documents
-        (PDF, Word, Excel, CSV and text files) anywhere on your device's storage and to open them,
-        because your documents can be in any folder, not just Downloads or Documents. You can
-        decline it and still open files shared from other apps, and you can revoke it at any time
-        in Android's settings.
+        (<code>MANAGE_EXTERNAL_STORAGE</code>). It uses it only to find supported documents (such as
+        PDF, Word, Excel, PowerPoint, CSV, text and Markdown files) anywhere on your device's storage
+        and to open them, because your documents can be in any folder. You can decline it and still
+        open files shared from other apps or picked with Open file, and you can grant or revoke it at
+        any time in Android's settings (Settings &gt; Permissions in the app shows how).
       </p>
       <p>
-        On Windows, macOS and Linux, OpenReader reads documents from the folders it scans and from
+        On Windows, macOS and Linux, OpenReader reads documents from the folders you browse and from
         files you open or drop onto it.
       </p>
       <p>
-        Files are read and rendered locally and are never sent anywhere. OpenReader changes a file
-        only when you explicitly delete it from within the app, after confirming.
+        Files are read and rendered locally and are never sent anywhere. OpenReader changes a file only
+        when you explicitly delete it from within the app, after confirming.
       </p>
 
-      <h2>No network access</h2>
+      <h2>Sharing and links</h2>
       <p>
-        OpenReader makes no network calls. It contains no push-notification, crash-reporting or
-        other online service.
+        When you share a document or the app, or tap Rate, OpenReader hands off to the system share
+        sheet or to Google Play. What happens next is governed by the app you choose and its own
+        privacy policy.
       </p>
 
       <h2>Children's privacy</h2>
       <p>
-        OpenReader does not knowingly collect any data from anyone, including children, because it
-        does not collect data at all.
+        OpenReader is a general-purpose app and is not directed at children under 13. It does not
+        ask for names, email addresses or other contact details from anyone. The crash and usage data
+        described above is collected from all users of the Android app.
+      </p>
+
+      <h2>Your choices and rights</h2>
+      <p>
+        You can stop all data collection by uninstalling the app, and reset its identifiers by
+        clearing the app's data. Depending on where you live, you may have the right to ask about,
+        or ask us to delete, data collected about you; contact us below. Because the data is tied to
+        random identifiers rather than to your name, we may need your app-instance identifier to find it.
       </p>
 
       <h2>Changes to this policy</h2>
@@ -89,7 +143,9 @@
       <h2>Contact</h2>
       <p>
         Questions about this policy or the app can be raised via
-        <a href="https://github.com/macdipu/OpenReader/issues">GitHub Issues</a>.
+        <a href="https://github.com/macdipu/OpenReader/issues">GitHub Issues</a>. For privacy
+        requests, such as asking about or deleting data collected about you, email
+        <a href="mailto:c.dipu0@gmail.com">c.dipu0@gmail.com</a>.
       </p>
     </div>
   </main>
