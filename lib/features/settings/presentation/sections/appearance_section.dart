@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../core/presentation/theme/theme_extensions.dart';
 import '../../../../core/presentation/utils/platform_info.dart';
 import '../settings_controller.dart';
 import 'settings_widgets.dart';
@@ -21,21 +22,36 @@ class AppearanceSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            // With the card's own 4, the 12 the theme block always had.
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SettingsBlockHeader(icon: Icons.contrast_rounded, title: 'Theme'),
-                const SizedBox(height: 10),
-                Obx(() => SettingsSegmented<ThemeMode>(
-                      value: controller.themeController.themeMode,
-                      choices: const [
-                        SettingsChoice(ThemeMode.light, 'Light', icon: Icons.light_mode_outlined),
-                        SettingsChoice(ThemeMode.dark, 'Dark', icon: Icons.dark_mode_outlined),
-                        SettingsChoice(ThemeMode.system, 'System', icon: Icons.brightness_auto_outlined),
-                      ],
-                      onChanged: controller.themeController.changeThemeMode,
+                Row(
+                  children: [
+                    Icon(Icons.contrast_rounded, size: 24, color: context.onSurfaceVariant),
+                    const SizedBox(width: 16),
+                    Text('Theme', style: context.bodyLarge?.copyWith(color: context.onSurface)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Obx(() => SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<ThemeMode>(
+                        showSelectedIcon: false,
+                        style: const ButtonStyle(
+                          minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
+                          padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 4)),
+                          visualDensity: VisualDensity.standard,
+                          tapTargetSize: MaterialTapTargetSize.padded,
+                        ),
+                        segments: const [
+                          ButtonSegment(value: ThemeMode.light, label: Text('Light', maxLines: 1)),
+                          ButtonSegment(value: ThemeMode.dark, label: Text('Dark', maxLines: 1)),
+                          ButtonSegment(value: ThemeMode.system, label: Text('System', maxLines: 1)),
+                        ],
+                        selected: {controller.themeController.themeMode},
+                        onSelectionChanged: (set) => controller.themeController.changeThemeMode(set.first),
+                      ),
                     )),
               ],
             ),

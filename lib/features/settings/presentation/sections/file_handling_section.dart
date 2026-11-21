@@ -73,7 +73,7 @@ class _TypeRow extends StatelessWidget {
       DefaultStatus.unknown => (null, SettingsStatusKind.neutral),
     };
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
           // Type and status are read as one item; the Set button stays its own action.
@@ -81,8 +81,8 @@ class _TypeRow extends StatelessWidget {
             child: MergeSemantics(
               child: Row(
                 children: [
-                  const SettingsIconBadge(Icons.description_outlined),
-                  const SizedBox(width: 14),
+                  Icon(Icons.description_outlined, size: 24, color: context.onSurfaceVariant),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

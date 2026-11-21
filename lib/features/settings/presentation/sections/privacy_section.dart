@@ -4,26 +4,25 @@ import 'package:get/get.dart';
 import '../settings_controller.dart';
 import 'settings_widgets.dart';
 
-/// What leaves the device and the privacy policy (ST-06), and what the lists show (ST-19). The statement is only a
-/// statement: crash reports and analytics are always on in release builds, with no switch.
+/// Privacy & data: the privacy policy (ST-06), what the lists show (ST-19) and the two ways to
+/// start over, clearing the reading history (ST-07) and resetting every setting. The footnote is
+/// only a statement: crash reports and analytics are always on in release builds, with no switch.
 class PrivacySection extends StatelessWidget {
   final SettingsController controller;
   final bool showLabel;
   const PrivacySection({super.key, required this.controller, this.showLabel = true});
 
   static const statement = 'Documents are processed on this device and never uploaded. '
-      'Crash reports and usage analytics, tied to a random installation identifier and not to your '
-      'documents, are always sent to Google Firebase in release builds.';
+      'Crash reports and usage analytics tied to a random installation ID are sent to Google Firebase.';
 
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      label: 'Privacy',
+      label: 'Privacy & data',
       showLabel: showLabel,
+      footnote: statement,
       child: Column(
         children: [
-          const SettingsNote(statement),
-          const SettingsDivider(),
           SettingsActionRow(
             icon: Icons.policy_outlined,
             title: 'Privacy policy',
@@ -34,10 +33,25 @@ class PrivacySection extends StatelessWidget {
           Obx(() => SettingsSwitchRow(
                 icon: Icons.hide_image_outlined,
                 title: 'Hide thumbnails',
-                subtitle: 'Show the file type icon instead of a page preview in Recents and Home',
+                subtitle: 'Show file icons instead of page previews',
                 value: controller.hideThumbnails.value,
                 onChanged: controller.setHideThumbnails,
               )),
+          const SettingsDivider(),
+          SettingsActionRow(
+            icon: Icons.history_rounded,
+            title: 'Clear all history',
+            subtitle: 'Removes your recent files. Your documents are not deleted.',
+            onTap: controller.clearHistory,
+          ),
+          const SettingsDivider(),
+          SettingsActionRow(
+            icon: Icons.restore_rounded,
+            title: 'Reset all settings',
+            subtitle: 'Puts every setting back to its default.',
+            destructive: true,
+            onTap: controller.resetAllSettings,
+          ),
         ],
       ),
     );

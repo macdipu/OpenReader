@@ -26,7 +26,7 @@ class PermissionsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (PlatformInfo.isIOS) {
       return SettingsSection(
-        label: 'Permissions',
+        label: 'File access',
         showLabel: showLabel,
         child: Column(
           children: [
@@ -37,15 +37,14 @@ class PermissionsSection extends StatelessWidget {
               trailing: Icons.chevron_right_rounded,
               onTap: controller.openAppPermissions,
             ),
-            const SettingsDivider(),
-            const SettingsNote('No storage permission is needed. Open documents from the Files app or the Share sheet.'),
           ],
         ),
+        footnote: 'No storage permission is needed. Open documents from the Files app or the Share sheet.',
       );
     }
 
     return SettingsSection(
-      label: 'Permissions',
+      label: 'File access',
       showLabel: showLabel,
       child: Obx(() {
         final state = controller.storageState.value;
@@ -66,7 +65,7 @@ class PermissionsSection extends StatelessWidget {
         }
         final allowed = state == StorageAccessState.allowed;
         final (status, kind, detail) = switch (state) {
-          StorageAccessState.allowed => ('Allowed', SettingsStatusKind.ok, 'OpenReader can find your documents'),
+          StorageAccessState.allowed => ('Allowed', SettingsStatusKind.ok, null),
           StorageAccessState.notAllowed => (
               'Not allowed',
               SettingsStatusKind.warning,
@@ -86,7 +85,7 @@ class PermissionsSection extends StatelessWidget {
           children: [
             row,
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -113,25 +112,26 @@ class PermissionsSection extends StatelessWidget {
 class _FileAccessRow extends StatelessWidget {
   final String status;
   final SettingsStatusKind kind;
-  final String detail;
+  final String? detail;
   final VoidCallback? onTap;
-  const _FileAccessRow({required this.status, required this.kind, required this.detail, this.onTap});
+  const _FileAccessRow({required this.status, required this.kind, this.detail, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return MergeSemantics(
       child: Semantics(
         button: onTap != null,
+        label: onTap != null ? 'Manage file access' : null,
         child: SettingsRowInk(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48),
+              constraints: BoxConstraints(minHeight: detail != null ? 56 : 48),
               child: Row(
                 children: [
-                  const SettingsIconBadge(Icons.folder_open_rounded),
-                  const SizedBox(width: 12),
+                  Icon(Icons.folder_open_rounded, size: 24, color: context.onSurfaceVariant),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,12 +145,8 @@ class _FileAccessRow extends StatelessWidget {
                             SettingsStatusChip(kind: kind, label: status, textKey: const ValueKey('file-access-status')),
                           ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(detail, key: const ValueKey('file-access-detail'), style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-                        if (onTap != null) ...[
-                          const SizedBox(height: 2),
-                          Text('Manage file access', key: const ValueKey('file-access-manage'), style: context.bodySmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
-                        ],
+                        if (detail != null)
+                          Text(detail!, key: const ValueKey('file-access-detail'), style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
                       ],
                     ),
                   ),

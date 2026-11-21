@@ -490,7 +490,7 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   Future<void> resetAllSettings() async {
     final confirmed = await showConfirmDialog(
       title: 'Reset all settings?',
-      message: 'Appearance, reading, privacy and storage choices go back to their defaults. '
+      message: 'Your reading, appearance and privacy choices go back to their defaults. '
           'Your documents and history are not touched.',
       confirmLabel: 'Reset',
       destructive: true,

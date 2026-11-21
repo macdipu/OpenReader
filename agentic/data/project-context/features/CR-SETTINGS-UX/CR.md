@@ -36,7 +36,7 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 | ST-04 | **Reading section:** night mode for readers; text font size with a live preview; line wrap. Each value stays in sync with the reader toolbars in both directions. | All |
 | ST-05 | **Restore last reading position:** an on/off switch (default on, which is today's behaviour). When off, readers open at the start; saved positions are kept but not applied. | All |
 | ST-06 | **Privacy section:** a factual statement that documents are processed on the device and never uploaded, and that anonymous crash reports and usage analytics are always collected and sent to Google Firebase in release builds (debug builds send nothing). Decided 2026-11-21: always on, no switches, no opt-in or opt-out. **Privacy policy link done 2026-11-21 (Q2):** a "Privacy policy" row below the statement opens `https://macdipu.github.io/OpenReader/privacy.html` (external-link icon, error snackbar "Could not open the privacy policy." when it can't open), on every platform. Startup behaviour is unchanged (`setCrashlyticsCollectionEnabled(!kDebugMode)`, `setAnalyticsCollectionEnabled(!kDebugMode)`). | All |
-| ST-07 | **Files & storage:** Clear recent history (reuses the existing Library action, with confirmation); the render cache described in plain words. | All |
+| ST-07 | **Data** (was Data): Clear all history (confirmation), and Reset all settings (moved from Help & about). The render cache description was **removed by the user on 2026-11-21**. | All |
 
 ### Phase 2 (Should, no new dependencies)
 | ID | Requirement | Platforms |
@@ -44,8 +44,8 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 | ST-08 | **Desktop two-pane layout** (≥900px): section list on the left, content on the right; arrow keys move between sections, Tab moves through controls. 600–900px uses the mobile single column. | Desktop |
 | ST-09 | **Keyboard shortcuts section:** read-only list taken from `app_shortcuts.dart`, plus a new **Ctrl/Cmd+,** to open Settings. | Desktop |
 | ST-10 | **Help & about:** Send feedback (**done via GitHub Issues**, 2026-11-21: opens `https://github.com/macdipu/OpenReader/issues/new` with a URL-encoded body pre-filled with app version, OS name and version and platform, plus an empty "What happened?" section; never file names, paths or contents; shown on every platform); Rate OpenReader (Android only, opens `https://play.google.com/store/apps/details?id=com.chowdhuryelab.openreader` with `url_launcher`; hidden on iOS and desktop, where no store URL is known); Share app (`share_plus`, the shared text includes that Play Store URL on every platform); Show welcome screens again (`setOnboardingComplete(false)`); Reset all settings (`clearSettings()`, with confirmation); version; licenses. | All (Rate Android only) |
-| ST-11 | **Cache cap:** automatic limit on the render cache, removing the oldest files first; size choices to be set during TECHNICAL. | All |
-| ST-12 | **History retention:** Forever / 30 days / Off. | All |
+| ST-11 | ~~**Cache cap:** automatic limit on the render cache~~ **Removed by the user on 2026-11-21** ("not needed"). | None |
+| ST-12 | ~~**History retention:** Forever / 30 days / Off~~ **Removed by the user on 2026-11-21.** | None |
 | ST-13 | **"Open files with OpenReader" tip** in place of the default-app card. | Android, iOS |
 | ST-14 | **macOS default-app status:** one extra method on the existing `openreader/open_files` channel; File handling as in ST-03. Optional file-access row if the app is sandboxed (needs checking). | macOS |
 | ST-15 | Reset the default-app first-run prompt ("ask me again"). | Desktop |
@@ -60,8 +60,8 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 | ST-20 | Dynamic colour (Material You): a switch in Settings > Appearance, shown only where the system offers a palette ("Use wallpaper colours" on Android 12+; "Use accent colour" on macOS, Windows and GTK Linux; hidden on iOS, older Android and when no colour is reported). Default off, `AppSettingsRepository.getUseDynamicColor/setUseDynamicColor`, removed by both clear methods; the theme rebuilds live. When on, the palette's primary family replaces the app's accent roles (`secondary*`, plus `primary*` in dark); surfaces, text ink, error and the success tertiary stay the brand's (`AppTheme.light/dark(dynamicScheme)`, `DynamicColorPreferences`). Off or unavailable, the theme is unchanged. Only `DynamicColorPlugin`'s raw palette is used, because `dynamic_color` 2.1 builds `material_ui` ColorSchemes, not the `flutter/material` type the app uses. **Built 2026-11-21.** | `dynamic_color` ^2.1.0 (Q4 approved) |
 
 ### Section order
-- **Mobile:** Permissions → Reading → Appearance → Files & storage → Privacy → Open with → Help & about.
-- **Desktop:** File handling → Reading → Appearance → Files & storage → Privacy → Keyboard shortcuts → Help & about.
+- **Mobile:** Permissions → Reading → Appearance → Data → Privacy → Open with → Help & about.
+- **Desktop:** File handling → Reading → Appearance → Data → Privacy → Keyboard shortcuts → Help & about.
 
 ## Out of Scope
 - App lock with biometrics (`local_auth`): a separate CR.
@@ -105,7 +105,7 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 - AC-04 (ST-04): A value changed in Settings appears in the reader toolbar, and the reverse, for PDF mode, night mode, font size and line wrap.
 - AC-05 (ST-05): With restore off, a document that has a saved position opens at the start; turning it back on restores it.
 - AC-06 (ST-06): The Privacy section has no telemetry switches and has a Privacy policy link that opens the policy URL (error snackbar on failure); its text says documents are never uploaded, that crash reports and analytics are always collected and sent to Google Firebase in release builds, and that debug builds send nothing.
-- AC-07 (ST-07): Clear history asks for confirmation, then empties Recents/History. Clearing the cache while a document is open doesn't crash the reader.
+- AC-07 (ST-07): Clear history asks for confirmation, then empties Recents/History. (Cache clearing was removed on 2026-11-21.)
 - AC-08 (ST-08, ST-09): At 1200px, the two-pane layout shows; arrow keys and Tab work; Ctrl/Cmd+, opens Settings from any shell page.
 - AC-09: Widget tests at 360px, 700px and 1200px wide check which sections each platform shows.
 - AC-10: The app's `flutter test` passes, and `flutter analyze` shows 0 errors and 0 warnings.
@@ -113,6 +113,8 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 
 
 Note (user, 2026-11-21): the default PDF mode row was removed from Settings; the PDF reader's toolbar owns that choice.
+
+Note (redesign 2026-11-21): the Settings page was redesigned for length and consistency (Material 3 grouped list). Mobile sections are now File access, Reading, Appearance, Privacy & data, About (desktop: File handling first, then Reading, Appearance, Privacy & data, Shortcuts, About). One row style (plain 24dp icon, title, one supporting line, trailing control), Theme as one 3-segment text control, Text size stepper without a sample sentence, the Allowed file-access row without a supporting line, the Data and Privacy sections merged, the Open-with tip moved under About as a footnote. Behaviour, dialogs, snackbars and the controller are unchanged. Page height at 360x800 (widget-test font): 2355 -> 1613 logical px. See `validation/parity-matrix.md`.
 
 ## Open Questions
 - Q1: DECIDED 2026-11-21 (user): Firebase crash reporting and analytics are always on; no opt-in, no opt-out, no per-user permission. Disclosure statement only (ST-06).

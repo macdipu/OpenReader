@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/presentation/theme/theme_extensions.dart';
-import '../../../../core/presentation/utils/platform_info.dart';
 
-/// A labelled settings group.
+/// A labelled settings group: a sentence-case label, one card of rows and an optional footnote
+/// under the card.
 class SettingsSection extends StatelessWidget {
   final String label;
   final Widget child;
-  final bool padded;
+
+  /// Short explanatory text under the card (bodySmall, onSurfaceVariant).
+  final String? footnote;
 
   /// Omit the label (the two-pane layout already names the section in its list).
   final bool showLabel;
@@ -16,19 +18,20 @@ class SettingsSection extends StatelessWidget {
     super.key,
     required this.label,
     required this.child,
-    this.padded = false,
+    this.footnote,
     this.showLabel = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showLabel) SettingsSectionLabel(label),
-          SettingsSectionCard(padding: padded ? const EdgeInsets.all(12) : const EdgeInsets.all(4), child: child),
+          SettingsSectionCard(child: child),
+          if (footnote != null) SettingsFootnote(footnote!),
         ],
       ),
     );
@@ -44,7 +47,7 @@ class SettingsSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 6),
+      padding: const EdgeInsets.only(left: 4, bottom: 4),
       child: Semantics(
         header: true,
         child: Text(
@@ -52,6 +55,20 @@ class SettingsSectionLabel extends StatelessWidget {
           style: context.labelLarge?.copyWith(color: context.onSurfaceVariant, fontWeight: FontWeight.w600),
         ),
       ),
+    );
+  }
+}
+
+/// Short text under a card (bodySmall, onSurfaceVariant).
+class SettingsFootnote extends StatelessWidget {
+  final String text;
+  const SettingsFootnote(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+      child: Text(text, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
     );
   }
 }
@@ -174,49 +191,14 @@ class SettingsStatusChip extends StatelessWidget {
   }
 }
 
-/// Icon, title and optional supporting line over a control that is not a single trailing widget
-/// (segmented choices, the text size stepper).
-class SettingsBlockHeader extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
-  const SettingsBlockHeader({super.key, required this.icon, required this.title, this.subtitle, this.trailing});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SettingsIconBadge(icon),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: context.bodyLarge?.copyWith(color: context.onSurface)),
-              if (subtitle != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(subtitle!, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-                ),
-            ],
-          ),
-        ),
-        if (trailing != null) trailing!,
-      ],
-    );
-  }
-}
-
 class SettingsSectionCard extends StatelessWidget {
   final Widget child;
-  final EdgeInsets padding;
-  const SettingsSectionCard({super.key, required this.child, this.padding = const EdgeInsets.all(4)});
+  const SettingsSectionCard({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: context.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
@@ -227,7 +209,7 @@ class SettingsSectionCard extends StatelessWidget {
   }
 }
 
-/// A short explanatory paragraph inside a card.
+/// A short explanatory line inside a card.
 class SettingsNote extends StatelessWidget {
   final String text;
   const SettingsNote(this.text, {super.key});
@@ -235,18 +217,76 @@ class SettingsNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(text, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
     );
   }
 }
 
-/// Rows in a card are separated by a hairline.
+/// Rows in a card are separated by a hairline inset to the title (past the 24dp icon).
 class SettingsDivider extends StatelessWidget {
   const SettingsDivider({super.key});
 
   @override
-  Widget build(BuildContext context) => Divider(height: 1, color: context.outlineVariant);
+  Widget build(BuildContext context) => Divider(height: 1, indent: 56, color: context.outlineVariant);
+}
+
+/// The one row layout of Settings: a plain 24dp icon, the [content] (title and an optional single
+/// supporting line) and a trailing widget. At least 56dp tall with a supporting line, 48dp without.
+class SettingsRowLayout extends StatelessWidget {
+  final IconData icon;
+  final Widget content;
+  final bool hasSubtitle;
+  final Widget? trailing;
+  final double verticalPadding;
+
+  const SettingsRowLayout({
+    super.key,
+    required this.icon,
+    required this.content,
+    this.hasSubtitle = false,
+    this.trailing,
+    this.verticalPadding = 8,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: hasSubtitle ? 56 : 48),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: verticalPadding),
+        child: Row(
+          children: [
+            Icon(icon, size: 24, color: context.onSurfaceVariant),
+            const SizedBox(width: 16),
+            Expanded(child: content),
+            if (trailing != null) trailing!,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Title and an optional single supporting line.
+class SettingsRowText extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Color? titleColor;
+  const SettingsRowText({super.key, required this.title, this.subtitle, this.titleColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(title, style: context.bodyLarge?.copyWith(color: titleColor ?? context.onSurface)),
+        if (subtitle != null)
+          Text(subtitle!, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+      ],
+    );
+  }
 }
 
 /// A row: leading icon, title, optional one-line supporting text, then a trailing value, status
@@ -260,14 +300,11 @@ class SettingsActionRow extends StatelessWidget {
   final IconData? trailing;
   final VoidCallback? onTap;
 
-  /// A status or current value shown before the trailing icon (e.g. "500 MB"). Null shows nothing.
-  final String? status;
-
-  /// Key for the [status] text.
-  final Key? statusKey;
-
   /// Shows the version style ("v1.0") for [trailingText].
   final bool versionStyle;
+
+  /// A destructive action: the title is in the error colour.
+  final bool destructive;
 
   const SettingsActionRow({
     super.key,
@@ -277,9 +314,8 @@ class SettingsActionRow extends StatelessWidget {
     this.trailingText,
     this.trailing,
     this.onTap,
-    this.status,
-    this.statusKey,
     this.versionStyle = false,
+    this.destructive = false,
   });
 
   @override
@@ -288,64 +324,29 @@ class SettingsActionRow extends StatelessWidget {
       child: Semantics(
         button: onTap != null,
         child: SettingsRowInk(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            SettingsIconBadge(icon),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: context.bodyLarge?.copyWith(color: context.onSurface)),
-                  if (subtitle != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(subtitle!, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-                    ),
-                ],
-              ),
+          onTap: onTap,
+          child: SettingsRowLayout(
+            icon: icon,
+            hasSubtitle: subtitle != null,
+            content: SettingsRowText(
+              title: title,
+              subtitle: subtitle,
+              titleColor: destructive ? context.error : null,
             ),
-            if (status != null)
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text(status!,
-                      key: statusKey,
-                      textAlign: TextAlign.end,
-                      style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
-                ),
-              ),
-            if (trailingText != null)
-              Container(
-                margin: const EdgeInsets.only(left: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: context.surfaceContainerLow, borderRadius: BorderRadius.circular(999)),
-                child: Text(versionStyle ? 'v$trailingText' : trailingText!, style: context.monoMetadata),
-              ),
-            if (trailing != null) Icon(trailing, color: context.onSurfaceVariant),
-          ],
+            trailing: trailingText != null
+                ? Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration:
+                        BoxDecoration(color: context.surfaceContainerLow, borderRadius: BorderRadius.circular(999)),
+                    child: Text(versionStyle ? 'v$trailingText' : trailingText!, style: context.monoMetadata),
+                  )
+                : trailing != null
+                    ? Icon(trailing, color: context.onSurfaceVariant)
+                    : null,
+          ),
         ),
       ),
-        ),
-      ),
-    );
-  }
-}
-
-class SettingsIconBadge extends StatelessWidget {
-  final IconData icon;
-  const SettingsIconBadge(this.icon, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(color: context.secondaryContainer.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(10)),
-      child: Icon(icon, color: context.secondary, size: 19),
     );
   }
 }
@@ -372,100 +373,15 @@ class SettingsSwitchRow extends StatelessWidget {
     // One semantics node for the row: title, subtitle, switch state and the toggle action. The
     // whole row toggles and is the single keyboard stop (Space/Enter); the switch itself is not.
     return MergeSemantics(
-        child: SettingsRowInk(
-      onTap: () => onChanged(!value),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            SettingsIconBadge(icon),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: context.bodyLarge?.copyWith(color: context.onSurface)),
-                  if (subtitle != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(subtitle!, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-                    ),
-                ],
-              ),
-            ),
-            ExcludeFocus(child: Switch(value: value, onChanged: onChanged)),
-          ],
+      child: SettingsRowInk(
+        onTap: () => onChanged(!value),
+        child: SettingsRowLayout(
+          icon: icon,
+          hasSubtitle: subtitle != null,
+          content: SettingsRowText(title: title, subtitle: subtitle),
+          trailing: ExcludeFocus(child: Switch(value: value, onChanged: onChanged)),
         ),
       ),
-    ));
-  }
-}
-
-/// One choice in a [SettingsSegmented].
-class SettingsChoice<T> {
-  final T value;
-  final String label;
-  final IconData? icon;
-  const SettingsChoice(this.value, this.label, {this.icon});
-}
-
-/// Equal-width choice tiles for two or three options (Light / Dark / System, ...).
-class SettingsSegmented<T> extends StatelessWidget {
-  final T value;
-  final List<SettingsChoice<T>> choices;
-  final ValueChanged<T> onChanged;
-
-  const SettingsSegmented({super.key, required this.value, required this.choices, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final choice in choices)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Semantics(
-                button: true,
-                selected: value == choice.value,
-                child: SettingsRowInk(
-                  onTap: () => onChanged(choice.value),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    // At least 48dp tall, also without an icon.
-                    constraints: const BoxConstraints(minHeight: 48),
-                    alignment: Alignment.center,
-                    padding: EdgeInsets.symmetric(vertical: choice.icon == null ? 14 : 12, horizontal: 2),
-                    decoration: BoxDecoration(
-                      color: value == choice.value ? context.surfaceContainerLowest : Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: value == choice.value ? context.secondary : context.outlineVariant,
-                        width: value == choice.value ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (choice.icon != null) ...[
-                          Icon(choice.icon, size: 20, color: value == choice.value ? context.secondary : context.onSurfaceVariant),
-                          const SizedBox(height: 4),
-                        ],
-                        Text(
-                          choice.label,
-                          textAlign: TextAlign.center,
-                          style: context.labelMedium?.copyWith(
-                            color: value == choice.value ? context.secondary : context.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }

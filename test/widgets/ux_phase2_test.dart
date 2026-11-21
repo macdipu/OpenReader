@@ -158,7 +158,7 @@ void main() {
   });
 
   testWidgets('Settings renders its body (P2r4-qa #1)', (tester) async {
-    // The "Storage & Cache" row used to get infinite height inside the
+    // The old "Storage & Cache" row used to get infinite height inside the
     // ListView, so the whole body failed to lay out and showed blank.
     SharedPreferences.setMockInitialValues({});
     PackageInfo.setMockInitialValues(
@@ -175,7 +175,8 @@ void main() {
     // mode is picked in the PDF reader's toolbar.
     expect(find.text('Clear Recent History'), findsNothing);
     expect(find.textContaining('Reader Mode'), findsNothing);
-    expect(find.text('Clear render cache'), findsOneWidget);
+    expect(find.text('Clear all history'), findsOneWidget);
+    expect(find.text('Clear render cache'), findsNothing);
     // No storage scan any more (CR-OPENREADER-BROWSE).
     expect(find.textContaining('Rescan'), findsNothing);
     expect(find.textContaining('indexed'), findsNothing);

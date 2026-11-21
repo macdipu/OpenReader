@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../core/presentation/utils/platform_info.dart';
 import '../settings_controller.dart';
 import 'settings_widgets.dart';
 
@@ -11,10 +12,20 @@ class AboutSection extends StatelessWidget {
   final bool showLabel;
   const AboutSection({super.key, required this.controller, this.showLabel = true});
 
+  /// Android and iOS: how to open a file in OpenReader from another app (ST-13). Null on desktop.
+  static String? get _openWithTip {
+    if (PlatformInfo.isIOS) return 'In Files, touch and hold a document, tap Share, then choose OpenReader.';
+    if (PlatformInfo.isAndroid) {
+      return 'In a file manager, tap a document and choose OpenReader from "Open with". Pick "Always" to make it the default.';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      label: 'Help & about',
+      label: 'About',
+      footnote: _openWithTip,
       showLabel: showLabel,
       child: Column(
         children: [

@@ -35,7 +35,7 @@ class SettingsView extends GetView<SettingsController> {
             )
           : ContentConstraint(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 children: [for (final id in sections) id.build(controller, showLabel: true)],
               ),
             ),
@@ -113,7 +113,7 @@ class _TwoPaneState extends State<_TwoPane> {
         children: [
           Text('Settings', style: context.headlineMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5)),
           const SizedBox(height: 4),
-          Text('Reading, privacy and storage', style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
+          Text('Reading, appearance and privacy', style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
           const SizedBox(height: 24),
           Expanded(
             child: Row(

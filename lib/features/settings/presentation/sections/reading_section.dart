@@ -27,42 +27,29 @@ class ReadingSection extends StatelessWidget {
                 onChanged: controller.setNightMode,
               )),
           const SettingsDivider(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          SettingsRowLayout(
+            icon: Icons.format_size_rounded,
+            verticalPadding: 0,
+            content: Text('Text size', style: context.bodyLarge?.copyWith(color: context.onSurface)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    const SettingsIconBadge(Icons.format_size_rounded),
-                    const SizedBox(width: 14),
-                    Expanded(child: Text('Text size', style: context.bodyLarge?.copyWith(color: context.onSurface))),
-                    Obx(() => IconButton(
-                          tooltip: 'Smaller text',
-                          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                          onPressed: controller.canDecreaseFontSize ? controller.decreaseFontSize : null,
-                          icon: const Icon(Icons.remove_rounded),
-                        )),
-                    Obx(() => SizedBox(
-                          width: 48,
-                          child: Text('${controller.fontSize.value.round()} pt',
-                              key: const ValueKey('font-size-value'), textAlign: TextAlign.center, style: context.labelLarge),
-                        )),
-                    Obx(() => IconButton(
-                          tooltip: 'Larger text',
-                          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                          onPressed: controller.canIncreaseFontSize ? controller.increaseFontSize : null,
-                          icon: const Icon(Icons.add_rounded),
-                        )),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Obx(() => Text(
-                      'The quick brown fox jumps over the lazy dog.',
-                      key: const ValueKey('font-sample'),
-                      softWrap: controller.lineWrap.value,
-                      overflow: TextOverflow.clip,
-                      style: TextStyle(fontSize: controller.fontSize.value, color: context.onSurface),
+                Obx(() => IconButton(
+                      tooltip: 'Smaller text',
+                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                      onPressed: controller.canDecreaseFontSize ? controller.decreaseFontSize : null,
+                      icon: const Icon(Icons.remove_rounded),
+                    )),
+                Obx(() => SizedBox(
+                      width: 48,
+                      child: Text('${controller.fontSize.value.round()} pt',
+                          key: const ValueKey('font-size-value'), textAlign: TextAlign.center, style: context.labelLarge),
+                    )),
+                Obx(() => IconButton(
+                      tooltip: 'Larger text',
+                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                      onPressed: controller.canIncreaseFontSize ? controller.increaseFontSize : null,
+                      icon: const Icon(Icons.add_rounded),
                     )),
               ],
             ),
@@ -79,7 +66,7 @@ class ReadingSection extends StatelessWidget {
           Obx(() => SettingsSwitchRow(
                 icon: Icons.bookmark_outline_rounded,
                 title: 'Restore last position',
-                subtitle: 'Reopen documents where you stopped reading',
+                subtitle: 'Reopen where you stopped',
                 value: controller.restorePosition.value,
                 onChanged: controller.setRestorePosition,
               )),

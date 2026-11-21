@@ -245,13 +245,18 @@ void main() {
           await pump(tester, platform: platform, width: width);
           final isMobile = mobile.contains(platform);
           final expected = isMobile
-              ? ['Permissions', 'Reading', 'Appearance', 'Data', 'Privacy', 'Open with', 'Help & about']
-              : ['File handling', 'Reading', 'Appearance', 'Data', 'Privacy', 'Keyboard shortcuts', 'Help & about'];
-          final hidden = isMobile ? ['File handling', 'Keyboard shortcuts'] : ['Permissions', 'Open with'];
+              ? ['File access', 'Reading', 'Appearance', 'Privacy & data', 'About']
+              : ['File handling', 'Reading', 'Appearance', 'Privacy & data', 'Keyboard shortcuts', 'About'];
+          final hidden = isMobile
+              ? ['File handling', 'Keyboard shortcuts', 'Files & storage', 'Data', 'Privacy', 'Open with', 'Permissions', 'Help & about']
+              : ['File access', 'Files & storage', 'Data', 'Privacy', 'Open with', 'Permissions', 'Help & about'];
           final ys = <double>[];
           for (final label in expected) {
-            expect(find.text(label), findsOneWidget, reason: label);
-            ys.add(tester.getTopLeft(find.text(label)).dy);
+            // On Android the File access row repeats the section name in its own title.
+            final found = find.text(label);
+            expect(found, label == 'File access' && platform == TargetPlatform.android ? findsNWidgets(2) : findsOneWidget,
+                reason: label);
+            ys.add(tester.getTopLeft(found.first).dy);
           }
           expect(ys, [...ys]..sort(), reason: 'sections follow the platform order');
           for (final label in hidden) {
@@ -266,9 +271,11 @@ void main() {
         await pump(tester, platform: platform, width: 1200, height: 1400);
         final isMobile = mobile.contains(platform);
         final expected = isMobile
-            ? ['Permissions', 'Reading', 'Appearance', 'Data', 'Privacy', 'Open with', 'Help & about']
-            : ['File handling', 'Reading', 'Appearance', 'Data', 'Privacy', 'Keyboard shortcuts', 'Help & about'];
-        final hidden = isMobile ? ['File handling', 'Keyboard shortcuts'] : ['Permissions', 'Open with'];
+            ? ['File access', 'Reading', 'Appearance', 'Privacy & data', 'About']
+            : ['File handling', 'Reading', 'Appearance', 'Privacy & data', 'Keyboard shortcuts', 'About'];
+        final hidden = isMobile
+            ? ['File handling', 'Keyboard shortcuts', 'Files & storage', 'Data', 'Privacy', 'Open with']
+            : ['File access', 'Files & storage', 'Data', 'Privacy', 'Open with'];
         final list = find.byKey(const ValueKey('settings-section-list'));
         expect(list, findsOneWidget);
         for (final title in expected) {
@@ -278,7 +285,7 @@ void main() {
           expect(find.descendant(of: list, matching: find.text(title)), findsNothing, reason: title);
         }
         // The first section of the platform is on the right.
-        expect(find.byKey(ValueKey('settings-pane-${isMobile ? 'permissions' : 'fileHandling'}')), findsOneWidget);
+        expect(find.byKey(ValueKey('settings-pane-${isMobile ? 'fileAccess' : 'fileHandling'}')), findsOneWidget);
       });
     }
   });
@@ -287,12 +294,17 @@ void main() {
     testWidgets('Android allowed: one compact row, no note, no help, and the row opens the All files access page', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360);
       expect(find.text('Allowed'), findsOneWidget);
-      expect(find.text('OpenReader can find your documents'), findsOneWidget);
+      expect(find.byKey(const ValueKey('file-access-detail')), findsNothing, reason: 'no supporting line');
+      expect(find.text('OpenReader can find your documents'), findsNothing);
+      expect(find.text('Manage file access'), findsNothing, reason: 'no third line');
       expect(find.textContaining('limited mode'), findsNothing);
       expect(find.byType(HowToAllowAccess), findsNothing);
       expect(find.text('Allow file access'), findsNothing);
-      expect(find.text('Manage file access'), findsOneWidget);
-      await tester.tap(find.text('File access'));
+      final handle = tester.ensureSemantics();
+      final fileAccessRow = find.ancestor(of: find.byKey(const ValueKey('file-access-status')), matching: find.byType(InkWell)).first;
+      expect(tester.getSemantics(fileAccessRow).label, contains('Manage file access'));
+      handle.dispose();
+      await tester.tap(fileAccessRow);
       await tester.pump();
       expect(storage.allFiles, 1);
       expect(storage.opened, 0);
@@ -346,14 +358,21 @@ void main() {
           expect(tester.takeException(), isNull);
           final chip = find.byKey(const ValueKey('file-access-status'));
           final chipBox = tester.getRect(find.ancestor(of: chip, matching: find.byType(SettingsStatusChip)));
-          final titleBox = tester.getRect(find.text('File access'));
+          final titleBox = tester.getRect(find.descendant(
+              of: find.ancestor(of: chip, matching: find.byType(InkWell)).first, matching: find.text('File access')));
           // The chip keeps one line of text (the test font is much wider than a real one, so on a
           // real phone it also shares the title line at x1.0; here it may drop below as a whole).
           if (scale == 1) expect(tester.getSize(chip).height, lessThan(28), reason: 'single line, not a wrapped column');
           expect(chipBox.right, lessThanOrEqualTo(360));
-          final supporting = tester.getRect(find.byKey(const ValueKey('file-access-detail')));
-          expect(supporting.left, titleBox.left, reason: 'supporting text starts under the title, on the full row width');
-          expect(supporting.right, greaterThanOrEqualTo(chipBox.right));
+          if (access != StorageAccessState.allowed) {
+            final supporting = tester.getRect(find.byKey(const ValueKey('file-access-detail')));
+            expect(supporting.left, titleBox.left, reason: 'supporting text starts under the title, on the full row width');
+            expect(supporting.right, greaterThanOrEqualTo(chipBox.right));
+          } else {
+            expect(find.byKey(const ValueKey('file-access-detail')), findsNothing);
+          }
+          final row = find.ancestor(of: chip, matching: find.byType(InkWell)).first;
+          expect(tester.getSize(row).height, greaterThanOrEqualTo(access == StorageAccessState.allowed ? 48 : 56));
           if (access != StorageAccessState.allowed) {
             expect(tester.getSize(find.byKey(const ValueKey('allow-file-access'))).height, greaterThanOrEqualTo(48));
             expect(tester.getSize(find.byKey(const ValueKey('how-to-allow'))).height, greaterThanOrEqualTo(48));
@@ -497,7 +516,7 @@ void main() {
 
   group('settings and the repository agree', () {
     testWidgets('settings change the repository', (tester) async {
-      final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       // The PDF reading mode is not on this page: the PDF reader's toolbar owns it.
       expect(find.text('PDF default view'), findsNothing);
       expect(find.text('Page by page'), findsNothing);
@@ -513,7 +532,7 @@ void main() {
         expect(await repo.getRestoreReadingPosition(), isFalse);
       });
       expect(tester.widget<Text>(find.byKey(const ValueKey('font-size-value'))).data, '18 pt');
-      expect(tester.widget<Text>(find.byKey(const ValueKey('font-sample'))).style!.fontSize, 18);
+      expect(find.byKey(const ValueKey('font-sample')), findsNothing);
     });
 
     testWidgets('values saved by a reader toolbar show in Settings after it reloads', (tester) async {
@@ -561,26 +580,26 @@ void main() {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.textContaining('Google Firebase'), findsOneWidget);
       expect(find.textContaining('never uploaded'), findsOneWidget);
-      expect(find.textContaining('always sent'), findsOneWidget);
+      expect(find.textContaining('are sent to Google Firebase'), findsOneWidget);
       expect(find.text('Send crash reports'), findsNothing);
       expect(find.text('Share usage analytics'), findsNothing);
       expect(find.text('Privacy policy'), findsOneWidget);
       // Firebase uses a random installation identifier: the statement must not claim anonymity.
       expect(find.textContaining('nonymous'), findsNothing);
-      expect(find.textContaining('random installation identifier'), findsOneWidget);
+      expect(find.textContaining('random installation ID'), findsOneWidget);
     });
   });
 
   group('privacy policy link (ST-06, Q2)', () {
     for (final platform in [...mobile, ...desktop]) {
-      testWidgets('$platform: Privacy shows the link with the external-link icon, below the statement', (tester) async {
+      testWidgets('$platform: Privacy shows the link with the external-link icon, above the toggle, statement as the footnote', (tester) async {
         await pump(tester, platform: platform, width: 360, height: 8000);
         final row = find.widgetWithText(SettingsActionRow, 'Privacy policy');
         expect(row, findsOneWidget);
         expect(find.descendant(of: row, matching: find.byIcon(Icons.open_in_new_rounded)), findsOneWidget);
         final y = tester.getTopLeft(find.text('Privacy policy')).dy;
-        expect(y, greaterThan(tester.getTopLeft(find.textContaining('never uploaded')).dy));
         expect(y, lessThan(tester.getTopLeft(find.text('Hide thumbnails')).dy));
+        expect(y, lessThan(tester.getTopLeft(find.textContaining('never uploaded')).dy), reason: 'footnote is under the card');
       });
     }
 
@@ -658,7 +677,7 @@ void main() {
       final list = find.byKey(const ValueKey('settings-section-list'));
       await tester.tap(find.descendant(of: list, matching: find.text('File handling')));
       await tester.pump();
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < 4; i++) {
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       }
       await tester.pump();
@@ -667,7 +686,7 @@ void main() {
       expect(find.text('Ctrl+,'), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       await tester.pump();
-      expect(find.byKey(const ValueKey('settings-pane-privacy')), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings-pane-privacyData')), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
       expect(FocusManager.instance.primaryFocus?.debugLabel, isNot('settings section list'));
@@ -705,22 +724,14 @@ void main() {
     });
   });
 
-  group('Data section (CR-SETTINGS-UX, ST-07; ST-11/ST-12 removed 2026-11-21)', () {
+  group('Privacy & data section (CR-SETTINGS-UX, ST-07; ST-11/ST-12 removed 2026-11-21)', () {
     const removed = ['cache', 'limit', 'retention', 'Clear render cache', 'Forever', '30 days', 'No limit', 'Keep reading history'];
 
-    testWidgets('shows exactly Clear all history and Reset all settings, and nothing about cache, limit or retention',
+    testWidgets('has Clear all history and Reset all settings in the one card, and nothing about cache, limit or retention',
         (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      final dataLabel = find.text('Data');
-      expect(dataLabel, findsOneWidget);
-      // The section sits between Appearance and Privacy; its rows are the only action rows in it.
-      final top = tester.getTopLeft(dataLabel).dy;
-      final bottom = tester.getTopLeft(find.text('Privacy')).dy;
-      final rows = find.byType(SettingsActionRow).evaluate().where((e) {
-        final y = (e.renderObject! as RenderBox).localToGlobal(Offset.zero).dy;
-        return y > top && y < bottom;
-      }).toList();
-      expect(rows, hasLength(2));
+      expect(find.text('Data'), findsNothing);
+      expect(find.text('Privacy & data'), findsOneWidget);
       expect(find.text('Clear all history'), findsOneWidget);
       expect(find.text('Removes your recent files. Your documents are not deleted.'), findsOneWidget);
       expect(find.text('Reset all settings'), findsOneWidget);
@@ -729,7 +740,7 @@ void main() {
         expect(find.textContaining(word, findRichText: true), findsNothing, reason: word);
         expect(find.textContaining(word.toLowerCase()), findsNothing, reason: word);
       }
-      expect(find.byType(SettingsSegmented<int?>), findsNothing);
+      expect(find.byType(SegmentedButton<int?>), findsNothing);
     });
 
     testWidgets('Clear all history: Cancel does nothing; confirm clears and shows the success message', (tester) async {
@@ -775,22 +786,23 @@ void main() {
     });
 
     for (final platform in [...mobile, ...desktop]) {
-      testWidgets('$platform: Data is between Appearance and Privacy in the platform order', (tester) async {
+      testWidgets('$platform: Privacy & data follows Appearance in the platform order', (tester) async {
         final order = (() { debugDefaultTargetPlatformOverride = platform; addTearDown(() => debugDefaultTargetPlatformOverride = null); return settingsSectionsForPlatform(); })().map((e) => e.title).toList();
-        expect(order, contains('Data'));
-        expect(order.indexOf('Data'), order.indexOf('Appearance') + 1);
-        expect(order.indexOf('Privacy'), order.indexOf('Data') + 1);
-        expect(order, isNot(contains('Files & storage')));
+        expect(order, contains('Privacy & data'));
+        expect(order.indexOf('Privacy & data'), order.indexOf('Appearance') + 1);
+        for (final gone in ['Files & storage', 'Data', 'Privacy', 'Open with']) {
+          expect(order, isNot(contains(gone)));
+        }
       });
     }
 
     for (final platform in desktop) {
-      testWidgets('$platform: the Data pane has the two actions in the two-pane layout', (tester) async {
+      testWidgets('$platform: the Privacy & data pane has the two actions in the two-pane layout', (tester) async {
         await pump(tester, platform: platform, width: 1200, height: 1400);
         final list = find.byKey(const ValueKey('settings-section-list'));
-        await tester.tap(find.descendant(of: list, matching: find.text('Data')));
+        await tester.tap(find.descendant(of: list, matching: find.text('Privacy & data')));
         await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('settings-pane-data')), findsOneWidget);
+        expect(find.byKey(const ValueKey('settings-pane-privacyData')), findsOneWidget);
         expect(find.text('Clear all history'), findsOneWidget);
         expect(find.text('Reset all settings'), findsOneWidget);
         expect(find.text('Clear render cache'), findsNothing);
@@ -814,7 +826,8 @@ void main() {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.text('Share app'), findsOneWidget);
       expect(find.text('Show welcome screens again'), findsOneWidget);
-      expect(find.text('Reset all settings'), findsNothing, reason: 'it lives in Data now');
+      // Reset all settings lives in Privacy & data, above the About label, not below it.
+      expect(tester.getTopLeft(find.text('Reset all settings')).dy, lessThan(tester.getTopLeft(find.text('About')).dy));
       expect(find.text('Open-source licenses'), findsOneWidget);
       expect(find.text('Send feedback'), findsOneWidget);
       expect(find.textContaining('Rate'), findsOneWidget, reason: 'Android has the Play Store page');
@@ -1353,22 +1366,114 @@ void main() {
     });
   });
 
-  group('accessibility (N4)', () {
-    testWidgets('segmented tiles without an icon are at least 48dp tall', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.lightTheme,
-        home: Scaffold(
-          body: SettingsSegmented<int>(
-            value: 1,
-            choices: const [SettingsChoice(1, 'Forever'), SettingsChoice(2, '30 days'), SettingsChoice(3, 'Off')],
-            onChanged: (_) {},
-          ),
-        ),
-      ));
-      for (final label in ['Forever', '30 days', 'Off']) {
-        final tile = find.ancestor(of: find.text(label), matching: find.byType(AnimatedContainer));
-        expect(tester.getSize(tile).height, greaterThanOrEqualTo(48), reason: label);
+  group('settings redesign 2026-11-21', () {
+    Future<double> pageHeight(WidgetTester tester) async {
+      final position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+      return position.maxScrollExtent + position.viewportDimension;
+    }
+
+    testWidgets('the whole mobile page (Android, access allowed, 360x800) is at most about 3.2 screens', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 800);
+      final height = await pageHeight(tester);
+      debugPrint('settings page height at 360x800: ${height.toStringAsFixed(0)} logical px');
+      expect(height, lessThan(2600));
+      expect(tester.takeException(), isNull);
+    });
+
+    for (final platform in [...mobile, ...desktop]) {
+      testWidgets('$platform: section labels in order, none of the old labels', (tester) async {
+        await pump(tester, platform: platform, width: 360, height: 8000);
+        final labels = find.byType(SettingsSectionLabel).evaluate().map((e) => (e.widget as SettingsSectionLabel).title).toList();
+        expect(
+            labels,
+            mobile.contains(platform)
+                ? ['File access', 'Reading', 'Appearance', 'Privacy & data', 'About']
+                : ['File handling', 'Reading', 'Appearance', 'Privacy & data', 'Keyboard shortcuts', 'About']);
+        for (final old in ['Files & storage', 'Data', 'Open with', 'Privacy', 'Permissions', 'Help & about']) {
+          expect(find.text(old), findsNothing, reason: old);
+        }
+      });
+    }
+
+    testWidgets('the Open with tip is a footnote of About on Android and iOS only', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
+      expect(find.textContaining('"Open with"'), findsOneWidget);
+      expect(find.text('Open with'), findsNothing);
+      await pump(tester, platform: TargetPlatform.iOS, width: 360, height: 8000);
+      expect(find.textContaining('touch and hold a document'), findsOneWidget);
+      await pump(tester, platform: TargetPlatform.windows, width: 360, height: 8000);
+      expect(find.textContaining('Open with'), findsNothing);
+      expect(find.textContaining('touch and hold'), findsNothing);
+    });
+
+    testWidgets('Text size is a stepper only: no sample sentence', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
+      expect(find.textContaining('quick brown fox'), findsNothing);
+      expect(find.byKey(const ValueKey('font-sample')), findsNothing);
+      expect(find.byTooltip('Smaller text'), findsOneWidget);
+      expect(find.byTooltip('Larger text'), findsOneWidget);
+    });
+
+    testWidgets('Theme is one 3-segment control with text only', (tester) async {
+      final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
+      final control = find.byType(SegmentedButton<ThemeMode>);
+      expect(control, findsOneWidget);
+      expect(tester.widget<SegmentedButton<ThemeMode>>(control).segments, hasLength(3));
+      for (final label in ['Light', 'Dark', 'System']) {
+        expect(find.descendant(of: control, matching: find.text(label)), findsOneWidget);
       }
+      expect(find.descendant(of: control, matching: find.byType(Icon)), findsNothing);
+      await tester.tap(find.descendant(of: control, matching: find.text('Dark')));
+      await tester.pump();
+      expect(c.themeController.themeMode, ThemeMode.dark);
+    });
+
+    testWidgets('the privacy footnote is short and under the card; Reset is the error colour', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
+      final footnote = find.textContaining('never uploaded');
+      expect(footnote, findsOneWidget);
+      final text = tester.widget<Text>(footnote).data!;
+      expect(text, contains('Google Firebase'));
+      expect(text.length, lessThan(170));
+      expect(tester.getTopLeft(footnote).dy, greaterThan(tester.getTopLeft(find.text('Reset all settings')).dy));
+      final resetTitle = tester.widget<Text>(find.text('Reset all settings'));
+      expect(resetTitle.style?.color, Theme.of(tester.element(find.text('Reset all settings'))).colorScheme.error);
+    });
+
+    testWidgets('the reset confirm names reading, appearance and privacy choices', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
+      await tester.tap(find.text('Reset all settings'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('reading, appearance and privacy choices'), findsOneWidget);
+      expect(find.textContaining('storage'), findsNothing);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    });
+
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('360 px, text x$scale: no overflow, every row is 48dp or taller (56dp with a supporting line)',
+          (tester) async {
+        await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000, textScale: scale);
+        expect(tester.takeException(), isNull);
+        for (final type in [SettingsActionRow, SettingsSwitchRow]) {
+          for (final element in find.byType(type).evaluate()) {
+            final box = element.renderObject! as RenderBox;
+            final hasSubtitle = switch (element.widget) {
+              final SettingsActionRow r => r.subtitle != null,
+              final SettingsSwitchRow r => r.subtitle != null,
+              _ => false,
+            };
+            expect(box.size.height, greaterThanOrEqualTo(hasSubtitle ? 56 : 48), reason: '$type ${_texts(element)}');
+          }
+        }
+      });
+    }
+  });
+
+  group('accessibility (N4)', () {
+    testWidgets('the theme segments are at least 48dp tall', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      expect(tester.getSize(find.byType(SegmentedButton<ThemeMode>)).height, greaterThanOrEqualTo(48));
     });
 
     testWidgets('a switch row is one semantics node: title, subtitle, state and toggle', (tester) async {
@@ -1436,9 +1541,9 @@ void main() {
   group('standard UX: segmented choices', () {
     testWidgets('2-3 option choices stay segmented', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      expect(find.byType(SettingsSegmented<ThemeMode>), findsOneWidget);
-      expect(find.byType(SettingsSegmented<bool>), findsNothing, reason: 'the PDF mode row is not on this page');
-      expect(find.byType(SettingsSegmented<int?>), findsNothing, reason: 'history retention was removed');
+      expect(find.byType(SegmentedButton<ThemeMode>), findsOneWidget);
+      expect(find.byType(SegmentedButton<bool>), findsNothing, reason: 'the PDF mode row is not on this page');
+      expect(find.byType(SegmentedButton<int?>), findsNothing, reason: 'history retention was removed');
     });
   });
 
@@ -1474,7 +1579,7 @@ void main() {
     testWidgets('headers are sentence case and announced as headings', (tester) async {
       final handle = tester.ensureSemantics();
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
-      for (final title in ['Permissions', 'Reading', 'Data', 'Help & about']) {
+      for (final title in ['File access', 'Reading', 'Privacy & data', 'About']) {
         expect(find.text(title.toUpperCase()), findsNothing, reason: title);
         final label = find.descendant(of: find.byType(SettingsSectionLabel), matching: find.text(title));
         expect(label, findsOneWidget, reason: title);
@@ -1591,9 +1696,6 @@ void main() {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       final node = tester.getSemantics(find.text('Share app'));
       expect(node, isSemantics(label: 'Share app', isButton: true, hasTapAction: true));
-      final picker = tester.getSemantics(find.text('Cache size limit'));
-      expect(picker.label, allOf(contains('Cache size limit'), contains('No limit')));
-      expect(picker, isSemantics(isButton: true, hasTapAction: true));
       handle.dispose();
     });
 
