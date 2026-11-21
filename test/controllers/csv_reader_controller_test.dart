@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
 import 'package:openreader/core/domain/repositories/favorite_repository.dart';
+import '../helpers/restore_settings.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
@@ -138,6 +139,19 @@ void main() {
       await loaded(controller);
       expect(controller.initialVerticalOffset, 40.0);
       expect(controller.initialHorizontalOffset, 60.0);
+    });
+
+    test('opens at the start when restoring is switched off', () async {
+      recents.position = {'vertical_offset': 40.0, 'horizontal_offset': 60.0};
+      final c = CsvReaderController(
+        document: document,
+        recentRepository: recents,
+        settingsRepository: RestoreFlagSettings(restore: false),
+        interactions: interactions,
+      );
+      await loaded(c);
+      expect(c.initialVerticalOffset, 0);
+      expect(c.initialHorizontalOffset, 0);
     });
   });
 

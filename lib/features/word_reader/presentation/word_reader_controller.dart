@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
+import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
 import '../../../core/domain/models/document_model.dart';
+import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
@@ -22,13 +24,16 @@ import 'package:universal_document_viewer/universal_document_viewer.dart';
 class WordReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
   final DocumentModel document;
   final RecentRepository _recentRepository;
+  final AppSettingsRepository _settingsRepository;
   final DocumentInteractionController _interactions;
 
   WordReaderController({
     required this.document,
     RecentRepository? recentRepository,
+    AppSettingsRepository? settingsRepository,
     DocumentInteractionController? interactions,
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
+        _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>() {
     word = WordController(onPositionChanged: _onPositionChanged)..addListener(_onWordChanged);
   }
@@ -104,9 +109,10 @@ class WordReaderController extends BaseController with ReaderFullscreen, ReaderN
 
   Future<void> _loadInitialPosition() async {
     status.value = StateStatus.loading;
-    final result = await _recentRepository.getPosition(document.id);
+    final restore = await _settingsRepository.getRestoreReadingPosition();
+    final result = restore ? await _recentRepository.getPosition(document.id) : null;
     if (_closed) return;
-    result.fold((_) {}, word.restore);
+    result?.fold((_) {}, word.restore);
     isPaged.value = word.viewMode == WordViewMode.paged;
     // A file that can't be read fails as corrupted.
     await word.loadFile(document.path);

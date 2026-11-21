@@ -12,6 +12,8 @@ import '../../features/home/presentation/home_controller.dart';
 import '../../features/workspace/presentation/workspace_controller.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../features/settings/presentation/default_app_dialog.dart';
+import '../../features/settings/presentation/settings_controller.dart';
+import '../../features/settings/presentation/settings_maintenance.dart';
 import '../../services/platform_integration/desktop_open_files.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
@@ -64,6 +66,7 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     // access has already been resolved, so it's safe to start listening for
     // an incoming file here.
     unawaited(_loadSidebarPref());
+    unawaited(enforceHistoryRetention());
     unawaited(_incomingIntentService.init());
     _openLaunchFiles();
     WidgetsBinding.instance.addObserver(this);
@@ -159,6 +162,10 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
 
   void changeTab(int index) {
     currentIndex.value = index;
+    // Settings shows what the readers last saved (night mode, text size, ...).
+    if (index == settingsIndex && Get.isRegistered<SettingsController>()) {
+      unawaited(Get.find<SettingsController>().reload());
+    }
     // Home / Browse / Library replace the open documents on screen; the tabs stay open.
     if (Get.isRegistered<WorkspaceController>()) Get.find<WorkspaceController>().hide();
     // Belt-and-suspenders reload on tab select: verified on a real device

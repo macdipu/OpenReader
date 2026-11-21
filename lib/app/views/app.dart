@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:openreader/res/strings/string_enum.dart';
 import 'package:openreader/services/navigation/navigation_history_observer.dart';
 import 'package:openreader/services/navigation/navigation_service.dart';
@@ -8,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../../core/presentation/controllers/locale_controller.dart';
 import '../../core/presentation/controllers/theme_controller.dart';
+import '../../core/presentation/controllers/thumbnail_preferences.dart';
 import '../../core/presentation/theme/app_theme.dart';
 import '../../res/routes/app_pages.dart';
 import '../../res/strings/app_translations.dart';
@@ -22,6 +25,12 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final ThemeController _themeController = Get.put(ThemeController());
   final LocaleController _localeController = Get.put(LocaleController());
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(ThumbnailPreferences.load());
+  }
 
   @override
   Widget build(BuildContext context) {

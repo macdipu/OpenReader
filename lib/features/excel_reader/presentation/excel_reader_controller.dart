@@ -9,7 +9,7 @@ export 'package:universal_document_viewer/spreadsheet.dart' show CellMatch, Shee
 /// sheets left out) and [SpreadsheetView] shows it; [SheetReaderController] adds
 /// OpenReader's saved position, favourites and error wording.
 class ExcelReaderController extends SheetReaderController {
-  ExcelReaderController({required super.document, super.recentRepository, super.interactions});
+  ExcelReaderController({required super.document, super.recentRepository, super.settingsRepository, super.interactions});
 
   @override
   DocumentFormat get format => DocumentFormat.excel;

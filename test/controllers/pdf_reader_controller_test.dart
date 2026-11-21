@@ -67,6 +67,9 @@ class FixtureRecents implements RecentRepository {
 
 class FixtureSettings implements AppSettingsRepository {
   bool continuous = true;
+  bool restore = true;
+  @override
+  Future<bool> getRestoreReadingPosition() async => restore;
   bool? nightMode;
 
   @override
@@ -141,6 +144,15 @@ void main() {
       expect(controller.status.value, StateStatus.success);
     });
 
+    test('opens on page 1 when restoring is switched off', () async {
+      settings.restore = false;
+      recents.position = {'page_number': 7};
+      controller.onInit();
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.initialPageNumber, 1);
+      expect(controller.status.value, StateStatus.success);
+    });
+
     test('defaults to page 1 when no position is stored', () async {
       controller.onInit();
       await Future<void>.delayed(Duration.zero);
@@ -186,6 +198,28 @@ void main() {
       });
     });
 
+
+    test('restore off: closing without moving keeps the stored position', () async {
+      settings.restore = false;
+      controller.onInit();
+      await Future<void>.delayed(Duration.zero);
+      controller.pdf.debugSetPages(pageCount: 3, currentPage: 1);
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.markOpenedCalls, 0);
+    });
+
+    test('restore off: a position is saved once the user has moved', () async {
+      settings.restore = false;
+      controller.onInit();
+      await Future<void>.delayed(Duration.zero);
+      controller.pdf.onPageChanged(4); // ignore: invalid_use_of_internal_member
+      controller.pdf.debugSetPages(pageCount: 8, currentPage: 4);
+      controller.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.markOpenedCalls, 1);
+      expect(recents.lastReadingPosition?['page_number'], 4);
+    });
 
     test('onClose is a no-op when the viewer was never attached', () {
       expect(controller.pageCount.value, 0);

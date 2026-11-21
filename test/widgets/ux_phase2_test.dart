@@ -75,6 +75,8 @@ class FixtureTextSettings implements AppSettingsRepository {
   FixtureTextSettings({this.lineWrap});
   final bool? lineWrap;
   @override
+  Future<bool> getRestoreReadingPosition() async => true;
+  @override
   Future<double?> getTextReaderFontSize() async => null;
   @override
   Future<bool?> getTextReaderLineWrap() async => lineWrap;
@@ -173,7 +175,7 @@ void main() {
     // mode is picked in the PDF reader's toolbar.
     expect(find.text('Clear Recent History'), findsNothing);
     expect(find.textContaining('Reader Mode'), findsNothing);
-    expect(find.text('Clear Render Cache'), findsOneWidget);
+    expect(find.text('Clear render cache'), findsOneWidget);
     // No storage scan any more (CR-OPENREADER-BROWSE).
     expect(find.textContaining('Rescan'), findsNothing);
     expect(find.textContaining('indexed'), findsNothing);

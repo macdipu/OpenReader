@@ -11,7 +11,7 @@ export 'package:universal_document_viewer/spreadsheet.dart' show CellMatch;
 /// [SheetReaderController] adds OpenReader's saved position, favourites and
 /// error wording. CSV has one implicit sheet, so no sheet tabs.
 class CsvReaderController extends SheetReaderController {
-  CsvReaderController({required super.document, super.recentRepository, super.interactions});
+  CsvReaderController({required super.document, super.recentRepository, super.settingsRepository, super.interactions});
 
   /// See [SpreadsheetController.maxCsvBytes].
   static const int maxBytes = SpreadsheetController.maxCsvBytes;

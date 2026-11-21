@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
@@ -33,6 +34,13 @@ class DefaultAppResult {
   const DefaultAppResult({required this.applied, required this.success, required this.message});
 }
 
+/// Whether OpenReader is the system default for a document type.
+/// [unknown] whenever the platform cannot say reliably; never a guess.
+enum DefaultStatus { isDefault, otherApp, unknown }
+
+/// Runs an external command; replaced in tests so no process is spawned.
+typedef ProcessRunner = Future<ProcessResult> Function(String executable, List<String> arguments);
+
 /// "Make OpenReader the default app" - for all documents or chosen types.
 ///
 /// - Linux: `xdg-mime default` per type (sets it directly).
@@ -42,7 +50,11 @@ class DefaultAppResult {
 /// - Android / iOS: unsupported, so the prompt and the settings row are never shown.
 class DefaultAppService {
   DefaultAppService._();
+  @visibleForTesting
+  DefaultAppService.test({ProcessRunner? runner}) : _run = runner ?? Process.run;
   static final DefaultAppService instance = DefaultAppService._();
+
+  ProcessRunner _run = Process.run;
 
   static const _macChannel = MethodChannel('openreader/open_files');
   static const _dismissedKey = 'default_app_prompt_dismissed';
@@ -71,6 +83,96 @@ class DefaultAppService {
   Future<void> dismissPromptForever() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_dismissedKey, true);
+  }
+
+  /// Clears the first-run prompt's "shown" count and "don't ask again" flag so it can appear again.
+  Future<void> resetPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_dismissedKey);
+    await prefs.remove(_shownKey);
+  }
+
+  /// Opens the system's default-apps settings. Windows only; false elsewhere or on failure.
+  Future<bool> openSystemDefaultAppsSettings() async {
+    if (!PlatformInfo.isWindows) return false;
+    try {
+      final r = await _run('cmd', ['/c', 'start', '', 'ms-settings:defaultapps']);
+      return r.exitCode == 0;
+    } catch (e, st) {
+      AppLogger.error('openSystemDefaultAppsSettings failed', e, st);
+      return false;
+    }
+  }
+
+  /// Whether OpenReader is the default for each [DocumentType]. Never throws; an unsupported
+  /// platform, a missing tool or unreadable output gives [DefaultStatus.unknown].
+  Future<Map<DocumentType, DefaultStatus>> queryDefaults() async {
+    final result = {for (final t in DocumentType.values) t: DefaultStatus.unknown};
+    try {
+      if (PlatformInfo.isLinux) {
+        for (final t in DocumentType.values) {
+          result[t] = await _guard(() async {
+            final r = await _run('xdg-mime', ['query', 'default', t.mimeType]);
+            return r.exitCode == 0 ? parseXdgDefault('${r.stdout}') : DefaultStatus.unknown;
+          });
+        }
+      } else if (PlatformInfo.isWindows) {
+        for (final t in DocumentType.values) {
+          result[t] = await _guard(() async {
+            final r = await _run('reg', [
+              'query',
+              'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.${t.extension}\\UserChoice',
+              '/v',
+              'ProgId',
+            ]);
+            return r.exitCode == 0
+                ? parseWindowsProgId('${r.stdout}', appProgId: windowsProgId(t))
+                : DefaultStatus.unknown;
+          });
+        }
+      } else if (PlatformInfo.isMacOS) {
+        final raw = await _macChannel.invokeMethod<Map<Object?, Object?>>(
+          'queryDefaultForExtensions',
+          DocumentType.values.map((t) => t.extension).toList(),
+        );
+        for (final t in DocumentType.values) {
+          final v = raw?[t.extension];
+          if (v is bool) result[t] = v ? DefaultStatus.isDefault : DefaultStatus.otherApp;
+        }
+      }
+    } catch (e, st) {
+      AppLogger.error('queryDefaults failed', e, st);
+    }
+    return result;
+  }
+
+  Future<DefaultStatus> _guard(Future<DefaultStatus> Function() body) async {
+    try {
+      return await body();
+    } catch (_) {
+      return DefaultStatus.unknown;
+    }
+  }
+
+  /// The per-type ProgId that windows/register-file-types.ps1 registers (e.g. `OpenReader.pdf`).
+  @visibleForTesting
+  static String windowsProgId(DocumentType t) => 'OpenReader.${t.extension}';
+
+  /// `xdg-mime query default` prints the desktop file name. Empty or anything that is not a single
+  /// `.desktop` token is [DefaultStatus.unknown].
+  @visibleForTesting
+  static DefaultStatus parseXdgDefault(String stdout) {
+    final name = stdout.trim();
+    if (!RegExp(r'^[^\s/]+\.desktop$').hasMatch(name)) return DefaultStatus.unknown;
+    return name.toLowerCase() == 'openreader.desktop' ? DefaultStatus.isDefault : DefaultStatus.otherApp;
+  }
+
+  /// Parses `reg query ... /v ProgId` output (`    ProgId    REG_SZ    <value>`).
+  @visibleForTesting
+  static DefaultStatus parseWindowsProgId(String stdout, {required String appProgId}) {
+    final m = RegExp(r'^\s*ProgId\s+REG_SZ\s+(\S.*?)\s*$', multiLine: true, caseSensitive: false).firstMatch(stdout);
+    if (m == null) return DefaultStatus.unknown;
+    return m.group(1)!.toLowerCase() == appProgId.toLowerCase() ? DefaultStatus.isDefault : DefaultStatus.otherApp;
   }
 
   Future<DefaultAppResult> makeDefault(Set<DocumentType> types) async {

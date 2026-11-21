@@ -3,8 +3,10 @@ import 'dart:typed_data';
 
 import 'package:get/get.dart';
 
+import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
 import '../../../core/domain/models/document_model.dart';
+import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
@@ -22,15 +24,18 @@ import 'package:universal_document_viewer/slides.dart';
 class PowerPointReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
   final DocumentModel document;
   final RecentRepository _recentRepository;
+  final AppSettingsRepository _settingsRepository;
   final DocumentInteractionController _interactions;
   final Future<PptxPresentation> Function(Uint8List bytes)? _parse;
 
   PowerPointReaderController({
     required this.document,
     RecentRepository? recentRepository,
+    AppSettingsRepository? settingsRepository,
     DocumentInteractionController? interactions,
     Future<PptxPresentation> Function(Uint8List bytes)? parse,
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
+        _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>(),
         _parse = parse;
 
@@ -62,8 +67,10 @@ class PowerPointReaderController extends BaseController with ReaderFullscreen, R
   Future<void> _load() async {
     status.value = StateStatus.loading;
     ReadingPosition? saved;
-    final position = await _recentRepository.getPosition(document.id);
-    position.fold((_) {}, (value) => saved = value);
+    if (await _settingsRepository.getRestoreReadingPosition()) {
+      final position = await _recentRepository.getPosition(document.id);
+      position.fold((_) {}, (value) => saved = value);
+    }
     if (isClosed) return;
     final deck = _deck = SlidesController(initialPosition: saved, onPositionChanged: _onMoved, parse: _parse);
     // A file that can't be read fails as corrupted.

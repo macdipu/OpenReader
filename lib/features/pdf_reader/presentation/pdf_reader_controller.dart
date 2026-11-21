@@ -13,6 +13,7 @@ import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/controllers/reader_night_mode.dart';
+import '../../../core/presentation/controllers/reader_preferences.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/show_dialog/show_dialog.dart';
 import 'pdf_password_dialog.dart';
@@ -72,6 +73,11 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   /// Inverted page colours for reading in the dark (UX-33); remembered for
   /// all PDFs.
   Timer? _positionSaveDebounce;
+
+  /// With "Restore last position" off, a position is saved only after the user has moved off the
+  /// page the document opened on, so closing an untouched document keeps the stored one.
+  bool _restore = true;
+  bool _moved = false;
   bool _passwordPreviouslyWrong = false;
 
   @override
@@ -83,6 +89,21 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
       // The document opens on the restored page; PDFium reads the file.
       unawaited(pdf.loadFile(document.path));
     });
+    _preferenceSync = ReaderPreferences.changes.listen(_onPreferenceChanged);
+  }
+
+  StreamSubscription<ReaderPreferenceChange>? _preferenceSync;
+
+  /// Settings changed the default PDF mode while this reader is open (live sync): switch this
+  /// PDF to it. Nothing happens when it already shows that mode.
+  void _onPreferenceChanged(ReaderPreferenceChange change) {
+    final value = change.value;
+    if (change.preference != ReaderPreference.pdfContinuous || value is! bool) return;
+    if ((pdf.viewMode == PdfViewMode.continuous) == value) return;
+    pdf.toggleViewMode();
+    if (pdf.pageCount < 1) return;
+    _positionSaveDebounce?.cancel();
+    unawaited(_savePosition());
   }
 
   @override
@@ -125,20 +146,27 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
 
   Future<void> _loadInitialPosition() async {
     status.value = StateStatus.loading;
-    final result = await _recentRepository.getPosition(document.id);
-    result.fold((_) {}, pdf.restore);
+    _restore = await _settingsRepository.getRestoreReadingPosition();
+    if (_restore) {
+      final result = await _recentRepository.getPosition(document.id);
+      result.fold((_) {}, pdf.restore);
+    }
     status.value = StateStatus.success;
   }
 
   /// A page change saves 2 s later ([toggleViewMode] saves at once).
-  void _onPositionChanged(ReadingPosition _) {
+  void _onPositionChanged(ReadingPosition position) {
+    if (!_moved && position['page_number'] != initialPageNumber) _moved = true;
     _positionSaveDebounce?.cancel();
     _positionSaveDebounce = Timer(const Duration(seconds: 2), _savePosition);
   }
 
   /// `page_count` feeds Home's reading-progress bar (UX-13); `view_mode`
   /// makes the mode per-document (UX-19).
-  Future<void> _savePosition() => _recentRepository.markOpened(document.id, readingPosition: pdf.position);
+  Future<void> _savePosition() async {
+    if (!_restore && !_moved) return;
+    await _recentRepository.markOpened(document.id, readingPosition: pdf.position);
+  }
 
   Future<void> jumpToPage(int page) => pdf.jumpToPage(page);
 
@@ -146,7 +174,9 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   /// later (the toolbar replaced Settings' default reading mode).
   void toggleViewMode() {
     pdf.toggleViewMode();
-    unawaited(_settingsRepository.setDefaultContinuousScroll(pdf.viewMode == PdfViewMode.continuous));
+    final continuous = pdf.viewMode == PdfViewMode.continuous;
+    unawaited(_settingsRepository.setDefaultContinuousScroll(continuous));
+    ReaderPreferences.publish(ReaderPreference.pdfContinuous, continuous);
     if (pdf.pageCount < 1) return;
     _positionSaveDebounce?.cancel();
     unawaited(_savePosition());
@@ -190,6 +220,7 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
 
   @override
   void onClose() {
+    unawaited(_preferenceSync?.cancel());
     _positionSaveDebounce?.cancel();
     _interactions.readerClosedAfter(pdf.pageCount > 0 ? _savePosition() : null);
     pdf.dispose();

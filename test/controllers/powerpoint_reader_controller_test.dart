@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/temp_dir.dart';
 import 'package:openreader/core/presentation/widgets/reader/reader_preview_strip.dart';
 import 'package:get/get.dart';
+import '../helpers/restore_settings.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
 import 'package:openreader/core/domain/models/recent_document_model.dart';
@@ -119,6 +120,18 @@ void main() {
       recents.position = {'slide_index': 9, 'slide_count': 10};
       final c = await loaded(controllerFor(await deck(threeSlides)));
       expect(c.currentSlide, 2);
+    });
+
+    test('opens on the first slide when restoring is switched off', () async {
+      recents.position = {'slide_index': 2, 'slide_count': 3};
+      final c = await loaded(PowerPointReaderController(
+        document: await deck(threeSlides),
+        recentRepository: recents,
+        settingsRepository: RestoreFlagSettings(restore: false),
+        interactions: interactions,
+        parse: (bytes) async => PptxParser.parse(bytes),
+      ));
+      expect(c.currentSlide, 0);
     });
 
     test('a file that is not a PowerPoint package shows the damaged-file message', () async {

@@ -14,6 +14,7 @@ import '../../../core/presentation/controllers/base_controller.dart';
 import '../../../core/presentation/controllers/document_interaction_controller.dart';
 import '../../../core/presentation/controllers/reader_fullscreen.dart';
 import '../../../core/presentation/controllers/reader_night_mode.dart';
+import '../../../core/presentation/controllers/reader_preferences.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 
@@ -128,6 +129,22 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
     super.onInit();
     _loadPreferences();
     _load();
+    _preferenceSync = ReaderPreferences.changes.listen(_onPreferenceChanged);
+  }
+
+  StreamSubscription<ReaderPreferenceChange>? _preferenceSync;
+
+  /// Settings changed font size or wrap while this reader is open (live sync).
+  void _onPreferenceChanged(ReaderPreferenceChange change) {
+    final value = change.value;
+    if (change.preference == ReaderPreference.fontSize && value is double) {
+      _fontSizeChosen = true;
+      fontSize.value = value.clamp(minFontSize, maxFontSize);
+    } else if (change.preference == ReaderPreference.lineWrap && value is bool) {
+      _lineWrapChosen = true;
+      lineWrap.value = value;
+      plainText?.wrap = value;
+    }
   }
 
   /// Font size and wrap are remembered across files and launches (UX-20).
@@ -148,8 +165,9 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   Future<void> _load() async {
     status.value = StateStatus.loading;
     try {
-      final positionResult = await _recentRepository.getPosition(document.id);
-      positionResult.fold((_) {}, (position) {
+      final restore = await _settingsRepository.getRestoreReadingPosition();
+      final positionResult = restore ? await _recentRepository.getPosition(document.id) : null;
+      positionResult?.fold((_) {}, (position) {
         final offset = position[PositionKeys.scrollOffset];
         if (offset is num && offset > 0) {
           lineSource.initialScrollOffset = _lastScrollOffset = offset.toDouble();
@@ -205,6 +223,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
     _fontSizeChosen = true;
     fontSize.value = value.clamp(minFontSize, maxFontSize);
     unawaited(_settingsRepository.setTextReaderFontSize(fontSize.value));
+    ReaderPreferences.publish(ReaderPreference.fontSize, fontSize.value);
   }
 
   void toggleLineWrap() {
@@ -212,6 +231,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
     lineWrap.value = !lineWrap.value;
     plainText?.wrap = lineWrap.value;
     unawaited(_settingsRepository.setTextReaderLineWrap(lineWrap.value));
+    ReaderPreferences.publish(ReaderPreference.lineWrap, lineWrap.value);
   }
 
   @override
@@ -255,6 +275,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
 
   @override
   void onClose() {
+    unawaited(_preferenceSync?.cancel());
     _positionSaveDebounce?.cancel();
     final save = _scrolledThisSession || _lastScrollOffset > 0;
     _interactions.readerClosedAfter(save ? _savePosition(_lastScrollOffset, _lastLine) : null);

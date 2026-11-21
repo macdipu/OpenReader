@@ -1,258 +1,164 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
-import '../../../core/presentation/utils/file_size_formatter.dart';
-import '../../../services/platform_integration/default_app_service.dart';
-import 'default_app_dialog.dart';
+import '../../../core/presentation/utils/screen_utils.dart';
 import 'settings_controller.dart';
+import 'sections/settings_widgets.dart';
+import 'settings_sections.dart';
 
-/// Settings & Storage (DESIGN_SPEC.md #01): segmented appearance control,
-/// the default-app prompt, the render cache and about. The PDF reading mode
-/// is chosen in the PDF reader's toolbar, and reading history is cleared from
-/// Library's History. Wide windows (desktop, tablets) lay the cards out in two
-/// columns under a page header.
+/// Settings & Storage (DESIGN_SPEC.md #01). Phones and narrow windows (under 900px) get one
+/// column of sections; wide windows get a section list on the left (arrow keys move between
+/// sections, Tab moves through the controls) and the chosen section on the right. Which sections
+/// appear, and their order, depends on the platform (see [settingsSectionsForPlatform]).
 class SettingsView extends GetView<SettingsController> {
   /// True when it is a page of the shell (wide windows): no app bar of its own, the sidebar stays.
   final bool embedded;
 
   const SettingsView({super.key, this.embedded = false});
 
+  /// Width from which Settings shows two panes.
+  static const twoPaneBreakpoint = 900.0;
+
   @override
   Widget build(BuildContext context) {
-    final wide = context.screenDimensions.width >= 900;
-
-    final appearance = _Section(
-      label: 'Appearance',
-      child: Obx(() => _ThemeSegmented(
-            mode: controller.themeController.themeMode,
-            onChanged: (mode) {
-              switch (mode) {
-                case ThemeMode.system:
-                  controller.themeController.setSystemTheme();
-                  break;
-                case ThemeMode.light:
-                  controller.themeController.setLightTheme();
-                  break;
-                case ThemeMode.dark:
-                  controller.themeController.setDarkTheme();
-                  break;
-              }
-            },
-          )),
-      padded: true,
-    );
-
-    final defaultApp = DefaultAppService.instance.isSupported
-        ? const _Section(
-            label: 'Default app',
-            child: _ActionRow(
-              icon: Icons.menu_book_rounded,
-              title: 'Make OpenReader your default reader',
-              subtitle: 'For every document type, or just the ones you pick (like PDFs)',
-              trailing: Icons.chevron_right_rounded,
-              onTap: showDefaultAppDialog,
-            ),
-          )
-        : null;
-
-    // No storage scan any more (CR-OPENREADER-BROWSE), so no index count or
-    // Rescan here - just the render cache.
-    final cache = _Section(
-      label: 'Cache',
-      child: Obx(() => _StatBento(
-            icon: Icons.cleaning_services_outlined,
-            value: controller.isLoadingStats.value ? '—' : formatFileSize(controller.cacheSizeBytes.value),
-            label: 'cached render tiles',
-            actionLabel: 'Clear Render Cache',
-            destructive: true,
-            onAction: controller.clearCache,
-          )),
-      bare: true,
-    );
-
-    final about = _Section(
-      label: 'About',
-      child: Column(
-        children: [
-          Obx(() => _ActionRow(
-                icon: Icons.info_outline,
-                title: 'Version',
-                trailingText: controller.appVersion.value,
-              )),
-          Divider(height: 1, color: context.outlineVariant),
-          _ActionRow(
-            icon: Icons.description_outlined,
-            title: 'Open-source licenses',
-            trailing: Icons.chevron_right_rounded,
-            onTap: () => showLicensePage(context: context, applicationName: 'OpenReader'),
-          ),
-        ],
-      ),
-    );
-
-    final left = [appearance, if (defaultApp != null) defaultApp];
-    final right = [cache, about];
+    final wide = context.screenDimensions.width >= twoPaneBreakpoint;
+    final sections = settingsSectionsForPlatform();
 
     return Scaffold(
       appBar: embedded ? null : AppBar(title: const Text('Settings')),
-      body: ContentConstraint(
-        maxWidth: wide ? 1040 : ScreenUtils.maxContentWidth,
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(wide ? 32 : 16, wide ? 28 : 16, wide ? 32 : 16, 32),
-          children: [
-            if (wide) ...[
-              Text('Settings', style: context.headlineMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-              const SizedBox(height: 4),
-              Text('Appearance, defaults and storage', style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
-              const SizedBox(height: 28),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: Column(children: left)),
-                  const SizedBox(width: 24),
-                  Expanded(child: Column(children: right)),
-                ],
+      body: wide
+          ? ContentConstraint(
+              maxWidth: 1040,
+              child: _TwoPane(controller: controller, sections: sections),
+            )
+          : ContentConstraint(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                children: [for (final id in sections) id.build(controller, showLabel: true)],
               ),
-            ] else
-              ...[...left, ...right],
-          ],
-        ),
-      ),
+            ),
     );
   }
 }
 
-/// A labelled settings group.
-class _Section extends StatelessWidget {
-  final String label;
-  final Widget child;
-  final bool padded;
-  final bool bare;
+class _TwoPane extends StatefulWidget {
+  final SettingsController controller;
+  final List<SettingsSectionId> sections;
+  const _TwoPane({required this.controller, required this.sections});
 
-  const _Section({required this.label, required this.child, this.padded = false, this.bare = false});
+  @override
+  State<_TwoPane> createState() => _TwoPaneState();
+}
+
+class _TwoPaneState extends State<_TwoPane> {
+  final _listFocus = FocusNode(debugLabel: 'settings section list');
+  int _selected = 0;
+
+  /// The focus ring shows only for keyboard focus, not after a click or a tap.
+  bool _keyboard = FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+
+  @override
+  void initState() {
+    super.initState();
+    FocusManager.instance.addHighlightModeListener(_onHighlightMode);
+  }
+
+  void _onHighlightMode(FocusHighlightMode mode) {
+    final keyboard = mode == FocusHighlightMode.traditional;
+    if (keyboard != _keyboard && mounted) setState(() => _keyboard = keyboard);
+  }
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeHighlightModeListener(_onHighlightMode);
+    _listFocus.dispose();
+    super.dispose();
+  }
+
+  void _select(int index) {
+    final last = widget.sections.length - 1;
+    setState(() => _selected = index.clamp(0, last));
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _select(_selected + 1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _select(_selected - 1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.home) {
+      _select(0);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.end) {
+      _select(widget.sections.length - 1);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final selected = widget.sections[_selected.clamp(0, widget.sections.length - 1)];
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.fromLTRB(32, 28, 32, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionLabel(label),
-          if (bare) child else _SectionCard(padding: padded ? const EdgeInsets.all(12) : const EdgeInsets.all(4), child: child),
-        ],
-      ),
-    );
-  }
-}
-
-class _ThemeSegmented extends StatelessWidget {
-  final ThemeMode mode;
-  final ValueChanged<ThemeMode> onChanged;
-  const _ThemeSegmented({required this.mode, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    const options = [
-      (mode: ThemeMode.light, label: 'Light', icon: Icons.light_mode_outlined),
-      (mode: ThemeMode.dark, label: 'Dark', icon: Icons.dark_mode_outlined),
-      (mode: ThemeMode.system, label: 'System', icon: Icons.brightness_auto_outlined),
-    ];
-    return Row(
-      children: [
-        for (final option in options)
+          Text('Settings', style: context.headlineMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+          const SizedBox(height: 4),
+          Text('Reading, privacy and storage', style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
+          const SizedBox(height: 24),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Semantics(button: true, selected: mode == option.mode, child: InkWell(
-                onTap: () => onChanged(option.mode),
-                borderRadius: BorderRadius.circular(10),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: mode == option.mode ? context.surfaceContainerLowest : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: mode == option.mode ? context.secondary : context.outlineVariant,
-                      width: mode == option.mode ? 1.5 : 1,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 232,
+                  child: Focus(
+                    focusNode: _listFocus,
+                    onKeyEvent: _onKey,
+                    child: ListenableBuilder(
+                      listenable: _listFocus,
+                      builder: (context, _) => ListView(
+                        key: const ValueKey('settings-section-list'),
+                        children: [
+                          for (var i = 0; i < widget.sections.length; i++)
+                            _SectionTile(
+                              section: widget.sections[i],
+                              selected: i == _selected,
+                              focused: _listFocus.hasFocus && _keyboard,
+                              onTap: () {
+                                _select(i);
+                                _listFocus.requestFocus();
+                              },
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                  child: Column(
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: ListView(
+                    key: ValueKey('settings-pane-${selected.name}'),
+                    padding: const EdgeInsets.only(bottom: 32),
                     children: [
-                      Icon(option.icon, size: 20, color: mode == option.mode ? context.secondary : context.onSurfaceVariant),
-                      const SizedBox(height: 4),
-                      Text(
-                        option.label,
-                        style: context.labelMedium?.copyWith(
-                          color: mode == option.mode ? context.secondary : context.onSurfaceVariant,
-                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12, left: 4),
+                        child: Text(selected.title, style: context.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                       ),
+                      selected.build(widget.controller, showLabel: false),
                     ],
                   ),
                 ),
-              )),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Bento-style stat card for Storage & Cache Manager (DESIGN_SPEC #01):
-/// icon + big number + action button, real data only.
-class _StatBento extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final String actionLabel;
-  final VoidCallback? onAction;
-  final bool destructive;
-
-  const _StatBento({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.actionLabel,
-    required this.onAction,
-    this.destructive = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: context.onSurfaceVariant, size: 20),
-          const SizedBox(height: 10),
-          Text(value, style: context.headlineSmall),
-          const SizedBox(height: 2),
-          Text(label, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: onAction,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: destructive ? context.error : context.secondary,
-                side: BorderSide(color: destructive ? context.error : context.outlineVariant),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-              ),
-              child: Text(
-                actionLabel,
-                style: context.labelSmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              ],
             ),
           ),
         ],
@@ -261,98 +167,67 @@ class _StatBento extends StatelessWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String title;
-  const _SectionLabel(this.title);
+/// One item of the desktop section list. Selected: filled background, a leading indicator bar
+/// and bold text (not colour alone). Focused by keyboard: a 2px focus ring. The list is one Tab
+/// stop (arrow keys move the selection), so the items themselves take no focus.
+class _SectionTile extends StatelessWidget {
+  final SettingsSectionId section;
+  final bool selected;
+  final bool focused;
+  final VoidCallback onTap;
+  const _SectionTile({required this.section, required this.selected, required this.focused, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final color = selected ? context.onSecondaryContainer : context.onSurfaceVariant;
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: context.labelLarge?.copyWith(color: context.onSurfaceVariant, letterSpacing: 1),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets padding;
-  const _SectionCard({required this.child, this.padding = const EdgeInsets.all(4)});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: context.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.outlineVariant),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _ActionRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final String? trailingText;
-  final IconData? trailing;
-  final VoidCallback? onTap;
-
-  const _ActionRow({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    this.trailingText,
-    this.trailing,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(color: context.secondaryContainer.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, color: context.secondary, size: 19),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: context.bodyLarge?.copyWith(color: context.onSurface)),
-                  if (subtitle != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(subtitle!, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-                    ),
-                ],
-              ),
-            ),
-            if (trailingText != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.only(bottom: 4),
+      child: MergeSemantics(
+        child: Semantics(
+          key: ValueKey('settings-section-tile-${section.name}'),
+          button: true,
+          selected: selected,
+          child: SettingsFocusRing(
+            focused: selected && focused,
+            child: InkWell(
+              onTap: onTap,
+              canRequestFocus: false,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.fromLTRB(4, 10, 12, 10),
                 decoration: BoxDecoration(
-                  color: context.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(999),
+                  color: selected ? context.secondaryContainer : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text('v${trailingText!}', style: context.monoMetadata),
+                child: Row(
+                  children: [
+                    Container(
+                      key: selected ? const ValueKey('settings-section-indicator') : null,
+                      width: 3,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: selected ? context.secondary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Icon(section.icon, size: 20, color: color),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        section.title,
+                        style: context.bodyMedium?.copyWith(
+                          color: selected ? context.onSecondaryContainer : context.onSurface,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            if (trailing != null) Icon(trailing, color: context.onSurfaceVariant),
-          ],
+            ),
+          ),
         ),
       ),
     );

@@ -4,15 +4,30 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../domain/models/document_model.dart';
 import '../../domain/models/recent_document_model.dart';
+import '../../domain/repositories/app_settings_repository.dart';
 import '../../domain/repositories/recent_repository.dart';
 import '../../domain/usecase/usecase.dart';
 import '../../presentation/utils/task_runner.dart';
 import '../local/app_database.dart';
+import 'app_settings_repository_impl.dart';
 
 class RecentRepositoryImpl implements RecentRepository {
   final AppDatabase _appDatabase;
 
-  RecentRepositoryImpl({AppDatabase? appDatabase}) : _appDatabase = appDatabase ?? AppDatabase.instance;
+  final AppSettingsRepository _settings;
+
+  RecentRepositoryImpl({AppDatabase? appDatabase, AppSettingsRepository? settings})
+      : _appDatabase = appDatabase ?? AppDatabase.instance,
+        _settings = settings ?? AppSettingsRepositoryImpl();
+
+  /// History retention "Off" (0 days, ST-12): nothing is recorded. Unreadable settings keep recording.
+  Future<bool> _historyOff() async {
+    try {
+      return await _settings.getHistoryRetentionDays() == 0;
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   ResultFuture<List<RecentDocumentModel>> getRecents() {
@@ -57,6 +72,7 @@ class RecentRepositoryImpl implements RecentRepository {
   @override
   ResultFuture<void> markOpened(String documentId, {Map<String, Object?> readingPosition = const {}}) {
     return runTask(() async {
+      if (await _historyOff()) return;
       final db = await _appDatabase.database;
       await db.insert(
         'recent_documents',
@@ -73,6 +89,7 @@ class RecentRepositoryImpl implements RecentRepository {
   @override
   ResultFuture<void> touch(String documentId) {
     return runTask(() async {
+      if (await _historyOff()) return;
       final db = await _appDatabase.database;
       final now = DateTime.now().millisecondsSinceEpoch;
       final updated = await db.update(
@@ -104,6 +121,14 @@ class RecentRepositoryImpl implements RecentRepository {
     return runTask(() async {
       final db = await _appDatabase.database;
       await db.delete('recent_documents');
+    });
+  }
+
+  @override
+  ResultFuture<void> removeOlderThan(DateTime cutoff) {
+    return runTask(() async {
+      final db = await _appDatabase.database;
+      await db.delete('recent_documents', where: 'last_opened_at < ?', whereArgs: [cutoff.millisecondsSinceEpoch]);
     });
   }
 }

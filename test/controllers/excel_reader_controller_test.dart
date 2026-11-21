@@ -19,6 +19,7 @@ import 'package:universal_document_viewer/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/restore_settings.dart';
 import '../helpers/temp_dir.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
@@ -292,6 +293,47 @@ void main() {
   });
 
   group('reading position persistence', () {
+    test('restore off: closing an untouched workbook keeps the stored position', () async {
+      final c = ExcelReaderController(
+        document: document,
+        recentRepository: recents,
+        settingsRepository: RestoreFlagSettings(restore: false),
+        interactions: interactions,
+      );
+      await loaded(c);
+      c.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.markOpenedCalls, 0);
+    });
+
+    test('restore off: a position is saved once the user has moved', () async {
+      final c = ExcelReaderController(
+        document: document,
+        recentRepository: recents,
+        settingsRepository: RestoreFlagSettings(restore: false),
+        interactions: interactions,
+      );
+      await loaded(c);
+      c.switchSheet(1);
+      c.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.markOpenedCalls, 1);
+      expect(recents.lastReadingPosition?['sheet_index'], 1);
+    });
+
+    test('restore on: an untouched workbook still saves on close', () async {
+      final c = ExcelReaderController(
+        document: document,
+        recentRepository: recents,
+        settingsRepository: RestoreFlagSettings(),
+        interactions: interactions,
+      );
+      await loaded(c);
+      c.onClose();
+      await Future<void>.delayed(Duration.zero);
+      expect(recents.markOpenedCalls, 1);
+    });
+
     test('onClose is safe and no-ops when the workbook never finished loading', () {
       expect(controller.onClose, returnsNormally);
       expect(recents.markOpenedCalls, 0);

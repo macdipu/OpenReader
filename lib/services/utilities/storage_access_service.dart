@@ -1,6 +1,13 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import '../../core/presentation/utils/platform_info.dart';
+
+/// Storage access as shown in Settings. [notApplicable] on iOS and desktop, where there is
+/// no broad storage permission to grant.
+enum StorageAccessState { allowed, notAllowed, blocked, notApplicable }
 
 /// Wraps the platform permission(s) OpenReader needs to discover documents
 /// anywhere on local storage (BRD 9.2 - Storage Access / Onboarding).
@@ -39,7 +46,33 @@ class StorageAccessService {
     return manage.isPermanentlyDenied && storage.isPermanentlyDenied;
   }
 
+  /// Current state for display. Only Android has a permission to report; elsewhere
+  /// [StorageAccessState.notApplicable].
+  Future<StorageAccessState> state() async {
+    if (!PlatformInfo.isAndroid) return StorageAccessState.notApplicable;
+    return stateFrom(granted: await hasAccess(), permanentlyDenied: await isPermanentlyDenied());
+  }
+
+  @visibleForTesting
+  static StorageAccessState stateFrom({required bool granted, required bool permanentlyDenied}) {
+    if (granted) return StorageAccessState.allowed;
+    return permanentlyDenied ? StorageAccessState.blocked : StorageAccessState.notAllowed;
+  }
+
   Future<bool> openSettings() => openAppSettings();
+
+  /// Android: the OS "All files access" page for this app (Android 11+), the exact screen where the
+  /// switch lives. [Permission.manageExternalStorage] opens it as its request. Anywhere else, or if it
+  /// cannot be opened, the app's general settings page is the fallback so the user is never stranded.
+  Future<bool> openAllFilesAccessSettings() async {
+    if (!PlatformInfo.isAndroid) return openSettings();
+    try {
+      await Permission.manageExternalStorage.request();
+      return true;
+    } catch (_) {
+      return openSettings();
+    }
+  }
 
   /// [requestAccess], falling back to the app's system settings page when
   /// the OS will no longer show a prompt (permanently denied), so a "Grant

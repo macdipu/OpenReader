@@ -54,6 +54,9 @@ class FixtureRecents implements RecentRepository {
 class FixtureSettings implements AppSettingsRepository {
   double? fontSize;
   bool? lineWrap;
+  bool restore = true;
+  @override
+  Future<bool> getRestoreReadingPosition() async => restore;
 
   @override
   Future<double?> getTextReaderFontSize() async => fontSize;
@@ -166,6 +169,13 @@ void main() {
       recents.position = {'scroll_offset': 88.0};
       await loaded(controller);
       expect(controller.initialScrollOffset, 88.0);
+    });
+
+    test('opens at the start when restoring is switched off', () async {
+      settings.restore = false;
+      recents.position = {'scroll_offset': 88.0, 'line': 4};
+      await loaded(controller);
+      expect(controller.initialScrollOffset, 0);
     });
   });
 

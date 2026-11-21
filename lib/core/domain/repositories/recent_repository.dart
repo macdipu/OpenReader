@@ -21,4 +21,7 @@ abstract class RecentRepository {
   ResultFuture<void> remove(String documentId);
 
   ResultFuture<void> clearAll();
+
+  /// Deletes history entries last opened before [cutoff] (history retention, ST-12).
+  ResultFuture<void> removeOlderThan(DateTime cutoff);
 }

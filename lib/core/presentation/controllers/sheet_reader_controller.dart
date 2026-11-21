@@ -5,8 +5,10 @@ import 'package:get/get.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:universal_document_viewer/spreadsheet.dart';
 
+import '../../data/repositories/app_settings_repository_impl.dart';
 import '../../data/repositories/recent_repository_impl.dart';
 import '../../domain/models/document_model.dart';
+import '../../domain/repositories/app_settings_repository.dart';
 import '../../domain/repositories/recent_repository.dart';
 import '../utils/state_status.dart';
 import 'base_controller.dart';
@@ -24,12 +26,15 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
   SheetReaderController({
     required this.document,
     RecentRepository? recentRepository,
+    AppSettingsRepository? settingsRepository,
     DocumentInteractionController? interactions,
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
+        _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>();
 
   final DocumentModel document;
   final RecentRepository _recentRepository;
+  final AppSettingsRepository _settingsRepository;
   final DocumentInteractionController _interactions;
 
   SpreadsheetController? _sheet;
@@ -102,6 +107,13 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
 
   Timer? _positionSaveDebounce;
 
+  /// With "Restore last position" off, a position is saved only after the user has moved from
+  /// where the document opened, so closing an untouched document keeps the stored one.
+  bool _restore = true;
+  ReadingPosition? _startPosition;
+  bool _moved = false;
+  bool get _mayStorePosition => _restore || _moved;
+
   /// What the file is: an Excel workbook or CSV, whatever its name says.
   @protected
   DocumentFormat get format;
@@ -121,8 +133,11 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
     status.value = StateStatus.loading;
     try {
       ReadingPosition? saved;
-      final positionResult = await _recentRepository.getPosition(document.id);
-      positionResult.fold((_) {}, (position) => saved = position);
+      _restore = await _settingsRepository.getRestoreReadingPosition();
+      if (_restore) {
+        final positionResult = await _recentRepository.getPosition(document.id);
+        positionResult.fold((_) {}, (position) => saved = position);
+      }
       if (isClosed) return;
       final sheet = _sheet = SpreadsheetController(
         initialPosition: saved,
@@ -136,6 +151,7 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
       if (isClosed) return;
       switch (sheet.error) {
         case null:
+          _startPosition = Map<String, Object?>.of(sheet.position);
           status.value = StateStatus.success;
         case DocumentLoadError.tooLarge:
           _fail('This document is too large to render safely on this device.');
@@ -177,6 +193,8 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
 
   void _onPositionChanged(ReadingPosition position) {
     if (position[PositionKeys.row] case final int row) topRow.value = row + 1;
+    final start = _startPosition;
+    if (!_moved && start != null && !mapEquals(position, start)) _moved = true;
     _scheduleSave();
   }
 
@@ -185,8 +203,10 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
     _positionSaveDebounce = Timer(const Duration(seconds: 2), _savePosition);
   }
 
-  Future<void> _savePosition() =>
-      _recentRepository.markOpened(document.id, readingPosition: positionToSave(sheet.position));
+  Future<void> _savePosition() async {
+    if (!_mayStorePosition) return;
+    await _recentRepository.markOpened(document.id, readingPosition: positionToSave(sheet.position));
+  }
 
 
   /// A tab tap: the search ends, even one of every sheet (going to a

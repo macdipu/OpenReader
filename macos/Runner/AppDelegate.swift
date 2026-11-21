@@ -28,6 +28,8 @@ class AppDelegate: FlutterAppDelegate {
           result(files)
         case "setDefaultForExtensions":
           self.setDefault(forExtensions: call.arguments as? [String] ?? [], result: result)
+        case "queryDefaultForExtensions":
+          result(self.queryDefault(forExtensions: call.arguments as? [String] ?? []))
         default:
           result(FlutterMethodNotImplemented)
         }
@@ -56,6 +58,20 @@ class AppDelegate: FlutterAppDelegate {
       }
       result(failed)
     }
+  }
+
+  /// For each extension, whether this app is the one macOS opens it with. Extensions with an
+  /// unknown type or no handler are left out so Dart reports them as unknown.
+  private func queryDefault(forExtensions extensions: [String]) -> [String: Bool] {
+    let me = Bundle.main.bundleURL.standardizedFileURL
+    var out: [String: Bool] = [:]
+    for ext in extensions {
+      guard let type = UTType(filenameExtension: ext),
+        let app = NSWorkspace.shared.urlForApplication(toOpen: type)
+      else { continue }
+      out[ext] = app.standardizedFileURL == me
+    }
+    return out
   }
 
   override func application(_ sender: NSApplication, openFiles filenames: [String]) {

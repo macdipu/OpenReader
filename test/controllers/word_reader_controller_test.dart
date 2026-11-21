@@ -9,6 +9,7 @@ import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/core/domain/models/document_category.dart';
 import 'package:openreader/core/domain/models/document_model.dart';
 import 'package:openreader/core/domain/repositories/favorite_repository.dart';
+import '../helpers/restore_settings.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
@@ -132,6 +133,19 @@ void main() {
       recents.position = {'scroll_offset': 250.5};
       await loaded(controller);
       expect(controller.initialScrollOffset, 250.5);
+    });
+
+    test('opens at the start when restoring is switched off', () async {
+      recents.position = {'scroll_offset': 250.5};
+      final c = WordReaderController(
+        document: document,
+        recentRepository: recents,
+        interactions: interactions,
+        settingsRepository: RestoreFlagSettings(restore: false),
+      );
+      await loaded(c);
+      expect(c.initialScrollOffset, 0);
+      c.onClose();
     });
 
     test('ignores a non-positive or malformed scroll_offset', () async {

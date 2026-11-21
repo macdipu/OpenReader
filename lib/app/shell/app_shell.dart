@@ -135,6 +135,12 @@ class AppShell extends StatelessWidget {
       child: AppShortcuts(
         onOpenFile: controller.pickAndOpenFile,
         onSearch: () => Get.toNamed(AppRoutes.search),
+        onOpenSettings: () => openSettingsShortcut(
+          wide: wide,
+          currentRoute: Get.currentRoute,
+          changeTab: controller.changeTab,
+          push: Get.toNamed,
+        ),
         child: scaffold,
       ),
     );
@@ -273,5 +279,20 @@ class _NavItem extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// What Ctrl/Cmd+, does. The wide shell shows Settings as a tab; the narrow one pushes the route,
+/// but not again when it is already on top (pressing it twice must not stack Settings).
+void openSettingsShortcut({
+  required bool wide,
+  required String currentRoute,
+  required void Function(int index) changeTab,
+  required void Function(String route) push,
+}) {
+  if (wide) {
+    changeTab(AppShellController.settingsIndex);
+  } else if (currentRoute != AppRoutes.settings) {
+    push(AppRoutes.settings);
   }
 }

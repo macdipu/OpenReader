@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../domain/models/document_category.dart';
 import '../../../domain/models/document_model.dart';
 import '../../../../services/utilities/document_thumbnail_service.dart';
+import '../../controllers/thumbnail_preferences.dart';
 import '../../theme/theme_extensions.dart';
 import '../../utils/file_size_formatter.dart';
 import '../../utils/document_date_formatter.dart';
@@ -201,7 +203,27 @@ class DocumentThumbnail extends StatelessWidget {
   const DocumentThumbnail({super.key, required this.document, required this.size, this.readingPosition});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      Obx(() => ThumbnailPreferences.hidden.value ? _formatIcon(context) : _preview(context));
+
+  /// "Hide thumbnails" is on: the format icon in the badge, no preview is read.
+  Widget _formatIcon(BuildContext context) {
+    final accent = document.category.accentColor(context);
+    return Container(
+      key: const ValueKey('thumbnail-format-icon'),
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: document.category.tintColor(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
+      ),
+      child: Icon(document.category.icon, size: size * 0.5, color: accent),
+    );
+  }
+
+  Widget _preview(BuildContext context) {
     final accent = document.category.accentColor(context);
     final tint = document.category.tintColor(context);
     if (document.category == DocumentCategory.unknown) return _badge(context);
