@@ -169,12 +169,17 @@ class MainActivity : FlutterActivity() {
         val dir = File(cacheDir, INCOMING_DIR).apply { mkdirs() }
 
         // The copy is keyed by the source uri, so two different documents that share a file
-        // name never collide. It is reused only when its size matches the source's reported
-        // size (a document edited in place, or a source with no size, is copied again).
+        // name never collide. It is reused only when its size AND the provider's modified time both
+        // match the source (the copy's own lastModified is set to the source's). A provider that
+        // reports no size or no modified time gets a fresh copy every time: size alone is never trusted.
+        // Known trade-off: a provider that mints a new uri for each open produces a new cached copy
+        // per open (pruneOldFiles bounds the cache).
         val sourceSize = querySize(uri)
+        val sourceModified = queryLastModified(uri)
         val key = Integer.toHexString(uriString.hashCode())
         val target = File(dir, "${key}_$name")
-        val reusable = target.exists() && target.length() > 0 && sourceSize > 0 && target.length() == sourceSize
+        val reusable = target.exists() && target.length() > 0 && sourceSize > 0 && target.length() == sourceSize &&
+            sourceModified > 0 && target.lastModified() == sourceModified
         if (!reusable) {
             val stream = contentResolver.openInputStream(uri) ?: return null
             val partial = File(dir, "${key}_$name.part")
@@ -187,11 +192,23 @@ class MainActivity : FlutterActivity() {
                 partial.copyTo(target, overwrite = true)
                 partial.delete()
             }
+            if (sourceModified > 0) target.setLastModified(sourceModified)
         }
 
-        pruneOldFiles(dir)
+        pruneOldFiles(dir, keep = target)
         Log.i(TAG, "materialize content uri=$uriString -> path=${target.absolutePath} mime=$mime name=$name")
         return mapOf("path" to target.absolutePath, "mimeType" to mime, "displayName" to displayName)
+    }
+
+    /** The provider's modified time in ms ("last_modified" column), or -1 when it offers none. */
+    private fun queryLastModified(uri: Uri): Long {
+        return try {
+            contentResolver.query(uri, arrayOf("last_modified"), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else -1L
+            } ?: -1L
+        } catch (t: Throwable) {
+            -1L
+        }
     }
 
     private fun querySize(uri: Uri): Long {
@@ -248,10 +265,11 @@ class MainActivity : FlutterActivity() {
     }
 
     /** Shared documents are transient; drop copies the user isn't reading. */
-    private fun pruneOldFiles(dir: File) {
+    /** Deletes old copies except [keep] (its mtime mirrors the source's, so it may look old). */
+    private fun pruneOldFiles(dir: File, keep: File) {
         val cutoff = System.currentTimeMillis() - PRUNE_AFTER_MS
         dir.listFiles()?.forEach { file ->
-            if (file.lastModified() < cutoff) file.delete()
+            if (file != keep && file.lastModified() < cutoff) file.delete()
         }
     }
 

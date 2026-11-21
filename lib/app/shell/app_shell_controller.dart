@@ -18,6 +18,7 @@ import '../../services/platform_integration/desktop_open_files.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
 import '../../services/utilities/access_recheck.dart';
+import '../../core/presentation/utils/storage_access_flow.dart';
 import '../../services/utilities/app_update_service.dart';
 import '../../services/utilities/storage_access_service.dart';
 import '../../core/presentation/widgets/snackbar/custom_snackbar.dart';
@@ -109,6 +110,12 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
       check: () async => latest = await _reloadForAccess(),
       changed: () => latest != before,
       isClosed: () => isClosed,
+      // The user went to grant access and came back by a route that never finished the request
+      // (on some phones the system page's toolbar arrow lands on the app-info page first): the
+      // guidance the request flow would have shown comes here instead, once.
+      onSettled: () {
+        if (StorageAccessAttempt.takeRecent()) showStorageAccessGuidance(_storageAccess);
+      },
     );
   }
 
