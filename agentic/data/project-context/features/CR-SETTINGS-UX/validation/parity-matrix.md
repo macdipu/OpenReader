@@ -31,7 +31,7 @@ note); **hidden** = not rendered.
 | Set all | hidden | hidden | shown | shown | shown | Action row, no chevron. |
 | Open system default-apps settings | hidden | hidden | hidden | shown | hidden | Windows only; external icon. |
 | Ask me again (first-run prompt) | hidden | hidden | shown | shown | shown | Action row, no chevron; success snackbar. |
-| **Reading**: PDF default view | shown | shown | shown | shown | shown | Segmented (2 options). |
+| **Reading**: PDF default view | hidden | hidden | hidden | hidden | hidden | Removed from Settings (user, 2026-11-21): the PDF reader's toolbar owns the mode; the saved preference and its live sync stay. |
 | Night mode | shown | shown | shown | shown | shown | Switch row, whole row toggles. |
 | Text size with live preview | shown | shown | shown | shown | shown | Stepper 48dp buttons. |
 | Wrap long lines | shown | shown | shown | shown | shown | Switch row. |

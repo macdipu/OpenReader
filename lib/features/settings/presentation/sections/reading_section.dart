@@ -6,6 +6,7 @@ import '../settings_controller.dart';
 import 'settings_widgets.dart';
 
 /// Reading preferences (ST-04, ST-05, ST-16). They are the same values the reader toolbars change.
+/// The PDF reading mode is not here: it is chosen in the PDF reader's own toolbar.
 class ReadingSection extends StatelessWidget {
   final SettingsController controller;
   final bool showLabel;
@@ -18,25 +19,6 @@ class ReadingSection extends StatelessWidget {
       showLabel: showLabel,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SettingsBlockHeader(icon: Icons.picture_as_pdf_outlined, title: 'PDF default view'),
-                const SizedBox(height: 10),
-                Obx(() => SettingsSegmented<bool>(
-                      value: controller.pdfContinuous.value,
-                      choices: const [
-                        SettingsChoice(true, 'Continuous', icon: Icons.swap_vert_rounded),
-                        SettingsChoice(false, 'Page by page', icon: Icons.swap_horiz_rounded),
-                      ],
-                      onChanged: controller.setPdfContinuous,
-                    )),
-              ],
-            ),
-          ),
-          const SettingsDivider(),
           Obx(() => SettingsSwitchRow(
                 icon: Icons.nightlight_outlined,
                 title: 'Night mode',

@@ -33,7 +33,7 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 | ST-01 | **Permissions section:** live file-access status (Allowed / Not allowed (limited mode) / Blocked). The action matches the state: request, explain then open OS settings, or open app settings to revoke. Status refreshes on app resume (reuse the shell's existing resume re-check). Includes a short "what limited mode means" note. | Android |
 | ST-02 | **Permissions section:** "App permissions" opens `openAppSettings()`, with a note that files come from the Files app or the Share sheet. No status shown, because iOS has no storage permission. | iOS |
 | ST-03 | **File handling section:** each document type (PDF, Word, Excel, PowerPoint, CSV, Text, Markdown) shows ✅ Default or ○ Other app, with Set per type, Set all, and a link to system settings where one exists. Reuses `DefaultAppService.makeDefault`. Status comes from a new `queryDefaults()`: Linux `xdg-mime query default <mime>`; Windows `reg query` of `UserChoice\ProgId` after a spike; if Windows can't be read reliably, show the button without status. Status refreshes on resume. The Linux missing-`xdg-utils` message is kept. | Windows, Linux |
-| ST-04 | **Reading section:** default PDF mode (continuous / single page); night mode for readers; text font size with a live preview; line wrap. Each value stays in sync with the reader toolbars in both directions. | All |
+| ST-04 | **Reading section:** night mode for readers; text font size with a live preview; line wrap. Each value stays in sync with the reader toolbars in both directions. | All |
 | ST-05 | **Restore last reading position:** an on/off switch (default on, which is today's behaviour). When off, readers open at the start; saved positions are kept but not applied. | All |
 | ST-06 | **Privacy section:** a factual statement that documents are processed on the device and never uploaded, and that anonymous crash reports and usage analytics are always collected and sent to Google Firebase in release builds (debug builds send nothing). Decided 2026-11-21: always on, no switches, no opt-in or opt-out. **Privacy policy link done 2026-11-21 (Q2):** a "Privacy policy" row below the statement opens `https://macdipu.github.io/OpenReader/privacy.html` (external-link icon, error snackbar "Could not open the privacy policy." when it can't open), on every platform. Startup behaviour is unchanged (`setCrashlyticsCollectionEnabled(!kDebugMode)`, `setAnalyticsCollectionEnabled(!kDebugMode)`). | All |
 | ST-07 | **Files & storage:** Clear recent history (reuses the existing Library action, with confirmation); the render cache described in plain words. | All |
@@ -110,6 +110,9 @@ Settings currently doesn't help the user. Reading preferences are hidden inside 
 - AC-09: Widget tests at 360px, 700px and 1200px wide check which sections each platform shows.
 - AC-10: The app's `flutter test` passes, and `flutter analyze` shows 0 errors and 0 warnings.
 - AC-11: Manual checks on Android, iOS, macOS, Windows and Linux, with gaps recorded in the work item.
+
+
+Note (user, 2026-11-21): the default PDF mode row was removed from Settings; the PDF reader's toolbar owns that choice.
 
 ## Open Questions
 - Q1: DECIDED 2026-11-21 (user): Firebase crash reporting and analytics are always on; no opt-in, no opt-out, no per-user permission. Disclosure statement only (ST-06).

@@ -510,15 +510,15 @@ void main() {
   group('settings and the repository agree', () {
     testWidgets('settings change the repository', (tester) async {
       final c = await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      await tester.tap(find.text('Page by page'));
+      // The PDF reading mode is not on this page: the PDF reader's toolbar owns it.
+      expect(find.text('PDF default view'), findsNothing);
+      expect(find.text('Page by page'), findsNothing);
       await tester.tap(find.text('Night mode'));
       await tester.tap(find.byTooltip('Larger text'));
       await tester.tap(find.text('Wrap long lines'));
       await tester.tap(find.text('Restore last position'));
       await tester.pump();
-      expect(c.pdfContinuous.value, isFalse);
       await tester.runAsync(() async {
-        expect(await repo.getDefaultContinuousScroll(), isFalse);
         expect(await repo.getReaderNightMode(), isTrue);
         expect(await repo.getTextReaderFontSize(), 18);
         expect(await repo.getTextReaderLineWrap(), isFalse);
@@ -1538,7 +1538,7 @@ void main() {
     testWidgets('2-3 option choices stay segmented', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.byType(SettingsSegmented<ThemeMode>), findsOneWidget);
-      expect(find.byType(SettingsSegmented<bool>), findsOneWidget);
+      expect(find.byType(SettingsSegmented<bool>), findsNothing, reason: 'the PDF mode row is not on this page');
       expect(find.byType(SettingsSegmented<int?>), findsOneWidget, reason: 'history retention');
     });
   });
