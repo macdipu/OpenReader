@@ -166,7 +166,7 @@ void main() {
       expect(guided, 0);
     });
 
-    testWidgets('the default guidance is a snackbar with Open app settings', (tester) async {
+    testWidgets('the default guidance is a snackbar with a Settings action', (tester) async {
       final access = _Access();
       await tester.pumpWidget(const GetMaterialApp(home: Scaffold(body: SizedBox())));
       await requestStorageAccessFlow(access: access);
@@ -174,7 +174,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text(storageAccessGuidance), findsOneWidget);
       expect(find.textContaining('Allow management of all files'), findsOneWidget);
-      await tester.tap(find.text('Open app settings'));
+      await tester.tap(find.text('Settings'));
       await tester.pump();
       expect(access.settingsOpened, 1);
       await tester.pump(const Duration(seconds: 10));

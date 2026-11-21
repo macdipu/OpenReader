@@ -242,7 +242,7 @@ void main() {
       await tester.pump(const Duration(seconds: 4));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.textContaining('Allow management of all files'), findsOneWidget);
-      expect(find.text('Open app settings'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
       await tester.pump(const Duration(seconds: 1));
     });

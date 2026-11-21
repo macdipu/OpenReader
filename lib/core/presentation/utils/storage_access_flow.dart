@@ -14,7 +14,7 @@ const storageAccessVendorLines = [
 
 /// The text of the guidance shown when the user comes back from the OS page without access.
 const storageAccessGuidance =
-    'File access is still off. Choose "Allow management of all files" for OpenReader, not "media only".';
+    'Access is still off. Choose "Allow management of all files".';
 
 /// Shown once per attempt, after the re-check window found no access: how to finish by hand, with a
 /// way to the app's settings. Settings > Permissions has the full steps.
@@ -23,7 +23,7 @@ void showStorageAccessGuidance(StorageAccessService access) {
     message: storageAccessGuidance,
     type: SnackbarType.warning,
     duration: const Duration(seconds: 8),
-    actionLabel: 'Open app settings',
+    actionLabel: 'Settings',
     onAction: () => unawaited(access.openSettings()),
   );
 }
