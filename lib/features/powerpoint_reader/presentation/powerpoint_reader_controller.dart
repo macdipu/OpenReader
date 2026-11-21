@@ -151,7 +151,7 @@ class PowerPointReaderController extends BaseController with ReaderFullscreen, R
   @override
   void onClose() {
     _positionSaveDebounce?.cancel();
-    _interactions.readerClosedAfter(_moved ? _savePosition() : null);
+    _interactions.readerClosedAfter(_moved ? _savePosition() : null, documentId: document.id);
     _deck?.dispose();
     super.onClose();
   }

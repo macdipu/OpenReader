@@ -98,6 +98,12 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
   /// the result differs from what was shown before.
   Future<void> _recheckStorageAccess() {
     final before = _shownAccess;
+    if (before) {
+      // Access was already granted: one check catches a revocation; the delayed ones only wait for
+      // a late grant.
+      _accessRecheck.cancel();
+      return _reloadForAccess();
+    }
     var latest = before;
     return _accessRecheck.run(
       check: () async => latest = await _reloadForAccess(),

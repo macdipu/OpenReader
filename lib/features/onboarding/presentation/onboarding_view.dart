@@ -99,7 +99,7 @@ class OnboardingView extends GetView<OnboardingController> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
                         'Access was denied. Try again and choose "Allow management of all files" (not "media only" or '
-                        '"Don\'t allow"), or continue in limited mode.\n\n$vendorHelp',
+                        '"Don\'t allow").\n\n$vendorHelp',
                         textAlign: TextAlign.center,
                         style: context.bodyMedium?.copyWith(color: context.error),
                       ),
@@ -113,13 +113,6 @@ class OnboardingView extends GetView<OnboardingController> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Text('Allow Access'),
-                  ),
-                ],
-                if (askForAccess) ...[
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: controller.continueWithoutAccess,
-                    child: const Text('Not Now'),
                   ),
                 ],
               ],

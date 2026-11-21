@@ -222,7 +222,7 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   void onClose() {
     unawaited(_preferenceSync?.cancel());
     _positionSaveDebounce?.cancel();
-    _interactions.readerClosedAfter(pdf.pageCount > 0 ? _savePosition() : null);
+    _interactions.readerClosedAfter(pdf.pageCount > 0 ? _savePosition() : null, documentId: document.id);
     pdf.dispose();
     super.onClose();
   }

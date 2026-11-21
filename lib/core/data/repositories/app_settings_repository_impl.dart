@@ -2,14 +2,8 @@ import 'package:openreader/core/domain/models/theme_mode_enum.dart';
 import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// None of these values are sensitive (theme choice, locale, an onboarding
-/// flag), so this reads/writes plain SharedPreferences directly rather than
-/// going through the Keystore-backed `SharedPreference` cache wrapper
-/// (lib/core/data/cache/preference/shared_preference.dart, despite its name,
-/// wraps FlutterSecureStorage). That wrapper's Android-Keystore cipher
-/// migration was verified to hang the app's cold-start bootstrap indefinitely
-/// on a real emulator (see FEATURE-OPENREADER-P5/tasks/TASK-013.md) — routing
-/// non-sensitive settings around it removes that hang from the splash path.
+/// None of these values are sensitive (theme choice, locale, an onboarding flag), so they live in
+/// plain SharedPreferences.
 class AppSettingsRepositoryImpl implements AppSettingsRepository {
   static const String _themeKey = 'app_settings:theme_mode';
   static const String _localeKey = 'app_settings:locale';

@@ -257,7 +257,7 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
   void onClose() {
     _positionSaveDebounce?.cancel();
     final loaded = _sheet?.sheetNames.isNotEmpty ?? false;
-    _interactions.readerClosedAfter(loaded ? _savePosition() : null);
+    _interactions.readerClosedAfter(loaded ? _savePosition() : null, documentId: document.id);
     _sheet?.dispose();
     super.onClose();
   }

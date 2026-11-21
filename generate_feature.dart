@@ -118,7 +118,6 @@ void generateFiles(String basePath, String featureName, String featureNamePascal
     '$basePath${sep}domain${sep}usecase$sep${featureName}_use_case.dart': generateUseCaseFile(featureName, featureNamePascal, featureNameCamel),
     '$basePath${sep}data${sep}model$sep${featureName}_list_response.dart': generateResponseModelFile(featureName, featureNamePascal),
     '$basePath${sep}data${sep}repo_impl$sep${featureName}_http_impl.dart': generateHttpImplFile(featureName, featureNamePascal, featureNameCamel),
-    '$basePath${sep}data${sep}repo_impl$sep${featureName}_cache_impl.dart': generateCacheImplFile(featureName, featureNamePascal, featureNameCamel),
     '$basePath${sep}presentation${sep}controller$sep${featureName}_screen_controller.dart': generateControllerFile(featureName, featureNamePascal, featureNameCamel),
     '$basePath${sep}presentation${sep}screens$sep${featureName}_screen.dart': generateScreenFile(featureName, featureNamePascal, featureNameCamel),
     '$basePath${sep}presentation${sep}bindings$sep${featureName}_binding.dart': generateBindingFile(featureName, featureNamePascal, featureNameCamel),
@@ -254,55 +253,6 @@ class ${featureNamePascal}HttpImpl extends BaseHttpRepository implements ${featu
 ''';
 }
 
-String generateCacheImplFile(String featureName, String featureNamePascal, String featureNameCamel) {
-  return '''import 'dart:convert';
-
-import 'package:dartz/dartz.dart';
-import 'package:openreader/core/data/cache/client/base_cache_repository.dart';
-import 'package:openreader/core/domain/domain_export.dart';
-import 'package:openreader/core/domain/usecase/usecase.dart';
-
-import '../../domain/entity/${featureName}_item.dart';
-import '../../domain/repo/${featureName}_repository.dart';
-import '${featureName}_http_impl.dart';
-
-class ${featureNamePascal}CacheImpl extends BaseCacheRepository implements ${featureNamePascal}Repository {
-  static const _cacheKey = 'project:${featureName}';
-  static const _cacheDuration = Duration(days: 1);
-
-  final ${featureNamePascal}HttpImpl _remote;
-
-  ${featureNamePascal}CacheImpl(super.cache, this._remote);
-
-  @override
-  ResultFuture<${featureNamePascal}ItemList> get${featureNamePascal}List() async {
-    final cached = await cache.get(_cacheKey);
-    if (cached != null) {
-      final json = jsonDecode(cached) as List<dynamic>;
-      final items = json
-          .map((e) => ${featureNamePascal}Item(
-                id: e['id'] as String?,
-                name: e['name'] as String?,
-              ))
-          .toList();
-      return Right(${featureNamePascal}ItemList(items: items));
-    }
-    return _fetchAndCache();
-  }
-
-  Future<Either<Failure, ${featureNamePascal}ItemList>> _fetchAndCache() async {
-    final result = await _remote.get${featureNamePascal}List();
-    if (result.isRight()) {
-      final itemList = result.fold((l) => null, (r) => r)!;
-      final json = itemList.items.map((e) => {'id': e.id, 'name': e.name}).toList();
-      await cache.put(_cacheKey, jsonEncode(json), _cacheDuration);
-    }
-    return result;
-  }
-}
-''';
-}
-
 String generateControllerFile(String featureName, String featureNamePascal, String featureNameCamel) {
   return '''import 'package:get/get.dart';
 import 'package:openreader/core/presentation/controllers/base_controller.dart';
@@ -407,9 +357,7 @@ class _${featureNamePascal}ListTile extends StatelessWidget {
 
 String generateBindingFile(String featureName, String featureNamePascal, String featureNameCamel) {
   return '''import 'package:get/get.dart';
-import 'package:openreader/core/data/cache/client/preference_cache.dart';
 import 'package:openreader/core/data/http/client/api_client.dart';
-import 'package:openreader/features/$featureName/data/repo_impl/${featureName}_cache_impl.dart';
 import 'package:openreader/features/$featureName/data/repo_impl/${featureName}_http_impl.dart';
 import 'package:openreader/features/$featureName/domain/repo/${featureName}_repository.dart';
 import 'package:openreader/features/$featureName/domain/usecase/${featureName}_use_case.dart';
@@ -424,7 +372,7 @@ class ${featureNamePascal}Binding extends Bindings {
     );
 
     Get.lazyPut<${featureNamePascal}Repository>(
-      () => ${featureNamePascal}CacheImpl(Get.find<PreferenceCache>(), Get.find<${featureNamePascal}HttpImpl>()),
+      () => Get.find<${featureNamePascal}HttpImpl>(),
       fenix: true,
     );
 

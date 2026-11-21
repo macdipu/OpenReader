@@ -133,12 +133,28 @@ class DocumentInteractionController extends GetxController {
   /// there is nothing to save). Not bumped on route pop: the reader's
   /// `onClose` runs after the pop transition, so a reload on pop would read
   /// history before that save.
-  void readerClosedAfter(Future<Object?>? save) {
-    if (save == null) {
+  ///
+  /// [documentId] names the reader's document so a replacement waits for that reader's disposal, not
+  /// for any other reader's save.
+  void readerClosedAfter(Future<Object?>? save, {String? documentId}) {
+    void done() {
       readerClosed.value++;
-    } else {
-      unawaited(save.whenComplete(() => readerClosed.value++));
+      if (!_closedIds.isClosed) _closedIds.add(documentId);
     }
+
+    if (save == null) {
+      done();
+    } else {
+      unawaited(save.whenComplete(done));
+    }
+  }
+
+  final _closedIds = StreamController<String?>.broadcast();
+
+  @override
+  void onClose() {
+    unawaited(_closedIds.close());
+    super.onClose();
   }
 
   /// Opens [document] in the right-hand pane next to what is open (wide windows only; elsewhere it
@@ -168,21 +184,45 @@ class DocumentInteractionController extends GetxController {
     return true;
   }
 
+  /// Opens that replace an open reader run one after another, so two quick opens never both pop the
+  /// open reader (the second would pop the shell); the latest document ends up shown.
+  Future<void>? _openChain;
+
+  /// Document id of the reader this controller last pushed (null when unknown).
+  String? _pushedDocumentId;
+
   Future<void> _openReader(String route, DocumentModel document) async {
     unawaited(_recordOpen(document));
     if (_openInWorkspace(document)) return;
+    final previous = _openChain;
+    final turn = Completer<void>();
+    _openChain = turn.future;
+    try {
+      if (previous != null) await previous;
+      await _replaceAndPush(route, document);
+    } finally {
+      turn.complete();
+    }
+  }
+
+  Future<void> _replaceAndPush(String route, DocumentModel document) async {
     // Get.toNamed ignores a push of the route that is already on top (preventDuplicates), so a second
     // document of the same reader type arriving while one is open would be dropped. Replacing the
     // route in place (offNamed) would let the old route's disposal delete the new reader's controller
     // (same type, same key), so close the open reader first, let it dispose, then push. A different
     // reader type pushes on top as usual.
     if (Get.currentRoute == route) {
-      // Every reader reports through [readerClosedAfter] once it has been disposed; the timeout only
+      // The reader being closed reports through [readerClosedAfter] once disposed; the timeout only
       // guards a reader that never does.
-      final disposed = readerClosed.stream.first.timeout(const Duration(seconds: 2), onTimeout: () => 0);
-      Get.back<void>();
+      final closing = _pushedDocumentId;
+      final disposed = _closedIds.stream
+          .firstWhere((id) => closing == null || id == closing)
+          .then<void>((_) {})
+          .timeout(const Duration(seconds: 2), onTimeout: () {});
+      if (Get.currentRoute == route) Get.back<void>();
       await disposed;
     }
+    _pushedDocumentId = document.id;
     unawaited(Get.toNamed(route, arguments: document));
   }
 

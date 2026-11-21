@@ -21,7 +21,7 @@
 `core/` is the foundation. **Search `core/` before creating anything new.**
 
 Maximize reuse of existing:
-Widgets, Components, Theme, Colors, Typography, Dimensions, Icons, Dialogs, Bottom Sheets, Animations, Extensions, Helpers, Utilities, Validators, Services, `ApiClient`, Cache Layer (`PreferenceCache`), `BaseController`, Base Screens, Base Models, Navigation, Constants, Enums, Hooks, Mixins.
+Widgets, Components, Theme, Colors, Typography, Dimensions, Icons, Dialogs, Bottom Sheets, Animations, Extensions, Helpers, Utilities, Validators, Services, `ApiClient`, `BaseController`, Base Screens, Base Models, Navigation, Constants, Enums, Hooks, Mixins.
 
 Before writing new code ask: Does this exist? Can I reuse/extend/generalize it? Will another feature need it? If yes — extend, don't duplicate.
 
@@ -29,7 +29,7 @@ Before writing new code ask: Does this exist? Can I reuse/extend/generalize it? 
 
 # 3. Reusable Component Policy
 
-Used by 2+ features → move to `core/`. Never duplicate: Buttons, Cards, App Bars, Dialogs, Bottom Sheets, Text Fields, Loading Widgets, Empty/Error States, Validators, Extensions, Helpers, API logic, Cache logic.
+Used by 2+ features → move to `core/`. Never duplicate: Buttons, Cards, App Bars, Dialogs, Bottom Sheets, Text Fields, Loading Widgets, Empty/Error States, Validators, Extensions, Helpers, API logic.
 
 ---
 
@@ -111,7 +111,6 @@ Produces (`lib/features/<name>/`):
 ```
 data/model/<name>_list_response.dart
 data/repo_impl/<name>_http_impl.dart
-data/repo_impl/<name>_cache_impl.dart
 domain/entity/<name>_item.dart
 domain/repo/<name>_repository.dart
 domain/usecase/<name>_use_case.dart
@@ -125,11 +124,10 @@ After generating:
 1. Add entity fields (`domain/entity`)
 2. Add response fields + `fromJson` (`data/model`)
 3. Set real endpoint in `data/repo_impl/<name>_http_impl.dart` (search `TODO`, replace `authorizedGet('')`)
-4. Update cache serialization in `<name>_cache_impl.dart`
-5. Add route constant to `lib/res/routes/app_routes.dart`
-6. Spread `...XxxPages.routes` into `lib/res/routes/app_pages.dart`
-7. Wire `HttpImpl → CacheImpl → Repository → UseCase → Controller` in the binding, all `Get.lazyPut(..., fenix: true)`
-8. Build UI, register routes, test
+4. Add route constant to `lib/res/routes/app_routes.dart`
+5. Spread `...XxxPages.routes` into `lib/res/routes/app_pages.dart`
+6. Wire `HttpImpl → Repository → UseCase → Controller` in the binding, all `Get.lazyPut(..., fenix: true)`
+7. Build UI, register routes, test
 
 Never bypass architecture layers.
 
@@ -140,10 +138,10 @@ Never bypass architecture layers.
 Do **not** create a new feature. Update the existing one.
 
 ```
-UI → Controller → UseCase → Repository (interface) → RepoImpl (Cache→Http) → ApiClient
+UI → Controller → UseCase → Repository (interface) → RepoImpl (Http) → ApiClient
 ```
 
-Steps: add repository method → add use case → add request/response models → implement in `XxxHttpImpl` → update `XxxCacheImpl` if cached → update controller (via `doAction<T>`) → update UI → handle loading/error/empty.
+Steps: add repository method → add use case → add request/response models → implement in `XxxHttpImpl` → update controller (via `doAction<T>`) → update UI → handle loading/error/empty.
 
 Never call `ApiClient` directly from a Controller or a widget.
 
@@ -152,7 +150,7 @@ Never call `ApiClient` directly from a Controller or a widget.
 # 10. Repository Rules
 
 `XxxHttpImpl` — HTTP call, returns `Either<Failure, T>` (mapped from `Resource`).
-`XxxCacheImpl` — wraps the Http impl, persists to `PreferenceCache` on success, is what gets registered as `XxxRepository` in the Binding.
+`XxxHttpImpl` is what gets registered as `XxxRepository` in the Binding. There is no shared cache layer; persist locally through a repository over `core/data/local` (sqflite) or `shared_preferences` where a feature needs it.
 Controllers never touch `ApiClient` or `Dio` directly.
 
 ---
@@ -187,7 +185,7 @@ Every screen should cover, where applicable: Loading (`StateStatus.loading` / `s
 
 # 14. Performance Rules
 
-Prefer: `const` widgets, lazy `Get.lazyPut(fenix: true)`, pagination (`paginating` status), `PreferenceCache` caching, reusable `core/` widgets.
+Prefer: `const` widgets, lazy `Get.lazyPut(fenix: true)`, pagination (`paginating` status), reusable `core/` widgets.
 Avoid: unnecessary rebuilds, duplicate API calls, duplicate cache reads, deeply nested widget trees.
 
 ---

@@ -278,7 +278,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
     unawaited(_preferenceSync?.cancel());
     _positionSaveDebounce?.cancel();
     final save = _scrolledThisSession || _lastScrollOffset > 0;
-    _interactions.readerClosedAfter(save ? _savePosition(_lastScrollOffset, _lastLine) : null);
+    _interactions.readerClosedAfter(save ? _savePosition(_lastScrollOffset, _lastLine) : null, documentId: document.id);
     markdown?.viewMode.removeListener(_mirrorViewMode);
     lineSource.dispose();
     super.onClose();

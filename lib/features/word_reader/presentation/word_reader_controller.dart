@@ -168,7 +168,7 @@ class WordReaderController extends BaseController with ReaderFullscreen, ReaderN
     _closed = true;
     _positionSaveDebounce?.cancel();
     final last = _lastKnownPosition;
-    _interactions.readerClosedAfter(last == null ? null : _savePosition(last));
+    _interactions.readerClosedAfter(last == null ? null : _savePosition(last), documentId: document.id);
     word.dispose();
     super.onClose();
   }

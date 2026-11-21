@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -96,14 +97,22 @@ class DesktopUpdateInstaller {
   // ---------------------------------------------------------------------------
 
   /// Hosts a release download (and each redirect hop) may come from.
-  static const allowedHosts = {'github.com', 'objects.githubusercontent.com'};
+  ///
+  /// GitHub redirects release assets to `release-assets.githubusercontent.com`; the older
+  /// `objects.githubusercontent.com` stays as a fallback.
+  static const allowedHosts = {
+    'github.com',
+    'release-assets.githubusercontent.com',
+    'objects.githubusercontent.com',
+  };
 
-  /// True for `https` URLs on [allowedHosts] only.
+  /// True for `https` URLs on [allowedHosts] only (default port).
   static bool isTrustedUpdateUrl(String url) {
     final uri = Uri.tryParse(url);
     if (uri == null) return false;
     return uri.scheme == 'https' &&
         uri.userInfo.isEmpty &&
+        (!uri.hasPort || uri.port == 443) &&
         allowedHosts.contains(uri.host.toLowerCase());
   }
 
@@ -178,9 +187,19 @@ class DesktopUpdateInstaller {
   /// POSIX helper script. It contains no paths: they arrive as arguments
   /// `$1` pid, `$2` install target, `$3` staged, `$4` script dir, `$5` app executable.
   static String buildPosixUpdateScript({required bool macos}) {
+    // macOS: copy beside the bundle first, then swap, so a failed copy never leaves no app.
     final swap = macos
-        ? '''rm -rf -- "\$2"
-ditto "\$3" "\$2"
+        ? '''rm -rf -- "\$2.new" "\$2.old"
+if ditto "\$3" "\$2.new" && mv "\$2" "\$2.old"; then
+  if mv "\$2.new" "\$2"; then
+    rm -rf -- "\$2.old"
+  else
+    mv "\$2.old" "\$2"
+    rm -rf -- "\$2.new"
+  fi
+else
+  rm -rf -- "\$2.new"
+fi
 open "\$2"'''
         : '''cp -a "\$3/." "\$2/"
 nohup "\$5" >/dev/null 2>&1 &''';
@@ -202,9 +221,15 @@ rm -rf -- "\$4"
   }) {
     final apply = viaInstaller
         ? "Start-Process -FilePath ${psQuote(staged)} -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CLOSEAPPLICATIONS' -Wait"
-        : '''for (\$i = 0; \$i -lt 20; \$i++) {
-  try { Copy-Item -LiteralPath (Join-Path ${psQuote(staged)} '*') -Destination ${psQuote(target)} -Recurse -Force; break }
-  catch { Start-Sleep -Milliseconds 500 }
+        : '''\$copied = \$false
+\$lastError = ''
+for (\$i = 0; \$i -lt 20; \$i++) {
+  try { Get-ChildItem -LiteralPath ${psQuote(staged)} -Force | Copy-Item -Destination ${psQuote(target)} -Recurse -Force; \$copied = \$true; break }
+  catch { \$lastError = \$_.Exception.Message; Start-Sleep -Milliseconds 500 }
+}
+if (-not \$copied) {
+  Set-Content -LiteralPath (Join-Path (Split-Path -Parent ${psQuote(scriptDir)}) 'openreader_update_failed.log') -Value "The update could not be copied: \$lastError"
+  exit 1
 }''';
     return '''\$ErrorActionPreference = 'Stop'
 while (Get-Process -Id $pid -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 300 }
@@ -220,10 +245,14 @@ Remove-Item -Recurse -Force -LiteralPath ${psQuote(scriptDir)} -ErrorAction Sile
 
   /// GET [url] following redirects by hand so every hop is checked against
   /// [isTrustedUpdateUrl]. The caller closes [client].
-  static Future<HttpClientResponse> _get(HttpClient client, String url) async {
+  ///
+  /// [isTrusted] defaults to [isTrustedUpdateUrl]; tests inject a local-server predicate.
+  @visibleForTesting
+  static Future<HttpClientResponse> getFollowingRedirects(HttpClient client, String url,
+      {bool Function(String url) isTrusted = isTrustedUpdateUrl}) async {
     var current = url;
     for (var hop = 0; hop < 6; hop++) {
-      if (!isTrustedUpdateUrl(current)) {
+      if (!isTrusted(current)) {
         throw UnsafeUpdateUrlException(
             'The update link is not from a trusted address.');
       }
@@ -255,7 +284,7 @@ Remove-Item -Recurse -Force -LiteralPath ${psQuote(scriptDir)} -ErrorAction Sile
       ..connectionTimeout = const Duration(seconds: 15);
     try {
       final response =
-          await _get(client, url).timeout(const Duration(seconds: 30));
+          await getFollowingRedirects(client, url).timeout(const Duration(seconds: 30));
       if (response.statusCode != HttpStatus.ok) {
         throw UpdateInstallException(
             'Could not get the update checksums (HTTP ${response.statusCode}).');
@@ -303,7 +332,7 @@ Remove-Item -Recurse -Force -LiteralPath ${psQuote(scriptDir)} -ErrorAction Sile
       ..connectionTimeout = const Duration(seconds: 15);
     IOSink? sink;
     try {
-      final response = await _get(client, url);
+      final response = await getFollowingRedirects(client, url);
       if (response.statusCode != HttpStatus.ok)
         throw UpdateInstallException(
             'Download failed (HTTP ${response.statusCode}).');
@@ -331,12 +360,28 @@ Remove-Item -Recurse -Force -LiteralPath ${psQuote(scriptDir)} -ErrorAction Sile
       }
       return file;
     } on SocketException catch (e) {
+      await _discard(dir);
       throw UpdateInstallException('Download failed: ${e.message}');
+    } catch (_) {
+      // Cancelled, failed or mismatched: leave nothing behind.
+      await _discard(dir);
+      rethrow;
     } finally {
       await sink?.close().catchError((_) {});
       client.close(force: true);
     }
   }
+
+  static Future<void> _discard(Directory dir) async {
+    try {
+      if (await dir.exists()) await dir.delete(recursive: true);
+    } catch (_) {}
+  }
+
+  /// The staging directory that holds [staged] (and the download and mount point beside it): the
+  /// folder the helper script removes when done. On macOS [staged] is `<root>/staged/X.app`.
+  static String stagingRoot(String staged) =>
+      staged.toLowerCase().endsWith('.app') ? p.dirname(p.dirname(staged)) : p.dirname(staged);
 
   /// Unpacks the download next to it and returns what to copy over the install:
   /// the extracted folder (Windows/Linux) or the new .app (macOS).
@@ -386,7 +431,7 @@ Remove-Item -Recurse -Force -LiteralPath ${psQuote(scriptDir)} -ErrorAction Sile
   static Future<void> launchInstallerAndRelaunch(String staged) async {
     final target = _installTarget;
     final exe = Platform.resolvedExecutable;
-    final scriptDir = p.dirname(staged);
+    final scriptDir = stagingRoot(staged);
 
     if (PlatformInfo.isWindows) {
       final script = File(p.join(scriptDir, 'update.ps1'));

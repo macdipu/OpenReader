@@ -100,7 +100,8 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
     unawaited(Get.offAllNamed(AppRoutes.appShell));
   }
 
-  /// Scenario B - user can continue in limited mode without storage access.
+  /// "Get started" on iOS and desktop, where there is no permission step. Android has no way to
+  /// skip: the access request is the one thing the first screen asks for.
   Future<void> continueWithoutAccess() async {
     // Same latch as the granted path: one navigation, however taps interleave.
     if (_finished) return;

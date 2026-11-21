@@ -20,11 +20,19 @@ class AccessRecheck {
   final List<Duration> delays;
   final _timers = <Timer>[];
 
+  /// Identifies the latest [run]; callbacks of an earlier run see a different value and stop.
+  int _generation = 0;
+
   /// True while delayed checks are still waiting.
   bool get isActive => _timers.isNotEmpty;
 
   /// Stops any delayed check that has not run yet.
   void cancel() {
+    _generation++;
+    _dropTimers();
+  }
+
+  void _dropTimers() {
     for (final timer in _timers) {
       timer.cancel();
     }
@@ -33,24 +41,38 @@ class AccessRecheck {
 
   /// Runs [check] now (the returned future completes after that first check) and again after each
   /// delay. [onSettled] runs once after the last delayed check when nothing changed and the owner is
-  /// still open.
+  /// still open. Overlapping runs on one instance are safe: a newer run replaces an older one, whose
+  /// pending callbacks (including one awaiting [check]) then do nothing.
   Future<void> run({
     required Future<void> Function() check,
     required bool Function() changed,
     bool Function()? isClosed,
     void Function()? onSettled,
   }) async {
-    cancel();
-    bool stop() => (isClosed?.call() ?? false) || changed();
+    _dropTimers();
+    final generation = ++_generation;
+    bool stale() => generation != _generation;
+    bool stop() => stale() || (isClosed?.call() ?? false) || changed();
+    // Stops this run's own timers only (a newer run has already replaced them).
+    void finish() {
+      if (stale()) return;
+      _dropTimers();
+    }
+
     for (var i = 0; i < delays.length; i++) {
       final last = i == delays.length - 1;
       late final Timer timer;
       timer = Timer(delays[i], () async {
         _timers.remove(timer);
         if (stop()) return;
-        await check();
+        try {
+          await check();
+        } catch (_) {
+          // A failed check is retried by the next delay; it must not escape the timer.
+        }
+        if (stale()) return;
         if (changed()) {
-          cancel();
+          finish();
         } else if (last && !stop()) {
           onSettled?.call();
         }
@@ -58,6 +80,6 @@ class AccessRecheck {
       _timers.add(timer);
     }
     await check();
-    if (changed()) cancel();
+    if (!stale() && changed()) finish();
   }
 }

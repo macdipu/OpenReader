@@ -114,6 +114,9 @@ void main() {
       await tester.pumpWidget(const GetMaterialApp(home: OnboardingView()));
       expect(find.widgetWithText(FilledButton, 'Allow Access'), findsOneWidget);
       expect(find.text('Get started'), findsNothing);
+      // The access request is the one thing the first screen asks for: no skip option.
+      expect(find.text('Not Now'), findsNothing);
+      expect(find.byType(TextButton).evaluate().where((e) => ((e.widget as TextButton).child is Text) && ((((e.widget as TextButton).child) as Text).data == 'Privacy policy') == false), isEmpty);
       expect(find.textContaining('"All files access"'), findsOneWidget);
       expect(find.textContaining('Allow management of all files'), findsOneWidget);
       // A-06: the purpose, never uploaded or shared, and the policy link.

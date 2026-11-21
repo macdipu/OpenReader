@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:openreader/core/domain/models/document_category.dart';
@@ -67,10 +68,11 @@ class FixtureAccess implements StorageAccessService {
 
 class _ReaderStub extends GetxController {
   final DocumentModel document;
-  _ReaderStub(this.document);
+  final Future<Object?>? Function()? save;
+  _ReaderStub(this.document, {this.save});
   @override
   void onClose() {
-    Get.find<DocumentInteractionController>().readerClosedAfter(null);
+    Get.find<DocumentInteractionController>().readerClosedAfter(save?.call(), documentId: document.id);
     super.onClose();
   }
 }
@@ -242,7 +244,7 @@ void main() {
       await tester.pump(const Duration(seconds: 4));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.textContaining('Allow management of all files'), findsOneWidget);
-      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('Open settings'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
       await tester.pump(const Duration(seconds: 1));
     });
@@ -348,6 +350,68 @@ void main() {
       Get.back();
       await tester.pumpAndSettle();
       expect(Get.currentRoute, AppRoutes.pdfReader);
+    });
+  });
+
+  group('overlapping replacements (S2)', () {
+    Future<void> pumpReaderApp(WidgetTester tester, {Future<Object?>? Function()? save}) => tester.pumpWidget(GetMaterialApp(
+          initialRoute: '/',
+          getPages: [
+            GetPage(name: '/', page: () => const Scaffold(body: SizedBox())),
+            GetPage(
+              name: AppRoutes.pdfReader,
+              page: () => Scaffold(body: Text('reading ${(Get.arguments as DocumentModel).displayName}')),
+              binding: BindingsBuilder(() {
+                final document = Get.arguments as DocumentModel;
+                Get.put<_ReaderStub>(_ReaderStub(document, save: save));
+              }),
+            ),
+          ],
+        ));
+
+    testWidgets('two simultaneous opens never pop the shell; the latest document wins', (tester) async {
+      await pumpReaderApp(tester);
+      Get.put(controller);
+      final b = File(p.join(root.path, 'b.pdf'))..writeAsStringSync('b');
+      final c = File(p.join(root.path, 'c.pdf'))..writeAsStringSync('c');
+      await controller.openDocument(accessibleDocument);
+      await tester.pumpAndSettle();
+
+      final first = controller.openDocument(documentFor(b.path));
+      final second = controller.openDocument(documentFor(c.path));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      await Future.wait([first, second]);
+
+      expect(find.text('reading c.pdf'), findsOneWidget);
+      expect(Get.currentRoute, AppRoutes.pdfReader);
+      Get.back();
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, '/', reason: 'one back reaches the shell: no reader was left stacked and the shell was not popped');
+    });
+
+    testWidgets('a save from another reader does not complete the wait early', (tester) async {
+      final pending = Completer<Object?>();
+      await pumpReaderApp(tester, save: () => pending.future);
+      Get.put(controller);
+      final b = File(p.join(root.path, 'b.pdf'))..writeAsStringSync('b');
+      await controller.openDocument(accessibleDocument);
+      await tester.pumpAndSettle();
+
+      var opened = false;
+      final opening = controller.openDocument(documentFor(b.path)).then((_) => opened = true);
+      await tester.pumpAndSettle();
+      // Another reader's save lands while the old reader's own save is still pending.
+      controller.readerClosedAfter(null, documentId: 'some-other-document');
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(opened, isFalse, reason: 'only the closing reader\'s own save counts');
+      expect(find.text('reading b.pdf'), findsNothing);
+
+      pending.complete(null);
+      await tester.pumpAndSettle();
+      await opening;
+      expect(find.text('reading b.pdf'), findsOneWidget);
     });
   });
 

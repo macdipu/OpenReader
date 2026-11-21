@@ -41,6 +41,23 @@ class CustomSnackbar {
       SnackbarType.info => (_pick(AppColors.info), _pick(AppColors.onInfo), Icons.info_outline),
     };
 
+    // Long enough to wrap onto several lines next to an action.
+    final actionBelow = onAction != null && message.length > 32;
+    final actionButton = onAction == null
+        ? null
+        : TextButton(
+            onPressed: () {
+              Get.closeCurrentSnackbar();
+              onAction();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: textColor,
+              minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            child: Text(actionLabel ?? '', style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
+          );
+
     final context = rootContext;
     final overNav = context != null && Get.currentRoute == AppRoutes.appShell && ScreenUtils.of(context).isCompact;
 
@@ -63,15 +80,21 @@ class CustomSnackbar {
       animationDuration: const Duration(milliseconds: 300),
       // No blur/dim: a status message shouldn't obscure the screen (UX-28).
       overlayBlur: 0,
-      mainButton: onAction == null
-          ? null
-          : TextButton(
-              onPressed: () {
-                Get.closeCurrentSnackbar();
-                onAction();
-              },
-              child: Text(actionLabel ?? '', style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
-            ),
+      // A long message with an action: the message gets the full width and the action sits under it
+      // (a trailing button would squeeze the text into a narrow column). Short messages keep the
+      // action to the right, as in Material.
+      messageText: actionBelow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(message, style: TextStyle(color: textColor, fontSize: 14, height: 1.35)),
+                const SizedBox(height: 4),
+                Align(alignment: AlignmentDirectional.centerEnd, child: actionButton),
+              ],
+            )
+          : null,
+      mainButton: onAction == null || actionBelow ? null : actionButton,
       snackbarStatus: (status) {
         if (status == SnackbarStatus.CLOSED) {
         }

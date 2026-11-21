@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -11,7 +12,7 @@ class _Access implements StorageAccessService {
   bool grantOnRequest = false;
   int hasAccessCalls = 0;
   int requests = 0;
-  int settingsOpened = 0;
+  int allFilesSettingsOpened = 0;
 
   @override
   Future<bool> hasAccess() async {
@@ -27,8 +28,8 @@ class _Access implements StorageAccessService {
   }
 
   @override
-  Future<bool> openSettings() async {
-    settingsOpened++;
+  Future<bool> openAllFilesAccessSettings() async {
+    allFilesSettingsOpened++;
     return true;
   }
 
@@ -103,6 +104,83 @@ void main() {
       expect(checks, 4);
     });
 
+    testWidgets('a re-run while an older callback awaits: older onSettled never fires, newer run is not cancelled',
+        (tester) async {
+      final gate = Completer<void>();
+      var firstSettled = 0;
+      var secondSettled = 0;
+      var secondChecks = 0;
+      var firstChanged = false;
+      final recheck = AccessRecheck(delays: const [Duration(milliseconds: 100)]);
+      var call = 0;
+      await recheck.run(
+        check: () async {
+          if (++call == 2) {
+            await gate.future; // the delayed check of run 1 is slow
+            firstChanged = true; // and would report a change, which used to cancel everything
+          }
+        },
+        changed: () => firstChanged,
+        onSettled: () => firstSettled++,
+      );
+      await tester.pump(const Duration(milliseconds: 100)); // run 1's callback now awaits check()
+
+      await recheck.run(
+        check: () async => secondChecks++,
+        changed: () => false,
+        onSettled: () => secondSettled++,
+      );
+      gate.complete();
+      await tester.pump();
+      expect(recheck.isActive, isTrue, reason: 'the older run must not cancel the newer run\'s timers');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(secondChecks, 2);
+      expect(secondSettled, 1);
+      expect(firstSettled, 0);
+      await tester.pump(const Duration(seconds: 1));
+      expect(secondSettled, 1, reason: 'onSettled fires once');
+    });
+
+    testWidgets('onSettled fires once when the last callback is still awaiting as the run is repeated',
+        (tester) async {
+      final gate = Completer<void>();
+      var settled = 0;
+      final recheck = AccessRecheck(delays: const [Duration(milliseconds: 100)]);
+      var call = 0;
+      await recheck.run(
+        check: () async {
+          if (++call == 2) await gate.future;
+        },
+        changed: () => false,
+        onSettled: () => settled++,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await recheck.run(check: () async {}, changed: () => false, onSettled: () => settled++);
+      gate.complete();
+      await tester.pump();
+      expect(settled, 0, reason: 'the older run is superseded');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(settled, 1);
+    });
+
+    testWidgets('a check that throws inside a timer does not escape and later checks still run', (tester) async {
+      var calls = 0;
+      var settled = 0;
+      final recheck = AccessRecheck(delays: const [Duration(milliseconds: 100), Duration(milliseconds: 200)]);
+      await recheck.run(
+        check: () async {
+          if (++calls == 2) throw StateError('boom');
+        },
+        changed: () => false,
+        onSettled: () => settled++,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(calls, 3);
+      expect(settled, 1);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('onSettled runs once, only when nothing changed', (tester) async {
       var settled = 0;
       final recheck = AccessRecheck(delays: const [Duration(milliseconds: 100), Duration(milliseconds: 200)]);
@@ -174,9 +252,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text(storageAccessGuidance), findsOneWidget);
       expect(find.textContaining('Allow management of all files'), findsOneWidget);
-      await tester.tap(find.text('Settings'));
+      await tester.tap(find.text('Open settings'));
       await tester.pump();
-      expect(access.settingsOpened, 1);
+      expect(access.allFilesSettingsOpened, 1);
       await tester.pump(const Duration(seconds: 10));
     });
   });

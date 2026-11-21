@@ -185,7 +185,7 @@ The repository ([macdipu/OpenReader](https://github.com/macdipu/OpenReader); Git
 - **Framework:** Flutter (SDK `>=3.2.3 <4.0.0`)
 - **State management:** GetX
 - **Architecture:** Clean Architecture (presentation / domain / data per feature)
-- **Local storage:** sqflite (document index), shared_preferences, flutter_secure_storage
+- **Local storage:** sqflite (document index), shared_preferences
 - **Document rendering:** universal_document_viewer, its own repository ([github.com/macdipu/universal_document_viewer](https://github.com/macdipu/universal_document_viewer)): its own PDF, Word, Excel/CSV, PowerPoint and text engines (CR-OWN-ENGINES)
 - **File integration:** open_filex (Open With), receive_sharing_intent (Open From Other Apps)
 - **Push notifications:** firebase_core / firebase_messaging (currently disabled — see `TODO` in `lib/app/flavours/app_flavour.dart`)
