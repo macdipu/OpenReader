@@ -11,9 +11,9 @@ class PrivacySection extends StatelessWidget {
   final bool showLabel;
   const PrivacySection({super.key, required this.controller, this.showLabel = true});
 
-  static const statement = 'Your documents are processed on this device and are never uploaded. '
-      'Crash reports and usage analytics (tied to a random installation identifier, never to your '
-      'documents) are always collected and sent to Google Firebase in release builds. Debug builds send nothing.';
+  static const statement = 'Documents are processed on this device and never uploaded. '
+      'Crash reports and usage analytics, tied to a random installation identifier and not to your '
+      'documents, are always sent to Google Firebase in release builds.';
 
   @override
   Widget build(BuildContext context) {

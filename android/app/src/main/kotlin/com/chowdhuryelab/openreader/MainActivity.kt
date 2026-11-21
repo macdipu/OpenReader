@@ -11,6 +11,7 @@ import android.webkit.MimeTypeMap
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -60,6 +61,15 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
+
+        // Device facts Dart cannot read without a plugin: the Android SDK level (file access rules differ
+        // from API 30).
+        MethodChannel(messenger, DEVICE_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "sdkInt" -> result.success(android.os.Build.VERSION.SDK_INT)
+                else -> result.notImplemented()
+            }
+        }
 
         EventChannel(messenger, EVENTS_CHANNEL).setStreamHandler(
             object : EventChannel.StreamHandler {
@@ -245,6 +255,7 @@ class MainActivity : FlutterActivity() {
 
     private companion object {
         const val TAG = "OpenReaderIntent"
+        const val DEVICE_CHANNEL = "openreader/device"
         const val EVENTS_CHANNEL = "openreader/incoming_intent/events"
         const val INCOMING_DIR = "incoming"
         const val PRUNE_AFTER_MS = 7L * 24 * 60 * 60 * 1000

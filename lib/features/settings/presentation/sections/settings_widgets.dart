@@ -25,7 +25,7 @@ class SettingsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -49,7 +49,7 @@ class SettingsSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      padding: const EdgeInsets.only(left: 4, bottom: 6),
       child: Semantics(
         header: true,
         child: Text(
@@ -156,6 +156,29 @@ class SettingsStatus extends StatelessWidget {
   }
 }
 
+/// A [SettingsStatus] in a small rounded chip, for a row's title line. The chip never wraps its own
+/// text: a row lays it out in a [Wrap], so it drops to the next line as a whole when it does not fit.
+class SettingsStatusChip extends StatelessWidget {
+  final SettingsStatusKind kind;
+  final String label;
+  final Key? textKey;
+  const SettingsStatusChip({super.key, required this.kind, required this.label, this.textKey});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (kind) {
+      SettingsStatusKind.ok => context.secondary,
+      SettingsStatusKind.warning || SettingsStatusKind.blocked => context.error,
+      SettingsStatusKind.neutral => context.onSurfaceVariant,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+      child: SettingsStatus(kind: kind, label: label, textKey: textKey),
+    );
+  }
+}
+
 /// Icon, title and optional supporting line over a control that is not a single trailing widget
 /// (segmented choices, the text size stepper).
 class SettingsBlockHeader extends StatelessWidget {
@@ -217,7 +240,7 @@ class SettingsNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Text(text, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
     );
   }
@@ -272,7 +295,7 @@ class SettingsActionRow extends StatelessWidget {
         child: SettingsRowInk(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
             SettingsIconBadge(icon),

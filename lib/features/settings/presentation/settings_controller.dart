@@ -127,6 +127,15 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
 
   StreamSubscription<ReaderPreferenceChange>? _preferenceSync;
   Timer? _delayedDefaultsRefresh;
+  final _permissionRechecks = <Timer>[];
+
+  /// After the OS permission page, the state can lag behind the user's choice: re-check this long
+  /// after returning, until it differs from what it was before leaving.
+  static const permissionRecheckDelays = [
+    Duration(milliseconds: 700),
+    Duration(milliseconds: 1500),
+    Duration(seconds: 3),
+  ];
 
   void _onPreferenceChanged(ReaderPreferenceChange change) {
     final value = change.value;
@@ -148,6 +157,7 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   void onClose() {
     unawaited(_preferenceSync?.cancel());
     _delayedDefaultsRefresh?.cancel();
+    _cancelPermissionRechecks();
     WidgetsBinding.instance.removeObserver(this);
     super.onClose();
   }
@@ -156,7 +166,7 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited(refreshPermissions());
+      unawaited(watchPermissions(storageState.value));
       unawaited(refreshDefaults());
     }
   }
@@ -291,9 +301,37 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  /// The action that matches the state: ask when not allowed, explain and open the app's settings
-  /// when blocked (the OS shows no prompt any more), open the app's settings to revoke when allowed.
+  void _cancelPermissionRechecks() {
+    for (final timer in _permissionRechecks) {
+      timer.cancel();
+    }
+    _permissionRechecks.clear();
+  }
+
+  /// Refreshes now, then again after each of [permissionRecheckDelays], stopping as soon as the state
+  /// differs from [before] (the state shown before the user left for the OS page) or the controller
+  /// closes. A grant can reach the app a moment after it returns to the foreground.
+  Future<void> watchPermissions(StorageAccessState? before) async {
+    _cancelPermissionRechecks();
+    for (final delay in permissionRecheckDelays) {
+      late final Timer timer;
+      timer = Timer(delay, () async {
+        _permissionRechecks.remove(timer);
+        if (isClosed || storageState.value != before) return;
+        await refreshPermissions();
+        if (storageState.value != before) _cancelPermissionRechecks();
+      });
+      _permissionRechecks.add(timer);
+    }
+    await refreshPermissions();
+    if (storageState.value != before) _cancelPermissionRechecks();
+  }
+
+  /// The action that matches the state: open the All files access page (Android 11+) or ask (older
+  /// Android) when not allowed, explain and open the page when blocked, open the app's settings to
+  /// revoke when allowed.
   Future<void> fixStorageAccess() async {
+    final before = storageState.value;
     switch (storageState.value) {
       case StorageAccessState.notAllowed:
         await _storageAccess.requestOrOpenSettings();
@@ -311,13 +349,14 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
       case null:
         break;
     }
-    await refreshPermissions();
+    await watchPermissions(before);
   }
 
   /// The "How to allow it" help: straight to the All files access page.
   Future<void> openAllFilesAccess() async {
+    final before = storageState.value;
     await _storageAccess.openAllFilesAccessSettings();
-    await refreshPermissions();
+    await watchPermissions(before);
   }
 
   /// iOS: the app's page in the system Settings.

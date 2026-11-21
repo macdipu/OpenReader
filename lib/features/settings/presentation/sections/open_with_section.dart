@@ -11,9 +11,8 @@ class OpenWithSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tip = PlatformInfo.isIOS
-        ? 'In the Files app, touch and hold a document, choose Share, then pick OpenReader.'
-        : 'In your file manager or another app, tap a document, then choose OpenReader from "Open with". '
-            'Choose "Always" to make it the default for that type.';
+        ? 'In Files, touch and hold a document, tap Share, then choose OpenReader.'
+        : 'In a file manager, tap a document and choose OpenReader from "Open with". Pick "Always" to make it the default.';
     return SettingsSection(
       label: 'Open with',
       showLabel: showLabel,

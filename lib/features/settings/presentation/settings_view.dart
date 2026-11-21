@@ -35,7 +35,7 @@ class SettingsView extends GetView<SettingsController> {
             )
           : ContentConstraint(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 children: [for (final id in sections) id.build(controller, showLabel: true)],
               ),
             ),
