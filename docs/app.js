@@ -153,6 +153,48 @@
     }
     return null;
   }
+  // Android: Google Play leads when its live version is as new as the newest APK.
+  // The Play listing sends no CORS headers, so it is read through a public
+  // proxy, best effort: on a slow or failed check Play leads, as before.
+  var PLAY_PROXY = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(PLAY + '&hl=en&gl=US');
+  var PLAY_TIMEOUT = 4000;
+  var playVer = null;
+  function loadPlay(cb) {
+    try {
+      var hit = JSON.parse(sessionStorage.getItem('openreader-play') || 'null');
+      if (hit && Date.now() - hit.t < 600000) { playVer = hit.v; return cb(); }
+    } catch (e) { /* no storage */ }
+    var done = false;
+    function finish(v) {
+      if (done) return;
+      done = true;
+      playVer = v;
+      if (v) try { sessionStorage.setItem('openreader-play', JSON.stringify({ t: Date.now(), v: v })); } catch (e) { /* ignore */ }
+      cb();
+    }
+    var ctl = window.AbortController ? new AbortController() : null;
+    setTimeout(function () { if (ctl) ctl.abort(); finish(null); }, PLAY_TIMEOUT);
+    fetch(PLAY_PROXY, ctl ? { signal: ctl.signal } : {})
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (html) {   // the listing embeds the version as [[["1.2.3"]]
+        var m = html.match(/\[\[\["(\d+(?:\.\d+){1,3})"\]\]/);
+        finish(m ? 'v' + m[1] : null);
+      })
+      .catch(function () { finish(null); });
+  }
+  function cmpVer(a, b) {   // "v1.0.21" vs "v1.0.22": -1, 0 or 1
+    var x = String(a).replace(/^v/, '').split('.'), y = String(b).replace(/^v/, '').split('.');
+    for (var i = 0; i < Math.max(x.length, y.length); i++) {
+      var d = (parseInt(x[i], 10) || 0) - (parseInt(y[i], 10) || 0);
+      if (d) return d < 0 ? -1 : 1;
+    }
+    return 0;
+  }
+  function androidChoice(rels) {
+    var apk = find(rels, 'android');
+    var playFirst = !apk || !playVer || cmpVer(playVer, apk.rel.tag_name) >= 0;
+    return { apk: apk, playVer: playVer, playFirst: playFirst };
+  }
   function listFor(rel, os) {
     return rel.assets.filter(function (a) { return OS_FILES[os].some(function (re) { return re.test(a.name); }); });
   }
@@ -180,6 +222,9 @@
   }
 
   function initReleases(os) {
+    loadPlay(function () { renderReleases(os); });
+  }
+  function renderReleases(os) {
     loadReleases(function (rels) {
       if (!rels.length) return;
       var latest = rels[0];
@@ -214,8 +259,14 @@
           cta.addEventListener('click', function (e) { if (openLinuxPicker(rels)) e.preventDefault(); });
         }
       } else if (os === 'android') {
-        var apk = find(rels, 'android');
-        if (apk) note.innerHTML = 'Or <a href="' + esc(apk.asset.browser_download_url) + '">download the APK</a> (' + esc(friendly(apk.asset.name).replace('APK, ', '')) + ', ' + fmtSize(apk.asset.size) + '). Allow installs from your browser when asked.';
+        var ch = androidChoice(rels), apk = ch.apk;
+        if (apk && !ch.playFirst) {   // GitHub is ahead of Play: the APK leads
+          cta.href = apk.asset.browser_download_url;
+          label.textContent = 'Download the APK (' + apk.rel.tag_name + ')';
+          note.innerHTML = 'Allow installs from your browser when asked. Google Play still has ' + esc(ch.playVer) + ': <a href="' + PLAY + '">get it on Google Play</a>.';
+        } else if (apk) {
+          note.innerHTML = 'Or <a href="' + esc(apk.asset.browser_download_url) + '">download the APK</a> (' + esc(friendly(apk.asset.name).replace('APK, ', '')) + ', ' + fmtSize(apk.asset.size) + '). Allow installs from your browser when asked.';
+        }
       } else if (OS_FILES[os]) {
         var f = find(rels, os);
         if (!f) {
@@ -257,11 +308,18 @@
           : '<p>No ' + esc(OS_NAME[key]) + ' file has been published yet.</p>';
         card.insertBefore(box, card.querySelector('details.cli') || btn);
 
-        if (key === 'android') {   // Google Play is the main button; the APK is the fallback line
+        if (key === 'android') {   // whichever of Google Play and the APK is newer leads; the other is the fallback line
           if (hit) {
+            var ch = androidChoice(rels);
             var alt = document.createElement('p');
             alt.className = 'alt';
-            alt.innerHTML = 'Or download the <a href="' + esc(hit.asset.browser_download_url) + '">APK</a> directly';
+            if (ch.playFirst) {
+              alt.innerHTML = 'Or download the <a href="' + esc(hit.asset.browser_download_url) + '">APK</a> directly';
+            } else {
+              btn.href = hit.asset.browser_download_url;
+              btn.textContent = 'Download the APK (' + hit.rel.tag_name + ')';
+              alt.innerHTML = 'Or <a href="' + PLAY + '">get it on Google Play</a> (still ' + esc(ch.playVer) + ')';
+            }
             btn.insertAdjacentElement('afterend', alt);
           }
           return;
