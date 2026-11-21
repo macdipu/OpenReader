@@ -15,47 +15,42 @@ class AppearanceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final d = SettingsDensity.of(context);
     return SettingsSection(
       label: 'Appearance',
       showLabel: showLabel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.contrast_rounded, size: 24, color: context.onSurfaceVariant),
-                    const SizedBox(width: 16),
-                    Text('Theme', style: context.bodyLarge?.copyWith(color: context.onSurface)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Obx(() => SizedBox(
-                      width: double.infinity,
-                      child: SegmentedButton<ThemeMode>(
-                        showSelectedIcon: false,
-                        style: const ButtonStyle(
-                          minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
-                          padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 4)),
-                          visualDensity: VisualDensity.standard,
-                          tapTargetSize: MaterialTapTargetSize.padded,
-                        ),
-                        segments: const [
-                          ButtonSegment(value: ThemeMode.light, label: Text('Light', maxLines: 1)),
-                          ButtonSegment(value: ThemeMode.dark, label: Text('Dark', maxLines: 1)),
-                          ButtonSegment(value: ThemeMode.system, label: Text('System', maxLines: 1)),
-                        ],
-                        selected: {controller.themeController.themeMode},
-                        onSelectionChanged: (set) => controller.themeController.changeThemeMode(set.first),
-                      ),
-                    )),
-              ],
-            ),
-          ),
+          LayoutBuilder(builder: (context, box) {
+            // Desktop with room for it: one 40px row, the control on the right at desktop size.
+            // Otherwise (phones, narrow windows, large text): the title over a full-width control.
+            final oneRow = d.isCompact && box.maxWidth >= MediaQuery.textScalerOf(context).scale(240) + 140;
+            if (oneRow) {
+              return SettingsRowLayout(
+                icon: Icons.contrast_rounded,
+                content: Text('Theme', style: d.titleStyle(context)?.copyWith(color: context.onSurface)),
+                trailing: Obx(() => _themeControl(compact: true)),
+              );
+            }
+            return Padding(
+              padding: EdgeInsets.fromLTRB(d.horizontalPadding, 12, d.horizontalPadding, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.contrast_rounded, size: d.iconSize, color: context.onSurfaceVariant),
+                      SizedBox(width: d.iconGap),
+                      Text('Theme', style: d.titleStyle(context)?.copyWith(color: context.onSurface)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Obx(() => SizedBox(width: double.infinity, child: _themeControl(compact: d.isCompact))),
+                ],
+              ),
+            );
+          }),
           Obx(() {
             if (!controller.dynamicColorAvailable) return const SizedBox.shrink();
             return Column(
@@ -75,6 +70,25 @@ class AppearanceSection extends StatelessWidget {
       ),
     );
   }
+
+  /// Light / Dark / System. Comfortable: full width, 48dp. Compact (desktop): 32px tall, sized to
+  /// its labels, still at least a 32px pointer target per segment.
+  Widget _themeControl({required bool compact}) => SegmentedButton<ThemeMode>(
+        showSelectedIcon: false,
+        style: ButtonStyle(
+          minimumSize: WidgetStatePropertyAll(compact ? const Size(64, 32) : const Size.fromHeight(48)),
+          padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: compact ? 12 : 4)),
+          visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+          tapTargetSize: compact ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
+        ),
+        segments: const [
+          ButtonSegment(value: ThemeMode.light, label: Text('Light', maxLines: 1)),
+          ButtonSegment(value: ThemeMode.dark, label: Text('Dark', maxLines: 1)),
+          ButtonSegment(value: ThemeMode.system, label: Text('System', maxLines: 1)),
+        ],
+        selected: {controller.themeController.themeMode},
+        onSelectionChanged: (set) => controller.themeController.changeThemeMode(set.first),
+      );
 
   /// Android takes the palette from the wallpaper; desktops offer only their accent colour.
   static String get dynamicColorTitle => PlatformInfo.isAndroid ? 'Use wallpaper colours' : 'Use accent colour';

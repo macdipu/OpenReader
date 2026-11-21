@@ -3,12 +3,19 @@ import 'dart:math';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:openreader/app/shell/app_shell_controller.dart';
+import 'package:openreader/app/shell/desktop_sidebar.dart';
 import 'package:openreader/core/data/repositories/app_settings_repository_impl.dart';
+import 'package:openreader/core/presentation/widgets/key_cap.dart';
+import 'package:openreader/features/settings/presentation/sections/file_handling_section.dart';
+import 'package:openreader/features/workspace/presentation/workspace_controller.dart';
+import 'package:openreader/services/platform_integration/incoming_intent_service.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/dynamic_color_preferences.dart';
@@ -183,6 +190,7 @@ void main() {
     Future<bool> Function(String url)? openUrl,
     Future<void> Function(String text)? share,
     double textScale = 1,
+    ThemeData? theme,
   }) async {
     Get.reset();
     debugDefaultTargetPlatformOverride = platform;
@@ -208,7 +216,7 @@ void main() {
     );
     Get.put(controller);
     await tester.pumpWidget(GetMaterialApp(
-      theme: AppTheme.lightTheme,
+      theme: theme ?? AppTheme.lightTheme,
       builder: (context, child) =>
           MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)), child: child!),
       home: const SettingsView(embedded: true),
@@ -1507,7 +1515,9 @@ void main() {
 
     for (final scale in [1.5, 2.0]) {
       for (final platform in [...mobile, ...desktop]) {
-        testWidgets('$platform at 360px, text x$scale: no overflow, targets >= 48dp', (tester) async {
+        // Touch platforms: 48dp targets. Desktop (pointer, compact density): 32px.
+        final minTarget = mobile.contains(platform) ? 48.0 : 32.0;
+        testWidgets('$platform at 360px, text x$scale: no overflow, targets >= ${minTarget.toInt()}dp', (tester) async {
           await pump(tester, platform: platform, width: 360, height: 800, textScale: scale);
           expect(tester.takeException(), isNull);
           for (final finder in [find.byType(InkWell), find.byType(IconButton), find.byType(ButtonStyleButton)]) {
@@ -1521,7 +1531,7 @@ void main() {
                 return !insideButton;
               });
               if (element.widget is InkWell && insideButton) continue;
-              expect(box.size.height, greaterThanOrEqualTo(48), reason: '${element.widget.runtimeType} ${(element.renderObject as RenderBox).localToGlobal(Offset.zero)} ${(element.renderObject as RenderBox).size} ${_texts(element)}');
+              expect(box.size.height, greaterThanOrEqualTo(minTarget), reason: '${element.widget.runtimeType} ${(element.renderObject as RenderBox).localToGlobal(Offset.zero)} ${(element.renderObject as RenderBox).size} ${_texts(element)}');
             }
           }
           // Scroll through the page: nothing overflows further down either.
@@ -1707,12 +1717,16 @@ void main() {
           'secondary/card': (cs.secondary, cs.surfaceContainerLowest),
           'error/card': (cs.error, cs.surfaceContainerLowest),
           'onSecondaryContainer/selected': (cs.onSecondaryContainer, cs.secondaryContainer),
+          // Desktop section list (2026-11-21): the lighter selected fill.
+          'onSurface/desktop selected': (cs.onSurface, cs.surfaceContainerHigh),
         };
         pairs.forEach((name, pair) {
           expect(_contrast(pair.$1, pair.$2), greaterThanOrEqualTo(4.5), reason: '${theme.brightness.name} $name');
         });
         // The focus ring and selected indicator are non-text UI: 3:1.
         expect(_contrast(cs.secondary, cs.secondaryContainer), greaterThanOrEqualTo(3), reason: '${theme.brightness.name} indicator');
+        expect(_contrast(cs.secondary, cs.surfaceContainerHigh), greaterThanOrEqualTo(3),
+            reason: '${theme.brightness.name} desktop indicator');
       }
     });
   });
@@ -1769,4 +1783,366 @@ void main() {
       await drain(tester);
     });
   });
+
+  group('desktop refactor 2026-11-21', () {
+    const mono = 'JetBrains Mono';
+    final mixed = {
+      DocumentType.pdf: DefaultStatus.isDefault,
+      DocumentType.word: DefaultStatus.otherApp,
+      DocumentType.excel: DefaultStatus.isDefault,
+    };
+
+    /// Every settings row on screen is 40px (one line) or 52px (with a supporting line), with a
+    /// bodyMedium title.
+    void expectCompactRows(WidgetTester tester, {required String where}) {
+      final bodyMedium = Theme.of(tester.element(find.byType(SettingsView))).textTheme.bodyMedium!;
+      var rows = 0;
+      for (final type in [SettingsActionRow, SettingsSwitchRow]) {
+        for (final element in find.byType(type).evaluate()) {
+          rows++;
+          final hasSubtitle = switch (element.widget) {
+            final SettingsActionRow r => r.subtitle != null,
+            final SettingsSwitchRow r => r.subtitle != null,
+            _ => false,
+          };
+          final height = (element.renderObject! as RenderBox).size.height;
+          // The test font is wide, so a long supporting line may wrap; the row is then exactly its
+          // content plus the 6px compact padding. Otherwise it is exactly 40 or 52px.
+          final content = tester.getSize(find.descendant(of: find.byWidget(element.widget), matching: find.byType(SettingsRowText)));
+          final min = hasSubtitle ? 52.0 : 40.0;
+          expect(height, content.height + 12 <= min ? min : content.height + 12, reason: '$where ${_texts(element)}');
+          if (!hasSubtitle) expect(height, 40, reason: '$where ${_texts(element)}');
+          final title = find.descendant(of: find.byWidget(element.widget), matching: find.byType(Text)).first;
+          expect(tester.widget<Text>(title).style?.fontSize, bodyMedium.fontSize, reason: '$where ${_texts(element)}');
+        }
+      }
+      expect(rows, greaterThan(0), reason: where);
+    }
+
+    Future<void> openSection(WidgetTester tester, String title) async {
+      await tester.tap(find.descendant(of: find.byKey(const ValueKey('settings-section-list')), matching: find.text(title)),
+          kind: PointerDeviceKind.mouse);
+      await tester.pump();
+    }
+
+    test('the density comes from the platform: compact on desktop, comfortable on phones', () {
+      for (final platform in TargetPlatform.values) {
+        debugDefaultTargetPlatformOverride = platform;
+        final desktopPlatform = desktop.contains(platform);
+        expect(SettingsDensity.forPlatform, desktopPlatform ? SettingsDensity.compact : SettingsDensity.comfortable,
+            reason: '$platform');
+      }
+      debugDefaultTargetPlatformOverride = null;
+      expect(SettingsDensity.compact.rowHeight, 40);
+      expect(SettingsDensity.compact.rowHeightWithSubtitle, 52);
+      expect(SettingsDensity.compact.iconSize, 20);
+      expect(SettingsDensity.comfortable.rowHeight, 48);
+      expect(SettingsDensity.comfortable.iconSize, 24);
+    });
+
+    testWidgets('the density is injectable: a comfortable scope on desktop gives 48/56dp rows', (tester) async {
+      await pump(tester, platform: TargetPlatform.macOS, width: 800);
+      await tester.pumpWidget(GetMaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const SettingsDensityScope(density: SettingsDensity.comfortable, child: SettingsView(embedded: true)),
+      ));
+      await tester.pump();
+      final night = find.ancestor(of: find.text('Night mode'), matching: find.byType(SettingsSwitchRow));
+      expect(tester.getSize(night).height, 56);
+    });
+
+    for (final platform in desktop) {
+      for (final width in [800.0, 1280.0]) {
+        final twoPane = width >= SettingsView.twoPaneBreakpoint;
+        final at = '$platform at ${width.toInt()}px';
+
+        testWidgets('$at: compact rows (40/52px, bodyMedium titles, 20px icons)', (tester) async {
+          await pump(tester, platform: platform, width: width, height: 1400);
+          if (!twoPane) {
+            expectCompactRows(tester, where: at);
+          } else {
+            for (final section in ['Reading', 'Privacy & data', 'About']) {
+              await openSection(tester, section);
+              expectCompactRows(tester, where: '$at $section');
+            }
+          }
+          final night = find.ancestor(of: find.text('Night mode'), matching: find.byType(SettingsSwitchRow));
+          if (twoPane) await openSection(tester, 'Reading');
+          final icon = find.descendant(of: night, matching: find.byIcon(Icons.nightlight_outlined));
+          expect(tester.getSize(icon).width, 20);
+          // Controls at desktop size, still at least a 32px pointer target.
+          expect(tester.getSize(find.descendant(of: night, matching: find.byType(Switch))).height, inInclusiveRange(32, 40));
+          for (final tip in ['Smaller text', 'Larger text']) {
+            expect(tester.getSize(find.byTooltip(tip)).height, greaterThanOrEqualTo(32), reason: tip);
+          }
+          if (twoPane) await openSection(tester, 'Appearance');
+          final theme = tester.getSize(find.byType(SegmentedButton<ThemeMode>));
+          expect(theme.height, inInclusiveRange(32, 40));
+          expect(tester.takeException(), isNull);
+        });
+
+        testWidgets('$at: rows stay 40/52px in the dark theme', (tester) async {
+          await pump(tester, platform: platform, width: width, height: 1400, theme: AppTheme.darkTheme);
+          if (twoPane) await openSection(tester, 'Reading');
+          expectCompactRows(tester, where: '$at dark');
+        });
+
+        testWidgets('$at: File handling is an aligned table: one status x, one action width', (tester) async {
+          await pump(tester, platform: platform, width: width, height: 1400, defaults: mixed);
+          final statusX = <double>{};
+          final statusWidths = <double>{};
+          final actionWidths = <double>{};
+          final actionX = <double>{};
+          for (final type in DocumentType.values) {
+            final status = find.byKey(ValueKey('file-type-status-${type.name}'));
+            final action = find.byKey(ValueKey('file-type-action-${type.name}'));
+            expect(status, findsOneWidget, reason: type.name);
+            statusX.add(tester.getTopLeft(status).dx);
+            statusWidths.add(tester.getSize(status).width);
+            actionWidths.add(tester.getSize(action).width);
+            actionX.add(tester.getTopLeft(action).dx);
+            // One line per type: the name with the extension inline.
+            final row = find.ancestor(of: status, matching: find.byType(ConstrainedBox)).first;
+            expect(tester.getSize(row).height, 40, reason: type.name);
+            expect(find.textContaining('.${type.extension}', findRichText: true), findsWidgets, reason: type.name);
+          }
+          expect(statusX, hasLength(1), reason: 'the status column starts at the same x on every row');
+          expect(statusWidths, hasLength(1));
+          expect(actionWidths, hasLength(1), reason: 'Set or an empty space of the same width');
+          expect(actionX, hasLength(1));
+          // The status text itself starts at the column's x, Default and Other app alike.
+          expect(tester.getTopLeft(find.byKey(const ValueKey('default-status-pdf'))).dx,
+              tester.getTopLeft(find.byKey(const ValueKey('default-status-word'))).dx);
+          expect(find.byKey(const ValueKey('set-default-pdf')), findsNothing);
+          expect(find.byKey(const ValueKey('set-default-word')), findsOneWidget);
+          // Header: the title on the left, Set all on the right of the same row.
+          final header = find.text(FileHandlingSection.headerTitle);
+          final setAll = find.byKey(const ValueKey('set-all-defaults'));
+          expect(header, findsOneWidget);
+          expect(tester.getCenter(setAll).dy, closeTo(tester.getCenter(header).dy, 2));
+          final card0 = find.ancestor(of: header, matching: find.byType(SettingsSectionCard));
+          expect(tester.getTopLeft(setAll).dx, greaterThan(tester.getTopLeft(header).dx));
+          expect(tester.getTopRight(card0).dx - tester.getTopRight(setAll).dx, lessThan(16), reason: 'Set all on the right');
+          // Ask me again is under the card, not a row in it.
+          final card = find.ancestor(of: header, matching: find.byType(SettingsSectionCard));
+          expect(tester.getTopLeft(find.text('Ask me again')).dy, greaterThan(tester.getBottomLeft(card).dy));
+          expect(find.descendant(of: card, matching: find.text('Ask me again')), findsNothing);
+          expect(find.text('Open every supported type in OpenReader'), findsNothing, reason: 'no long subtitles');
+          expect(tester.takeException(), isNull);
+        });
+
+        testWidgets('$at: header Set all sets every type, and is disabled when all are default', (tester) async {
+          await pump(tester, platform: platform, width: width, height: 1400, defaults: mixed);
+          final setAll = find.byKey(const ValueKey('set-all-defaults'));
+          expect(tester.widget<TextButton>(setAll).onPressed, isNotNull);
+          await tester.tap(setAll);
+          await tester.pumpAndSettle();
+          expect(defaultApp.made.last, DocumentType.values.toSet());
+          await drain(tester);
+
+          await pump(tester, platform: platform, width: width, height: 1400,
+              defaults: {for (final t in DocumentType.values) t: DefaultStatus.isDefault});
+          expect(tester.widget<TextButton>(find.byKey(const ValueKey('set-all-defaults'))).onPressed, isNull);
+          for (final t in DocumentType.values) {
+            expect(find.byKey(ValueKey('set-default-${t.name}')), findsNothing, reason: t.name);
+          }
+        });
+
+        testWidgets('$at: no subtitle line under the page title', (tester) async {
+          await pump(tester, platform: platform, width: width, height: 1400);
+          expect(find.text('Reading, appearance and privacy'), findsNothing);
+          if (twoPane) {
+            expect(find.byKey(const ValueKey('settings-page-title')), findsOneWidget);
+          }
+        });
+
+        testWidgets('$at: the shortcuts table is left-aligned: the key column starts at the row content', (tester) async {
+          await pump(tester, platform: platform, width: width, height: 1400);
+          if (twoPane) await openSection(tester, 'Keyboard shortcuts');
+          final card = find.ancestor(of: find.byKey(const ValueKey('shortcut-row-0')), matching: find.byType(SettingsSectionCard));
+          final cardLeft = tester.getTopLeft(card).dx;
+          final rowLefts = <double>{};
+          final descriptionLefts = <double>{};
+          for (var i = 0; i < appShortcutReference.length; i++) {
+            final row = find.byKey(ValueKey('shortcut-row-$i'));
+            final keys = find.byKey(ValueKey('shortcut-keys-$i'));
+            final cap = find.descendant(of: keys, matching: find.byType(KeyCap));
+            final rowLeft = tester.getTopLeft(row).dx;
+            expect(tester.getTopLeft(keys).dx, rowLeft, reason: 'key column at the row content edge, row $i');
+            expect(tester.getTopLeft(cap).dx, rowLeft, reason: 'key cap at the row content edge, row $i');
+            rowLefts.add(rowLeft);
+            final description = find.descendant(of: row, matching: find.text(appShortcutReference[i].description));
+            descriptionLefts.add(tester.getTopLeft(description).dx);
+            // Directly to the right of the key column, not pushed to the middle.
+            expect(tester.getTopLeft(description).dx, rowLeft + tester.getSize(keys).width + 16);
+          }
+          expect(rowLefts, hasLength(1));
+          expect(rowLefts.single - cardLeft, SettingsDensity.compact.horizontalPadding + 1, reason: 'row padding (+1 border)');
+          expect(descriptionLefts, hasLength(1), reason: 'descriptions form one left-aligned column');
+          expect(tester.getSize(find.byKey(const ValueKey('shortcut-row-0'))).height, lessThanOrEqualTo(40));
+        });
+
+        testWidgets('$at: key caps use the UI font, not the monospace one', (tester) async {
+          await pump(tester, platform: platform, width: width, height: 1400, theme: AppTheme.darkTheme);
+          if (twoPane) await openSection(tester, 'Keyboard shortcuts');
+          final label = platform == TargetPlatform.macOS ? 'Cmd+O' : 'Ctrl+O';
+          final text = tester.widget<Text>(find.descendant(of: find.byType(KeyCap), matching: find.text(label)));
+          expect(text.style?.fontFamily, isNot(mono));
+        });
+      }
+
+      testWidgets('$platform two panes: content at most 720px, left-aligned; list 220px', (tester) async {
+        await pump(tester, platform: platform, width: 1280, height: 1000);
+        final pane = find.byKey(const ValueKey('settings-pane-fileHandling'));
+        final list = find.byKey(const ValueKey('settings-section-list'));
+        expect(tester.getSize(pane).width, lessThanOrEqualTo(SettingsView.paneMaxWidth));
+        expect(tester.getSize(list).width, SettingsView.sectionListWidth);
+        expect(tester.getTopLeft(pane).dx, tester.getTopRight(list).dx + 32, reason: 'left-aligned next to the list');
+        await openSection(tester, 'Reading');
+        final card = find.byType(SettingsSectionCard);
+        expect(tester.getSize(card).width, lessThanOrEqualTo(SettingsView.paneMaxWidth));
+      });
+
+      testWidgets('$platform two panes: the heading is never clipped and the pane scrolls to the top on change',
+          (tester) async {
+        await pump(tester, platform: platform, width: 1280, height: 420);
+        Future<void> expectHeadingVisible(String reason) async {
+          final heading = find.byKey(const ValueKey('settings-pane-heading'));
+          final scroll = find.byKey(const ValueKey('settings-pane-scroll'));
+          final top = tester.getTopLeft(heading).dy;
+          final viewport = tester.getRect(find.byType(SettingsView));
+          expect(top, greaterThanOrEqualTo(viewport.top), reason: reason);
+          expect(tester.getBottomLeft(heading).dy, lessThanOrEqualTo(tester.getTopLeft(scroll).dy), reason: reason);
+          final position = tester.state<ScrollableState>(find.descendant(of: scroll, matching: find.byType(Scrollable))).position;
+          expect(position.pixels, 0, reason: reason);
+        }
+
+        await expectHeadingVisible('at open');
+        final scroll = find.byKey(const ValueKey('settings-pane-scroll'));
+        await tester.drag(scroll, const Offset(0, -200));
+        await tester.pump();
+        expect(tester.getTopLeft(find.byKey(const ValueKey('settings-pane-heading'))).dy,
+            greaterThanOrEqualTo(tester.getRect(find.byType(SettingsView)).top),
+            reason: 'scrolling the content leaves the heading in place');
+        await openSection(tester, 'Privacy & data');
+        await expectHeadingVisible('after changing section');
+        // Resize the window: still not clipped.
+        tester.view.physicalSize = const Size(1000, 380);
+        await tester.pump();
+        await expectHeadingVisible('after resizing');
+        await openSection(tester, 'File handling');
+        await expectHeadingVisible('back to the first section');
+      });
+
+      testWidgets('$platform two panes: arrows, Home and End after a mouse click; Tab goes into the pane', (tester) async {
+        await pump(tester, platform: platform, width: 1280, height: 1000);
+        await openSection(tester, 'Appearance');
+        expect(find.byKey(const ValueKey('settings-pane-appearance')), findsOneWidget);
+        expect(FocusManager.instance.primaryFocus?.debugLabel, 'settings section list', reason: 'a click focuses the list');
+        final steps = [
+          (LogicalKeyboardKey.arrowDown, 'privacyData'),
+          (LogicalKeyboardKey.arrowDown, 'shortcuts'),
+          (LogicalKeyboardKey.arrowUp, 'privacyData'),
+          (LogicalKeyboardKey.end, 'about'),
+          (LogicalKeyboardKey.arrowDown, 'about'),
+          (LogicalKeyboardKey.home, 'fileHandling'),
+          (LogicalKeyboardKey.arrowUp, 'fileHandling'),
+        ];
+        for (final (key, section) in steps) {
+          await tester.sendKeyEvent(key);
+          await tester.pump();
+          expect(find.byKey(ValueKey('settings-pane-$section')), findsOneWidget, reason: '${key.keyLabel} -> $section');
+        }
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+        final focused = FocusManager.instance.primaryFocus;
+        expect(focused?.debugLabel, isNot('settings section list'));
+        final pane = tester.getRect(find.byKey(const ValueKey('settings-pane-fileHandling')));
+        expect(pane.contains(tester.getCenter(find.byElementPredicate((e) => identical(e, focused!.context)))), isTrue,
+            reason: 'Tab moves into the pane controls');
+      });
+
+      testWidgets('$platform two panes: the list has focus when Settings opens, so Down works at once', (tester) async {
+        await pump(tester, platform: platform, width: 1280, height: 1000);
+        expect(FocusManager.instance.primaryFocus?.debugLabel, 'settings section list');
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pump();
+        expect(find.byKey(const ValueKey('settings-pane-reading')), findsOneWidget);
+      });
+
+      testWidgets('$platform two panes: opening a hidden Settings (shell IndexedStack) focuses the list', (tester) async {
+        await pump(tester, platform: platform, width: 1280, height: 1000);
+        final index = ValueNotifier(0);
+        await tester.pumpWidget(GetMaterialApp(
+          theme: AppTheme.lightTheme,
+          home: Scaffold(
+            body: ValueListenableBuilder<int>(
+              valueListenable: index,
+              builder: (_, i, __) => IndexedStack(index: i, children: [
+                const Focus(autofocus: true, debugLabel: 'home', child: Text('home')),
+                const SettingsView(embedded: true),
+              ]),
+            ),
+          ),
+        ));
+        await tester.pump();
+        expect(FocusManager.instance.primaryFocus?.debugLabel, 'home', reason: 'a hidden Settings takes no focus');
+        index.value = 1;
+        await tester.pump();
+        await tester.pump();
+        expect(FocusManager.instance.primaryFocus?.debugLabel, 'settings section list');
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pump();
+        expect(find.byKey(const ValueKey('settings-pane-reading')), findsOneWidget);
+      });
+
+      testWidgets('$platform two panes: the section list keeps a light selection with bar, bold and focus ring',
+          (tester) async {
+        await pump(tester, platform: platform, width: 1280, height: 1000);
+        final tile = find.byKey(const ValueKey('settings-section-tile-fileHandling'));
+        expect(tester.getSize(find.byKey(const ValueKey('settings-section-tile-reading'))).height, inInclusiveRange(40, 44));
+        final box = tester.widget<Container>(find
+            .descendant(of: tile, matching: find.byType(Container))
+            .evaluate()
+            .map((e) => find.byWidget(e.widget))
+            .firstWhere((f) => (tester.widget<Container>(f).decoration as BoxDecoration?)?.color != null));
+        final cs = Theme.of(tester.element(tile)).colorScheme;
+        expect((box.decoration! as BoxDecoration).color, cs.surfaceContainerHigh, reason: 'lighter than secondaryContainer');
+        expect(find.byKey(const ValueKey('settings-section-indicator')), findsOneWidget);
+      });
+    }
+
+    testWidgets('the sidebar Open file chip is a key cap in the UI font (O is a letter, not a zero)', (tester) async {
+      for (final platform in desktop) {
+        Get.reset();
+        debugDefaultTargetPlatformOverride = platform;
+        SharedPreferences.setMockInitialValues({});
+        Get.put(WorkspaceController());
+        final shell = AppShellController(incomingIntentService: _NoIncoming());
+        await tester.pumpWidget(GetMaterialApp(
+          theme: AppTheme.darkTheme,
+          home: Scaffold(
+            body: Row(children: [
+              SizedBox(height: 800, child: DesktopSidebar(controller: shell, extended: true, onToggle: () {})),
+            ]),
+          ),
+        ));
+        await tester.pump();
+        final chip = find.byKey(const ValueKey('open-file-shortcut'));
+        expect(chip, findsOneWidget, reason: '$platform');
+        expect(tester.widget(chip), isA<KeyCap>());
+        final label = platform == TargetPlatform.macOS ? '⌘O' : 'Ctrl+O';
+        final text = tester.widget<Text>(find.descendant(of: chip, matching: find.text(label)));
+        expect(text.style?.fontFamily, isNot(mono), reason: '$platform');
+        expect(text.style?.fontFamily, AppTheme.darkTheme.textTheme.labelLarge?.fontFamily);
+      }
+      debugDefaultTargetPlatformOverride = null;
+      Get.reset();
+    });
+  });
+}
+
+class _NoIncoming implements IncomingIntentService {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

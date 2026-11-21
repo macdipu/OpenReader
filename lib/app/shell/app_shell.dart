@@ -79,10 +79,11 @@ class AppShell extends StatelessWidget {
                             offstage: showWorkspace,
                             child: TickerMode(
                               enabled: !showWorkspace,
-                              // Home splits into list and details, so it gets more room than the lists.
+                              // Home is a workspace (list pane and inspector) that fills the window;
+                              // the other pages keep a readable width.
                               child: ContentConstraint(
                                 maxWidth: controller.currentIndex.value == AppShellController.homeIndex
-                                    ? 1240
+                                    ? double.infinity
                                     : ScreenUtils.maxContentWidth,
                                 child: pages,
                               ),

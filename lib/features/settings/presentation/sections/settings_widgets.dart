@@ -1,6 +1,91 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/presentation/theme/theme_extensions.dart';
+import '../../../../core/presentation/utils/platform_info.dart';
+
+/// How dense the Settings rows are. Phones and tablets are [comfortable] (touch: 48/56dp rows, 24dp
+/// icons, bodyLarge titles); desktop (macOS, Windows, Linux) is [compact] (pointer: 40/52px rows,
+/// 20px icons, bodyMedium titles, 32px controls).
+enum SettingsDensity {
+  comfortable(
+    rowHeight: 48,
+    rowHeightWithSubtitle: 56,
+    iconSize: 24,
+    iconGap: 16,
+    horizontalPadding: 16,
+    verticalPadding: 8,
+    controlHeight: 48,
+    trailingIconSize: 24,
+    statusIconSize: 18,
+  ),
+  compact(
+    rowHeight: 40,
+    rowHeightWithSubtitle: 52,
+    iconSize: 20,
+    iconGap: 12,
+    horizontalPadding: 12,
+    verticalPadding: 6,
+    controlHeight: 32,
+    trailingIconSize: 18,
+    statusIconSize: 16,
+  );
+
+  /// Minimum row height without and with a supporting line.
+  final double rowHeight;
+  final double rowHeightWithSubtitle;
+
+  /// The leading icon and the gap between it and the text.
+  final double iconSize;
+  final double iconGap;
+  final double horizontalPadding;
+  final double verticalPadding;
+
+  /// Height of buttons, steppers and segmented controls (also their minimum pointer target).
+  final double controlHeight;
+  final double trailingIconSize;
+  final double statusIconSize;
+
+  const SettingsDensity({
+    required this.rowHeight,
+    required this.rowHeightWithSubtitle,
+    required this.iconSize,
+    required this.iconGap,
+    required this.horizontalPadding,
+    required this.verticalPadding,
+    required this.controlHeight,
+    required this.trailingIconSize,
+    required this.statusIconSize,
+  });
+
+  bool get isCompact => this == compact;
+
+  /// Where a row's text starts: past the padding, the icon and the gap (dividers are inset to it).
+  double get textInset => horizontalPadding + iconSize + iconGap;
+
+  /// The density for this platform: [compact] on desktop, [comfortable] on phones and tablets.
+  static SettingsDensity get forPlatform => PlatformInfo.isDesktop ? compact : comfortable;
+
+  /// The density from the nearest [SettingsDensityScope], else [forPlatform].
+  static SettingsDensity of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<SettingsDensityScope>()?.density ?? forPlatform;
+
+  /// Row title style: bodyLarge (comfortable) or bodyMedium with a tight line height (compact).
+  TextStyle? titleStyle(BuildContext context) =>
+      isCompact ? context.bodyMedium?.copyWith(height: 1.25) : context.bodyLarge;
+
+  /// Supporting line style (bodySmall; a tight line height when compact).
+  TextStyle? subtitleStyle(BuildContext context) =>
+      isCompact ? context.bodySmall?.copyWith(height: 1.25) : context.bodySmall;
+}
+
+/// Overrides the platform's [SettingsDensity] below it (tests, previews).
+class SettingsDensityScope extends InheritedWidget {
+  final SettingsDensity density;
+  const SettingsDensityScope({super.key, required this.density, required super.child});
+
+  @override
+  bool updateShouldNotify(SettingsDensityScope oldWidget) => density != oldWidget.density;
+}
 
 /// A labelled settings group: a sentence-case label, one card of rows and an optional footnote
 /// under the card.
@@ -14,12 +99,16 @@ class SettingsSection extends StatelessWidget {
   /// Omit the label (the two-pane layout already names the section in its list).
   final bool showLabel;
 
+  /// A widget under the card, after [footnote] (links and small text buttons).
+  final Widget? footer;
+
   const SettingsSection({
     super.key,
     required this.label,
     required this.child,
     this.footnote,
     this.showLabel = true,
+    this.footer,
   });
 
   @override
@@ -32,6 +121,7 @@ class SettingsSection extends StatelessWidget {
           if (showLabel) SettingsSectionLabel(label),
           SettingsSectionCard(child: child),
           if (footnote != null) SettingsFootnote(footnote!),
+          if (footer != null) footer!,
         ],
       ),
     );
@@ -153,7 +243,10 @@ class SettingsStatus extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(iconFor(kind), size: 18, color: color, key: ValueKey('settings-status-icon-${kind.name}')),
+        Icon(iconFor(kind),
+            size: SettingsDensity.of(context).statusIconSize,
+            color: color,
+            key: ValueKey('settings-status-icon-${kind.name}')),
         const SizedBox(width: 6),
         Flexible(
           child: Text(
@@ -217,28 +310,34 @@ class SettingsNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: SettingsDensity.of(context).horizontalPadding, vertical: 8),
       child: Text(text, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
     );
   }
 }
 
-/// Rows in a card are separated by a hairline inset to the title (past the 24dp icon).
+/// Rows in a card are separated by a hairline inset to the title (past the icon).
 class SettingsDivider extends StatelessWidget {
-  const SettingsDivider({super.key});
+  /// Full width instead of inset (under a card header).
+  final bool fullWidth;
+  const SettingsDivider({super.key, this.fullWidth = false});
 
   @override
-  Widget build(BuildContext context) => Divider(height: 1, indent: 56, color: context.outlineVariant);
+  Widget build(BuildContext context) => Divider(
+      height: 1, indent: fullWidth ? 0 : SettingsDensity.of(context).textInset, color: context.outlineVariant);
 }
 
-/// The one row layout of Settings: a plain 24dp icon, the [content] (title and an optional single
-/// supporting line) and a trailing widget. At least 56dp tall with a supporting line, 48dp without.
+/// The one row layout of Settings: a plain icon, the [content] (title and an optional single
+/// supporting line) and a trailing widget. Sizes follow [SettingsDensity]: comfortable rows are at
+/// least 56dp tall with a supporting line and 48dp without; compact (desktop) rows 52 and 40px.
 class SettingsRowLayout extends StatelessWidget {
   final IconData icon;
   final Widget content;
   final bool hasSubtitle;
   final Widget? trailing;
-  final double verticalPadding;
+
+  /// Vertical padding; the density's when null.
+  final double? verticalPadding;
 
   const SettingsRowLayout({
     super.key,
@@ -246,19 +345,20 @@ class SettingsRowLayout extends StatelessWidget {
     required this.content,
     this.hasSubtitle = false,
     this.trailing,
-    this.verticalPadding = 8,
+    this.verticalPadding,
   });
 
   @override
   Widget build(BuildContext context) {
+    final d = SettingsDensity.of(context);
     return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: hasSubtitle ? 56 : 48),
+      constraints: BoxConstraints(minHeight: hasSubtitle ? d.rowHeightWithSubtitle : d.rowHeight),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: verticalPadding),
+        padding: EdgeInsets.symmetric(horizontal: d.horizontalPadding, vertical: verticalPadding ?? d.verticalPadding),
         child: Row(
           children: [
-            Icon(icon, size: 24, color: context.onSurfaceVariant),
-            const SizedBox(width: 16),
+            Icon(icon, size: d.iconSize, color: context.onSurfaceVariant),
+            SizedBox(width: d.iconGap),
             Expanded(child: content),
             if (trailing != null) trailing!,
           ],
@@ -277,13 +377,13 @@ class SettingsRowText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final d = SettingsDensity.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(title, style: context.bodyLarge?.copyWith(color: titleColor ?? context.onSurface)),
-        if (subtitle != null)
-          Text(subtitle!, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+        Text(title, style: d.titleStyle(context)?.copyWith(color: titleColor ?? context.onSurface)),
+        if (subtitle != null) Text(subtitle!, style: d.subtitleStyle(context)?.copyWith(color: context.onSurfaceVariant)),
       ],
     );
   }
@@ -342,7 +442,7 @@ class SettingsActionRow extends StatelessWidget {
                     child: Text(versionStyle ? 'v$trailingText' : trailingText!, style: context.monoMetadata),
                   )
                 : trailing != null
-                    ? Icon(trailing, color: context.onSurfaceVariant)
+                    ? Icon(trailing, size: SettingsDensity.of(context).trailingIconSize, color: context.onSurfaceVariant)
                     : null,
           ),
         ),
@@ -379,7 +479,14 @@ class SettingsSwitchRow extends StatelessWidget {
           icon: icon,
           hasSubtitle: subtitle != null,
           content: SettingsRowText(title: title, subtitle: subtitle),
-          trailing: ExcludeFocus(child: Switch(value: value, onChanged: onChanged)),
+          // Desktop: the switch without the padded 48px touch target (its 32px track is the target).
+          trailing: ExcludeFocus(
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              materialTapTargetSize: SettingsDensity.of(context).isCompact ? MaterialTapTargetSize.shrinkWrap : null,
+            ),
+          ),
         ),
       ),
     );

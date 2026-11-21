@@ -14,6 +14,7 @@ class ReadingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final d = SettingsDensity.of(context);
     return SettingsSection(
       label: 'Reading',
       showLabel: showLabel,
@@ -30,24 +31,26 @@ class ReadingSection extends StatelessWidget {
           SettingsRowLayout(
             icon: Icons.format_size_rounded,
             verticalPadding: 0,
-            content: Text('Text size', style: context.bodyLarge?.copyWith(color: context.onSurface)),
+            content: Text('Text size', style: d.titleStyle(context)?.copyWith(color: context.onSurface)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Obx(() => IconButton(
                       tooltip: 'Smaller text',
-                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                      iconSize: d.isCompact ? 20 : null,
+                      constraints: BoxConstraints(minWidth: d.controlHeight, minHeight: d.controlHeight),
                       onPressed: controller.canDecreaseFontSize ? controller.decreaseFontSize : null,
                       icon: const Icon(Icons.remove_rounded),
                     )),
                 Obx(() => SizedBox(
-                      width: 48,
+                      width: d.isCompact ? 44 : 48,
                       child: Text('${controller.fontSize.value.round()} pt',
                           key: const ValueKey('font-size-value'), textAlign: TextAlign.center, style: context.labelLarge),
                     )),
                 Obx(() => IconButton(
                       tooltip: 'Larger text',
-                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                      iconSize: d.isCompact ? 20 : null,
+                      constraints: BoxConstraints(minWidth: d.controlHeight, minHeight: d.controlHeight),
                       onPressed: controller.canIncreaseFontSize ? controller.increaseFontSize : null,
                       icon: const Icon(Icons.add_rounded),
                     )),

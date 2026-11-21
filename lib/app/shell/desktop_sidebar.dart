@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../core/presentation/theme/theme_extensions.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../core/presentation/utils/screen_utils.dart';
+import '../../core/presentation/widgets/key_cap.dart';
 import '../../features/workspace/presentation/workspace_controller.dart';
 import 'app_shell_controller.dart';
 
@@ -85,13 +86,21 @@ class DesktopSidebar extends StatelessWidget {
                         children: [
                           const Icon(Icons.file_open_outlined, size: 20),
                           const SizedBox(width: 10),
-                          const Text('Open file'),
-                          const Spacer(),
+                          // Shrinks (ellipsis) before the key cap would overflow at large text sizes.
+                          const Expanded(
+                              child: Text('Open file',
+                                  maxLines: 1, overflow: TextOverflow.ellipsis)),
+                          const SizedBox(width: 8),
+                          // A key cap in the UI font: in a monospace font the O read as a zero.
                           if (shortcut.isNotEmpty)
-                            Text(shortcut,
-                                style: context.labelSmall?.copyWith(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.75))),
+                            KeyCap(shortcut,
+                                key: const ValueKey('open-file-shortcut'),
+                                dense: true,
+                                foreground: context.onPrimary
+                                    .withValues(alpha: 0.85),
+                                background: Colors.transparent,
+                                borderColor: context.onPrimary
+                                    .withValues(alpha: 0.4)),
                         ],
                       ),
                     )
