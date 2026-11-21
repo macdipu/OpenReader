@@ -1,0 +1,1 @@
+{"status":"READY","evidence":["agentic/data/work-items/CR-PERMISSIONS-NAV-AUDIT.md"],"blocking_issues":[],"open_questions":[],"recommended_next_step":"CONTEXT","outputs":{"verdict":"INTAKE_READY","classification":"CR_TASKS","note":"Prompt-first: audit first, then only necessary improvements."}}
