@@ -452,10 +452,12 @@ void _showSheetPicker(BuildContext context, ExcelReaderController controller) {
     showDragHandle: true,
     isScrollControlled: true,
     builder: (sheetContext) => SafeArea(
+      bottom: false,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7),
         child: ListView(
           shrinkWrap: true,
+          padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(sheetContext).bottom + 16),
           children: [
             ListTile(title: Text('Sheets (${names.length})', style: sheetContext.titleSmall)),
             for (var i = 0; i < names.length; i++)

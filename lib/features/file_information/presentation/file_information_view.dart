@@ -36,12 +36,15 @@ class FileInformationSheet extends GetView<FileInformationController> {
   Widget build(BuildContext context) {
     return Container(
       constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.9),
+      // Clears the phone's navigation bar.
+      padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom),
       decoration: BoxDecoration(
         color: context.surfaceContainerLowest,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
+        bottom: false,
         // Deliberately NOT `mainAxisSize: min`: this Column mixes a fixed
         // header with a `Flexible` scrollable body, and `min` starves the
         // Flexible of bounded space to size against, which is what caused

@@ -64,6 +64,8 @@ void main() {
       expect(done, isFalse);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
+      expect(done, isFalse); // it must stay in front for the settle time first
+      await tester.pump(const Duration(seconds: 1));
       expect(done, isTrue);
     });
 
@@ -113,6 +115,7 @@ void main() {
 
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
+      await tester.pump(const Duration(seconds: 1)); // settles in front
       await tester.pump(const Duration(milliseconds: 150));
       await tester.pump(const Duration(milliseconds: 150));
       await flow;

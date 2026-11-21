@@ -8,6 +8,39 @@ import '../../core/presentation/utils/platform_info.dart';
 /// no broad storage permission to grant.
 enum StorageAccessState { allowed, notAllowed, blocked, notApplicable }
 
+/// The phone maker's Settings app family, which decides how the All files access steps read.
+/// [other] is stock Android (Google Pixel, Motorola, Nokia, ...) and the fallback for anything unknown.
+enum DeviceBrand {
+  samsung,
+  coloros,
+  hyperos,
+  vivo,
+  other;
+
+  /// Maps the lowercased `Build.MANUFACTURER` and `Build.BRAND` to a family.
+  static DeviceBrand fromNames(String? manufacturer, String? brand) {
+    for (final raw in [manufacturer, brand]) {
+      final name = (raw ?? '').trim().toLowerCase();
+      switch (name) {
+        case 'samsung':
+          return samsung;
+        case 'oppo':
+        case 'realme':
+        case 'oneplus':
+          return coloros;
+        case 'xiaomi':
+        case 'redmi':
+        case 'poco':
+          return hyperos;
+        case 'vivo':
+        case 'iqoo':
+          return vivo;
+      }
+    }
+    return other;
+  }
+}
+
 /// Wraps the platform permission(s) OpenReader needs to discover documents
 /// anywhere on local storage (BRD 9.2 - Storage Access / Onboarding).
 ///
@@ -17,11 +50,19 @@ enum StorageAccessState { allowed, notAllowed, blocked, notApplicable }
 /// it. iOS has no equivalent concept; document access there is expected to
 /// come from the Files app / document picker in a later phase.
 class StorageAccessService {
-  StorageAccessService._() : _sdkReader = _readSdkFromPlatform;
+  StorageAccessService._()
+      : _sdkReader = _readSdkFromPlatform,
+        _brandReader = _readBrandFromPlatform,
+        _allFilesOpener = _openAllFilesFromPlatform;
 
-  /// Test constructor: [sdkReader] stands in for the Android SDK level lookup.
+  /// Test constructor: [sdkReader] stands in for the Android SDK level lookup, [brandReader] for the
+  /// phone brand lookup.
   @visibleForTesting
-  StorageAccessService.test(Future<int?> Function() sdkReader) : _sdkReader = sdkReader;
+  StorageAccessService.test(Future<int?> Function() sdkReader,
+      {Future<DeviceBrand> Function()? brandReader, Future<bool> Function()? allFilesOpener})
+      : _sdkReader = sdkReader,
+        _brandReader = brandReader ?? (() async => DeviceBrand.other),
+        _allFilesOpener = allFilesOpener ?? _openAllFilesFromPlatform;
 
   static final StorageAccessService instance = StorageAccessService._();
 
@@ -32,7 +73,38 @@ class StorageAccessService {
   static const _deviceChannel = MethodChannel('openreader/device');
 
   final Future<int?> Function() _sdkReader;
+  final Future<DeviceBrand> Function() _brandReader;
+  final Future<bool> Function() _allFilesOpener;
   int? _sdkInt;
+  DeviceBrand? _brand;
+
+  /// Native: opens the All files access page (app-specific, then the general list, then app info).
+  /// True when some page opened.
+  static Future<bool> _openAllFilesFromPlatform() async =>
+      await _deviceChannel.invokeMethod<bool>('openAllFilesAccess') ?? false;
+
+  static Future<DeviceBrand> _readBrandFromPlatform() async {
+    if (!PlatformInfo.isAndroid) return DeviceBrand.other;
+    final info = await _deviceChannel.invokeMapMethod<String, String>('brand');
+    return DeviceBrand.fromNames(info?['manufacturer'], info?['brand']);
+  }
+
+  /// The brand once [deviceBrand] has answered, else null. Lets text that cannot wait for a lookup
+  /// (the guidance snackbar) read it synchronously.
+  DeviceBrand? get cachedBrand => _brand;
+
+  /// The phone brand family, read once and cached. [DeviceBrand.other] when it cannot be read or off
+  /// Android (nothing is cached after a failure, so the next call tries again).
+  Future<DeviceBrand> deviceBrand() async {
+    final cached = _brand;
+    if (cached != null) return cached;
+    if (!PlatformInfo.isAndroid) return DeviceBrand.other;
+    try {
+      return _brand = await _brandReader();
+    } catch (_) {
+      return DeviceBrand.other;
+    }
+  }
 
   static Future<int?> _readSdkFromPlatform() async {
     try {
@@ -103,17 +175,17 @@ class StorageAccessService {
 
   Future<bool> openSettings() => openAppSettings();
 
-  /// Android: the OS "All files access" page for this app (Android 11+), the exact screen where the
-  /// switch lives. [Permission.manageExternalStorage] opens it as its request. Anywhere else, or if it
-  /// cannot be opened, the app's general settings page is the fallback so the user is never stranded.
+  /// Android 11+: the OS "All files access" page for this app, where the switch lives. Unlike
+  /// [Permission.manageExternalStorage].request() it opens even when access is already granted, so it
+  /// also serves to revoke. The app info page is only the fallback (it has no such switch on Android
+  /// 11+). Android 10 and older, and other platforms: the app's settings page, where Permissions >
+  /// Storage is.
   Future<bool> openAllFilesAccessSettings() async {
-    if (!PlatformInfo.isAndroid) return openSettings();
+    if (!PlatformInfo.isAndroid || await _usesLegacyStoragePermission()) return openSettings();
     try {
-      await Permission.manageExternalStorage.request();
-      return true;
-    } catch (_) {
-      return openSettings();
-    }
+      if (await _allFilesOpener()) return true;
+    } catch (_) {}
+    return openSettings();
   }
 
   /// Asks for access in the way the Android version supports. API 30+: opens the "All files access"
@@ -124,7 +196,12 @@ class StorageAccessService {
   Future<bool> requestOrOpenSettings() async {
     if (PlatformInfo.isAndroid && !await _usesLegacyStoragePermission()) {
       if (await hasAccess()) return true;
-      await openAllFilesAccessSettings();
+      // The request opens the same page and resolves when the user is back, which the result needs.
+      try {
+        await Permission.manageExternalStorage.request();
+      } catch (_) {
+        await openSettings();
+      }
       return hasAccess();
     }
     if (await requestAccess()) return true;

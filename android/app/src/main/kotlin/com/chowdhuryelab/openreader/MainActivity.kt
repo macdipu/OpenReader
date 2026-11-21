@@ -63,10 +63,18 @@ class MainActivity : FlutterActivity() {
         val messenger = flutterEngine.dartExecutor.binaryMessenger
 
         // Device facts Dart cannot read without a plugin: the Android SDK level (file access rules differ
-        // from API 30).
+        // from API 30) and the phone brand.
         MethodChannel(messenger, DEVICE_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "sdkInt" -> result.success(android.os.Build.VERSION.SDK_INT)
+                // Maker and brand, lowercased: Dart shows the steps for this phone's Settings app only.
+                "brand" -> result.success(
+                    mapOf(
+                        "manufacturer" to android.os.Build.MANUFACTURER.lowercase(),
+                        "brand" to android.os.Build.BRAND.lowercase(),
+                    ),
+                )
+                "openAllFilesAccess" -> result.success(openAllFilesAccess())
                 else -> result.notImplemented()
             }
         }
@@ -84,6 +92,31 @@ class MainActivity : FlutterActivity() {
                 }
             },
         )
+    }
+
+    /**
+     * Opens the All files access page (Android 11+): this app's own page first, then the general list,
+     * then app info as a last resort. Returns true if any page opened, false below API 30 or when none did.
+     */
+    private fun openAllFilesAccess(): Boolean {
+        if (android.os.Build.VERSION.SDK_INT < 30) return false
+        val packageUri = Uri.parse("package:$packageName")
+        val attempts = listOf(
+            Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, packageUri),
+            Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri),
+        )
+        for (attempt in attempts) {
+            try {
+                startActivity(attempt)
+                return true
+            } catch (e: android.content.ActivityNotFoundException) {
+                Log.w(TAG, "settings page unavailable: ${attempt.action}")
+            } catch (e: SecurityException) {
+                Log.w(TAG, "settings page not allowed: ${attempt.action}")
+            }
+        }
+        return false
     }
 
     /** Remembers the document URI of an intent we can turn into a file. */

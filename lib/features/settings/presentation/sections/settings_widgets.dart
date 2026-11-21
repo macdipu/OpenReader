@@ -487,7 +487,7 @@ Future<SettingsChoice<T>?> showSettingsPicker<T>(
       useSafeArea: true,
       builder: (context) => SingleChildScrollView(
         key: const ValueKey('settings-picker-sheet'),
-        padding: const EdgeInsets.only(bottom: 16),
+        padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom + 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

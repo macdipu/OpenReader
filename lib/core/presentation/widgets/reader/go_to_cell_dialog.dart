@@ -44,7 +44,8 @@ class _GoToDialogState extends State<_GoToDialog> {
     final names = widget.controller.sheetNames;
     return AlertDialog(
       title: const Text('Go to'),
-      content: Column(
+      content: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -84,6 +85,7 @@ class _GoToDialogState extends State<_GoToDialog> {
             ),
           ],
         ],
+        ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),

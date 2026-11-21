@@ -495,10 +495,12 @@ Future<void> _showFileActionSheet(
     // that on typical phone heights, overflowing instead of just sizing to
     // its (short, fixed) content.
     isScrollControlled: true,
+    useSafeArea: true,
     builder: (sheetContext) {
       final accent = document.category.accentColor(sheetContext);
       final tint = document.category.tintColor(sheetContext);
-      return SafeArea(
+      // Scrolls on a short screen or at a large text size; clears the phone's navigation bar below.
+      return SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -597,7 +599,7 @@ Future<void> _showFileActionSheet(
                 if (await interactions.confirmAndDelete(document)) Get.find<BrowseController>().removeDocument(document.id);
               },
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: MediaQuery.viewPaddingOf(sheetContext).bottom + 8),
           ],
         ),
       );

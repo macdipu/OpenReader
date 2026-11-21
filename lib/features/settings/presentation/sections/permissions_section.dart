@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 import '../../../../core/presentation/theme/theme_extensions.dart';
 import '../../../../core/presentation/utils/platform_info.dart';
 import '../../../../core/presentation/utils/screen_utils.dart';
-import '../../../../core/presentation/utils/storage_access_flow.dart';
+import '../../../../core/presentation/utils/storage_access_help.dart';
+import '../../../../core/presentation/widgets/storage_access_steps.dart';
 import '../../../../services/utilities/storage_access_service.dart';
 import '../settings_controller.dart';
 import 'settings_widgets.dart';
@@ -146,6 +147,10 @@ class _FileAccessRow extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(detail, key: const ValueKey('file-access-detail'), style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
+                        if (onTap != null) ...[
+                          const SizedBox(height: 2),
+                          Text('Manage file access', key: const ValueKey('file-access-manage'), style: context.bodySmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
+                        ],
                       ],
                     ),
                   ),
@@ -166,17 +171,6 @@ class HowToAllowAccess extends StatelessWidget {
   final SettingsController controller;
   const HowToAllowAccess({super.key, required this.controller});
 
-  static const steps = [
-    'Android 11 or newer: open OpenReader\'s All files access page and choose "Allow management of all files" '
-        '(not "media only" and not "Don\'t allow").',
-    'Android 10 or older: Settings > Apps > OpenReader > Permissions > Storage > Allow.',
-  ];
-
-  static const vendorLines = storageAccessVendorLines;
-
-  static const namesDiffer =
-      'Names differ a little between phone makers. Come back to OpenReader afterwards: this page updates by itself.';
-
   /// Width from which the steps open in a dialog instead of a bottom sheet.
   static const dialogBreakpoint = 600.0;
 
@@ -184,6 +178,7 @@ class HowToAllowAccess extends StatelessWidget {
     Widget content(BuildContext sheet) => _HowToAllowContent(
           controller: controller,
           onDone: () => Navigator.of(sheet).pop(),
+          inSheet: context.screenDimensions.width < dialogBreakpoint,
         );
     if (context.screenDimensions.width >= dialogBreakpoint) {
       return showDialog<void>(
@@ -216,54 +211,65 @@ class HowToAllowAccess extends StatelessWidget {
   }
 }
 
-class _HowToAllowContent extends StatelessWidget {
+class _HowToAllowContent extends StatefulWidget {
   final SettingsController controller;
   final VoidCallback onDone;
-  const _HowToAllowContent({required this.controller, required this.onDone});
+
+  /// A bottom sheet runs under the phone's navigation bar, so it pads for it; a dialog does not.
+  final bool inSheet;
+  const _HowToAllowContent({required this.controller, required this.onDone, required this.inSheet});
+
+  @override
+  State<_HowToAllowContent> createState() => _HowToAllowContentState();
+}
+
+class _HowToAllowContentState extends State<_HowToAllowContent> {
+  late final Future<StorageAccessHelp> _help = widget.controller.accessHelp();
 
   @override
   Widget build(BuildContext context) {
+    final bottom = widget.inSheet ? MediaQuery.viewPaddingOf(context).bottom + 16 : 20.0;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+      padding: EdgeInsets.fromLTRB(20, 4, 20, bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('How to allow file access', style: context.titleMedium?.copyWith(color: context.onSurface)),
-          const SizedBox(height: 12),
-          for (final step in HowToAllowAccess.steps)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(step, style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
-            ),
-          for (final line in HowToAllowAccess.vendorLines)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(line, style: context.bodySmall?.copyWith(color: context.onSurfaceVariant)),
-            ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 8),
-            child: Text(HowToAllowAccess.namesDiffer, style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
-          ),
+          Text(StorageAccessHelp.title, style: context.titleLarge?.copyWith(color: context.onSurface)),
           const SizedBox(height: 8),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            onPressed: () {
-              onDone();
-              controller.openAllFilesAccess();
+          Text(StorageAccessHelp.purpose, style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant)),
+          const SizedBox(height: 20),
+          FutureBuilder<StorageAccessHelp>(
+            future: _help,
+            builder: (context, snapshot) {
+              final help = snapshot.data;
+              if (help == null) return const SizedBox(height: 120);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StorageAccessSteps(help: help),
+                  const SizedBox(height: 24),
+                  if (help.legacy)
+                    FilledButton(
+                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      onPressed: () {
+                        widget.onDone();
+                        widget.controller.openAppPermissions();
+                      },
+                      child: const Text(StorageAccessHelp.openAppSettingsLabel),
+                    )
+                  else
+                    FilledButton(
+                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      onPressed: () {
+                        widget.onDone();
+                        widget.controller.openAllFilesAccess();
+                      },
+                      child: const Text(StorageAccessHelp.openPageLabel),
+                    ),
+                ],
+              );
             },
-            icon: const Icon(Icons.folder_open_rounded, size: 18),
-            label: const Text('Open All files access'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            onPressed: () {
-              onDone();
-              controller.openAppPermissions();
-            },
-            icon: const Icon(Icons.settings_outlined, size: 18),
-            label: const Text('Open app settings'),
           ),
         ],
       ),

@@ -41,6 +41,14 @@ class FakeStorage implements StorageAccessService {
   int opened = 0;
   int allFiles = 0;
   int stateReads = 0;
+  int? sdk = 34;
+  DeviceBrand brand = DeviceBrand.other;
+
+  @override
+  Future<int?> androidSdkInt() async => sdk;
+
+  @override
+  Future<DeviceBrand> deviceBrand() async => brand;
 
   @override
   Future<StorageAccessState> state() async {
@@ -288,16 +296,18 @@ void main() {
   });
 
   group('permissions', () {
-    testWidgets('Android allowed: one compact row, no note, no help, and the row opens the app settings', (tester) async {
+    testWidgets('Android allowed: one compact row, no note, no help, and the row opens the All files access page', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360);
       expect(find.text('Allowed'), findsOneWidget);
       expect(find.text('OpenReader can find your documents'), findsOneWidget);
       expect(find.textContaining('limited mode'), findsNothing);
       expect(find.byType(HowToAllowAccess), findsNothing);
       expect(find.text('Allow file access'), findsNothing);
+      expect(find.text('Manage file access'), findsOneWidget);
       await tester.tap(find.text('File access'));
       await tester.pump();
-      expect(storage.opened, 1);
+      expect(storage.allFiles, 1);
+      expect(storage.opened, 0);
       expect(storage.requests, 0);
       await drainWatch(tester);
     });
@@ -712,24 +722,25 @@ void main() {
       storage.current = StorageAccessState.allowed;
       c.storageState.value = StorageAccessState.allowed;
       await c.fixStorageAccess();
-      expect(storage.opened, 1);
+      expect(storage.allFiles, 1);
+      expect(storage.opened, 0);
 
       storage.current = StorageAccessState.blocked;
       c.storageState.value = StorageAccessState.blocked;
       final pending = c.fixStorageAccess();
       await tester.pumpAndSettle();
-      expect(storage.allFiles, 0, reason: 'explains first');
+      expect(storage.allFiles, 1, reason: 'explains first');
       await tester.tap(find.text('Open page'));
       await tester.pumpAndSettle();
       await pending;
-      expect(storage.allFiles, 1);
-      expect(storage.opened, 1);
+      expect(storage.allFiles, 2);
+      expect(storage.opened, 0);
       expect(storage.requests, 1);
 
       c.storageState.value = null;
       await c.fixStorageAccess();
       expect(storage.requests, 1);
-      expect(storage.opened, 1);
+      expect(storage.opened, 0);
     });
 
     testWidgets('cache cap is saved', (tester) async {
@@ -935,36 +946,68 @@ void main() {
 
     testWidgets('opens a bottom sheet on a phone, not inline', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, access: StorageAccessState.notAllowed);
-      expect(find.textContaining('Android 11 or newer'), findsNothing);
+      expect(find.text('Or find it yourself'), findsNothing);
       await tester.tap(find.text('How to allow it yourself'));
       await tester.pumpAndSettle();
       expect(find.byType(BottomSheet), findsOneWidget);
       expect(find.byType(Dialog), findsNothing);
-      expect(find.textContaining('Android 11 or newer'), findsOneWidget);
-      expect(find.text('Open All files access'), findsOneWidget);
-      expect(find.text('Open app settings'), findsOneWidget);
+      expect(find.text('Or find it yourself'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Open All files access'), findsOneWidget);
+      expect(find.text('Open app settings'), findsNothing);
+      expect(find.descendant(of: find.byType(BottomSheet), matching: find.byType(FilledButton)), findsOneWidget);
+      expect(find.descendant(of: find.byType(BottomSheet), matching: find.byType(TextButton)), findsNothing);
     });
 
-    testWidgets('says to allow management of all files, lists the phone makers and fits 360 px at text scale 2 (A-14/A-15)',
-        (tester) async {
+    testWidgets('shows numbered steps for the phone brand only, fits 360 px at text scale 2 (A-14/A-15)', (tester) async {
       await pump(tester,
           platform: TargetPlatform.android, width: 360, height: 640, access: StorageAccessState.notAllowed, textScale: 2.0);
+      storage.brand = DeviceBrand.coloros;
       await tester.ensureVisible(find.text('How to allow it yourself'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('How to allow it yourself'), warnIfMissed: false);
       await tester.pumpAndSettle();
       expect(find.byType(BottomSheet), findsOneWidget);
       expect(find.textContaining('Allow management of all files'), findsOneWidget);
-      expect(find.textContaining('Samsung One UI'), findsOneWidget);
-      await tester.scrollUntilVisible(find.textContaining('ColorOS / realme / OnePlus'), 100,
-          scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first);
-      await tester.scrollUntilVisible(find.textContaining('vivo: Settings'), 100,
-          scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first);
-      await tester.scrollUntilVisible(find.textContaining('Xiaomi / HyperOS'), -100,
-          scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first);
-      await tester.scrollUntilVisible(find.textContaining('Names differ'), 100,
-          scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first);
+      expect(find.text('Settings > Apps > App management > OpenReader > Permissions > Files and media'), findsOneWidget);
+      expect(find.textContaining('Special access'), findsNothing);
+      expect(find.textContaining('Manage apps'), findsNothing);
+      expect(find.text('Or find it yourself'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('safe area: the last button clears a 48 px navigation bar at 360 px, text scale $scale', (tester) async {
+        await pump(tester,
+            platform: TargetPlatform.android, width: 360, height: 800, access: StorageAccessState.notAllowed, textScale: scale);
+        tester.view.viewPadding = const FakeViewPadding(bottom: 48);
+        addTearDown(tester.view.resetViewPadding);
+        await tester.pump();
+        await tester.ensureVisible(find.text('How to allow it yourself'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('How to allow it yourself'), warnIfMissed: false);
+        await tester.pumpAndSettle();
+        final scrollable = find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)).first;
+        await tester.scrollUntilVisible(find.text('Open All files access'), 100, scrollable: scrollable);
+        await tester.drag(scrollable, const Offset(0, -2000));
+        await tester.pumpAndSettle();
+        final bottom = tester.getBottomLeft(find.widgetWithText(FilledButton, 'Open All files access')).dy;
+        expect(bottom, lessThanOrEqualTo(800 - 48));
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('Android 10 or older: one step, no brand lines, no All files button', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 800, access: StorageAccessState.notAllowed);
+      storage.sdk = 29;
+      storage.brand = DeviceBrand.samsung;
+      await tester.tap(find.text('How to allow it yourself'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.text('Tap Allow on the Storage permission prompt.', findRichText: true), findsOneWidget);
+      expect(find.textContaining('Special access'), findsNothing);
+      expect(find.text('Open All files access'), findsNothing);
+      expect(find.text('Open app settings'), findsOneWidget);
+      expect(find.descendant(of: find.byType(BottomSheet), matching: find.byType(FilledButton)), findsOneWidget);
+      expect(find.descendant(of: find.byType(BottomSheet), matching: find.byType(TextButton)), findsNothing);
     });
 
     testWidgets('opens a dialog on a wide window', (tester) async {
@@ -973,10 +1016,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsOneWidget);
       expect(find.byType(BottomSheet), findsNothing);
-      expect(find.textContaining('Android 11 or newer'), findsOneWidget);
+      expect(find.text('Or find it yourself'), findsOneWidget);
     });
 
-    testWidgets('the sheet buttons open the All files page and the app settings, and close it', (tester) async {
+    testWidgets('the sheet button opens the All files page (sdk 34) or the app settings (sdk 29), and closes it', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, access: StorageAccessState.blocked);
       await tester.tap(find.text('How to allow it yourself'));
       await tester.pumpAndSettle();
@@ -985,6 +1028,7 @@ void main() {
       expect(storage.allFiles, 1);
       expect(storage.opened, 0);
       expect(find.byType(BottomSheet), findsNothing);
+      storage.sdk = 29;
       await tester.tap(find.text('How to allow it yourself'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Open app settings'));
@@ -1018,10 +1062,32 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     });
 
-    test('Android: requests All files access, the page that holds the switch', () async {
+    test('Android: opens the All files access page through the device channel', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      expect(await StorageAccessService.instance.openAllFilesAccessSettings(), isTrue);
-      expect(calls, ['requestPermissions']);
+      var opened = 0;
+      final svc = StorageAccessService.test(() async => 34, allFilesOpener: () async => ++opened > 0);
+      expect(await svc.openAllFilesAccessSettings(), isTrue);
+      expect(opened, 1);
+      expect(calls, isEmpty);
+    });
+
+    test('Android 11+: a false answer or an error falls back to the app settings', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      for (final opener in <Future<bool> Function()>[() async => false, () async => throw PlatformException(code: 'x')]) {
+        calls.clear();
+        final svc = StorageAccessService.test(() async => 30, allFilesOpener: opener);
+        expect(await svc.openAllFilesAccessSettings(), isTrue);
+        expect(calls, ['openAppSettings']);
+      }
+    });
+
+    test('Android 10: the app settings, the channel is not used', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      var opened = 0;
+      final svc = StorageAccessService.test(() async => 29, allFilesOpener: () async => ++opened > 0);
+      expect(await svc.openAllFilesAccessSettings(), isTrue);
+      expect(opened, 0);
+      expect(calls, ['openAppSettings']);
     });
 
     test('elsewhere: falls back to the app settings page', () async {

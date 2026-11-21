@@ -4,25 +4,28 @@ import 'package:flutter/widgets.dart';
 
 import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/storage_access_service.dart';
+import 'storage_access_help.dart';
 import '../widgets/snackbar/custom_snackbar.dart';
-
-/// Where the All files access switch lives on common phones (onboarding and the Settings how-to).
-const storageAccessVendorLines = [
-  'Samsung One UI: Settings > Apps > Special access > All files access.',
-  'ColorOS / realme / OnePlus: App info > Permissions > Files and media.',
-  'Xiaomi / HyperOS: Settings > Apps > Manage apps > OpenReader > Permissions.',
-  'vivo: Settings > Apps & permissions > Permission management.',
-];
 
 /// The text of the guidance shown when the user comes back from the OS page without access.
 const storageAccessGuidance =
     'Access is still off. Choose "Allow management of all files".';
 
+/// Quotes this phone's own switch wording once the brand is known (cached by an earlier lookup);
+/// before that, the brand-neutral [storageAccessGuidance].
+String _guidanceFor(StorageAccessService access) {
+  try {
+    final brand = access.cachedBrand;
+    if (brand != null) return 'Access is still off. Choose "${StorageAccessHelp.switchLabelFor(brand)}".';
+  } catch (_) {}
+  return storageAccessGuidance;
+}
+
 /// Shown once per attempt, after the re-check window found no access: how to finish by hand, with a
 /// way to the page where access is granted. Settings > Permissions has the full steps.
 void showStorageAccessGuidance(StorageAccessService access) {
   CustomSnackbar.show(
-    message: storageAccessGuidance,
+    message: _guidanceFor(access),
     type: SnackbarType.warning,
     duration: const Duration(seconds: 8),
     actionLabel: 'Open settings',
@@ -53,6 +56,29 @@ class StorageAccessAttempt {
   }
 }
 
+bool _appInFront() {
+  final state = WidgetsBinding.instance.lifecycleState;
+  return state == null || state == AppLifecycleState.resumed;
+}
+
+/// Notes whether the app left the foreground while it runs (the OS permission page opened over it).
+class _LeftAppWatch with WidgetsBindingObserver {
+  bool left = false;
+
+  void start() => WidgetsBinding.instance.addObserver(this);
+
+  /// Stops watching; true if the app was away at any point.
+  bool stop() {
+    WidgetsBinding.instance.removeObserver(this);
+    return left;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) left = true;
+  }
+}
+
 /// Completes when the app is in front again *and stays there* for [settle] (at once if it already is,
 /// or the lifecycle is unknown, as in tests). Some system pages hand control back to the app for a
 /// moment and then cover it again (One UI's toolbar arrow on the All files access page goes on to
@@ -61,7 +87,7 @@ class StorageAccessAttempt {
 Future<void> waitUntilForeground({
   bool Function()? isClosed,
   Duration timeout = const Duration(minutes: 10),
-  Duration settle = const Duration(milliseconds: 1200),
+  Duration settle = const Duration(milliseconds: 800),
 }) {
   final binding = WidgetsBinding.instance;
   bool inFront() {
@@ -116,8 +142,8 @@ class _ForegroundObserver with WidgetsBindingObserver {
 /// the way), and when the user comes back without access keeps checking for a few seconds in case the
 /// grant is late. [onGranted] runs once access shows up. If it never does, [guide] (guidance with
 /// "Open settings") runs once; by default the shared snackbar. A grant on the first answer shows no
-/// guidance. The re-check window starts once the app is in front again, so the guidance is never shown
-/// to nobody.
+/// guidance. The re-check window starts once the app is in front again and has stayed there, so the
+/// guidance is never shown to nobody.
 Future<void> requestStorageAccessFlow({
   required StorageAccessService access,
   FutureOr<void> Function()? onGranted,
@@ -126,12 +152,17 @@ Future<void> requestStorageAccessFlow({
   void Function()? guide,
 }) async {
   StorageAccessAttempt.mark();
-  if (await access.requestOrOpenSettings()) {
+  final watch = _LeftAppWatch()..start();
+  final granted0 = await access.requestOrOpenSettings();
+  final leftApp = watch.stop();
+  if (granted0) {
     StorageAccessAttempt.clear();
     await onGranted?.call();
     return;
   }
-  await waitUntilForeground(isClosed: isClosed);
+  // The app was behind the OS page (or still is): time the re-check window from when it is really
+  // back in front, so the guidance is not shown to nobody.
+  if (leftApp || !_appInFront()) await waitUntilForeground(isClosed: isClosed);
   if (isClosed?.call() ?? false) return;
   var granted = false;
   await (recheck ?? AccessRecheck()).run(

@@ -5,15 +5,13 @@ import '../../../core/domain/models/document_category.dart';
 import '../../../core/presentation/theme/theme_extensions.dart';
 import '../../../core/presentation/utils/platform_info.dart';
 import '../../../core/presentation/widgets/storage_privacy_note.dart';
-import '../../../core/presentation/utils/storage_access_flow.dart';
+import '../../../core/presentation/utils/storage_access_help.dart';
+import '../../../core/presentation/widgets/storage_access_steps.dart';
 import 'onboarding_controller.dart';
 import 'dart:math';
 
 class OnboardingView extends GetView<OnboardingController> {
   const OnboardingView({super.key});
-
-  /// Where the switch lives on common phones, shared with Settings' how-to.
-  static final vendorHelp = storageAccessVendorLines.join('\n');
 
   @override
   Widget build(BuildContext context) {
@@ -56,8 +54,8 @@ class OnboardingView extends GetView<OnboardingController> {
                 Text(
                   askForAccess
                       ? 'OpenReader reads PDF, Word, Excel, PowerPoint, CSV, Markdown and text files stored on this device.\n\n'
-                          'Tapping Allow Access opens Android\'s "All files access" page. Choose "Allow management of '
-                          'all files" so you can browse your documents in any folder, not just Downloads or Documents.'
+                          'Tapping Allow Access opens Android\'s "All files access" page. Turn it on for OpenReader so you can '
+                          'browse your documents in any folder, not just Downloads or Documents.'
                       : 'OpenReader reads PDF, Word, Excel, PowerPoint, CSV, Markdown and text files stored on this computer.',
                   textAlign: TextAlign.center,
                   style: context.bodyMedium?.copyWith(color: context.onSurfaceVariant),
@@ -83,10 +81,10 @@ class OnboardingView extends GetView<OnboardingController> {
                     child: const Text('Get started'),
                   )
                 else if (status == OnboardingStatus.permanentlyDenied) ...[
-                  Text(
-                    'Storage access was permanently denied. Open Settings and choose "Allow management of all files".\n\n$vendorHelp',
-                    textAlign: TextAlign.center,
-                    style: context.bodyMedium?.copyWith(color: context.error),
+                  _DeniedHelp(
+                    controller: controller,
+                    message: 'Access is blocked. Turn it on in settings.',
+                    primaryLabel: 'Open Settings',
                   ),
                   const SizedBox(height: 16),
                   FilledButton(
@@ -97,11 +95,10 @@ class OnboardingView extends GetView<OnboardingController> {
                   if (status == OnboardingStatus.denied)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        'Access was denied. Try again and choose "Allow management of all files" (not "media only" or '
-                        '"Don\'t allow").\n\n$vendorHelp',
-                        textAlign: TextAlign.center,
-                        style: context.bodyMedium?.copyWith(color: context.error),
+                      child: _DeniedHelp(
+                        controller: controller,
+                        message: 'Access was not allowed. Try again.',
+                        primaryLabel: 'Allow Access',
                       ),
                     ),
                   FilledButton(
@@ -123,6 +120,40 @@ class OnboardingView extends GetView<OnboardingController> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A short error line, then the compact steps card for this phone's brand.
+class _DeniedHelp extends StatelessWidget {
+  final OnboardingController controller;
+  final String message;
+  final String primaryLabel;
+  const _DeniedHelp({required this.controller, required this.message, required this.primaryLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(message, style: context.bodyMedium?.copyWith(color: context.error, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: context.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: FutureBuilder<StorageAccessHelp>(
+            future: controller.accessHelp(primaryLabel: primaryLabel),
+            builder: (context, snapshot) {
+              final help = snapshot.data;
+              return help == null ? const SizedBox(height: 96) : StorageAccessSteps(help: help);
+            },
+          ),
+        ),
+      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/domain/repositories/app_settings_repository.dart';
+import '../../../core/presentation/utils/storage_access_help.dart';
 import '../../../res/routes/app_routes.dart';
 import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/storage_access_service.dart';
@@ -111,4 +112,8 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> openSettings() => _storageAccess.openSettings();
+
+  /// The by-hand steps for this phone's brand and Android version.
+  Future<StorageAccessHelp> accessHelp({String primaryLabel = StorageAccessHelp.openPageLabel}) =>
+      loadStorageAccessHelp(_storageAccess, primaryLabel: primaryLabel);
 }

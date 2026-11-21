@@ -19,6 +19,7 @@ import '../../../core/presentation/controllers/theme_controller.dart';
 import '../../../core/presentation/controllers/thumbnail_preferences.dart';
 import '../../../core/presentation/utils/file_size_formatter.dart';
 import '../../../core/presentation/utils/platform_info.dart';
+import '../../../core/presentation/utils/storage_access_help.dart';
 import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/platform_integration/default_app_service.dart';
@@ -307,8 +308,8 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
       );
 
   /// The action that matches the state: open the All files access page (Android 11+) or ask (older
-  /// Android) when not allowed, explain and open the page when blocked, open the app's settings to
-  /// revoke when allowed.
+  /// Android) when not allowed, explain and open the page when blocked, open the All files access page to
+  /// manage it when allowed.
   Future<void> fixStorageAccess() async {
     final before = storageState.value;
     switch (storageState.value) {
@@ -323,13 +324,18 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
         );
         if (open) await _storageAccess.openAllFilesAccessSettings();
       case StorageAccessState.allowed:
-        await _storageAccess.openSettings();
+        // Revoking is done on the All files access page (Android 11+); the service opens the app's
+        // settings instead on Android 10 and older, where Permissions > Storage is.
+        await _storageAccess.openAllFilesAccessSettings();
       case StorageAccessState.notApplicable:
       case null:
         break;
     }
     await watchPermissions(before);
   }
+
+  /// The by-hand steps for this phone's brand and Android version.
+  Future<StorageAccessHelp> accessHelp() => loadStorageAccessHelp(_storageAccess);
 
   /// The "How to allow it" help: straight to the All files access page.
   Future<void> openAllFilesAccess() async {

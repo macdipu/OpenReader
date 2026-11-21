@@ -118,7 +118,9 @@ void main() {
       expect(find.text('Not Now'), findsNothing);
       expect(find.byType(TextButton).evaluate().where((e) => ((e.widget as TextButton).child is Text) && ((((e.widget as TextButton).child) as Text).data == 'Privacy policy') == false), isEmpty);
       expect(find.textContaining('"All files access"'), findsOneWidget);
-      expect(find.textContaining('Allow management of all files'), findsOneWidget);
+      // Brand-neutral: each phone maker names the switch differently, so the intro never quotes one.
+      expect(find.textContaining('Turn it on for OpenReader'), findsOneWidget);
+      expect(find.textContaining('Allow management of all files'), findsNothing);
       // A-06: the purpose, never uploaded or shared, and the policy link.
       expect(find.textContaining('find and open your documents'), findsOneWidget);
       expect(find.textContaining('never uploaded or shared'), findsOneWidget);

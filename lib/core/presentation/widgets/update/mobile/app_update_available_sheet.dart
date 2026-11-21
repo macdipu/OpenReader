@@ -18,12 +18,15 @@ class AppUpdateAvailableSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      // Clears the phone's navigation bar.
+      padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom),
       decoration: BoxDecoration(
         color: context.surfaceContainerLowest,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
+        bottom: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
           child: Column(

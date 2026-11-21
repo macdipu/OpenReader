@@ -16,12 +16,14 @@ class UrlLauncherService {
       final formattedUrl = _formatUrl(url);
       final uri = Uri.parse(formattedUrl);
 
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(
-          uri,
-          mode: mode ?? LaunchMode.externalApplication,
-        );
-      } else {
+      // No canLaunchUrl pre-check: since Android 11 it answers false for every link unless the
+      // manifest declares the schemes in <queries> (package visibility), which would turn every web
+      // link into an error. launchUrl itself reports whether something opened it.
+      final opened = await launchUrl(
+        uri,
+        mode: mode ?? LaunchMode.externalApplication,
+      );
+      if (!opened) {
         throw Exception('Could not launch url: $formattedUrl');
       }
     });
