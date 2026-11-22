@@ -62,15 +62,31 @@ void main() {
     expect(await success(documents.getKeepState('/not/indexed.pdf')), isNull);
   });
 
-  test('referencedPaths: only documents with a recent entry or a favorite', () async {
-    final unreferenced = document('/cache/incoming/x_other.pdf');
-    await success(documents.indexDocument(unreferenced));
-    expect(await success(documents.referencedPaths()), isEmpty);
+  test('protectedPaths: recents and undecided copies are recent, favorites and kept copies are kept', () async {
+    final unused = document('/cache/incoming/x_other.pdf');
+    await success(documents.indexDocument(unused));
+    expect(await success(documents.protectedPaths()), isEmpty);
+
     await success(recents.markOpened(old.id));
     final favored = document('/cache/incoming/y_fav.pdf');
     await success(documents.indexDocument(favored));
     await success(favorites.add(favored.id));
-    expect(await success(documents.referencedPaths()), {old.path, favored.path});
+    final kept = document('/cache/incoming/z_kept.pdf');
+    await success(documents.indexDocument(kept));
+    await success(documents.setKeepState(kept.id, KeepState.kept));
+    final undecided = document('/cache/incoming/w_pending.pdf');
+    await success(documents.indexDocument(undecided));
+    await success(documents.setKeepState(undecided.id, KeepState.pending));
+
+    expect(await success(documents.protectedPaths()), {
+      old.path: CopyProtection.recent,
+      favored.path: CopyProtection.kept,
+      kept.path: CopyProtection.kept,
+      undecided.path: CopyProtection.recent,
+    });
+    // A favorite that is also in Recents is still kept.
+    await success(recents.markOpened(favored.id));
+    expect((await success(documents.protectedPaths()))[favored.path], CopyProtection.kept);
   });
 
   test('relink moves the recent entry with its reading position, and the favorite', () async {

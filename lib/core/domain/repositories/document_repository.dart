@@ -31,9 +31,10 @@ abstract class DocumentRepository {
   /// Records the decision; null clears it. Does nothing for an id that is not indexed.
   ResultFuture<void> setKeepState(String documentId, KeepState? state);
 
-  /// Paths of the documents that a recent entry or a favorite points at: copies among them must
-  /// not be pruned.
-  ResultFuture<Set<String>> referencedPaths();
+  /// Paths of the indexed documents that must not be cleaned up like an unused copy, with how
+  /// strongly: a favorite or a kept copy is [CopyProtection.kept]; one in Recents, or still
+  /// undecided, is [CopyProtection.recent]. A path that is not here is unused.
+  ResultFuture<Map<String, CopyProtection>> protectedPaths();
 
   /// Moves [oldId] history, favorite and reading position to [replacement] (a file that took its
   /// place: located by the user, or saved from a shared copy), then drops the old row.

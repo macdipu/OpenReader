@@ -113,14 +113,21 @@ class DocumentRepositoryImpl implements DocumentRepository {
   }
 
   @override
-  ResultFuture<Set<String>> referencedPaths() {
+  ResultFuture<Map<String, CopyProtection>> protectedPaths() {
     return runTask(() async {
       final db = await _appDatabase.database;
       final rows = await db.rawQuery(
-        'SELECT path FROM documents WHERE id IN (SELECT document_id FROM recent_documents) '
-        'OR id IN (SELECT document_id FROM favorite_documents)',
+        'SELECT path, '
+        // COALESCE: keep_state is NULL for most rows, and NULL OR false is NULL, not 0.
+        "(id IN (SELECT document_id FROM favorite_documents) OR COALESCE(keep_state, '') = 'kept') AS kept "
+        'FROM documents WHERE id IN (SELECT document_id FROM recent_documents) '
+        'OR id IN (SELECT document_id FROM favorite_documents) '
+        "OR keep_state IN ('kept', 'pending')",
       );
-      return {for (final row in rows) row['path'] as String};
+      return {
+        for (final row in rows)
+          row['path'] as String: (row['kept'] as int) == 1 ? CopyProtection.kept : CopyProtection.recent,
+      };
     });
   }
 

@@ -214,14 +214,16 @@ class MainActivity : FlutterActivity() {
         val mime = contentResolver.getType(uri)
         val displayName = queryDisplayName(uri) ?: uri.lastPathSegment
         val name = safeFileName(displayName, mime)
-        val dir = File(cacheDir, INCOMING_DIR).apply { mkdirs() }
+        // App files, not the cache: the OS may clear the cache at any time, and a copy the user
+        // keeps (or has in Recents) must survive. Dart's SharedCopyStore cleans this folder up.
+        val dir = File(filesDir, INCOMING_DIR).apply { mkdirs() }
 
         // The copy is keyed by the source uri, so two different documents that share a file
         // name never collide. It is reused only when its size AND the provider's modified time both
         // match the source (the copy's own lastModified is set to the source's). A provider that
         // reports no size or no modified time gets a fresh copy every time: size alone is never trusted.
         // Known trade-off: a provider that mints a new uri for each open produces a new cached copy
-        // per open (pruneOldFiles bounds the cache).
+        // per open (SharedCopyStore removes the unused ones).
         val sourceSize = querySize(uri)
         val sourceModified = queryLastModified(uri)
         val key = Integer.toHexString(uriString.hashCode())
@@ -243,7 +245,6 @@ class MainActivity : FlutterActivity() {
             if (sourceModified > 0) target.setLastModified(sourceModified)
         }
 
-        pruneOldFiles(dir, keep = target)
         Log.i(TAG, "materialize content uri=$uriString -> path=${target.absolutePath} mime=$mime name=$name")
         return mapOf("path" to target.absolutePath, "mimeType" to mime, "displayName" to displayName)
     }
@@ -312,15 +313,6 @@ class MainActivity : FlutterActivity() {
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase())
     }
 
-    /** Shared documents are transient; drop copies the user isn't reading. */
-    /** Deletes old copies except [keep] (its mtime mirrors the source's, so it may look old). */
-    private fun pruneOldFiles(dir: File, keep: File) {
-        val cutoff = System.currentTimeMillis() - PRUNE_AFTER_MS
-        dir.listFiles()?.forEach { file ->
-            if (file != keep && file.lastModified() < cutoff) file.delete()
-        }
-    }
-
     private fun logIntent(source: String, incoming: Intent?) {
         if (incoming == null) {
             Log.i(TAG, "$source intent=<null>")
@@ -339,7 +331,7 @@ class MainActivity : FlutterActivity() {
         const val TAG = "OpenReaderIntent"
         const val DEVICE_CHANNEL = "openreader/device"
         const val EVENTS_CHANNEL = "openreader/incoming_intent/events"
+        /** Folder (under app files) for copies of files other apps shared; matches SharedCopyStore.folderName. */
         const val INCOMING_DIR = "incoming"
-        const val PRUNE_AFTER_MS = 7L * 24 * 60 * 60 * 1000
     }
 }

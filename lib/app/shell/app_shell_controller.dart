@@ -13,10 +13,12 @@ import '../../features/workspace/presentation/workspace_controller.dart';
 import '../../core/presentation/utils/platform_info.dart';
 import '../../features/settings/presentation/default_app_dialog.dart';
 import '../../features/settings/presentation/settings_controller.dart';
+import '../../core/presentation/utils/logger.dart';
 import '../../services/platform_integration/desktop_open_files.dart';
 import '../../services/platform_integration/incoming_intent_service.dart';
 import '../../services/platform_integration/launch_arguments.dart';
 import '../../services/utilities/access_recheck.dart';
+import '../../services/utilities/shared_copy_store.dart';
 import '../../core/presentation/utils/storage_access_flow.dart';
 import '../../services/utilities/app_update_service.dart';
 import '../../services/utilities/storage_access_service.dart';
@@ -68,6 +70,15 @@ class AppShellController extends GetxController with WidgetsBindingObserver {
     // an incoming file here.
     unawaited(_loadSidebarPref());
     unawaited(_incomingIntentService.init());
+    // Clean up copies of other apps' files (CR-FILE-RELOCATE) after the first frame. A copy under an
+    // hour old is never removed, so this cannot take a file that is being opened.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await SharedCopyStore().prune();
+      } catch (e) {
+        AppLogger.warning('[COPIES] clean-up failed: $e');
+      }
+    });
     _openLaunchFiles();
     WidgetsBinding.instance.addObserver(this);
     // After the first frame, so the sheet has a navigator to open on.

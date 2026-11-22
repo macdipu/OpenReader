@@ -18,3 +18,13 @@ enum KeepState {
     return null;
   }
 }
+
+/// How much the app must protect the file behind an indexed document from being cleaned up.
+enum CopyProtection {
+  /// In Recents, or undecided ([KeepState.pending]). Removed only when the size cap leaves no
+  /// other choice, and then it shows as a removed temporary copy.
+  recent,
+
+  /// A favorite, or the user chose to keep it. Never removed automatically.
+  kept,
+}
