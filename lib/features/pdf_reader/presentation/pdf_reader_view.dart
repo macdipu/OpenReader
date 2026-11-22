@@ -14,7 +14,6 @@ import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'pdf_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
-import '../../../core/presentation/widgets/reader/reader_text_actions.dart';
 import '../../ocr/presentation/ocr_page_banner.dart';
 import '../../ocr/presentation/ocr_actions.dart';
 
@@ -202,9 +201,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           onSelected: (action) => _handle(action),
           tooltip: 'More actions',
           itemBuilder: (context) => [
-            ...readerCopyAllMenuItems(_ReaderAction.copyAll),
-            if (controller.pdf.canRecognize && controller.isReady.value)
-              const PopupMenuItem(value: _ReaderAction.extractText, child: Text('Extract text from this page')),
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
           ],
@@ -218,10 +214,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _handle(_ReaderAction action) {
     switch (action) {
-      case _ReaderAction.copyAll:
-        runReaderCopyAll(controller.pdf);
-      case _ReaderAction.extractText:
-        extractPageText(controller.pdf);
       case _ReaderAction.share:
         controller.share();
       case _ReaderAction.openWith:
@@ -230,7 +222,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { copyAll, extractText, share, openWith }
+enum _ReaderAction { share, openWith }
 
 class _SearchStatusBar extends StatelessWidget {
   final PdfReaderController controller;
