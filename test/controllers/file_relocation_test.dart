@@ -73,13 +73,14 @@ void main() {
 
   FileRelocation relocation({
     String? picked,
-    MissingFileChoice? missingChoice,
+    bool locate = false,
     SharedCopyDecision? sharedDecision,
     FakeSaveCopy? saveCopy,
     bool androidFolder = false,
     List<String>? asked,
   }) => FileRelocation(
     documents: documents,
+    recents: recents,
     settings: settings,
     privatePaths: AppPrivatePaths.fixed([incoming.path]),
     copyStore: SharedCopyStore(documents: documents, folder: () async => androidFolder ? incoming : null),
@@ -88,10 +89,10 @@ void main() {
     pickFile: (_) async => picked,
     askMissing: (name, {required temporaryCopy}) async {
       asked?.add('$name|temporary=$temporaryCopy');
-      return missingChoice;
+      return locate;
     },
-    askSharedCopy: (name) async {
-      asked?.add('ask:$name');
+    askSharedCopy: (document) async {
+      asked?.add('ask:${document.displayName}');
       return sharedDecision ?? const SharedCopyDecision(SharedCopyChoice.keep);
     },
     isSharedCopy: (path) => p.dirname(path) == incoming.path,
@@ -115,12 +116,12 @@ void main() {
   });
 
   group('a file that is gone', () {
-    test('Remove from Recents calls the controller and opens nothing', () async {
+    test('a missing file is removed from Recents at once, and nothing opens', () async {
       final missing = await index('/gone/report.pdf');
       final removed = <String>[];
       var changed = 0;
 
-      final result = await relocation(missingChoice: MissingFileChoice.remove).handleMissing(
+      final result = await relocation().handleMissing(
         missing,
         removeFromRecents: (id) async => removed.add(id),
         onChanged: () => changed++,
@@ -138,39 +139,50 @@ void main() {
       final newFile = File(p.join(temporary.path, 'moved', 'report.pdf'))
         ..createSync(recursive: true)
         ..writeAsBytesSync([1, 2, 3]);
-      var changed = 0;
 
-      final result = await relocation(picked: newFile.path).handleMissing(
-        missing,
-        removeFromRecents: (_) async {},
-        onChanged: () => changed++,
-      );
-      // handleMissing asked first; this test's askMissing returns null, so locate directly.
-      expect(result, isNull);
       final located = await relocation(picked: newFile.path).locate(missing);
 
       expect(located?.path, newFile.path);
       expect(await success(documents.getById(missing.id)), isNull);
       expect(await success(recents.getPosition(newFile.path)), {'page_number': 12});
       expect(await success(favorites.isFavorite(newFile.path)), isTrue);
-      expect(changed, 0);
     });
 
-    test('choosing Locate in the dialog relinks and reports a change', () async {
+    test('Locate after the automatic removal brings back the reading position and the favorite', () async {
       final missing = await index('/gone/report.pdf');
-      await success(recents.markOpened(missing.id));
+      await success(recents.markOpened(missing.id, readingPosition: {'page_number': 4}));
+      await success(favorites.add(missing.id));
       final newFile = File(p.join(temporary.path, 'elsewhere.pdf'))..writeAsBytesSync([1]);
       var changed = 0;
 
-      final result = await relocation(picked: newFile.path, missingChoice: MissingFileChoice.locate).handleMissing(
+      final result = await relocation(picked: newFile.path, locate: true).handleMissing(
         missing,
-        removeFromRecents: (_) async {},
+        removeFromRecents: (id) async => success(recents.remove(id)),
         onChanged: () => changed++,
       );
 
       expect(result?.path, newFile.path);
-      expect(changed, 1);
-      expect((await success(recents.getRecents())).single.document.path, newFile.path);
+      expect(changed, 2, reason: 'once for the removal, once for the located file');
+      final recent = (await success(recents.getRecents())).single;
+      expect(recent.document.path, newFile.path);
+      expect(await success(recents.getPosition(newFile.path)), {'page_number': 4});
+      expect(await success(favorites.isFavorite(newFile.path)), isTrue);
+    });
+
+    test('closing the dialog without Locate leaves the entry removed and the favorite alone', () async {
+      final missing = await index('/gone/report.pdf');
+      await success(recents.markOpened(missing.id));
+      await success(favorites.add(missing.id));
+
+      final result = await relocation().handleMissing(
+        missing,
+        removeFromRecents: (id) async => success(recents.remove(id)),
+        onChanged: () {},
+      );
+
+      expect(result, isNull);
+      expect(await success(recents.getRecents()), isEmpty);
+      expect(await success(favorites.isFavorite(missing.id)), isTrue);
     });
 
     test('cancelling the picker changes nothing', () async {
@@ -211,7 +223,7 @@ void main() {
       final asked = <String>[];
       final copy = await index(p.join(incoming.path, 'abc_shared.pdf'));
 
-      await relocation(missingChoice: null, asked: asked).handleMissing(
+      await relocation(asked: asked).handleMissing(
         copy,
         removeFromRecents: (_) async {},
         onChanged: () {},

@@ -10,6 +10,7 @@ import 'package:openreader/core/domain/repositories/favorite_repository.dart';
 import 'package:openreader/core/domain/repositories/recent_repository.dart';
 import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
+import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/pdf_reader/presentation/pdf_reader_controller.dart';
 import 'package:openreader/features/settings/presentation/settings_controller.dart';
 import 'package:openreader/features/text_reader/presentation/text_reader_controller.dart';
@@ -58,6 +59,17 @@ void main() {
     }
   }
 
+  /// Waits until both readers have finished their own loading (the text file and the saved position
+  /// are read with real I/O). A fixed number of event-loop turns is not enough when the machine is busy:
+  /// a load that finishes after a test changed a setting would write the old value back over it.
+  Future<void> untilLoaded() async {
+    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    while ((text.plainText == null || pdf.status.value != StateStatus.success) && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    await settle();
+  }
+
   setUp(() async {
     textClosed = false;
     Get.testMode = true;
@@ -78,7 +90,7 @@ void main() {
       interactions: interactions,
       settingsRepository: repo,
     )..onInit();
-    await settle();
+    await untilLoaded();
   });
 
   tearDown(() async {

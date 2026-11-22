@@ -47,7 +47,7 @@ class DocumentInteractionController extends GetxController {
         _storageAccess = storageAccess ?? StorageAccessService.instance,
         _privatePaths = privatePaths ?? AppPrivatePaths.instance {
     _relocation = relocation ??
-        FileRelocation(documents: _documentRepository, privatePaths: _privatePaths);
+        FileRelocation(documents: _documentRepository, recents: _recentRepository, privatePaths: _privatePaths);
   }
 
   /// Moved or deleted files, and copies of other apps' files (CR-FILE-RELOCATE).
@@ -299,8 +299,8 @@ class DocumentInteractionController extends GetxController {
     return true;
   }
 
-  /// A file that is gone: Locate it (its history moves to the file picked) or Remove it from Recents.
-  /// The file the user locates is opened at once.
+  /// A file that is gone: its Recents entry is removed at once, and the user may Locate it (the file
+  /// picked gets its favorite and reading position and is opened).
   Future<void> _handleMissing(DocumentModel document) async {
     final located = await _relocation.handleMissing(
       document,

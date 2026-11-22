@@ -14,6 +14,8 @@ import '../../domain/models/document_model.dart';
 import '../../domain/models/keep_state.dart';
 import '../../domain/repositories/app_settings_repository.dart';
 import '../../domain/repositories/document_repository.dart';
+import '../../domain/repositories/recent_repository.dart';
+import '../../data/repositories/recent_repository_impl.dart';
 import '../utils/logger.dart';
 import '../widgets/show_dialog/file_choice_dialogs.dart';
 import '../widgets/snackbar/custom_snackbar.dart';
@@ -24,18 +26,20 @@ import '../widgets/snackbar/custom_snackbar.dart';
 class FileRelocation {
   FileRelocation({
     DocumentRepository? documents,
+    RecentRepository? recents,
     AppSettingsRepository? settings,
     AppPrivatePaths? privatePaths,
     SharedCopyStore? copyStore,
     SaveCopyService? saveCopy,
     IncomingDocumentResolver? resolver,
     Future<String?> Function(DocumentModel document)? pickFile,
-    Future<MissingFileChoice?> Function(String name, {required bool temporaryCopy})? askMissing,
-    Future<SharedCopyDecision> Function(String name)? askSharedCopy,
+    Future<bool> Function(String name, {required bool temporaryCopy})? askMissing,
+    Future<SharedCopyDecision> Function(DocumentModel document)? askSharedCopy,
     bool Function(String path)? isSharedCopy,
     void Function(String message)? showError,
     void Function(String message)? showSuccess,
   }) : _documents = documents ?? DocumentRepositoryImpl(),
+       _recents = recents ?? RecentRepositoryImpl(),
        _settings = settings ?? AppSettingsRepositoryImpl(),
        _privatePaths = privatePaths ?? AppPrivatePaths.instance,
        _copyStore = copyStore ?? SharedCopyStore(),
@@ -43,20 +47,21 @@ class FileRelocation {
        _resolver = resolver ?? IncomingDocumentResolver(),
        _pickFile = pickFile ?? _pickWithPicker,
        _askMissing = askMissing ?? ((name, {required temporaryCopy}) => showMissingFileDialog(name: name, temporaryCopy: temporaryCopy)),
-       _askSharedCopy = askSharedCopy ?? ((name) => showSharedCopyDialog(name: name)),
+       _askSharedCopy = askSharedCopy ?? ((document) => showSharedCopyDialog(document: document)),
        _isSharedCopy = isSharedCopy ?? SharedCopyStore.isSharedCopy,
        _showError = showError ?? CustomSnackbar.error,
        _showSuccess = showSuccess ?? CustomSnackbar.success;
 
   final DocumentRepository _documents;
+  final RecentRepository _recents;
   final AppSettingsRepository _settings;
   final AppPrivatePaths _privatePaths;
   final SharedCopyStore _copyStore;
   final SaveCopyService _saveCopy;
   final IncomingDocumentResolver _resolver;
   final Future<String?> Function(DocumentModel document) _pickFile;
-  final Future<MissingFileChoice?> Function(String name, {required bool temporaryCopy}) _askMissing;
-  final Future<SharedCopyDecision> Function(String name) _askSharedCopy;
+  final Future<bool> Function(String name, {required bool temporaryCopy}) _askMissing;
+  final Future<SharedCopyDecision> Function(DocumentModel document) _askSharedCopy;
   final bool Function(String path) _isSharedCopy;
   final void Function(String message) _showError;
   final void Function(String message) _showSuccess;
@@ -69,9 +74,10 @@ class FileRelocation {
     return result?.files.single.path;
   }
 
-  /// A file that is no longer at its path. Returns the document to open (the file the user
-  /// located), or null when there is nothing to open. [removeFromRecents] and [onChanged] are the
-  /// controller's own actions.
+  /// A file that is no longer at its path. Its Recents entry is removed at once, with nothing to
+  /// confirm; the user is told, and a file that can be found again may be located (the favorite and
+  /// the reading position move to it). Returns the document to open, or null when there is none.
+  /// [removeFromRecents] and [onChanged] are the controller's own actions.
   Future<DocumentModel?> handleMissing(
     DocumentModel document, {
     required Future<void> Function(String documentId) removeFromRecents,
@@ -80,19 +86,28 @@ class FileRelocation {
     // A copy in the app's own folders (another app's file, or something from the temp folder) has
     // no known original to look for.
     final temporary = _isSharedCopy(document.path) || await _privatePaths.contains(document.path);
-    final choice = await _askMissing(document.displayName, temporaryCopy: temporary);
-    switch (choice) {
-      case MissingFileChoice.remove:
-        await removeFromRecents(document.id);
-        onChanged();
-        return null;
-      case MissingFileChoice.locate:
-        final located = await locate(document);
-        if (located != null) onChanged();
-        return located;
-      case null:
-        return null;
+    // Read before the entry goes: a located file gets it back.
+    var position = const <String, Object?>{};
+    try {
+      position = (await _recents.getPosition(document.id)).fold((_) => const <String, Object?>{}, (found) => found);
+    } catch (_) {
+      // No saved position: the entry is still removed, and a located file just opens at the start.
     }
+    try {
+      await removeFromRecents(document.id);
+      onChanged();
+    } catch (e) {
+      // The message below still tells the user; the entry is just still there.
+      AppLogger.warning('[RELOCATE] could not remove ${document.id} from Recents: $e');
+    }
+
+    final wantsLocate = await _askMissing(document.displayName, temporaryCopy: temporary);
+    if (temporary || !wantsLocate) return null;
+    final located = await locate(document);
+    if (located == null) return null;
+    if (position.isNotEmpty) await _recents.markOpened(located.id, readingPosition: position);
+    onChanged();
+    return located;
   }
 
   /// Asks for the file, moves [document]'s history, favorite and reading position to it, and returns
@@ -139,7 +154,7 @@ class FileRelocation {
       case SharedCopyAction.remove:
         choice = SharedCopyChoice.remove;
       case SharedCopyAction.ask:
-        final decision = await _askSharedCopy(document.displayName);
+        final decision = await _askSharedCopy(document);
         choice = decision.choice;
         if (decision.remember && decision.choice != SharedCopyChoice.saveCopy) {
           await _settings.setSharedCopyAction(

@@ -34,5 +34,15 @@
 4. Exit prompt, setting, Settings line with space used and Clear.
 5. Verify: unit tests, emulator (content:// open, each exit choice, app killed, missing file), Windows desktop (relink, picker). iOS cannot be run here.
 
+## Decisions changed during the work (user, 2026-11-23)
+- A missing file is removed from Recents at once, with no "Remove from Recents" button. The dialog tells the user and offers Locate (not for a temporary copy); Locate restores the reading position and the favorite.
+- The exit prompt is a bottom sheet (file badge, name, size; Keep in OpenReader as the main action, Save a copy, Remove, "Do this every time"), not a plain dialog. "Save a copy" keeps the copy too (keep_state `saved`), since the system save dialog returns a content URI, not a path.
+- Removed Settings > About > "Show welcome screens again".
+- Update cleanup: after the update is downloaded and before the swap helper starts, other installed OpenReader/OpenDocs versions are removed on desktop (user asked for removal before the new install starts). Release builds only.
+
 ## Status
-2026-11-23: Phase 0 done. No code yet. The harness scripts need Python, which is not installed on this machine, so no run was registered; record the run when the harness is available.
+2026-11-23: Phases 0-5 done and committed. Automated: 840 tests pass, 0 fail (the two Linux staging-dir tests were made portable; reader_live_sync_test's setup now waits for real loading instead of five event-loop turns).
+Verified on the Android emulator: content:// open copies to files/incoming; the exit sheet appears on Back and Keep/Remove/Save paths are covered by unit tests; the Save a copy system dialog and a killed-app run were not exercised on a device.
+Windows: update cleanup tested against a fake entry in the real registry (stand-in uninstaller). macOS and Linux cleanup and iOS are covered only by tests of their pure logic; they need CI or a device.
+Not built (needs a decision): automatic finding of a moved file (MediaStore on Android, a bounded folder search on desktop).
+The harness scripts need Python, which is not installed on this machine, so no run was registered; record the run when the harness is available.
