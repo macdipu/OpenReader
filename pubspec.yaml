@@ -45,7 +45,7 @@ dependencies:
   # kit's example app. The package has its own repository and is published on
   # pub.dev. To work on both at once, use a pubspec_overrides.yaml with
   # `path: ../universal_document_viewer`.
-  universal_document_viewer: ^0.3.0
+  universal_document_viewer: ^0.3.1
   # On-device OCR for scanned PDF pages (CR-READER-SELECT-OCR SO-14), Android
   # only for now. The Latin model is bundled: no network, no model download.
   google_mlkit_text_recognition: ^1.0.3
