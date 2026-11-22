@@ -83,4 +83,11 @@ flutter {
 // Add desugaring dependency for Java language features required by some plugins
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // OCR models for non-Latin scripts. google_mlkit_text_recognition bundles Latin and only refers to
+    // these (compileOnly), so the app adds them to read Japanese, Chinese, Korean and Devanagari scans
+    // on the device, with no download. Keep the versions equal to the plugin's.
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
+    implementation("com.google.mlkit:text-recognition-devanagari:16.0.1")
 }

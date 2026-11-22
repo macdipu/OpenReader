@@ -34,6 +34,7 @@ import 'package:openreader/features/settings/presentation/settings_sections.dart
 import 'package:openreader/features/settings/presentation/settings_view.dart';
 import 'package:openreader/services/platform_integration/default_app_service.dart';
 import 'package:openreader/services/utilities/storage_access_service.dart';
+import 'package:openreader/core/domain/models/keep_state.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -838,6 +839,31 @@ void main() {
       expect(find.text('Send feedback'), findsOneWidget);
       expect(find.textContaining('Rate'), findsOneWidget, reason: 'Android has the Play Store page');
       expect(find.text('v1.2 (3)'), findsOneWidget);
+    });
+
+    testWidgets('Files from other apps is one row; it opens a sheet with the choice, the space used and Clear', (tester) async {
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      expect(find.text('Files from other apps'), findsOneWidget);
+      expect(find.text('When closing a file from another app'), findsNothing, reason: 'merged into the one row');
+      expect(find.textContaining('Asks when you close one'), findsOneWidget);
+
+      await tester.tap(find.text('Files from other apps'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ask me each time'), findsOneWidget);
+      expect(find.text('Keep in OpenReader'), findsOneWidget);
+      expect(find.text('Remove it'), findsOneWidget);
+      expect(find.text('No copies stored'), findsOneWidget);
+      expect(find.text('Nothing to clear'), findsOneWidget, reason: 'nothing stored, so Clear is off');
+
+      await tester.tap(find.text('Remove it'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async => expect(await repo.getSharedCopyAction(), SharedCopyAction.remove));
+      await drain(tester);
+    });
+
+    testWidgets('Files from other apps is not shown off Android, where nothing is copied', (tester) async {
+      await pump(tester, platform: TargetPlatform.linux, width: 1200, height: 900);
+      expect(find.text('Files from other apps'), findsNothing);
     });
 
     testWidgets('reset all settings: confirmed restores defaults, keeps onboarding', (tester) async {

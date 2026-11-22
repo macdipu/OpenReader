@@ -27,6 +27,15 @@ abstract final class OcrRecognizers {
     _resolved = false;
   }
 
+  static final _noProgress = ValueNotifier<OcrProgress?>(null);
+
+  /// What the reading in progress has found so far, for the live scan on the page. Only the ML Kit engine
+  /// reports it (it reads each script in turn); the others read a page in one go, so it stays null.
+  static ValueListenable<OcrProgress?> get progress => switch (platform()) {
+    final MlKitTextRecognizer recognizer => recognizer.progress,
+    _ => _noProgress,
+  };
+
   /// The recognizer to give a reader, or null when this platform has none.
   static TextRecognizer? platform() {
     if (_resolved) return _platform;

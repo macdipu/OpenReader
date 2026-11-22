@@ -16,6 +16,7 @@ import 'pdf_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
 import '../../ocr/presentation/ocr_page_banner.dart';
 import '../../ocr/presentation/ocr_actions.dart';
+import '../../ocr/presentation/ocr_scan_overlay.dart';
 
 /// BRD §9.10 PDF Reader Screen (DESIGN_SPEC.md #09 / #14 - light + AMOLED).
 class PdfReaderView extends GetView<PdfReaderController> {
@@ -67,6 +68,8 @@ class PdfReaderView extends GetView<PdfReaderController> {
                         // Under the night-mode filter's theme, for the backdrop.
                         child: Builder(builder: _buildViewer),
                       ),
+                      // The scan beam over the document while OCR reads the page in view.
+                      Positioned.fill(child: OcrScanOverlay(controller: controller.pdf)),
                       if (!controller.isFullscreen.value)
                         Align(
                           alignment: Alignment.topCenter,

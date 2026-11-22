@@ -6,6 +6,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:openreader/features/ocr/mlkit_text_recognizer.dart';
 import 'package:openreader/features/ocr/ocr_recognizers.dart';
 import 'package:openreader/features/ocr/presentation/ocr_page_banner.dart';
+import 'package:openreader/features/ocr/presentation/ocr_scan_overlay.dart';
 import 'package:universal_document_viewer/pdf.dart';
 
 /// CR-READER-SELECT-OCR SO-13 / SO-14: the OCR engine wrapper and the banner
@@ -105,17 +106,29 @@ void main() {
   });
 
   group('OcrPageBanner', () {
-    Future<PdfController> open(WidgetTester tester, TextRecognizer? recognizer) async {
+    Future<PdfController> open(
+      WidgetTester tester,
+      TextRecognizer? recognizer, {
+      ValueNotifier<OcrProgress?>? progress,
+      bool reduceMotion = false,
+    }) async {
       final controller = PdfController(textRecognizer: recognizer);
       addTearDown(() => tester.runAsync(() async => controller.dispose()));
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Stack(
-              children: [
-                PdfView(controller: controller),
-                Align(alignment: Alignment.topCenter, child: OcrPageBanner(controller: controller)),
-              ],
+        MediaQuery(
+          data: MediaQueryData(disableAnimations: reduceMotion),
+          child: MaterialApp(
+            home: Scaffold(
+              body: Stack(
+                children: [
+                  PdfView(controller: controller),
+                  Positioned.fill(child: OcrScanOverlay(controller: controller)),
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: OcrPageBanner(controller: controller, progress: progress),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -171,6 +184,83 @@ void main() {
       await settle(tester);
       expect(controller.ocrStatusOf(3), PdfOcrStatus.idle);
       expect(find.text('Extract text'), findsOneWidget, reason: 'offered again');
+    });
+
+    testWidgets('while reading, a scan beam sweeps the document; before and after it is gone', (tester) async {
+      final gate = Completer<void>();
+      final controller = await open(tester, _Fake(gate: gate));
+      unawaited(controller.jumpToPage(4));
+      await settle(tester);
+      expect(find.byKey(const Key('ocr-scan-beam')), findsNothing, reason: 'nothing is being read yet');
+
+      await tester.tap(find.text('Extract text'));
+      await settle(tester);
+      expect(find.byKey(const Key('ocr-scan-beam')), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const Key('ocr-scan-beam')), findsOneWidget, reason: 'it keeps sweeping');
+
+      gate.complete();
+      await settle(tester);
+      expect(find.byKey(const Key('ocr-scan-beam')), findsNothing);
+    });
+
+    testWidgets('with animations removed the beam is a still tint', (tester) async {
+      final gate = Completer<void>();
+      final controller = await open(tester, _Fake(gate: gate), reduceMotion: true);
+      unawaited(controller.jumpToPage(4));
+      await settle(tester);
+      await tester.tap(find.text('Extract text'));
+      await settle(tester);
+      expect(find.byKey(const Key('ocr-scan-beam')), findsNothing);
+      expect(find.byKey(const Key('ocr-scan-still')), findsOneWidget);
+      gate.complete();
+      await settle(tester);
+      expect(find.byKey(const Key('ocr-scan-still')), findsNothing);
+    });
+
+    testWidgets('the findings appear as each script reports, with a count and the latest lines', (tester) async {
+      final gate = Completer<void>();
+      final progress = ValueNotifier<OcrProgress?>(null);
+      final controller = await open(tester, _Fake(gate: gate), progress: progress);
+      unawaited(controller.jumpToPage(4));
+      await settle(tester);
+      await tester.tap(find.text('Extract text'));
+      await settle(tester);
+      expect(find.textContaining('lines found'), findsNothing, reason: 'nothing reported yet');
+
+      const size = Size(1000, 1000);
+      progress.value = const OcrProgress(done: 0, total: 5, lines: [], imageSize: size);
+      await tester.pump();
+      expect(find.text('Scanning…'), findsOneWidget);
+
+      progress.value = const OcrProgress(
+        done: 1,
+        total: 5,
+        lines: [OcrLine(text: 'Invoice 12345', rect: Rect.fromLTWH(0, 0, 100, 20))],
+        imageSize: size,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('1 line found'), findsOneWidget);
+      expect(find.text('Invoice 12345'), findsOneWidget);
+
+      progress.value = const OcrProgress(
+        done: 2,
+        total: 5,
+        lines: [
+          OcrLine(text: 'Invoice 12345', rect: Rect.fromLTWH(0, 0, 100, 20)),
+          OcrLine(text: '請求書', rect: Rect.fromLTWH(0, 50, 100, 20)),
+        ],
+        imageSize: size,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('2 lines found'), findsOneWidget);
+      expect(find.text('請求書'), findsOneWidget);
+      expect(find.text('Invoice 12345'), findsOneWidget, reason: 'earlier findings stay while there is room');
+
+      gate.complete();
+      await settle(tester);
     });
 
     testWidgets('a failed read says so and offers Try again', (tester) async {

@@ -40,19 +40,12 @@ class PrivacySection extends StatelessWidget {
           const SettingsDivider(),
           if (SettingsController.hasSharedCopies) ...[
             Obx(() => SettingsActionRow(
-                  icon: Icons.save_alt_rounded,
-                  title: 'When closing a file from another app',
-                  subtitle: 'What to do with the copy OpenReader holds of it',
-                  trailingText: SettingsController.sharedCopyActionLabel(controller.sharedCopyAction.value),
-                  onTap: controller.chooseSharedCopyAction,
-                )),
-            const SettingsDivider(),
-            Obx(() => SettingsActionRow(
-                  icon: Icons.folder_delete_outlined,
+                  icon: Icons.folder_copy_outlined,
                   title: 'Files from other apps',
-                  subtitle: 'Uses ${SettingsController.formatBytes(controller.sharedCopyBytes.value)}. '
-                      'Clearing keeps files you kept or marked as favorites.',
-                  onTap: controller.clearSharedCopies,
+                  subtitle: '${SettingsController.sharedCopyActionSummary(controller.sharedCopyAction.value)} · '
+                      '${SettingsController.formatBytes(controller.sharedCopyBytes.value)} stored',
+                  trailing: Icons.chevron_right_rounded,
+                  onTap: controller.openSharedFilesSheet,
                 )),
             const SettingsDivider(),
           ],

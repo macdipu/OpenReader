@@ -27,6 +27,7 @@ import '../../../services/utilities/storage_access_service.dart';
 import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/url_launcher_service.dart';
 import '../../home/presentation/home_controller.dart';
+import 'sections/shared_files_sheet.dart';
 import '../../recents/presentation/recents_controller.dart';
 import '../../text_reader/presentation/text_reader_controller.dart';
 
@@ -382,29 +383,24 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
         SharedCopyAction.remove => 'Remove it',
       };
 
-  /// "When closing a file from another app": a picker for ask, keep or remove.
-  Future<void> chooseSharedCopyAction() async {
-    final chosen = await Get.dialog<SharedCopyAction>(
-      SimpleDialog(
-        title: const Text('When closing a file from another app'),
-        children: [
-          for (final action in SharedCopyAction.values)
-            SimpleDialogOption(
-              onPressed: () => Get.back(result: action),
-              child: Row(
-                children: [
-                  Icon(action == sharedCopyAction.value ? Icons.radio_button_checked : Icons.radio_button_unchecked),
-                  const SizedBox(width: 12),
-                  Text(sharedCopyActionLabel(action)),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-    if (chosen == null) return;
-    sharedCopyAction.value = chosen;
-    await _guard(() => _settings.setSharedCopyAction(chosen));
+  /// One line for the Settings row: what happens when a shared file is closed.
+  static String sharedCopyActionSummary(SharedCopyAction action) => switch (action) {
+        SharedCopyAction.ask => 'Asks when you close one',
+        SharedCopyAction.keep => 'Keeps them',
+        SharedCopyAction.remove => 'Removes them',
+      };
+
+  /// Opens the "Files from other apps" sheet: the choice, the space used and Clear in one place.
+  Future<void> openSharedFilesSheet() async {
+    // The size may have changed since Settings loaded (a file was opened, or the clean-up ran).
+    sharedCopyBytes.value = await SharedCopyStore().usedBytes();
+    await showSharedFilesSheet(this);
+  }
+
+  /// Saves what to do with a shared file's copy when it is closed.
+  Future<void> setSharedCopyAction(SharedCopyAction action) async {
+    sharedCopyAction.value = action;
+    await _guard(() => _settings.setSharedCopyAction(action));
   }
 
   /// Removes the copies of other apps files that are not kept or a favorite (and their Recents
