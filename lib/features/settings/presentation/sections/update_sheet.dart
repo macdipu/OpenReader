@@ -68,7 +68,7 @@ class UpdateSheet extends StatelessWidget {
     final github = offer.github;
     final cards = <Widget>[];
 
-    if (result.platform == UpdatePlatform.desktop || offer.githubIsMainSource) {
+    if (result.platform == UpdatePlatform.desktop) {
       // No store to ask: GitHub is the release to update to.
       cards.add(
         _SourceCard(
@@ -87,19 +87,13 @@ class UpdateSheet extends StatelessWidget {
                 ),
         ),
       );
-      // Say why it is GitHub and not the store: this build did not come from Google Play (or Play was not reachable).
-      if (result.platform == UpdatePlatform.android && result.storeUnreachable) {
-        cards
-          ..add(const SizedBox(height: 12))
-          ..add(const _Message(key: Key('update-store-unreachable'), icon: Icons.info_outline_rounded, text: 'Could not reach Google Play, so this is the latest release on GitHub.'));
-      }
       return cards;
     }
 
     // The store, always first, with its version.
     final name = result.storeName ?? 'The store';
     if (result.storeUnreachable) {
-      cards.add(_Message(key: const Key('update-store-unreachable'), icon: Icons.cloud_off_rounded, text: 'Could not reach $name.'));
+      cards.add(_Message(key: const Key('update-store-unreachable'), icon: Icons.cloud_off_rounded, text: result.platform == UpdatePlatform.android ? 'Google Play cannot check this install. It was not installed from Google Play, or you are offline.' : 'Could not reach $name.'));
     } else {
       cards.add(
         _SourceCard(
@@ -122,7 +116,7 @@ class UpdateSheet extends StatelessWidget {
     }
 
     // A second option, only when GitHub is strictly newer than the store.
-    if (github != null) {
+    if (github != null && !result.storeUnreachable) {
       cards
         ..add(const SizedBox(height: 12))
         ..add(

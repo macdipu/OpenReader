@@ -110,12 +110,13 @@ void main() {
     expect(actions.calls, ['openStore']);
   });
 
-  testWidgets('a store that could not be reached is said so, and GitHub can still offer its build', (tester) async {
+  testWidgets('a store that could not be reached is said so, and GitHub is not offered in its place', (tester) async {
     await show(tester, Future.value(_check(storeUnreachable: true, offer: UpdateOffer(storeUpdate: false, github: _github('v1.0.24'), githubIsMainSource: true))));
     await tester.pump();
-    expect(find.byKey(const Key('update-github-main')), findsOneWidget);
-    expect(find.text('Download update'), findsOneWidget);
-    expect(find.byKey(const Key('update-store-unreachable')), findsOneWidget, reason: 'says why it is GitHub and not the store');
+    expect(find.byKey(const Key('update-github-main')), findsNothing);
+    expect(find.text('Download update'), findsNothing);
+    expect(find.byKey(const Key('update-store-unreachable')), findsOneWidget);
+    expect(find.textContaining('Google Play cannot check this install'), findsOneWidget);
   });
 
   testWidgets('desktop: GitHub is the release to update to, installed in the app', (tester) async {

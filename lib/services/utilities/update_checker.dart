@@ -93,7 +93,8 @@ class UpdateCheck {
     final early = offer.github;
     if (platform == UpdatePlatform.none) return '';
     if (failed) return 'Could not check for updates';
-    if (offer.githubIsMainSource) {
+    if (storeUnreachable) return 'Google Play cannot check this install';
+    if (platform == UpdatePlatform.desktop) {
       return early == null ? 'Up to date' : '${early.tag} is available';
     }
     final store = offer.storeUpdate ? '${storeName ?? 'The store'} has ${storeVersionLabel ?? 'an update'}' : 'Up to date';
