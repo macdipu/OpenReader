@@ -1,10 +1,13 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' show PlatformDispatcher, Rect, Size;
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart' as mlkit;
 import 'package:universal_document_viewer/ocr.dart';
+
+import 'ocr_progress.dart';
+
+export 'ocr_progress.dart';
 
 /// The scripts ML Kit can read, each with its own model bundled in the app.
 enum OcrScript {
@@ -27,35 +30,6 @@ enum OcrScript {
     'hi' || 'mr' || 'ne' || 'sa' => devanagari,
     _ => latin,
   };
-}
-
-/// What a recognition has found so far, for the live scan on the page: the lines merged from the scripts
-/// read up to now, in image pixels of [imageSize].
-@immutable
-class OcrProgress {
-  const OcrProgress({
-    required this.done,
-    required this.total,
-    required this.lines,
-    required this.imageSize,
-    this.image,
-  });
-
-  /// Scripts read so far, of [total].
-  final int done;
-  final int total;
-
-  /// The merged lines found so far.
-  final List<OcrLine> lines;
-
-  /// The size of the image the line rectangles are in.
-  final Size imageSize;
-
-  /// The page image (PNG) that is being read, for the preview the scan head moves over. Null when it is not kept.
-  final Uint8List? image;
-
-  /// 0 to 1.
-  double get fraction => total == 0 ? 0 : done / total;
 }
 
 /// Reads a page image with one script's recognizer.
@@ -104,7 +78,7 @@ class MlKitTextRecognizer extends TextRecognizer {
       final scripts = order(first);
       final imageSize = Size(input.width.toDouble(), input.height.toDouble());
       final readings = <OcrResult>[];
-      progress.value = OcrProgress(done: 0, total: scripts.length, lines: const [], imageSize: imageSize, image: input.png);
+      progress.value = OcrProgress(done: 0, total: scripts.length, lines: const [], imageSize: imageSize);
       for (final script in scripts) {
         readings.add(await _read(script, file.path, keepEngine: script == first));
         progress.value = OcrProgress(
@@ -112,7 +86,6 @@ class MlKitTextRecognizer extends TextRecognizer {
           total: scripts.length,
           lines: mergeOcrResults(readings).lines,
           imageSize: imageSize,
-          image: input.png,
         );
       }
       return mergeOcrResults(readings);

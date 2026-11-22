@@ -1,5 +1,9 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:universal_document_viewer/pdf.dart';
+
+import '../ocr_progress.dart';
+import '../ocr_recognizers.dart';
 
 /// A strip over a PDF reader offering OCR for the page in view: shown for a
 /// page that has no text of its own (a scan), while it is being read, and
@@ -7,13 +11,16 @@ import 'package:universal_document_viewer/pdf.dart';
 /// device has no recognizer (CR-READER-SELECT-OCR SO-13).
 class OcrPageBanner extends StatefulWidget {
   /// Watches [controller]'s current page.
-  const OcrPageBanner({super.key, required this.controller, this.onNoText});
+  const OcrPageBanner({super.key, required this.controller, this.onNoText, this.progress});
 
   /// The open PDF.
   final PdfController controller;
 
   /// Called when a read finished and found no text on the page.
   final VoidCallback? onNoText;
+
+  /// What the reading has found so far, for the line count (the platform engine's when null).
+  final ValueListenable<OcrProgress?>? progress;
 
   @override
   State<OcrPageBanner> createState() => _OcrPageBannerState();
@@ -88,7 +95,26 @@ class _OcrPageBannerState extends State<OcrPageBanner> {
         children: [
           const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5)),
           const SizedBox(width: 12),
-          Flexible(child: Text('Reading the text on this page…', style: text.bodyMedium)),
+          Flexible(
+            child: ValueListenableBuilder<OcrProgress?>(
+              valueListenable: widget.progress ?? OcrRecognizers.progress,
+              builder: (context, progress, _) {
+                final found = progress?.lines.length ?? 0;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Reading the text on this page…', style: text.bodyMedium),
+                    if (found > 0)
+                      Text(
+                        found == 1 ? '1 line found' : '$found lines found',
+                        style: text.labelMedium?.copyWith(color: scheme.primary, fontWeight: FontWeight.w700),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
           const SizedBox(width: 8),
           TextButton(onPressed: () => _pdf.cancelOcr(page), child: const Text('Cancel')),
         ],

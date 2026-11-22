@@ -125,7 +125,7 @@ void main() {
                   Positioned.fill(child: OcrScanOverlay(controller: controller, progress: progress)),
                   Align(
                     alignment: Alignment.topCenter,
-                    child: OcrPageBanner(controller: controller),
+                    child: OcrPageBanner(controller: controller, progress: progress),
                   ),
                 ],
               ),
@@ -220,7 +220,7 @@ void main() {
       expect(find.byKey(const Key('ocr-scan-still')), findsNothing);
     });
 
-    testWidgets('the findings appear as each script reports, with a count and the latest lines', (tester) async {
+    testWidgets('the lines found pop up as tags beside the beam, one at a time, top first; the banner counts them', (tester) async {
       final gate = Completer<void>();
       final progress = ValueNotifier<OcrProgress?>(null);
       final controller = await open(tester, _Fake(gate: gate), progress: progress);
@@ -228,39 +228,76 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('Extract text'));
       await settle(tester);
-      expect(find.textContaining('lines found'), findsNothing, reason: 'nothing reported yet');
+      expect(find.byKey(const Key('ocr-found-tag')), findsNothing, reason: 'nothing found yet');
+      expect(find.textContaining('lines found'), findsNothing);
 
       const size = Size(1000, 1000);
-      progress.value = const OcrProgress(done: 0, total: 5, lines: [], imageSize: size);
-      await tester.pump();
-      expect(find.text('Scanning…'), findsOneWidget);
-
       progress.value = const OcrProgress(
         done: 1,
         total: 5,
-        lines: [OcrLine(text: 'Invoice 12345', rect: Rect.fromLTWH(0, 0, 100, 20))],
-        imageSize: size,
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('1 line found'), findsOneWidget);
-      expect(find.text('Invoice 12345'), findsOneWidget);
-
-      progress.value = const OcrProgress(
-        done: 2,
-        total: 5,
         lines: [
-          OcrLine(text: 'Invoice 12345', rect: Rect.fromLTWH(0, 0, 100, 20)),
-          OcrLine(text: '請求書', rect: Rect.fromLTWH(0, 50, 100, 20)),
+          OcrLine(text: 'Second line', rect: Rect.fromLTWH(0, 300, 100, 20)),
+          OcrLine(text: 'First line', rect: Rect.fromLTWH(0, 100, 100, 20)),
         ],
         imageSize: size,
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('2 lines found'), findsOneWidget);
-      expect(find.text('請求書'), findsOneWidget);
-      expect(find.text('Invoice 12345'), findsOneWidget, reason: 'earlier findings stay while there is room');
+      expect(find.text('2 lines found'), findsOneWidget, reason: 'the banner counts what the reading found');
 
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(find.byKey(const Key('ocr-found-tag')), findsOneWidget);
+      expect(find.text('First line'), findsOneWidget, reason: 'top of the page first');
+      expect(find.text('Second line'), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(find.byKey(const Key('ocr-found-tag')), findsNWidgets(2));
+      expect(find.text('Second line'), findsOneWidget);
+
+      gate.complete();
+      await settle(tester);
+    });
+
+    testWidgets('a tag goes away after its time, and a long page keeps only the latest few up', (tester) async {
+      final gate = Completer<void>();
+      final progress = ValueNotifier<OcrProgress?>(null);
+      final controller = await open(tester, _Fake(gate: gate), progress: progress);
+      unawaited(controller.jumpToPage(4));
+      await settle(tester);
+      await tester.tap(find.text('Extract text'));
+      await settle(tester);
+
+      progress.value = OcrProgress(
+        done: 1,
+        total: 5,
+        lines: [for (var i = 0; i < 6; i++) OcrLine(text: 'line $i', rect: Rect.fromLTWH(0, 100.0 + i * 100, 100, 20))],
+        imageSize: const Size(1000, 1000),
+      );
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 150));
+      }
+      expect(find.byKey(const Key('ocr-found-tag')).evaluate().length, lessThanOrEqualTo(OcrScanOverlay.maxTags));
+      expect(find.text('6 lines found'), findsOneWidget);
+
+      // Nothing new is coming: the tags fade and are taken down.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 150));
+      }
+      expect(find.byKey(const Key('ocr-found-tag')), findsNothing);
+
+      gate.complete();
+      await settle(tester);
+    });
+
+    testWidgets('the scan lets touches through, so the page can still be scrolled while it is read', (tester) async {
+      final gate = Completer<void>();
+      final controller = await open(tester, _Fake(gate: gate));
+      unawaited(controller.jumpToPage(4));
+      await settle(tester);
+      await tester.tap(find.text('Extract text'));
+      await settle(tester);
+      expect(find.byKey(const Key('ocr-scan-beam')), findsOneWidget);
+      final overlay = find.ancestor(of: find.byKey(const Key('ocr-scan-beam')), matching: find.byType(IgnorePointer));
+      expect(overlay, findsWidgets);
       gate.complete();
       await settle(tester);
     });
