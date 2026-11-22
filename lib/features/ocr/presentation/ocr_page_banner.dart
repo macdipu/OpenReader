@@ -4,6 +4,7 @@ import 'package:universal_document_viewer/pdf.dart';
 
 import '../mlkit_text_recognizer.dart' show OcrProgress;
 import '../ocr_recognizers.dart';
+import 'ocr_live_scan.dart';
 
 /// A strip over a PDF reader offering OCR for the page in view: shown for a
 /// page that has no text of its own (a scan), while it is being read, and
@@ -104,7 +105,7 @@ class _OcrPageBannerState extends State<OcrPageBanner> {
               TextButton(onPressed: () => _pdf.cancelOcr(page), child: const Text('Cancel')),
             ],
           ),
-          _LiveFindings(progress: widget.progress ?? OcrRecognizers.progress),
+          OcrLiveScan(progress: widget.progress ?? OcrRecognizers.progress),
         ],
       ),
       PdfOcrStatus.failed => Row(
@@ -142,135 +143,6 @@ class _OcrPageBannerState extends State<OcrPageBanner> {
           child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: content),
         ),
       ),
-    );
-  }
-}
-
-/// The findings of a reading as they come in: a bar for the scripts read so far, how many lines have been
-/// found, and the latest few fading in. Nothing until the first script has reported.
-class _LiveFindings extends StatefulWidget {
-  const _LiveFindings({required this.progress});
-
-  final ValueListenable<OcrProgress?> progress;
-
-  @override
-  State<_LiveFindings> createState() => _LiveFindingsState();
-}
-
-class _LiveFindingsState extends State<_LiveFindings> {
-  /// Line texts in the order they were first found.
-  final _found = <String>[];
-
-  @override
-  void initState() {
-    super.initState();
-    widget.progress.addListener(_onProgress);
-    _onProgress();
-  }
-
-  @override
-  void didUpdateWidget(_LiveFindings old) {
-    super.didUpdateWidget(old);
-    if (old.progress != widget.progress) {
-      old.progress.removeListener(_onProgress);
-      widget.progress.addListener(_onProgress);
-      _found.clear();
-      _onProgress();
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.progress.removeListener(_onProgress);
-    super.dispose();
-  }
-
-  void _onProgress() {
-    final progress = widget.progress.value;
-    if (progress == null) {
-      _found.clear();
-      return;
-    }
-    final fresh = [for (final line in progress.lines) if (!_found.contains(line.text.trim())) line.text.trim()];
-    if (fresh.isEmpty) return;
-    _found.addAll(fresh);
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<OcrProgress?>(
-      valueListenable: widget.progress,
-      builder: (context, progress, _) {
-        if (progress == null) return const SizedBox.shrink();
-        final scheme = Theme.of(context).colorScheme;
-        final text = Theme.of(context).textTheme;
-        final count = progress.lines.length;
-        final latest = _found.length <= 3 ? _found : _found.sublist(_found.length - 3);
-        return Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(value: progress.fraction == 0 ? null : progress.fraction, minHeight: 3),
-              ),
-              const SizedBox(height: 8),
-              Semantics(
-                label: count == 1 ? '1 line found so far' : '$count lines found so far',
-                excludeSemantics: true,
-                child: Text(
-                  count == 0 ? 'Scanning…' : (count == 1 ? '1 line found' : '$count lines found'),
-                  style: text.labelMedium?.copyWith(color: scheme.primary, fontWeight: FontWeight.w700),
-                ),
-              ),
-              ExcludeSemantics(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final line in latest)
-                      _FadeIn(
-                        key: ValueKey(line),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 3),
-                          child: Text(
-                            line,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// Fades and slides its child in once, the first time it is built.
-class _FadeIn extends StatelessWidget {
-  const _FadeIn({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    if (MediaQuery.disableAnimationsOf(context)) return child;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOut,
-      builder: (context, t, child) => Opacity(
-        opacity: t,
-        child: Transform.translate(offset: Offset(0, (1 - t) * 6), child: child),
-      ),
-      child: child,
     );
   }
 }
