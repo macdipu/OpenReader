@@ -1,0 +1,6 @@
+What's new in 1.0.23
+• Select and copy text in PDF, Word, PowerPoint, text and Markdown files: long-press for Copy and Select all
+• Scanned PDF pages: tap Extract text to read them on your device, then select and copy
+• Files opened from another app load faster and keep their real name
+• Closing such a file asks: keep it, save a copy or remove it (Settings > Privacy & data)
+• Moved or deleted files leave Recents by themselves; Locate finds them again
