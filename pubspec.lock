@@ -340,6 +340,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.7.3"
+  google_mlkit_commons:
+    dependency: transitive
+    description:
+      name: google_mlkit_commons
+      sha256: "58b969da65027b6242afb38b944f5a0d3f6b90305b29d70b0cca3048a50b4263"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.3"
+  google_mlkit_text_recognition:
+    dependency: "direct main"
+    description:
+      name: google_mlkit_text_recognition
+      sha256: "546e3e40181af7166d539f44416ff592a88bd12de61625ad9f2ec7166624f12b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.3"
   hooks:
     dependency: transitive
     description:
@@ -901,10 +917,10 @@ packages:
     dependency: "direct main"
     description:
       name: universal_document_viewer
-      sha256: "8c0322d33fd25030125b3594c64c8c5414abc75589155f8fe27818b95fa480d1"
+      sha256: "19ba86b9f0ecfc8235996cfdd78d088f022c08cec24d7e574b0f6061b1d3d625"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.2"
+    version: "0.3.0"
   universal_io:
     dependency: transitive
     description:
