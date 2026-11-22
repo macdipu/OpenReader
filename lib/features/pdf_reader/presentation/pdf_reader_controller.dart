@@ -17,6 +17,7 @@ import '../../../core/presentation/controllers/reader_preferences.dart';
 import '../../../core/presentation/utils/state_status.dart';
 import '../../../core/presentation/widgets/show_dialog/show_dialog.dart';
 import 'pdf_password_dialog.dart';
+import '../../ocr/ocr_recognizers.dart';
 
 /// Drives the PDF reader (BRD 9.10, ODF-011/012, ODF-008 for PDF).
 ///
@@ -40,7 +41,11 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   })  : _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _interactions = interactions ?? Get.find<DocumentInteractionController>(),
         _settingsRepository = settingsRepository ?? AppSettingsRepositoryImpl() {
-    pdf = PdfController(onPositionChanged: _onPositionChanged, passwordProvider: providePassword)..addListener(_mirror);
+    pdf = PdfController(
+      onPositionChanged: _onPositionChanged,
+      passwordProvider: providePassword,
+      textRecognizer: OcrRecognizers.platform(),
+    )..addListener(_mirror);
   }
 
   /// universal_document_viewer's PDF state: pages, layout, zoom, search, text layer.
