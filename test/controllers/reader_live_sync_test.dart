@@ -67,6 +67,11 @@ void main() {
     while ((text.plainText == null || pdf.status.value != StateStatus.success) && DateTime.now().isBefore(deadline)) {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
+    // The readers also load their saved settings in the background, with no flag to wait on: give them real
+    // time, so a late load cannot land after a test has changed a setting and write the old value back.
+    for (var i = 0; i < 6; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+    }
     await settle();
   }
 
