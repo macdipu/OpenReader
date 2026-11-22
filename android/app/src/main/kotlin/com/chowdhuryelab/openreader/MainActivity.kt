@@ -14,6 +14,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 /**
  * Entry point for documents opened from other apps ("Open with", share sheets,
@@ -44,6 +45,13 @@ class MainActivity : FlutterActivity() {
     private var eventSink: EventChannel.EventSink? = null
     private var pendingUri: String? = null
     private var lastDeliveredUri: String? = null
+
+    /**
+     * The pending document's copy, started as soon as its intent is captured so it runs while the
+     * Flutter engine and Dart start (a content:// copy can take a while). [deliverPending] only waits
+     * for it. Null when nothing is pending.
+     */
+    private var pendingJob: Future<Map<String, Any?>?>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         logIntent("onCreate", intent)
@@ -124,6 +132,15 @@ class MainActivity : FlutterActivity() {
         val uri = incomingUri(incoming) ?: return
         pendingUri = uri
         Log.i(TAG, "captured document uri=$uri")
+        // Same uri as the one already delivered: deliverPending drops it, so don't copy it again.
+        pendingJob = if (uri == lastDeliveredUri) null else io.submit<Map<String, Any?>?> { materializeOrNull(uri) }
+    }
+
+    private fun materializeOrNull(uri: String): Map<String, Any?>? = try {
+        materialize(uri)
+    } catch (t: Throwable) {
+        Log.w(TAG, "materialize failed uri=$uri: $t")
+        null
     }
 
     private fun incomingUri(intent: Intent?): String? {
@@ -158,16 +175,14 @@ class MainActivity : FlutterActivity() {
         val sink = eventSink ?: return
         val uri = pendingUri ?: return
         pendingUri = null
+        val job = pendingJob
+        pendingJob = null
         if (uri == lastDeliveredUri) return
         lastDeliveredUri = uri
 
         io.execute {
-            val payload = try {
-                materialize(uri)
-            } catch (t: Throwable) {
-                Log.w(TAG, "materialize failed uri=$uri: $t")
-                null
-            }
+            // The copy was queued first on this single thread, so it has finished by now.
+            val payload = if (job != null) job.get() else materializeOrNull(uri)
             mainHandler.post {
                 if (payload != null) {
                     Log.i(TAG, "delivering document path=${payload["path"]} mime=${payload["mimeType"]}")
