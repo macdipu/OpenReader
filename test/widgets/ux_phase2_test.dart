@@ -175,7 +175,7 @@ void main() {
     // mode is picked in the PDF reader's toolbar.
     expect(find.text('Clear Recent History'), findsNothing);
     expect(find.textContaining('Reader Mode'), findsNothing);
-    expect(find.text('Clear all history'), findsOneWidget);
+    expect(find.text('Reset & clear data'), findsOneWidget);
     expect(find.text('Clear render cache'), findsNothing);
     // No storage scan any more (CR-OPENREADER-BROWSE).
     expect(find.textContaining('Rescan'), findsNothing);

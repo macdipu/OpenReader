@@ -738,15 +738,13 @@ void main() {
   group('Privacy & data section (CR-SETTINGS-UX, ST-07; ST-11/ST-12 removed 2026-11-21)', () {
     const removed = ['cache', 'limit', 'retention', 'Clear render cache', 'Forever', '30 days', 'No limit', 'Keep reading history'];
 
-    testWidgets('has Clear all history and Reset all settings in the one card, and nothing about cache, limit or retention',
+    testWidgets('has one Reset & clear data row in the card, and nothing about cache, limit or retention',
         (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.text('Data'), findsNothing);
       expect(find.text('Privacy & data'), findsOneWidget);
-      expect(find.text('Clear all history'), findsOneWidget);
-      expect(find.text('Removes your recent files. Your documents are not deleted.'), findsOneWidget);
-      expect(find.text('Reset all settings'), findsOneWidget);
-      expect(find.text('Puts every setting back to its default.'), findsOneWidget);
+      expect(find.text('Reset & clear data'), findsOneWidget);
+      expect(find.text('Clear all history'), findsNothing);
       for (final word in removed) {
         expect(find.textContaining(word, findRichText: true), findsNothing, reason: word);
         expect(find.textContaining(word.toLowerCase()), findsNothing, reason: word);
@@ -756,6 +754,8 @@ void main() {
 
     testWidgets('Clear all history: Cancel does nothing; confirm clears and shows the success message', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Clear all history'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
@@ -763,6 +763,8 @@ void main() {
       expect(recents.cleared, 0);
       expect(find.text(SettingsController.historyClearedMessage), findsNothing);
 
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Clear all history'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, 'Clear'));
@@ -779,6 +781,8 @@ void main() {
       });
       await tester.pump();
       expect(c.nightMode.value, isTrue);
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Reset all settings'));
       await tester.pumpAndSettle();
       expect(find.text('Reset all settings?'), findsOneWidget);
@@ -787,6 +791,8 @@ void main() {
       await tester.runAsync(() async => expect(await repo.getReaderNightMode(), isTrue));
       expect(find.text(SettingsController.resetMessage), findsNothing);
 
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Reset all settings'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, 'Reset'));
@@ -814,8 +820,7 @@ void main() {
         await tester.tap(find.descendant(of: list, matching: find.text('Privacy & data')));
         await tester.pumpAndSettle();
         expect(find.byKey(const ValueKey('settings-pane-privacyData')), findsOneWidget);
-        expect(find.text('Clear all history'), findsOneWidget);
-        expect(find.text('Reset all settings'), findsOneWidget);
+        expect(find.text('Reset & clear data'), findsOneWidget);
         expect(find.text('Clear render cache'), findsNothing);
       });
     }
@@ -824,7 +829,7 @@ void main() {
       testWidgets('360 px, text x$scale: no overflow, both rows are 48 dp or taller', (tester) async {
         await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, textScale: scale);
         expect(tester.takeException(), isNull);
-        for (final title in ['Clear all history', 'Reset all settings']) {
+        for (final title in ['Reset & clear data']) {
           final row = find.ancestor(of: find.text(title), matching: find.byType(SettingsActionRow));
           expect(tester.getSize(row.first).height, greaterThanOrEqualTo(48), reason: title);
         }
@@ -838,7 +843,7 @@ void main() {
       expect(find.text('Share app'), findsOneWidget);
       expect(find.text('Show welcome screens again'), findsNothing);
       // Reset all settings lives in Privacy & data, above the About label, not below it.
-      expect(tester.getTopLeft(find.text('Reset all settings')).dy, lessThan(tester.getTopLeft(find.text('About')).dy));
+      expect(tester.getTopLeft(find.text('Reset & clear data')).dy, lessThan(tester.getTopLeft(find.text('About')).dy));
       expect(find.text('Open-source licenses'), findsOneWidget);
       expect(find.text('Send feedback'), findsOneWidget);
       expect(find.textContaining('Rate'), findsOneWidget, reason: 'Android has the Play Store page');
@@ -907,6 +912,8 @@ void main() {
       });
       await tester.pump();
       expect(c.nightMode.value, isTrue);
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Reset all settings'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Reset'));
@@ -1194,6 +1201,8 @@ void main() {
       await tester.pump();
       expect(c.hideThumbnails.value, isTrue);
       expect(ThumbnailPreferences.hidden.value, isTrue);
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Reset all settings'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Reset'));
@@ -1253,6 +1262,8 @@ void main() {
       expect(c.keepScreenAwake.value, isTrue);
       expect(ReaderWakelock.keepAwake.value, isTrue);
       await tester.runAsync(() async => expect(await repo.getKeepScreenAwake(), isTrue));
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Reset all settings'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Reset'));
@@ -1330,6 +1341,8 @@ void main() {
       await tester.pump();
       expect(c.useDynamicColor.value, isTrue);
       expect(DynamicColorPreferences.enabled.value, isTrue);
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Reset all settings'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Reset'));
@@ -1483,13 +1496,13 @@ void main() {
       final text = tester.widget<Text>(footnote).data!;
       expect(text, contains('Google Firebase'));
       expect(text.length, lessThan(170));
-      expect(tester.getTopLeft(footnote).dy, greaterThan(tester.getTopLeft(find.text('Reset all settings')).dy));
-      final resetTitle = tester.widget<Text>(find.text('Reset all settings'));
-      expect(resetTitle.style?.color, Theme.of(tester.element(find.text('Reset all settings'))).colorScheme.error);
+      expect(tester.getTopLeft(footnote).dy, greaterThan(tester.getTopLeft(find.text('Reset & clear data')).dy));
     });
 
     testWidgets('the reset confirm names reading, appearance and privacy choices', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 8000);
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Reset all settings'));
       await tester.pumpAndSettle();
       expect(find.textContaining('reading, appearance and privacy choices'), findsOneWidget);
@@ -1642,6 +1655,8 @@ void main() {
   group('standard UX: destructive actions confirm, then say what happened', () {
     testWidgets('clear history: error-coloured confirm, Cancel keeps it, Clear shows the success message', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Clear all history'));
       await tester.pumpAndSettle();
       expect(find.text('Clear all reading history?'), findsOneWidget);
@@ -1652,6 +1667,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(recents.cleared, 0);
 
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Clear all history'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, 'Clear'));
@@ -1664,6 +1681,8 @@ void main() {
 
     testWidgets('reset all settings: error-coloured confirm, then the success message', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
+      await tester.tap(find.text('Reset & clear data'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Reset all settings'));
       await tester.pumpAndSettle();
       final confirm = tester.widget<TextButton>(find.widgetWithText(TextButton, 'Reset'));
@@ -1672,14 +1691,6 @@ void main() {
       await settle(tester, () => find.text(SettingsController.resetMessage).evaluate().isNotEmpty);
       expect(find.text(SettingsController.resetMessage), findsOneWidget);
       await drain(tester);
-    });
-
-    testWidgets('action rows that only act carry no chevron', (tester) async {
-      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      for (final title in ['Clear all history', 'Reset all settings']) {
-        final row = find.ancestor(of: find.text(title), matching: find.byType(SettingsActionRow));
-        expect(find.descendant(of: row, matching: find.byIcon(Icons.chevron_right_rounded)), findsNothing, reason: title);
-      }
     });
   });
 

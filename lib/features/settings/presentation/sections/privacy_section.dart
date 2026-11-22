@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../settings_controller.dart';
+import 'reset_data_sheet.dart';
 import 'settings_widgets.dart';
 
 /// Privacy & data: the privacy policy (ST-06), what the lists show (ST-19) and the two ways to
@@ -50,18 +51,11 @@ class PrivacySection extends StatelessWidget {
             const SettingsDivider(),
           ],
           SettingsActionRow(
-            icon: Icons.history_rounded,
-            title: 'Clear all history',
-            subtitle: 'Removes your recent files. Your documents are not deleted.',
-            onTap: controller.clearHistory,
-          ),
-          const SettingsDivider(),
-          SettingsActionRow(
-            icon: Icons.restart_alt_rounded,
-            title: 'Reset all settings',
-            subtitle: 'Puts every setting back to its default.',
-            destructive: true,
-            onTap: controller.resetAllSettings,
+            icon: Icons.cleaning_services_outlined,
+            title: 'Reset & clear data',
+            subtitle: 'Clear your history or reset every setting. Documents are not deleted.',
+            trailing: Icons.chevron_right_rounded,
+            onTap: () => showResetDataSheet(controller),
           ),
         ],
       ),
