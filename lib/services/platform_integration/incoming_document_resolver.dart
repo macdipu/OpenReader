@@ -68,7 +68,9 @@ class IncomingDocumentResolver {
     return p.extension(cleaned).replaceFirst('.', '').toLowerCase();
   }
 
-  Future<IncomingDocumentResolution> resolve(String path, {String? mimeType}) async {
+  /// [displayName] is the name the sending app gave the file. A `content://` share is copied to a
+  /// cache file whose own name carries a lookup prefix, so the path's basename is only the fallback.
+  Future<IncomingDocumentResolution> resolve(String path, {String? mimeType, String? displayName}) async {
     var extension = extensionOf(path);
     var category = DocumentCategory.fromExtension(extension);
     final extensionFromPath = extension;
@@ -104,7 +106,7 @@ class IncomingDocumentResolver {
     final document = DocumentModel(
       id: path,
       path: path,
-      displayName: p.basename(path),
+      displayName: (displayName != null && displayName.isNotEmpty) ? displayName : p.basename(path),
       extension: extension,
       category: category,
       sizeBytes: stat.size,
