@@ -146,13 +146,17 @@ class IncomingIntentService {
     }
   }
 
+  /// Time the shell gets to mount after its first frame, so the reader never
+  /// opens over a blank screen. Was 300 ms; a frame is enough.
+  static const _shellSettle = Duration(milliseconds: 50);
+
   Future<void> _afterFirstFrame() {
     final binding = WidgetsBinding.instance;
     if (binding.rootElement != null && !binding.renderViews.isEmpty && binding.schedulerPhase == SchedulerPhase.idle) {
-      return Future<void>.delayed(const Duration(milliseconds: 300));
+      return Future<void>.delayed(_shellSettle);
     }
     final done = Completer<void>();
-    binding.addPostFrameCallback((_) => Future<void>.delayed(const Duration(milliseconds: 300), done.complete));
+    binding.addPostFrameCallback((_) => Future<void>.delayed(_shellSettle, done.complete));
     return done.future;
   }
 
