@@ -119,10 +119,10 @@ class DocumentRepositoryImpl implements DocumentRepository {
       final rows = await db.rawQuery(
         'SELECT path, '
         // COALESCE: keep_state is NULL for most rows, and NULL OR false is NULL, not 0.
-        "(id IN (SELECT document_id FROM favorite_documents) OR COALESCE(keep_state, '') = 'kept') AS kept "
+        "(id IN (SELECT document_id FROM favorite_documents) OR COALESCE(keep_state, '') IN ('kept', 'saved')) AS kept "
         'FROM documents WHERE id IN (SELECT document_id FROM recent_documents) '
         'OR id IN (SELECT document_id FROM favorite_documents) '
-        "OR keep_state IN ('kept', 'pending')",
+        "OR keep_state IN ('kept', 'saved', 'pending')",
       );
       return {
         for (final row in rows)

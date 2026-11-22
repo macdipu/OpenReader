@@ -6,7 +6,7 @@ import '../settings_controller.dart';
 import 'settings_widgets.dart';
 
 /// Help & about (ST-10): send feedback (a pre-filled GitHub issue, every platform), rate (Android,
-/// where the store page is known), share, the welcome screens, version and licenses.
+/// where the store page is known), share, version and licenses.
 class AboutSection extends StatelessWidget {
   final SettingsController controller;
   final bool showLabel;
@@ -52,12 +52,6 @@ class AboutSection extends StatelessWidget {
             title: 'Share app',
             trailing: Icons.chevron_right_rounded,
             onTap: controller.shareApp,
-          ),
-          const SettingsDivider(),
-          SettingsActionRow(
-            icon: Icons.waving_hand_outlined,
-            title: 'Show welcome screens again',
-            onTap: controller.showWelcomeAgain,
           ),
           const SettingsDivider(),
           Obx(() => SettingsActionRow(

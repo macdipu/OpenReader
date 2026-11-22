@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
+import '../../../core/domain/models/keep_state.dart';
 import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/dynamic_color_preferences.dart';
@@ -21,6 +22,7 @@ import '../../../core/presentation/utils/storage_access_help.dart';
 import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/platform_integration/default_app_service.dart';
+import '../../../services/utilities/shared_copy_store.dart';
 import '../../../services/utilities/storage_access_service.dart';
 import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/url_launcher_service.dart';
@@ -83,6 +85,13 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   final restorePosition = true.obs;
   final hideThumbnails = false.obs;
   final keepScreenAwake = false.obs;
+
+  // Privacy & data (Android): copies of files other apps shared (CR-FILE-RELOCATE)
+  final sharedCopyAction = SharedCopyAction.ask.obs;
+  final sharedCopyBytes = 0.obs;
+
+  /// Only Android copies a file another app shares into the app.
+  static bool get hasSharedCopies => PlatformInfo.isAndroid;
 
   // Appearance
   final useDynamicColor = false.obs;
@@ -188,6 +197,8 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
       keepScreenAwake.value = await _settings.getKeepScreenAwake();
       ReaderWakelock.keepAwake.value = keepScreenAwake.value;
     });
+    await read(() async => sharedCopyAction.value = await _settings.getSharedCopyAction());
+    await read(() async => sharedCopyBytes.value = await SharedCopyStore().usedBytes());
     await read(() async {
       useDynamicColor.value = await _settings.getUseDynamicColor();
       DynamicColorPreferences.enabled.value = useDynamicColor.value;
@@ -364,6 +375,63 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
 
   // ---- Data ----
 
+  /// Labels for [SharedCopyAction], as shown in the row and the picker.
+  static String sharedCopyActionLabel(SharedCopyAction action) => switch (action) {
+        SharedCopyAction.ask => 'Ask me',
+        SharedCopyAction.keep => 'Keep it',
+        SharedCopyAction.remove => 'Remove it',
+      };
+
+  /// "When closing a file from another app": a picker for ask, keep or remove.
+  Future<void> chooseSharedCopyAction() async {
+    final chosen = await Get.dialog<SharedCopyAction>(
+      SimpleDialog(
+        title: const Text('When closing a file from another app'),
+        children: [
+          for (final action in SharedCopyAction.values)
+            SimpleDialogOption(
+              onPressed: () => Get.back(result: action),
+              child: Row(
+                children: [
+                  Icon(action == sharedCopyAction.value ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+                  const SizedBox(width: 12),
+                  Text(sharedCopyActionLabel(action)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (chosen == null) return;
+    sharedCopyAction.value = chosen;
+    await _guard(() => _settings.setSharedCopyAction(chosen));
+  }
+
+  /// Removes the copies of other apps files that are not kept or a favorite (and their Recents
+  /// entries). Asks first.
+  Future<void> clearSharedCopies() async {
+    final confirmed = await showConfirmDialog(
+      title: 'Clear files from other apps?',
+      message: 'Copies OpenReader holds of files other apps shared will be removed, with their Recents. '
+          'Files you kept or marked as favorites stay. The original files are not touched.',
+      confirmLabel: 'Clear',
+      destructive: true,
+    );
+    if (!confirmed) return;
+    await SharedCopyStore().clear();
+    sharedCopyBytes.value = await SharedCopyStore().usedBytes();
+    _refreshHistoryViews();
+    CustomSnackbar.success('Cleared files from other apps.');
+  }
+
+  /// "12.4 MB", for the storage row.
+  static String formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+
   /// Clear reading history (ST-07): asks first, then empties Recents/History and says so. The
   /// documents themselves are never touched.
   Future<void> clearHistory() async {
@@ -470,17 +538,6 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     } catch (_) {
       CustomSnackbar.error('Could not open the share sheet.');
     }
-  }
-
-  Future<void> showWelcomeAgain() async {
-    final confirmed = await showConfirmDialog(
-      title: 'Show welcome screens again?',
-      message: 'The welcome screens appear the next time OpenReader starts.',
-      confirmLabel: 'Show again',
-    );
-    if (!confirmed) return;
-    await _guard(() => _settings.setOnboardingComplete(false));
-    CustomSnackbar.success('The welcome screens will appear the next time OpenReader starts.');
   }
 
   static const resetMessage = 'All settings are back to their defaults. Your documents and history were not touched.';

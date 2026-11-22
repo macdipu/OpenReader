@@ -87,6 +87,14 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        // "Save a copy": the system save dialog, then the file streamed to the place the user chose.
+        MethodChannel(messenger, FILES_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveCopy" -> startSaveCopy(call.argument("path"), call.argument("name"), call.argument("mimeType"), result)
+                else -> result.notImplemented()
+            }
+        }
+
         EventChannel(messenger, EVENTS_CHANNEL).setStreamHandler(
             object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
@@ -100,6 +108,63 @@ class MainActivity : FlutterActivity() {
                 }
             },
         )
+    }
+
+    private var pendingSave: MethodChannel.Result? = null
+    private var pendingSaveSource: File? = null
+
+    /** Asks where to save [path] (ACTION_CREATE_DOCUMENT); the answer comes to [onActivityResult]. */
+    private fun startSaveCopy(path: String?, name: String?, mimeType: String?, result: MethodChannel.Result) {
+        val source = path?.let { File(it) }
+        if (source == null || name.isNullOrEmpty() || !source.isFile) {
+            result.success(false)
+            return
+        }
+        if (pendingSave != null) {
+            result.error("busy", "A save is already in progress", null)
+            return
+        }
+        pendingSave = result
+        pendingSaveSource = source
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = mimeType ?: "application/octet-stream"
+            putExtra(Intent.EXTRA_TITLE, name)
+        }
+        try {
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, REQUEST_SAVE_COPY)
+        } catch (e: android.content.ActivityNotFoundException) {
+            pendingSave = null
+            pendingSaveSource = null
+            result.success(false)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode != REQUEST_SAVE_COPY) {
+            super.onActivityResult(requestCode, resultCode, data)
+            return
+        }
+        val result = pendingSave ?: return
+        val source = pendingSaveSource
+        pendingSave = null
+        pendingSaveSource = null
+        val uri = if (resultCode == RESULT_OK) data?.data else null
+        if (uri == null || source == null) {
+            result.success(false)
+            return
+        }
+        io.execute {
+            val saved = try {
+                contentResolver.openOutputStream(uri)?.use { out -> source.inputStream().use { it.copyTo(out) } } != null
+            } catch (t: Throwable) {
+                Log.w(TAG, "save copy failed: $t")
+                false
+            }
+            mainHandler.post { result.success(saved) }
+        }
     }
 
     /**
@@ -331,6 +396,8 @@ class MainActivity : FlutterActivity() {
         const val TAG = "OpenReaderIntent"
         const val DEVICE_CHANNEL = "openreader/device"
         const val EVENTS_CHANNEL = "openreader/incoming_intent/events"
+        const val FILES_CHANNEL = "openreader/files"
+        const val REQUEST_SAVE_COPY = 7301
         /** Folder (under app files) for copies of files other apps shared; matches SharedCopyStore.folderName. */
         const val INCOMING_DIR = "incoming"
     }

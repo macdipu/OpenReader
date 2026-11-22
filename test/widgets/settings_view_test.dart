@@ -828,33 +828,16 @@ void main() {
   });
 
   group('help and about', () {
-    testWidgets('has Send feedback, Rate (Android), Share and welcome screens', (tester) async {
+    testWidgets('has Send feedback, Rate (Android) and Share, and no welcome-screens row', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
       expect(find.text('Share app'), findsOneWidget);
-      expect(find.text('Show welcome screens again'), findsOneWidget);
+      expect(find.text('Show welcome screens again'), findsNothing);
       // Reset all settings lives in Privacy & data, above the About label, not below it.
       expect(tester.getTopLeft(find.text('Reset all settings')).dy, lessThan(tester.getTopLeft(find.text('About')).dy));
       expect(find.text('Open-source licenses'), findsOneWidget);
       expect(find.text('Send feedback'), findsOneWidget);
       expect(find.textContaining('Rate'), findsOneWidget, reason: 'Android has the Play Store page');
       expect(find.text('v1.2 (3)'), findsOneWidget);
-    });
-
-    testWidgets('welcome screens again: confirmed sets onboarding incomplete', (tester) async {
-      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, prefs: {
-        'app_settings:onboarding_complete': true,
-      });
-      await tester.tap(find.text('Show welcome screens again'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-      await tester.runAsync(() async => expect(await repo.hasCompletedOnboarding(), isTrue));
-      await tester.tap(find.text('Show welcome screens again'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Show again'));
-      await tester.pumpAndSettle();
-      await tester.runAsync(() async => expect(await repo.hasCompletedOnboarding(), isFalse));
-      await drain(tester);
     });
 
     testWidgets('reset all settings: confirmed restores defaults, keeps onboarding', (tester) async {
@@ -1634,7 +1617,7 @@ void main() {
 
     testWidgets('action rows that only act carry no chevron', (tester) async {
       await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000);
-      for (final title in ['Clear all history', 'Reset all settings', 'Show welcome screens again']) {
+      for (final title in ['Clear all history', 'Reset all settings']) {
         final row = find.ancestor(of: find.text(title), matching: find.byType(SettingsActionRow));
         expect(find.descendant(of: row, matching: find.byIcon(Icons.chevron_right_rounded)), findsNothing, reason: title);
       }

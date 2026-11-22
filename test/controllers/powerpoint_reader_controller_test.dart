@@ -19,6 +19,7 @@ import 'package:openreader/core/presentation/controllers/document_interaction_co
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/powerpoint_reader/presentation/powerpoint_reader_controller.dart';
 import 'package:openreader/features/powerpoint_reader/presentation/powerpoint_reader_view.dart';
+import 'package:openreader/services/utilities/app_private_paths.dart';
 import 'package:universal_document_viewer/slides.dart';
 import 'package:path/path.dart' as p;
 
@@ -94,7 +95,11 @@ void main() {
     Get.testMode = true;
     root = await Directory.systemTemp.createTemp('openreader-pptx-reader-');
     recents = FixtureRecents();
-    interactions = DocumentInteractionController(favoriteRepository: FixtureFavorites(), recentRepository: recents);
+    interactions = DocumentInteractionController(
+      favoriteRepository: FixtureFavorites(),
+      recentRepository: recents,
+      privatePaths: AppPrivatePaths.fixed(const []),
+    );
   });
 
   tearDown(() async {

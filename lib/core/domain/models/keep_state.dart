@@ -8,7 +8,8 @@ enum KeepState {
   /// The user chose to keep the copy in OpenReader.
   kept,
 
-  /// The user saved the file to a folder of their own; the document now points at that file.
+  /// The user kept the copy and also saved a copy of the file to a place of their own. Protected
+  /// like [kept].
   saved;
 
   static KeepState? fromName(String? name) {
@@ -25,6 +26,27 @@ enum CopyProtection {
   /// other choice, and then it shows as a removed temporary copy.
   recent,
 
-  /// A favorite, or the user chose to keep it. Never removed automatically.
+  /// A favorite, or the user chose to keep it ([KeepState.kept], [KeepState.saved]). Never removed
+  /// automatically.
   kept,
+}
+
+/// What to do with a copy of a file another app shared when its reader is closed (Settings, "When
+/// closing a file from another app"). CR-FILE-RELOCATE.
+enum SharedCopyAction {
+  /// Ask each time (the default).
+  ask,
+
+  /// Keep the copy in OpenReader without asking.
+  keep,
+
+  /// Remove the copy and its Recents entry without asking.
+  remove;
+
+  static SharedCopyAction fromName(String? name) {
+    for (final action in values) {
+      if (action.name == name) return action;
+    }
+    return ask;
+  }
 }

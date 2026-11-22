@@ -61,6 +61,52 @@ class SharedCopyStore {
     return Directory(p.join((await getApplicationSupportDirectory()).path, folderName));
   }
 
+  /// Whether [path] is a copy this store manages: a file straight inside the `incoming` folder.
+  /// Only Android makes such copies; [android] is for tests.
+  static bool isSharedCopy(String path, {bool? android}) =>
+      (android ?? Platform.isAndroid) && p.basename(p.dirname(path)) == folderName;
+
+  /// Copies [source] into the folder and returns the copy's path, or null where there is no folder
+  /// (not Android). A picked file on Android is already a cache copy the OS may clear, so a file the
+  /// user located is moved to somewhere safe the same way a shared one is.
+  Future<String?> adopt(File source) async {
+    final dir = await _folder();
+    if (dir == null) return null;
+    await dir.create(recursive: true);
+    final target = File(p.join(dir.path, '${source.path.hashCode.toRadixString(16)}_${p.basename(source.path)}'));
+    final partial = File('${target.path}.part');
+    await source.copy(partial.path);
+    await partial.rename(target.path);
+    return target.path;
+  }
+
+  /// Removes every copy that is not kept or a favorite, and the Recents entries that pointed at them.
+  /// Returns the bytes freed. Kept copies and favorites stay.
+  Future<int> clear() async {
+    final copies = await _copies();
+    final protectedPaths = (await _documents.protectedPaths()).fold(
+      (_) => <String, CopyProtection>{},
+      (paths) => paths,
+    );
+    var freed = 0;
+    for (final copy in copies) {
+      if (protectedPaths[copy.file.path] == CopyProtection.kept) continue;
+      final indexed = (await _documents.getById(copy.file.path)).fold((_) => null, (document) => document);
+      try {
+        if (indexed != null) {
+          // Drops the file and the row, and with it the Recents entry (ON DELETE CASCADE).
+          await _documents.deleteDocument(indexed);
+        } else {
+          await copy.file.delete();
+        }
+        freed += copy.size;
+      } on FileSystemException catch (e) {
+        AppLogger.warning('[COPIES] could not remove ${copy.file.path}: $e');
+      }
+    }
+    return freed;
+  }
+
   Future<List<_Copy>> _copies() async {
     final dir = await _folder();
     if (dir == null || !await dir.exists()) return const [];

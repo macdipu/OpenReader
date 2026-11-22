@@ -12,6 +12,7 @@ import '../../domain/models/document_model.dart';
 import '../../domain/repositories/document_repository.dart';
 import '../../domain/repositories/favorite_repository.dart';
 import '../../domain/repositories/recent_repository.dart';
+import 'file_relocation.dart';
 import '../widgets/show_dialog/confirm_dialog.dart';
 import '../widgets/snackbar/custom_snackbar.dart';
 import '../../../services/utilities/app_private_paths.dart';
@@ -39,11 +40,18 @@ class DocumentInteractionController extends GetxController {
     DocumentRepository? documentRepository,
     StorageAccessService? storageAccess,
     AppPrivatePaths? privatePaths,
+    FileRelocation? relocation,
   })  : _favoriteRepository = favoriteRepository ?? FavoriteRepositoryImpl(),
         _recentRepository = recentRepository ?? RecentRepositoryImpl(),
         _documentRepository = documentRepository ?? DocumentRepositoryImpl(),
         _storageAccess = storageAccess ?? StorageAccessService.instance,
-        _privatePaths = privatePaths ?? AppPrivatePaths.instance;
+        _privatePaths = privatePaths ?? AppPrivatePaths.instance {
+    _relocation = relocation ??
+        FileRelocation(documents: _documentRepository, privatePaths: _privatePaths);
+  }
+
+  /// Moved or deleted files, and copies of other apps' files (CR-FILE-RELOCATE).
+  late final FileRelocation _relocation;
 
   final favoriteIds = <String>{}.obs;
 
@@ -140,6 +148,8 @@ class DocumentInteractionController extends GetxController {
     void done() {
       readerClosed.value++;
       if (!_closedIds.isClosed) _closedIds.add(documentId);
+      // A copy of another app's file: ask what to do with it now that the reader is gone.
+      unawaited(_relocation.onReaderClosed(documentId, onChanged: () => readerClosed.value++));
     }
 
     if (save == null) {
@@ -277,12 +287,7 @@ class DocumentInteractionController extends GetxController {
   /// it was indexed. Called before open/share/open-with proceed.
   Future<bool> _verifyStillAccessible(DocumentModel document, {bool skipAccessCheck = false}) async {
     if (!File(document.path).existsSync()) {
-      CustomSnackbar.error(
-        'This file may have been moved or deleted.',
-        title: document.displayName,
-        actionLabel: 'Remove from Recents',
-        onAction: () => removeFromRecent(document.id),
-      );
+      unawaited(_handleMissing(document));
       return false;
     }
     // Only shared storage needs the permission; a copy in the app's own cache or files folders (a
@@ -292,6 +297,17 @@ class DocumentInteractionController extends GetxController {
       return false;
     }
     return true;
+  }
+
+  /// A file that is gone: Locate it (its history moves to the file picked) or Remove it from Recents.
+  /// The file the user locates is opened at once.
+  Future<void> _handleMissing(DocumentModel document) async {
+    final located = await _relocation.handleMissing(
+      document,
+      removeFromRecents: removeFromRecent,
+      onChanged: () => readerClosed.value++,
+    );
+    if (located != null) await openDocument(located);
   }
 
   void _showNoAccess(DocumentModel document) {
