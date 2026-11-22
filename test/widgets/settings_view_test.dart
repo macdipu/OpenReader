@@ -35,6 +35,8 @@ import 'package:openreader/features/settings/presentation/settings_view.dart';
 import 'package:openreader/services/platform_integration/default_app_service.dart';
 import 'package:openreader/services/utilities/storage_access_service.dart';
 import 'package:openreader/core/domain/models/keep_state.dart';
+import 'package:openreader/services/utilities/update_checker.dart';
+import 'package:openreader/services/utilities/update_decision.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -190,6 +192,7 @@ void main() {
     Map<DocumentType, DefaultStatus>? defaults,
     Future<bool> Function(String url)? openUrl,
     Future<void> Function(String text)? share,
+    Future<UpdateCheck> Function()? checkUpdates,
     double textScale = 1,
     ThemeData? theme,
   }) async {
@@ -214,6 +217,7 @@ void main() {
       recents: recents,
       share: share ?? (_) async {},
       openUrl: openUrl ?? (_) async => true,
+      checkUpdates: checkUpdates,
     );
     Get.put(controller);
     await tester.pumpWidget(GetMaterialApp(
@@ -864,6 +868,35 @@ void main() {
     testWidgets('Files from other apps is not shown off Android, where nothing is copied', (tester) async {
       await pump(tester, platform: TargetPlatform.linux, width: 1200, height: 900);
       expect(find.text('Files from other apps'), findsNothing);
+    });
+
+    testWidgets('Version: tapping asks the store and GitHub and shows the sheet; the row says what was found', (tester) async {
+      var asked = 0;
+      await pump(tester, platform: TargetPlatform.android, width: 360, height: 5000, checkUpdates: () async {
+        asked++;
+        return const UpdateCheck(
+          installed: '1.2',
+          platform: UpdatePlatform.android,
+          offer: UpdateOffer(storeUpdate: false, github: GithubRelease(tag: 'v1.3.0', pageUrl: 'https://github.com/x')),
+          storeName: 'Google Play',
+          storeVersionLabel: 'v1.2',
+        );
+      });
+      expect(find.text('Tap to check for updates'), findsOneWidget);
+      expect(find.text('v1.2 (3)'), findsOneWidget, reason: 'the installed version stays where it was');
+
+      await tester.tap(find.text('Version'));
+      await tester.pumpAndSettle();
+      expect(asked, 1);
+      expect(find.text('Early Build Available'), findsOneWidget);
+      expect(find.text('Download Early Build'), findsOneWidget);
+      expect(find.text('Google Play'), findsOneWidget);
+      await drain(tester);
+    });
+
+    testWidgets('Version: off Android, iOS and desktop there is nothing to check, so the row is only a label', (tester) async {
+      await pump(tester, platform: TargetPlatform.fuchsia, width: 360, height: 5000);
+      expect(find.text('Tap to check for updates'), findsNothing);
     });
 
     testWidgets('reset all settings: confirmed restores defaults, keeps onboarding', (tester) async {

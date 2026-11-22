@@ -22,12 +22,15 @@ import '../../../core/presentation/utils/storage_access_help.dart';
 import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/platform_integration/default_app_service.dart';
+import '../../../services/utilities/app_update_service.dart';
 import '../../../services/utilities/shared_copy_store.dart';
+import '../../../services/utilities/update_checker.dart';
 import '../../../services/utilities/storage_access_service.dart';
 import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/url_launcher_service.dart';
 import '../../home/presentation/home_controller.dart';
 import 'sections/shared_files_sheet.dart';
+import 'sections/update_sheet.dart';
 import '../../recents/presentation/recents_controller.dart';
 import '../../text_reader/presentation/text_reader_controller.dart';
 
@@ -44,6 +47,8 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   final Future<void> Function(String text) _share;
   final ThemeController? _theme;
   final Future<bool> Function(String url) _openUrl;
+  final Future<UpdateCheck> Function() _checkUpdates;
+  final UpdateActions _updateActions;
 
   SettingsController({
     AppSettingsRepository? settings,
@@ -53,7 +58,11 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     Future<void> Function(String text)? share,
     ThemeController? themeController,
     Future<bool> Function(String url)? openUrl,
-  })  : _settings = settings ?? AppSettingsRepositoryImpl(),
+    Future<UpdateCheck> Function()? checkUpdates,
+    UpdateActions? updateActions,
+  })  : _checkUpdates = checkUpdates ?? AppUpdateService.instance.check,
+        _updateActions = updateActions ?? AppUpdateService.instance,
+        _settings = settings ?? AppSettingsRepositoryImpl(),
         _recents = recents ?? RecentRepositoryImpl(),
         _storageAccess = storageAccess ?? StorageAccessService.instance,
         _defaultApp = defaultApp ?? DefaultAppService.instance,
@@ -77,6 +86,22 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   ThemeController get themeController => _theme ?? Get.find<ThemeController>();
 
   final appVersion = ''.obs;
+
+  /// What the last update check found, for the Version row ("Up to date", "Google Play has v1.0.24"); empty
+  /// until the user has checked.
+  final updateSummary = ''.obs;
+
+  /// Whether this platform can check for updates: Android (Google Play, with GitHub early builds), iOS (the
+  /// App Store) and desktop (GitHub releases).
+  static bool get canCheckForUpdates => UpdatePlatform.current != UpdatePlatform.none;
+
+  /// Tapping Version: asks the store and GitHub, and shows the answer in a sheet. The store's version comes
+  /// first; GitHub is a second option only when it has a newer build.
+  Future<void> checkForUpdates() async {
+    final check = _checkUpdates();
+    unawaited(check.then((result) => updateSummary.value = result.summary, onError: (_) => updateSummary.value = 'Could not check for updates'));
+    await showUpdateSheet(check: check, actions: _updateActions);
+  }
 
   // Reading
   final pdfContinuous = true.obs;

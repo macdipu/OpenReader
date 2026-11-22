@@ -83,6 +83,8 @@ class MainActivity : FlutterActivity() {
                     ),
                 )
                 "openAllFilesAccess" -> result.success(openAllFilesAccess())
+                // The phone's CPU types, best first: picks the right APK of a GitHub early build.
+                "abis" -> result.success(android.os.Build.SUPPORTED_ABIS.toList())
                 else -> result.notImplemented()
             }
         }

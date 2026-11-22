@@ -57,8 +57,13 @@ class AboutSection extends StatelessWidget {
           Obx(() => SettingsActionRow(
                 icon: Icons.info_outline,
                 title: 'Version',
+                // Tap to ask the store and GitHub; the line under it says what the last check found.
+                subtitle: SettingsController.canCheckForUpdates
+                    ? (controller.updateSummary.value.isEmpty ? 'Tap to check for updates' : controller.updateSummary.value)
+                    : null,
                 trailingText: controller.appVersion.value,
                 versionStyle: true,
+                onTap: SettingsController.canCheckForUpdates ? controller.checkForUpdates : null,
               )),
           const SettingsDivider(),
           SettingsActionRow(
