@@ -68,3 +68,6 @@ app.*.map.json
 *.keystore
 # Claude Code agent worktrees
 /.claude/worktrees/
+
+# Local development against ../universal_document_viewer (AGENTS.md section 4); never commit.
+pubspec_overrides.yaml

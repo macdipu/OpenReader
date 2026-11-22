@@ -22,3 +22,7 @@ QA recorded 2026-11-21 (stage QA, run RUNNING; RELEASE gate needs the user's app
 User changes during the run: "Not Now" removed from Android onboarding; snackbar redesigned (message full width, button below) and its button opens the All files access page.
 
 Open: other phones (Samsung SM-A546E, OPPO CPH2565), Android 10, desktop updater end to end and release.yml in CI, Play Console declarations, iOS pre-submission items (B-03, B-05, B-06, B-07, B-12), optional audit items. Evidence: `agentic/data/project-context/features/CR-PERMISSIONS-NAV-AUDIT/validation/`.
+
+
+## Parked 2026-11-22
+The user chose to park this run at QA (RELEASE gate still theirs) and start CR-READER-SELECT-OCR. Nothing here was changed.

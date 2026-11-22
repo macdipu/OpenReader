@@ -1,5 +1,7 @@
 #include "flutter_window.h"
 
+#include <functional>
+#include <memory>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -9,6 +11,7 @@
 #include <flutter/standard_method_codec.h>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "ocr_channel.h"
 
 // Tag on the WM_COPYDATA a second instance sends: "ORDR".
 static constexpr ULONG_PTR kForwardedFilesTag = 0x4F524452;
@@ -34,6 +37,8 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  // OCR for scanned PDF pages (CR-READER-SELECT-OCR SO-14).
+  RegisterOcrChannel(flutter_controller_->engine()->messenger(), GetHandle());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -71,6 +76,12 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   switch (message) {
+    case kRunOnPlatformThreadMessage: {
+      // Work an OCR thread handed back to this thread (see ocr_channel.cpp).
+      std::unique_ptr<std::function<void()>> task(reinterpret_cast<std::function<void()>*>(lparam));
+      if (task && *task) (*task)();
+      return 0;
+    }
     case WM_COPYDATA: {
       // A second OpenReader process forwarded the files it was started with (see main.cpp):
       // hand them to Dart, which opens each as a tab, and bring this window forward.

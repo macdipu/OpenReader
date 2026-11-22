@@ -50,6 +50,18 @@
         choose how long history is kept.
       </p>
 
+      <h2>Reading text in scanned pages (OCR)</h2>
+      <p>
+        When a PDF page is a picture (a scan), OpenReader can read the text in it so you can select
+        and copy it. This happens on your device, using text recognition built into your system or
+        bundled with the app: Google ML Kit's on-device model on Android, Apple Vision on macOS and
+        iOS, Windows' built-in OCR on Windows, and the Tesseract program on Linux when it is
+        installed. The page image and the recognised text are not uploaded, are not sent to Firebase
+        or any third party, and are not logged. The temporary image used for recognition is deleted
+        as soon as the text has been read, and the recognised text is kept only in memory while the
+        document is open.
+      </p>
+
       <h2>Crash reports and usage analytics (Android)</h2>
       <p>
         Release builds of the Android app use two Google Firebase services. They are not used in the

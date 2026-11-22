@@ -77,6 +77,7 @@ Section: text
 Priority: optional
 Architecture: amd64
 Depends: libgtk-3-0 | libgtk-3-0t64, libsecret-1-0, libjsoncpp25 | libjsoncpp26 | libjsoncpp24 | libjsoncpp1, liblzma5, libc6
+Recommends: tesseract-ocr, tesseract-ocr-eng
 Installed-Size: $(du -sk "$root" | cut -f1)
 Maintainer: $maintainer
 Homepage: $homepage
@@ -109,6 +110,8 @@ BuildArch:      x86_64
 # requirements it cannot satisfy. The system libraries it really needs are listed by hand.
 AutoReqProv:    no
 Requires:       gtk3, libsecret, jsoncpp, xz-libs
+# OCR for scanned PDF pages uses the system's Tesseract when present; without it OCR is simply not offered.
+Recommends:     tesseract, tesseract-langpack-eng
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 
