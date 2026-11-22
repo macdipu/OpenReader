@@ -122,10 +122,10 @@ void main() {
               body: Stack(
                 children: [
                   PdfView(controller: controller),
-                  Positioned.fill(child: OcrScanOverlay(controller: controller)),
+                  Positioned.fill(child: OcrScanOverlay(controller: controller, progress: progress)),
                   Align(
                     alignment: Alignment.topCenter,
-                    child: OcrPageBanner(controller: controller, progress: progress),
+                    child: OcrPageBanner(controller: controller),
                   ),
                 ],
               ),
@@ -201,6 +201,7 @@ void main() {
 
       gate.complete();
       await settle(tester);
+      await tester.pump(const Duration(milliseconds: 300)); // the scan fades out
       expect(find.byKey(const Key('ocr-scan-beam')), findsNothing);
     });
 
@@ -215,6 +216,7 @@ void main() {
       expect(find.byKey(const Key('ocr-scan-still')), findsOneWidget);
       gate.complete();
       await settle(tester);
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('ocr-scan-still')), findsNothing);
     });
 

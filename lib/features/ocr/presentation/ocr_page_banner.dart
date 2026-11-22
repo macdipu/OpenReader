@@ -1,10 +1,5 @@
-import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:universal_document_viewer/pdf.dart';
-
-import '../mlkit_text_recognizer.dart' show OcrProgress;
-import '../ocr_recognizers.dart';
-import 'ocr_live_scan.dart';
 
 /// A strip over a PDF reader offering OCR for the page in view: shown for a
 /// page that has no text of its own (a scan), while it is being read, and
@@ -12,16 +7,13 @@ import 'ocr_live_scan.dart';
 /// device has no recognizer (CR-READER-SELECT-OCR SO-13).
 class OcrPageBanner extends StatefulWidget {
   /// Watches [controller]'s current page.
-  const OcrPageBanner({super.key, required this.controller, this.onNoText, this.progress});
+  const OcrPageBanner({super.key, required this.controller, this.onNoText});
 
   /// The open PDF.
   final PdfController controller;
 
   /// Called when a read finished and found no text on the page.
   final VoidCallback? onNoText;
-
-  /// What the reading has found so far (the platform engine's, when null). It fills the card shown while reading.
-  final ValueListenable<OcrProgress?>? progress;
 
   @override
   State<OcrPageBanner> createState() => _OcrPageBannerState();
@@ -91,21 +83,14 @@ class _OcrPageBannerState extends State<OcrPageBanner> {
     final text = Theme.of(context).textTheme;
 
     final Widget? content = switch (status) {
-      PdfOcrStatus.running => Column(
+      PdfOcrStatus.running => Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5)),
-              const SizedBox(width: 12),
-              Flexible(child: Text('Reading the text on this page…', style: text.bodyMedium)),
-              const SizedBox(width: 8),
-              TextButton(onPressed: () => _pdf.cancelOcr(page), child: const Text('Cancel')),
-            ],
-          ),
-          OcrLiveScan(progress: widget.progress ?? OcrRecognizers.progress),
+          const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5)),
+          const SizedBox(width: 12),
+          Flexible(child: Text('Reading the text on this page…', style: text.bodyMedium)),
+          const SizedBox(width: 8),
+          TextButton(onPressed: () => _pdf.cancelOcr(page), child: const Text('Cancel')),
         ],
       ),
       PdfOcrStatus.failed => Row(
