@@ -8,75 +8,57 @@ import 'package:universal_document_viewer/pdf.dart';
 import '../ocr_progress.dart';
 import '../ocr_recognizers.dart';
 
-/// The scan over the page in view while OCR reads it (CR-READER-SELECT-OCR SO-13), drawn on the document
-/// itself: a beam that steps down the page row by row, in quick hops with a short rest on each, leaving fine
-/// scan-lines behind it and a tint over what it has passed; and the text found, popping up as tags beside the
-/// beam, one line at a time as it is read. It lets touches through, so the page can still be scrolled and
-/// zoomed, and shows only while the page in view is being read. With "remove animations" on, the beam is a
-/// still tint and the tags simply appear.
+/// The scan drawn on the page itself while OCR reads it (CR-READER-SELECT-OCR SO-13): a scan head that hops from
+/// one line of text to the next, lighting each line exactly where it is on the page as it is read, with fine
+/// scan-lines behind it and a tint over what it has passed. It is handed to the viewer as its page overlay
+/// (`PdfView.pageOverlayBuilder`), so it fills the page's own box: it stays on the page as the page scrolls and
+/// zooms, covers only the page, and looks the same on a phone and on a desktop window. It takes no touches.
 ///
-/// The tags follow the beam, not the text itself: the viewer does not say where a page is drawn.
+/// The recognizer reports what it has found as it goes; this plays those findings back one line every [tick],
+/// top of the page first, so the reading is seen line by line. While nothing new is waiting, the head keeps
+/// stepping down the page. It shows only while [page] is being read. With "remove animations" on, nothing moves:
+/// the page is tinted and the lines appear lit.
 class OcrScanOverlay extends StatefulWidget {
   const OcrScanOverlay({
     super.key,
     required this.controller,
+    required this.page,
     this.progress,
     this.tick = const Duration(milliseconds: 140),
   });
 
-  /// The open PDF; its current page decides when the scan shows.
+  /// The open PDF; its OCR status for [page] decides when the scan shows.
   final PdfController controller;
+
+  /// Zero-based index of the page this overlay is on.
+  final int page;
 
   /// What the reading has found so far; the platform engine's when null.
   final ValueListenable<OcrProgress?>? progress;
 
-  /// How often the next line found is shown.
+  /// How long the head rests on a line before the next one.
   final Duration tick;
 
-  /// How many rows the beam reads a page in, top to bottom, per sweep.
-  static const rows = 28;
-
-  /// How long the beam takes over one row (the hop and the rest).
-  static const rowTime = Duration(milliseconds: 110);
-
-  /// How long a tag stays up, and how much of that it takes to fade out.
-  static const tagLife = Duration(milliseconds: 1700);
-  static const _tagFade = Duration(milliseconds: 350);
-
-  /// The most tags up at once.
-  static const maxTags = 5;
+  /// A backlog of lines is played back in about this many hops, so a full page takes seconds.
+  static const backlogHops = 8;
 
   @override
   State<OcrScanOverlay> createState() => _OcrScanOverlayState();
 }
 
-class _Tag {
-  _Tag(this.text, this.fraction, this.born);
-
-  final String text;
-
-  /// Where down the page the beam was when the line was read, 0 to 1.
-  final double fraction;
-
-  /// The tick it was read on.
-  final int born;
-}
-
-class _OcrScanOverlayState extends State<OcrScanOverlay> with SingleTickerProviderStateMixin {
-  late final AnimationController _sweep = AnimationController(
-    vsync: this,
-    duration: OcrScanOverlay.rowTime * OcrScanOverlay.rows,
-  );
-  final _tags = <_Tag>[];
-  var _ticks = 0;
+class _OcrScanOverlayState extends State<OcrScanOverlay> {
+  /// The lines the head has read, in the order it reached them. A later, better reading of the same place
+  /// replaces the earlier one.
+  final _revealed = <OcrLine>[];
   final _seen = <String>{};
+
+  /// Where the head is, 0 (top) to 1 (bottom) of the page.
+  double _head = 0;
   Timer? _timer;
-  var _height = 0.0;
 
   PdfController get _pdf => widget.controller;
   ValueListenable<OcrProgress?> get _progress => widget.progress ?? OcrRecognizers.progress;
-  bool get _reading =>
-      _pdf.canRecognize && _pdf.pageCount > 0 && _pdf.ocrStatusOf(_pdf.currentPage - 1) == PdfOcrStatus.running;
+  bool get _reading => _pdf.canRecognize && _pdf.ocrStatusOf(widget.page) == PdfOcrStatus.running;
 
   @override
   void initState() {
@@ -100,209 +82,212 @@ class _OcrScanOverlayState extends State<OcrScanOverlay> with SingleTickerProvid
     _timer?.cancel();
     _pdf.removeListener(_onChanged);
     _progress.removeListener(_onProgress);
-    _sweep.dispose();
     super.dispose();
   }
 
   void _onChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (!_reading) _reset();
+    setState(() {});
   }
 
   void _onProgress() {
-    if (_progress.value == null) {
-      _tags.clear();
-      _seen.clear();
-    }
+    if (_progress.value == null) _reset();
+  }
+
+  void _reset() {
+    _revealed.clear();
+    _seen.clear();
+    _head = 0;
   }
 
   static String _key(OcrLine line) => '${line.text.trim()}@${line.rect.top.round()}@${line.rect.left.round()}';
 
-  /// Shows the next lines found, top of the page first, and takes down the tags that have had their time.
-  void _step() {
-    if (!mounted) return;
-    var changed = false;
-    // Time is counted in ticks, not by a clock, so it runs on the same time as the timer that drives it.
-    final now = ++_ticks;
-    final life = (OcrScanOverlay.tagLife.inMilliseconds / widget.tick.inMilliseconds).ceil();
-    final before = _tags.length;
-    _tags.removeWhere((tag) => now - tag.born > life);
-    if (_tags.length != before) changed = true;
-
-    final progress = _reading ? _progress.value : null;
-    if (progress != null) {
-      final pending = [
-        for (final line in progress.lines)
-          if (!_seen.contains(_key(line)) && line.text.trim().isNotEmpty) line,
-      ]..sort((a, b) => a.rect.top.compareTo(b.rect.top));
-      if (pending.isNotEmpty) {
-        // One line per step; a long backlog is taken several at a time so a full page is read in seconds.
-        final take = (pending.length / 8).ceil().clamp(1, pending.length);
-        for (final line in pending.take(take)) {
-          _seen.add(_key(line));
-          _tags.add(_Tag(line.text.trim(), _beamFraction(context), now));
-        }
-        while (_tags.length > OcrScanOverlay.maxTags) {
-          _tags.removeAt(0);
-        }
-        changed = true;
-      }
-    } else if (_tags.isNotEmpty && !_reading) {
-      _tags.clear();
-      changed = true;
-    }
-    if (changed) setState(() {});
+  static bool _samePlace(Rect a, Rect b) {
+    final overlap = a.intersect(b);
+    if (overlap.width <= 0 || overlap.height <= 0) return false;
+    final smaller = a.width * a.height < b.width * b.height ? a.width * a.height : b.width * b.height;
+    return smaller > 0 && overlap.width * overlap.height / smaller > 0.5;
   }
 
-  /// Where the beam is now, as a fraction of the page's height (the middle while it holds still).
-  double _beamFraction(BuildContext context) {
-    if (MediaQuery.disableAnimationsOf(context) || _height <= 0) return 0.4;
-    return (ScanPainter.headY(_sweep.value, _height) / _height).clamp(0.0, 1.0);
+  /// One hop of the head: to the next unread line, top first, or a step down the page when there is none.
+  void _step() {
+    if (!mounted || !_reading) return;
+    final progress = _progress.value;
+    if (progress == null) {
+      _head = (_head + 0.06) % 1.0;
+      setState(() {});
+      return;
+    }
+    final pending = [
+      for (final line in progress.lines)
+        if (!_seen.contains(_key(line)) && line.text.trim().isNotEmpty) line,
+    ]..sort((a, b) => a.rect.top.compareTo(b.rect.top));
+    if (pending.isNotEmpty) {
+      final take = (pending.length / OcrScanOverlay.backlogHops).ceil().clamp(1, pending.length);
+      OcrLine? last;
+      for (final line in pending.take(take)) {
+        _seen.add(_key(line));
+        final same = _revealed.indexWhere((r) => _samePlace(r.rect, line.rect));
+        if (same >= 0) {
+          _revealed[same] = line;
+        } else {
+          _revealed.add(line);
+        }
+        last = line;
+      }
+      final height = progress.imageSize.height;
+      _head = height <= 0 ? 0 : (last!.rect.center.dy / height).clamp(0.0, 1.0);
+    } else {
+      _head = (_head + 0.06) % 1.0;
+    }
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final show = _reading;
-    if (!show && _sweep.isAnimating) _sweep.stop();
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
     return AnimatedSwitcher(
-      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 240),
-      child: show
-          ? IgnorePointer(
+      duration: reducedMotion ? Duration.zero : const Duration(milliseconds: 240),
+      child: !_reading
+          ? const SizedBox.shrink(key: ValueKey('idle'))
+          : _Scan(
               key: const ValueKey('reading'),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  _height = constraints.maxHeight;
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [_beam(context), ..._tagWidgets(context, constraints.maxHeight)],
-                  );
-                },
-              ),
-            )
-          : const SizedBox.shrink(key: ValueKey('idle')),
+              progress: _progress.value,
+              revealed: List.of(_revealed),
+              head: _head,
+              animate: !reducedMotion,
+              hop: widget.tick,
+            ),
     );
-  }
-
-  Widget _beam(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      if (_sweep.isAnimating) _sweep.stop();
-      return ColoredBox(key: const Key('ocr-scan-still'), color: color.withValues(alpha: 0.06));
-    }
-    if (!_sweep.isAnimating) _sweep.repeat();
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _sweep,
-        builder: (context, _) => CustomPaint(
-          key: const Key('ocr-scan-beam'),
-          size: Size.infinite,
-          painter: ScanPainter(_sweep.value, color: color),
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _tagWidgets(BuildContext context, double height) {
-    final animate = !MediaQuery.disableAnimationsOf(context);
-    final life = (OcrScanOverlay.tagLife.inMilliseconds / widget.tick.inMilliseconds).ceil();
-    final fade = (OcrScanOverlay._tagFade.inMilliseconds / widget.tick.inMilliseconds).ceil();
-    final widgets = <Widget>[];
-    var floor = 0.0;
-    for (final tag in _tags) {
-      final age = _ticks - tag.born;
-      final fadingOut = age > life - fade;
-      // Where the beam was, kept clear of the tag above it.
-      final top = (tag.fraction * height - 14).clamp(floor, (height - 34).clamp(floor, double.infinity));
-      floor = top + 30;
-      widgets.add(
-        Positioned(
-          key: ValueKey('tag@${tag.born}@${tag.text}'),
-          left: 14,
-          top: top,
-          child: _TagChip(text: tag.text, visible: !fadingOut, animate: animate),
-        ),
-      );
-    }
-    return widgets;
   }
 }
 
-/// One line that has been read, as a small tag.
-class _TagChip extends StatelessWidget {
-  const _TagChip({required this.text, required this.visible, required this.animate});
+/// What is drawn on the page: the head with its scan-lines and tint, and the lines read so far.
+class _Scan extends StatelessWidget {
+  const _Scan({super.key, required this.progress, required this.revealed, required this.head, required this.animate, required this.hop});
 
-  final String text;
-  final bool visible;
+  final OcrProgress? progress;
+  final List<OcrLine> revealed;
+  final double head;
+  final bool animate;
+  final Duration hop;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    if (!animate) {
+      return Stack(
+        key: const Key('ocr-scan-page'),
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(key: const Key('ocr-scan-still'), color: color.withValues(alpha: 0.06)),
+          ..._boxes(),
+        ],
+      );
+    }
+    return Stack(
+      key: const Key('ocr-scan-page'),
+      fit: StackFit.expand,
+      children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween(end: head.clamp(0.0, 1.0)),
+          duration: hop,
+          curve: Curves.easeInOut,
+          builder: (context, value, _) => CustomPaint(
+            key: const Key('ocr-scan-head'),
+            painter: ScanPainter(value, color: color),
+          ),
+        ),
+        ..._boxes(),
+      ],
+    );
+  }
+
+  List<Widget> _boxes() {
+    final size = progress?.imageSize;
+    if (size == null || size.isEmpty) return const [];
+    return [
+      for (final line in revealed)
+        _LineBox(
+          key: ValueKey('box@${line.rect.top.round()}@${line.rect.left.round()}'),
+          line: line,
+          size: size,
+          animate: animate,
+        ),
+    ];
+  }
+}
+
+/// A line that has been read, lit on the page where it is.
+class _LineBox extends StatelessWidget {
+  const _LineBox({super.key, required this.line, required this.size, required this.animate});
+
+  final OcrLine line;
+  final Size size;
   final bool animate;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final chip = Container(
-      key: const Key('ocr-found-tag'),
-      constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.62),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    final r = line.rect;
+    final widthFactor = (r.width / size.width).clamp(0.02, 1.0);
+    final heightFactor = (r.height / size.height).clamp(0.006, 1.0);
+    // Alignment places the child's edges proportionally (-1 puts its left edge on the parent's left edge, 1 its
+    // right edge on the parent's right edge), so the alignment comes from where the box starts, not its centre.
+    double along(double start, double extent) => extent >= 1 ? 0 : (2 * start / (1 - extent) - 1).clamp(-1.0, 1.0);
+    final core = DecoratedBox(
+      key: const Key('ocr-line-box'),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.8)),
-        boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.3), blurRadius: 8)],
-      ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: scheme.onPrimaryContainer, fontWeight: FontWeight.w600),
+        color: scheme.primary.withValues(alpha: 0.2),
+        border: Border.all(color: scheme.primary, width: 1.2),
+        borderRadius: BorderRadius.circular(3),
+        boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.35), blurRadius: 6)],
       ),
     );
-    if (!animate) return visible ? chip : const SizedBox.shrink();
-    // Pops in from the left as the beam reads the line, and fades out when its time is up.
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutBack,
-      builder: (context, t, child) => AnimatedOpacity(
-        duration: const Duration(milliseconds: 300),
-        opacity: visible ? t.clamp(0.0, 1.0) : 0,
-        child: Transform.translate(offset: Offset((1 - t) * -24, 0), child: child),
-      ),
-      child: chip,
+    // A line flashes in as it is read, then settles. The animation is on the box alone, never on the
+    // page-sized layer that places it: scaling that would move every box away from its line.
+    final lit = animate
+        ? TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOut,
+            builder: (context, t, child) => Opacity(
+              opacity: t,
+              child: Transform.scale(scale: 1.04 - 0.04 * t, child: child),
+            ),
+            child: core,
+          )
+        : core;
+    return Align(
+      alignment: Alignment(along(r.left / size.width, widthFactor), along(r.top / size.height, heightFactor)),
+      child: FractionallySizedBox(widthFactor: widthFactor, heightFactor: heightFactor, child: lit),
     );
   }
 }
 
 /// Paints the scan head: a glowing line with fine scan-lines behind it, the row it is on lit, and what it has
-/// passed tinted. [sweep] (0 at the top of the page, 1 at the bottom) is where it is on the stepped sweep: it
-/// hops to the bottom of each row, then rests.
+/// passed tinted. [fraction] is how far down the page it is, 0 at the top and 1 at the bottom.
 class ScanPainter extends CustomPainter {
-  ScanPainter(this.sweep, {required this.color});
+  ScanPainter(this.fraction, {required this.color});
 
-  final double sweep;
+  final double fraction;
   final Color color;
 
-  /// How much of each row's time the head spends hopping; the rest it rests.
-  static const _hopShare = 0.38;
-
-  /// Where the head is, in pixels from the top.
-  static double headY(double sweep, double height) {
-    final rowHeight = height / OcrScanOverlay.rows;
-    final position = sweep.clamp(0.0, 1.0) * OcrScanOverlay.rows;
-    final row = position.floor();
-    final into = position - row;
-    final hop = Curves.easeOutCubic.transform((into / _hopShare).clamp(0.0, 1.0));
-    return (row + hop) * rowHeight;
-  }
+  /// The rows the lit band is a share of: its height is one of this many rows of the page.
+  static const rows = 28;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.height <= 0) return;
-    final rowHeight = size.height / OcrScanOverlay.rows;
-    final y = headY(sweep, size.height);
+    final rowHeight = size.height / rows;
+    final y = fraction.clamp(0.0, 1.0) * size.height;
 
     // What the scan has passed is tinted.
-    canvas.drawRect(Rect.fromLTRB(0, 0, size.width, y), Paint()..color = color.withValues(alpha: 0.045));
+    canvas.drawRect(Rect.fromLTRB(0, 0, size.width, y), Paint()..color = color.withValues(alpha: 0.05));
 
     // Fine scan-lines behind the head, fading with distance.
-    const trail = 150.0;
+    final trail = (size.height * 0.2).clamp(50.0, 170.0);
     final line = Paint()..strokeWidth = 1;
     for (var dy = 3.0; dy < trail; dy += 4) {
       final lineY = y - dy;
@@ -336,5 +321,5 @@ class ScanPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ScanPainter old) => old.sweep != sweep || old.color != color;
+  bool shouldRepaint(ScanPainter old) => old.fraction != fraction || old.color != color;
 }

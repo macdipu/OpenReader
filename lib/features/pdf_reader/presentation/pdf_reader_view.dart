@@ -68,8 +68,6 @@ class PdfReaderView extends GetView<PdfReaderController> {
                         // Under the night-mode filter's theme, for the backdrop.
                         child: Builder(builder: _buildViewer),
                       ),
-                      // The scan beam over the document while OCR reads the page in view.
-                      Positioned.fill(child: OcrScanOverlay(controller: controller.pdf)),
                       if (!controller.isFullscreen.value)
                         Align(
                           alignment: Alignment.topCenter,
@@ -116,6 +114,8 @@ class PdfReaderView extends GetView<PdfReaderController> {
         return true;
       },
       errorBuilder: (context, error) => _ReaderErrorView(controller: controller, error: error),
+      // The OCR scan is drawn on the page being read, in the page's own box: the same on every platform.
+      pageOverlayBuilder: (context, page, size) => OcrScanOverlay(controller: controller.pdf, page: page),
     ));
   }
 }
