@@ -8,6 +8,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -38,7 +40,7 @@ Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
     }),
   );
 
-  _initialize();
+  await _initialize();
   // Date symbols for the supported locales only (en, bn): formatDocumentDate.
   // Loading every locale's symbols is slow and nothing else is used.
   await Future.wait([initializeDateFormatting('en'), initializeDateFormatting('bn')]);
@@ -62,15 +64,32 @@ Future<bool> _initFirebase() async {
   }
 }
 
-void _initialize() {
-  _initDesktopDatabase();
+Future<void> _initialize() async {
+  await _initDesktopDatabase();
 }
 
 /// sqflite only ships Android/iOS/macOS implementations; Windows and Linux
 /// (and, to keep one code path, macOS) use the FFI factory instead.
-void _initDesktopDatabase() {
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+///
+/// The FFI factory keeps databases in `.dart_tool/sqflite_common_ffi/databases` relative to the
+/// working directory, which is `/` (read-only) when Finder starts the app, so the database could not
+/// open. It lives in the app's support folder instead; a database left in the old place is copied
+/// over once.
+Future<void> _initDesktopDatabase() async {
+  if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) return;
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+  try {
+    final legacy = await databaseFactoryFfi.getDatabasesPath();
+    final dir = Directory(p.join((await getApplicationSupportDirectory()).path, 'databases'));
+    await dir.create(recursive: true);
+    for (final name in const ['openreader.db', 'opendocs.db']) {
+      final target = File(p.join(dir.path, name));
+      final old = File(p.join(legacy, name));
+      if (!await target.exists() && await old.exists()) await old.copy(target.path);
+    }
+    await databaseFactoryFfi.setDatabasesPath(dir.path);
+  } catch (e, s) {
+    log('Could not move the database to the app folder: $e', stackTrace: s);
   }
 }
