@@ -14,6 +14,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 /**
  * Entry point for documents opened from other apps ("Open with", share sheets,
@@ -45,6 +46,13 @@ class MainActivity : FlutterActivity() {
     private var pendingUri: String? = null
     private var lastDeliveredUri: String? = null
 
+    /**
+     * The pending document's copy, started as soon as its intent is captured so it runs while the
+     * Flutter engine and Dart start (a content:// copy can take a while). [deliverPending] only waits
+     * for it. Null when nothing is pending.
+     */
+    private var pendingJob: Future<Map<String, Any?>?>? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         logIntent("onCreate", intent)
         super.onCreate(savedInstanceState)
@@ -75,6 +83,16 @@ class MainActivity : FlutterActivity() {
                     ),
                 )
                 "openAllFilesAccess" -> result.success(openAllFilesAccess())
+                // The phone's CPU types, best first: picks the right APK of a GitHub early build.
+                "abis" -> result.success(android.os.Build.SUPPORTED_ABIS.toList())
+                else -> result.notImplemented()
+            }
+        }
+
+        // "Save a copy": the system save dialog, then the file streamed to the place the user chose.
+        MethodChannel(messenger, FILES_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveCopy" -> startSaveCopy(call.argument("path"), call.argument("name"), call.argument("mimeType"), result)
                 else -> result.notImplemented()
             }
         }
@@ -92,6 +110,63 @@ class MainActivity : FlutterActivity() {
                 }
             },
         )
+    }
+
+    private var pendingSave: MethodChannel.Result? = null
+    private var pendingSaveSource: File? = null
+
+    /** Asks where to save [path] (ACTION_CREATE_DOCUMENT); the answer comes to [onActivityResult]. */
+    private fun startSaveCopy(path: String?, name: String?, mimeType: String?, result: MethodChannel.Result) {
+        val source = path?.let { File(it) }
+        if (source == null || name.isNullOrEmpty() || !source.isFile) {
+            result.success(false)
+            return
+        }
+        if (pendingSave != null) {
+            result.error("busy", "A save is already in progress", null)
+            return
+        }
+        pendingSave = result
+        pendingSaveSource = source
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = mimeType ?: "application/octet-stream"
+            putExtra(Intent.EXTRA_TITLE, name)
+        }
+        try {
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, REQUEST_SAVE_COPY)
+        } catch (e: android.content.ActivityNotFoundException) {
+            pendingSave = null
+            pendingSaveSource = null
+            result.success(false)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode != REQUEST_SAVE_COPY) {
+            super.onActivityResult(requestCode, resultCode, data)
+            return
+        }
+        val result = pendingSave ?: return
+        val source = pendingSaveSource
+        pendingSave = null
+        pendingSaveSource = null
+        val uri = if (resultCode == RESULT_OK) data?.data else null
+        if (uri == null || source == null) {
+            result.success(false)
+            return
+        }
+        io.execute {
+            val saved = try {
+                contentResolver.openOutputStream(uri)?.use { out -> source.inputStream().use { it.copyTo(out) } } != null
+            } catch (t: Throwable) {
+                Log.w(TAG, "save copy failed: $t")
+                false
+            }
+            mainHandler.post { result.success(saved) }
+        }
     }
 
     /**
@@ -124,6 +199,15 @@ class MainActivity : FlutterActivity() {
         val uri = incomingUri(incoming) ?: return
         pendingUri = uri
         Log.i(TAG, "captured document uri=$uri")
+        // Same uri as the one already delivered: deliverPending drops it, so don't copy it again.
+        pendingJob = if (uri == lastDeliveredUri) null else io.submit<Map<String, Any?>?> { materializeOrNull(uri) }
+    }
+
+    private fun materializeOrNull(uri: String): Map<String, Any?>? = try {
+        materialize(uri)
+    } catch (t: Throwable) {
+        Log.w(TAG, "materialize failed uri=$uri: $t")
+        null
     }
 
     private fun incomingUri(intent: Intent?): String? {
@@ -158,16 +242,14 @@ class MainActivity : FlutterActivity() {
         val sink = eventSink ?: return
         val uri = pendingUri ?: return
         pendingUri = null
+        val job = pendingJob
+        pendingJob = null
         if (uri == lastDeliveredUri) return
         lastDeliveredUri = uri
 
         io.execute {
-            val payload = try {
-                materialize(uri)
-            } catch (t: Throwable) {
-                Log.w(TAG, "materialize failed uri=$uri: $t")
-                null
-            }
+            // The copy was queued first on this single thread, so it has finished by now.
+            val payload = if (job != null) job.get() else materializeOrNull(uri)
             mainHandler.post {
                 if (payload != null) {
                     Log.i(TAG, "delivering document path=${payload["path"]} mime=${payload["mimeType"]}")
@@ -199,14 +281,16 @@ class MainActivity : FlutterActivity() {
         val mime = contentResolver.getType(uri)
         val displayName = queryDisplayName(uri) ?: uri.lastPathSegment
         val name = safeFileName(displayName, mime)
-        val dir = File(cacheDir, INCOMING_DIR).apply { mkdirs() }
+        // App files, not the cache: the OS may clear the cache at any time, and a copy the user
+        // keeps (or has in Recents) must survive. Dart's SharedCopyStore cleans this folder up.
+        val dir = File(filesDir, INCOMING_DIR).apply { mkdirs() }
 
         // The copy is keyed by the source uri, so two different documents that share a file
         // name never collide. It is reused only when its size AND the provider's modified time both
         // match the source (the copy's own lastModified is set to the source's). A provider that
         // reports no size or no modified time gets a fresh copy every time: size alone is never trusted.
         // Known trade-off: a provider that mints a new uri for each open produces a new cached copy
-        // per open (pruneOldFiles bounds the cache).
+        // per open (SharedCopyStore removes the unused ones).
         val sourceSize = querySize(uri)
         val sourceModified = queryLastModified(uri)
         val key = Integer.toHexString(uriString.hashCode())
@@ -228,7 +312,6 @@ class MainActivity : FlutterActivity() {
             if (sourceModified > 0) target.setLastModified(sourceModified)
         }
 
-        pruneOldFiles(dir, keep = target)
         Log.i(TAG, "materialize content uri=$uriString -> path=${target.absolutePath} mime=$mime name=$name")
         return mapOf("path" to target.absolutePath, "mimeType" to mime, "displayName" to displayName)
     }
@@ -297,15 +380,6 @@ class MainActivity : FlutterActivity() {
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase())
     }
 
-    /** Shared documents are transient; drop copies the user isn't reading. */
-    /** Deletes old copies except [keep] (its mtime mirrors the source's, so it may look old). */
-    private fun pruneOldFiles(dir: File, keep: File) {
-        val cutoff = System.currentTimeMillis() - PRUNE_AFTER_MS
-        dir.listFiles()?.forEach { file ->
-            if (file != keep && file.lastModified() < cutoff) file.delete()
-        }
-    }
-
     private fun logIntent(source: String, incoming: Intent?) {
         if (incoming == null) {
             Log.i(TAG, "$source intent=<null>")
@@ -324,7 +398,9 @@ class MainActivity : FlutterActivity() {
         const val TAG = "OpenReaderIntent"
         const val DEVICE_CHANNEL = "openreader/device"
         const val EVENTS_CHANNEL = "openreader/incoming_intent/events"
+        const val FILES_CHANNEL = "openreader/files"
+        const val REQUEST_SAVE_COPY = 7301
+        /** Folder (under app files) for copies of files other apps shared; matches SharedCopyStore.folderName. */
         const val INCOMING_DIR = "incoming"
-        const val PRUNE_AFTER_MS = 7L * 24 * 60 * 60 * 1000
     }
 }

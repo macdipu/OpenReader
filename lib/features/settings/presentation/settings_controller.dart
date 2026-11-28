@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
+import '../../../core/domain/models/keep_state.dart';
 import '../../../core/domain/repositories/app_settings_repository.dart';
 import '../../../core/domain/repositories/recent_repository.dart';
 import '../../../core/presentation/controllers/dynamic_color_preferences.dart';
@@ -21,10 +22,15 @@ import '../../../core/presentation/utils/storage_access_help.dart';
 import '../../../core/presentation/widgets/show_dialog/confirm_dialog.dart';
 import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import '../../../services/platform_integration/default_app_service.dart';
+import '../../../services/utilities/app_update_service.dart';
+import '../../../services/utilities/shared_copy_store.dart';
+import '../../../services/utilities/update_checker.dart';
 import '../../../services/utilities/storage_access_service.dart';
 import '../../../services/utilities/access_recheck.dart';
 import '../../../services/utilities/url_launcher_service.dart';
 import '../../home/presentation/home_controller.dart';
+import 'sections/shared_files_sheet.dart';
+import 'sections/update_sheet.dart';
 import '../../recents/presentation/recents_controller.dart';
 import '../../text_reader/presentation/text_reader_controller.dart';
 
@@ -41,6 +47,8 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   final Future<void> Function(String text) _share;
   final ThemeController? _theme;
   final Future<bool> Function(String url) _openUrl;
+  final Future<UpdateCheck> Function() _checkUpdates;
+  final UpdateActions _updateActions;
 
   SettingsController({
     AppSettingsRepository? settings,
@@ -50,7 +58,11 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     Future<void> Function(String text)? share,
     ThemeController? themeController,
     Future<bool> Function(String url)? openUrl,
-  })  : _settings = settings ?? AppSettingsRepositoryImpl(),
+    Future<UpdateCheck> Function()? checkUpdates,
+    UpdateActions? updateActions,
+  })  : _checkUpdates = checkUpdates ?? AppUpdateService.instance.check,
+        _updateActions = updateActions ?? AppUpdateService.instance,
+        _settings = settings ?? AppSettingsRepositoryImpl(),
         _recents = recents ?? RecentRepositoryImpl(),
         _storageAccess = storageAccess ?? StorageAccessService.instance,
         _defaultApp = defaultApp ?? DefaultAppService.instance,
@@ -75,6 +87,22 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
 
   final appVersion = ''.obs;
 
+  /// What the last update check found, for the Version row ("Up to date", "Google Play has v1.0.24"); empty
+  /// until the user has checked.
+  final updateSummary = ''.obs;
+
+  /// Whether this platform can check for updates: Android (Google Play, with GitHub early builds), iOS (the
+  /// App Store) and desktop (GitHub releases).
+  static bool get canCheckForUpdates => UpdatePlatform.current != UpdatePlatform.none;
+
+  /// Tapping Version: asks the store and GitHub, and shows the answer in a sheet. The store's version comes
+  /// first; GitHub is a second option only when it has a newer build.
+  Future<void> checkForUpdates() async {
+    final check = _checkUpdates();
+    unawaited(check.then((result) => updateSummary.value = result.summary, onError: (_) => updateSummary.value = 'Could not check for updates'));
+    await showUpdateSheet(check: check, actions: _updateActions);
+  }
+
   // Reading
   final pdfContinuous = true.obs;
   final nightMode = false.obs;
@@ -83,6 +111,13 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
   final restorePosition = true.obs;
   final hideThumbnails = false.obs;
   final keepScreenAwake = false.obs;
+
+  // Privacy & data (Android): copies of files other apps shared (CR-FILE-RELOCATE)
+  final sharedCopyAction = SharedCopyAction.ask.obs;
+  final sharedCopyBytes = 0.obs;
+
+  /// Only Android copies a file another app shares into the app.
+  static bool get hasSharedCopies => PlatformInfo.isAndroid;
 
   // Appearance
   final useDynamicColor = false.obs;
@@ -188,6 +223,8 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
       keepScreenAwake.value = await _settings.getKeepScreenAwake();
       ReaderWakelock.keepAwake.value = keepScreenAwake.value;
     });
+    await read(() async => sharedCopyAction.value = await _settings.getSharedCopyAction());
+    await read(() async => sharedCopyBytes.value = await SharedCopyStore().usedBytes());
     await read(() async {
       useDynamicColor.value = await _settings.getUseDynamicColor();
       DynamicColorPreferences.enabled.value = useDynamicColor.value;
@@ -364,6 +401,58 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
 
   // ---- Data ----
 
+  /// Labels for [SharedCopyAction], as shown in the row and the picker.
+  static String sharedCopyActionLabel(SharedCopyAction action) => switch (action) {
+        SharedCopyAction.ask => 'Ask me',
+        SharedCopyAction.keep => 'Keep it',
+        SharedCopyAction.remove => 'Remove it',
+      };
+
+  /// One line for the Settings row: what happens when a shared file is closed.
+  static String sharedCopyActionSummary(SharedCopyAction action) => switch (action) {
+        SharedCopyAction.ask => 'Asks when you close one',
+        SharedCopyAction.keep => 'Keeps them',
+        SharedCopyAction.remove => 'Removes them',
+      };
+
+  /// Opens the "Files from other apps" sheet: the choice, the space used and Clear in one place.
+  Future<void> openSharedFilesSheet() async {
+    // The size may have changed since Settings loaded (a file was opened, or the clean-up ran).
+    sharedCopyBytes.value = await SharedCopyStore().usedBytes();
+    await showSharedFilesSheet(this);
+  }
+
+  /// Saves what to do with a shared file's copy when it is closed.
+  Future<void> setSharedCopyAction(SharedCopyAction action) async {
+    sharedCopyAction.value = action;
+    await _guard(() => _settings.setSharedCopyAction(action));
+  }
+
+  /// Removes the copies of other apps files that are not kept or a favorite (and their Recents
+  /// entries). Asks first.
+  Future<void> clearSharedCopies() async {
+    final confirmed = await showConfirmDialog(
+      title: 'Clear files from other apps?',
+      message: 'Copies OpenReader holds of files other apps shared will be removed, with their Recents. '
+          'Files you kept or marked as favorites stay. The original files are not touched.',
+      confirmLabel: 'Clear',
+      destructive: true,
+    );
+    if (!confirmed) return;
+    await SharedCopyStore().clear();
+    sharedCopyBytes.value = await SharedCopyStore().usedBytes();
+    _refreshHistoryViews();
+    CustomSnackbar.success('Cleared files from other apps.');
+  }
+
+  /// "12.4 MB", for the storage row.
+  static String formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+
   /// Clear reading history (ST-07): asks first, then empties Recents/History and says so. The
   /// documents themselves are never touched.
   Future<void> clearHistory() async {
@@ -470,17 +559,6 @@ class SettingsController extends GetxController with WidgetsBindingObserver {
     } catch (_) {
       CustomSnackbar.error('Could not open the share sheet.');
     }
-  }
-
-  Future<void> showWelcomeAgain() async {
-    final confirmed = await showConfirmDialog(
-      title: 'Show welcome screens again?',
-      message: 'The welcome screens appear the next time OpenReader starts.',
-      confirmLabel: 'Show again',
-    );
-    if (!confirmed) return;
-    await _guard(() => _settings.setOnboardingComplete(false));
-    CustomSnackbar.success('The welcome screens will appear the next time OpenReader starts.');
   }
 
   static const resetMessage = 'All settings are back to their defaults. Your documents and history were not touched.';

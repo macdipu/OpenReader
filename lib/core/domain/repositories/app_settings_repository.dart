@@ -1,3 +1,4 @@
+import '../models/keep_state.dart';
 import '../models/theme_mode_enum.dart';
 
 abstract class AppSettingsRepository {
@@ -86,6 +87,12 @@ abstract class AppSettingsRepository {
   Future<bool> getUseDynamicColor();
 
   Future<void> setUseDynamicColor(bool value);
+
+  /// What to do with a copy of a file another app shared when its reader is closed (Android);
+  /// default [SharedCopyAction.ask].
+  Future<SharedCopyAction> getSharedCopyAction();
+
+  Future<void> setSharedCopyAction(SharedCopyAction value);
 
   /// Clear all app settings
   Future<void> clearSettings();

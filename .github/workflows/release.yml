@@ -78,6 +78,9 @@ jobs:
           fi
           echo "Release tag: $tag"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          # The Android build number (pubspec's +N), for the release notes: the app reads it to tell which
+          # build Google Play has from the one on GitHub.
+          echo "build=${full##*+}" >> "$GITHUB_OUTPUT"
 
       # This repo requires Java 17 (see android/app/build.gradle
       # compileOptions/kotlinOptions - needed by flutter_local_notifications
@@ -197,6 +200,8 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: OpenReader ${{ steps.tag.outputs.tag }}
+          # A "Build: N" line the app reads (Settings > Version compares GitHub with Google Play by it).
+          body: "Build: ${{ steps.tag.outputs.build }}"
           generate_release_notes: true
           files: |
             release/*.apk
@@ -327,6 +332,9 @@ jobs:
           fi
           echo "Release tag: $tag"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          # The Android build number (pubspec's +N), for the release notes: the app reads it to tell which
+          # build Google Play has from the one on GitHub.
+          echo "build=${full##*+}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2

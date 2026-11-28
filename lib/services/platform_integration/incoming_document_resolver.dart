@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 import '../../core/data/repositories/document_repository_impl.dart';
 import '../../core/domain/models/document_category.dart';
 import '../../core/domain/models/document_model.dart';
+import '../../core/domain/models/keep_state.dart';
+import '../utilities/shared_copy_store.dart';
 import '../../core/domain/repositories/document_repository.dart';
 import '../../core/presentation/utils/logger.dart';
 
@@ -68,7 +70,9 @@ class IncomingDocumentResolver {
     return p.extension(cleaned).replaceFirst('.', '').toLowerCase();
   }
 
-  Future<IncomingDocumentResolution> resolve(String path, {String? mimeType}) async {
+  /// [displayName] is the name the sending app gave the file. A `content://` share is copied to a
+  /// cache file whose own name carries a lookup prefix, so the path's basename is only the fallback.
+  Future<IncomingDocumentResolution> resolve(String path, {String? mimeType, String? displayName}) async {
     var extension = extensionOf(path);
     var category = DocumentCategory.fromExtension(extension);
     final extensionFromPath = extension;
@@ -104,7 +108,7 @@ class IncomingDocumentResolver {
     final document = DocumentModel(
       id: path,
       path: path,
-      displayName: p.basename(path),
+      displayName: (displayName != null && displayName.isNotEmpty) ? displayName : p.basename(path),
       extension: extension,
       category: category,
       sizeBytes: stat.size,
@@ -113,6 +117,13 @@ class IncomingDocumentResolver {
     );
 
     final result = await _documentRepository.indexDocument(document);
+    final indexedOk = result.isRight();
+    if (indexedOk && SharedCopyStore.isSharedCopy(path)) {
+      // A copy of another app's file stays undecided until the reader is closed and the user (or the
+      // setting) says what to do with it; a kept one is not downgraded by opening it again.
+      final state = (await _documentRepository.getKeepState(document.id)).fold((_) => null, (state) => state);
+      if (state == null) await _documentRepository.setKeepState(document.id, KeepState.pending);
+    }
     return result.fold(
       (failure) {
         AppLogger.error('[INTENT] indexing failed for "$path": ${failure.message}');

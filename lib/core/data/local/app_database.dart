@@ -21,7 +21,9 @@ class AppDatabase {
   /// so rows an older install indexed are pruned on upgrade - see [_onUpgrade].
   /// 3: no storage scan any more (CR-OPENREADER-BROWSE) - the index keeps
   /// only documents the user opened or favorited; see [_onUpgrade].
-  static const _version = 3;
+  /// 4: `documents.keep_state` (CR-FILE-RELOCATE): what the user chose for a copy of a file another
+  /// app shared in. Added with `ALTER TABLE`, so nothing already stored changes.
+  static const _version = 4;
 
   Database? _database;
 
@@ -64,7 +66,8 @@ class AppDatabase {
             category TEXT NOT NULL,
             size_bytes INTEGER NOT NULL,
             modified_at INTEGER NOT NULL,
-            last_seen_at INTEGER NOT NULL
+            last_seen_at INTEGER NOT NULL,
+            keep_state TEXT
           )
         ''');
           await db.execute(
@@ -106,6 +109,14 @@ class AppDatabase {
         where: 'id NOT IN (SELECT document_id FROM recent_documents) '
             'AND id NOT IN (SELECT document_id FROM favorite_documents)',
       );
+    }
+    if (oldVersion < 4) {
+      // Checked first so an upgrade that stopped half way, or a database that already has the column,
+      // is not stuck on "duplicate column name".
+      final columns = await db.rawQuery('PRAGMA table_info(documents)');
+      if (!columns.any((column) => column['name'] == 'keep_state')) {
+        await db.execute('ALTER TABLE documents ADD COLUMN keep_state TEXT');
+      }
     }
   }
 

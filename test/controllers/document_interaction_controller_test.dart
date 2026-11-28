@@ -211,19 +211,21 @@ void main() {
       expect(recents.markOpenedCalls, 0);
     });
 
-    testWidgets('blocks and offers Remove from Recents when the file is missing', (tester) async {
+    testWidgets('a missing file is removed from Recents at once, and the user is told', (tester) async {
       await pumpWithSnackbarHost(tester);
       await controller.openDocument(missingDocument);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(recents.markOpenedCalls, 0);
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
-      expect(find.text('Remove from Recents'), findsOneWidget);
-
-      await tester.tap(find.text('Remove from Recents'));
-      await tester.pump();
+      expect(find.text('It was removed from Recents.'), findsOneWidget);
+      // Nothing to confirm: the entry is already gone, and there is no button for it.
+      expect(find.text('Remove from Recents'), findsNothing);
       expect(recents.removeCalls, 1);
       expect(recents.lastRemovedId, missingDocument.id);
+
+      await tester.tap(find.text('Close'));
+      await tester.pump(const Duration(milliseconds: 300));
       await drainSnackbar(tester);
     });
 

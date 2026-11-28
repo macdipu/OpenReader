@@ -13,7 +13,6 @@ import '../../../core/presentation/widgets/reader/reader_night_mode_view.dart';
 import '../../../core/presentation/widgets/reader/reader_toolbar.dart';
 import 'package:universal_document_viewer/slides.dart';
 import 'powerpoint_reader_controller.dart';
-import '../../../core/presentation/widgets/reader/reader_text_actions.dart';
 
 /// PowerPoint reader (CR-OPENREADER-PPTX): one slide at a time - swipe, the
 /// bottom bar's arrows or the keyboard's Left/Right move between slides.
@@ -239,7 +238,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: 'More actions',
           onSelected: (action) => _handle(action),
           itemBuilder: (context) => [
-            if (controller.deckOrNull != null) ...readerCopyAllMenuItems(_ReaderAction.copyAll),
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
           ],
@@ -253,9 +251,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _handle(_ReaderAction action) {
     switch (action) {
-      case _ReaderAction.copyAll:
-        final deck = controller.deckOrNull;
-        if (deck != null) runReaderCopyAll(deck);
       case _ReaderAction.share:
         controller.share();
       case _ReaderAction.openWith:
@@ -264,7 +259,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { copyAll, share, openWith }
+enum _ReaderAction { share, openWith }
 
 class _ReaderErrorView extends StatelessWidget {
   final PowerPointReaderController controller;

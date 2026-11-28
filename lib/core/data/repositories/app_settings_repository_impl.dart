@@ -1,3 +1,4 @@
+import 'package:openreader/core/domain/models/keep_state.dart';
 import 'package:openreader/core/domain/models/theme_mode_enum.dart';
 import 'package:openreader/core/domain/repositories/app_settings_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,7 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   static const String _hideThumbnailsKey = 'app_settings:hide_thumbnails';
   static const String _keepScreenAwakeKey = 'app_settings:keep_screen_awake';
   static const String _useDynamicColorKey = 'app_settings:use_dynamic_color';
+  static const String _sharedCopyActionKey = 'app_settings:shared_copy_action';
 
   @override
   Future<AppThemeMode> getThemeMode() async {
@@ -214,6 +216,22 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   Future<void> setUseDynamicColor(bool value) => _setBool(_useDynamicColorKey, value);
 
   @override
+  Future<SharedCopyAction> getSharedCopyAction() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return SharedCopyAction.fromName(prefs.getString(_sharedCopyActionKey));
+    } catch (_) {
+      return SharedCopyAction.ask;
+    }
+  }
+
+  @override
+  Future<void> setSharedCopyAction(SharedCopyAction value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_sharedCopyActionKey, value.name);
+  }
+
+  @override
   Future<void> clearSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await clearPreferencesKeepingSetup();
@@ -236,5 +254,6 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
     await prefs.remove(_hideThumbnailsKey);
     await prefs.remove(_keepScreenAwakeKey);
     await prefs.remove(_useDynamicColorKey);
+    await prefs.remove(_sharedCopyActionKey);
   }
 }

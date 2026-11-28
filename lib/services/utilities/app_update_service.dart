@@ -14,13 +14,15 @@ import '../../core/presentation/widgets/update/mobile/app_update_available_sheet
 import '../../core/presentation/widgets/update/desktop/app_update_progress.dart';
 import '../../res/routes/global_navigator.dart';
 import 'desktop_update_installer.dart';
+import 'update_checker.dart';
+import 'update_decision.dart';
 import 'url_launcher_service.dart';
 
 /// Tells the user when a newer build is out:
 /// - Android: Google Play's in-app updates API.
 /// - Windows/macOS/Linux: the latest GitHub release, which the release
 ///   workflow (.github/workflows/release.yml) attaches desktop builds to.
-class AppUpdateService {
+class AppUpdateService implements UpdateActions {
   AppUpdateService._();
   static final AppUpdateService instance = AppUpdateService._();
 
@@ -30,6 +32,47 @@ class AppUpdateService {
       'https://github.com/macdipu/OpenReader/releases/latest';
 
   bool _checked = false;
+
+  final _checker = UpdateChecker();
+
+  /// Asks the store and GitHub what is newest (Settings > About > Version).
+  Future<UpdateCheck> check() => _checker.check();
+
+  @override
+  Future<void> startStoreUpdate(UpdateCheck check) async {
+    final info = check.playInfo;
+    if (info == null) return openStore(check);
+    await _runPlayUpdate(info);
+  }
+
+  @override
+  Future<void> openStore(UpdateCheck check) => _openInBrowser(
+    check.storeUrl ?? 'https://play.google.com/store/apps/details?id=com.chowdhuryelab.openreader',
+  );
+
+  /// The early build: the APK for this phone from the GitHub release, handed to the browser's download (the
+  /// user installs it from there, which Android asks them to allow), or the release page when no APK matches.
+  @override
+  Future<void> downloadEarlyBuild(UpdateCheck check) async {
+    final release = check.offer.github;
+    if (release == null) return;
+    final url = release.apkFor(check.abis)?.url;
+    await _openInBrowser(url != null && DesktopUpdateInstaller.isTrustedUpdateUrl(url) ? url : release.pageUrl);
+  }
+
+  /// Desktop: downloads and installs the GitHub release, the way the start-up prompt does.
+  @override
+  Future<void> installFromGitHub(UpdateCheck check) async {
+    final release = check.offer.github;
+    if (release == null) return;
+    final asset = release.assets.where((a) => DesktopUpdateInstaller.isPlatformAsset(a.name)).firstOrNull;
+    final sums = release.assets.where((a) => a.name == 'SHA256SUMS').firstOrNull;
+    if (asset == null || !DesktopUpdateInstaller.isTrustedUpdateUrl(asset.url)) {
+      await _openInBrowser(release.pageUrl);
+      return;
+    }
+    await _downloadAndInstall(asset.url, release.tag, sums?.url, asset.name);
+  }
 
   /// Checks once per app session and offers a newer build in
   /// [AppUpdateSheet]. Silent when there's nothing to offer or the check
@@ -69,7 +112,11 @@ class AppUpdateService {
           'A new version of OpenReader is ready. It downloads in the background, so you can keep reading.',
     );
     if (accepted != true) return;
+    await _runPlayUpdate(info);
+  }
 
+  /// Google Play's own update: in the background when allowed (then Restart), else the full-screen one.
+  Future<void> _runPlayUpdate(AppUpdateInfo info) async {
     try {
       if (info.flexibleUpdateAllowed) {
         final result = await InAppUpdate.startFlexibleUpdate();
@@ -248,18 +295,7 @@ class AppUpdateService {
     }
   }
 
-  /// `v1.2.3` / `1.2.3` -> [1, 2, 3]. Null for anything else, such as the
-  /// workflow's `build-<n>` test tags.
-  static List<int>? _parseVersion(String value) {
-    final match = RegExp(r'^v?(\d+)\.(\d+)\.(\d+)').firstMatch(value.trim());
-    if (match == null) return null;
-    return [for (var i = 1; i <= 3; i++) int.parse(match.group(i)!)];
-  }
+  static List<int>? _parseVersion(String value) => parseVersion(value);
 
-  static int _compare(List<int> a, List<int> b) {
-    for (var i = 0; i < 3; i++) {
-      if (a[i] != b[i]) return a[i].compareTo(b[i]);
-    }
-    return 0;
-  }
+  static int _compare(List<int> a, List<int> b) => compareVersions(a, b);
 }

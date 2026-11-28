@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openreader/services/utilities/desktop_update_installer.dart';
+import 'package:path/path.dart' as p;
 
 final _h = 'a' * 64;
 final _h2 = 'B' * 64;
@@ -295,14 +296,15 @@ void main() {
           isLinux: true,
           tempPath: '/tmp',
           supportPath: '/home/u/.local/share/openreader');
-      expect(base, '/home/u/.local/share/openreader/updates');
-      expect(base, isNot('/tmp/openreader_update'));
+      // The path is joined with the host's separator, so expect it the same way.
+      expect(base, p.join('/home/u/.local/share/openreader', 'updates'));
+      expect(base, isNot(p.join('/tmp', 'openreader_update')));
     });
     test('others keep the temporary directory', () {
       expect(
           DesktopUpdateInstaller.stagingBasePath(
               isLinux: false, tempPath: '/t', supportPath: ''),
-          '/t/openreader_update');
+          p.join('/t', 'openreader_update'));
     });
     test('createStagingDir makes a unique 0700 directory', () async {
       if (Platform.isWindows) return;

@@ -3,11 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show kReleaseMode, visibleForTesting;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/presentation/utils/platform_info.dart';
+import 'other_installs.dart';
 
 /// Thrown when an update can't be installed in place (read-only install
 /// location, AppImage, a tool missing). Callers fall back to the browser.
@@ -429,6 +430,11 @@ Remove-Item -Recurse -Force -LiteralPath ${psQuote(scriptDir)} -ErrorAction Sile
   /// Starts the detached helper that swaps [staged] in after this process exits.
   /// The caller must exit the app right after.
   static Future<void> launchInstallerAndRelaunch(String staged) async {
+    // Other installed copies (another install method, an older name) go first, so the new version is
+    // the only OpenReader on this computer when it starts. Never blocks the update, and never runs in
+    // a debug or profile build: a developer's installed copy must not be removed by a test run.
+    if (kReleaseMode) await OtherInstalls().removeAll();
+
     final target = _installTarget;
     final exe = Platform.resolvedExecutable;
     final scriptDir = stagingRoot(staged);

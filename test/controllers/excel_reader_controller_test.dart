@@ -13,6 +13,7 @@ import 'package:openreader/core/presentation/controllers/document_interaction_co
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:openreader/features/excel_reader/presentation/excel_reader_controller.dart';
+import 'package:openreader/services/utilities/app_private_paths.dart';
 import 'package:archive/archive.dart';
 import 'package:dartz/dartz.dart';
 import 'package:universal_document_viewer/testing.dart';
@@ -108,7 +109,11 @@ void main() {
     );
 
     recents = FixtureRecents();
-    interactions = DocumentInteractionController(favoriteRepository: FixtureFavorites(), recentRepository: recents);
+    interactions = DocumentInteractionController(
+      favoriteRepository: FixtureFavorites(),
+      recentRepository: recents,
+      privatePaths: AppPrivatePaths.fixed(const []),
+    );
     controller = ExcelReaderController(document: document, recentRepository: recents, interactions: interactions);
   });
 
@@ -418,6 +423,7 @@ void main() {
       final missingController = ExcelReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
       await missingController.share();
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
     });
@@ -427,6 +433,7 @@ void main() {
       final missingController = ExcelReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
       await missingController.openWith();
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
     });

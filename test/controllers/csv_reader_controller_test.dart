@@ -9,6 +9,7 @@ import 'package:openreader/core/domain/usecase/usecase.dart';
 import 'package:openreader/core/presentation/controllers/document_interaction_controller.dart';
 import 'package:openreader/core/presentation/utils/state_status.dart';
 import 'package:openreader/features/csv_reader/presentation/csv_reader_controller.dart';
+import 'package:openreader/services/utilities/app_private_paths.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -91,7 +92,11 @@ void main() {
     missingDocument = makeDocument(p.join(root.path, 'missing.csv'));
 
     recents = FixtureRecents();
-    interactions = DocumentInteractionController(favoriteRepository: FixtureFavorites(), recentRepository: recents);
+    interactions = DocumentInteractionController(
+      favoriteRepository: FixtureFavorites(),
+      recentRepository: recents,
+      privatePaths: AppPrivatePaths.fixed(const []),
+    );
     controller = CsvReaderController(document: document, recentRepository: recents, interactions: interactions);
   });
 
@@ -214,6 +219,7 @@ void main() {
       final missingController = CsvReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
       await missingController.share();
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
     });
@@ -223,6 +229,7 @@ void main() {
       final missingController = CsvReaderController(document: missingDocument, recentRepository: recents, interactions: interactions);
       await missingController.openWith();
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('This file may have been moved or deleted.'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
     });

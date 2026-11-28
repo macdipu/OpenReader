@@ -86,11 +86,13 @@ class IncomingIntentService {
       return;
     }
     final mimeType = event['mimeType'];
+    final displayName = event['displayName'];
     AppLogger.info('[INTENT] native document: path=$path mime=$mimeType');
     unawaited(
-      handle([
-        SharedMediaFile(path: path, type: SharedMediaType.file, mimeType: mimeType is String ? mimeType : null),
-      ]),
+      handle(
+        [SharedMediaFile(path: path, type: SharedMediaType.file, mimeType: mimeType is String ? mimeType : null)],
+        displayName: displayName is String ? displayName : null,
+      ),
     );
   }
 
@@ -106,7 +108,7 @@ class IncomingIntentService {
   /// tests can exercise it directly without subscribing to `getMediaStream()`
   /// - see this class's own doc comment for why that matters here.
   @visibleForTesting
-  Future<void> handle(List<SharedMediaFile> files) async {
+  Future<void> handle(List<SharedMediaFile> files, {String? displayName}) async {
     // BRD §7.7 describes a single incoming document; ACTION_SEND_MULTIPLE
     // isn't a document use case OpenReader models, so only the first file is
     // handled - a deliberate scope line, not a silent drop.
@@ -119,7 +121,7 @@ class IncomingIntentService {
     final path = incoming.path;
     final mimeType = incoming.mimeType;
 
-    final resolution = await _resolver.resolve(path, mimeType: mimeType);
+    final resolution = await _resolver.resolve(path, mimeType: mimeType, displayName: displayName);
     AppLogger.info('[INTENT] resolve outcome=${resolution.outcome.name} document=${resolution.document?.path}');
     switch (resolution.outcome) {
       case IncomingDocumentOutcome.success:
@@ -146,13 +148,17 @@ class IncomingIntentService {
     }
   }
 
+  /// Time the shell gets to mount after its first frame, so the reader never
+  /// opens over a blank screen. Was 300 ms; a frame is enough.
+  static const _shellSettle = Duration(milliseconds: 50);
+
   Future<void> _afterFirstFrame() {
     final binding = WidgetsBinding.instance;
     if (binding.rootElement != null && !binding.renderViews.isEmpty && binding.schedulerPhase == SchedulerPhase.idle) {
-      return Future<void>.delayed(const Duration(milliseconds: 300));
+      return Future<void>.delayed(_shellSettle);
     }
     final done = Completer<void>();
-    binding.addPostFrameCallback((_) => Future<void>.delayed(const Duration(milliseconds: 300), done.complete));
+    binding.addPostFrameCallback((_) => Future<void>.delayed(_shellSettle, done.complete));
     return done.future;
   }
 

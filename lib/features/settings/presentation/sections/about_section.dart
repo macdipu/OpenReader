@@ -6,7 +6,7 @@ import '../settings_controller.dart';
 import 'settings_widgets.dart';
 
 /// Help & about (ST-10): send feedback (a pre-filled GitHub issue, every platform), rate (Android,
-/// where the store page is known), share, the welcome screens, version and licenses.
+/// where the store page is known), share, version and licenses.
 class AboutSection extends StatelessWidget {
   final SettingsController controller;
   final bool showLabel;
@@ -54,17 +54,16 @@ class AboutSection extends StatelessWidget {
             onTap: controller.shareApp,
           ),
           const SettingsDivider(),
-          SettingsActionRow(
-            icon: Icons.waving_hand_outlined,
-            title: 'Show welcome screens again',
-            onTap: controller.showWelcomeAgain,
-          ),
-          const SettingsDivider(),
           Obx(() => SettingsActionRow(
                 icon: Icons.info_outline,
                 title: 'Version',
+                // Tap to ask the store and GitHub; the line under it says what the last check found.
+                subtitle: SettingsController.canCheckForUpdates
+                    ? (controller.updateSummary.value.isEmpty ? 'Tap to check for updates' : controller.updateSummary.value)
+                    : null,
                 trailingText: controller.appVersion.value,
                 versionStyle: true,
+                onTap: SettingsController.canCheckForUpdates ? controller.checkForUpdates : null,
               )),
           const SettingsDivider(),
           SettingsActionRow(

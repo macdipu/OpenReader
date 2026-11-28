@@ -12,8 +12,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
-  final crashReporting = await _initFirebase();
-
+  var crashReporting = false;
   FlutterError.onError = (details) {
     log(details.exceptionAsString(), stackTrace: details.stack);
     // `log` reaches only the VM service; in debug also print the report, so
@@ -22,17 +21,27 @@ Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
     if (kDebugMode) FlutterError.presentError(details);
     if (crashReporting) FirebaseCrashlytics.instance.recordFlutterFatalError(details);
   };
-  if (crashReporting) {
-    // Async/zone errors that never reach FlutterError.onError.
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
-  }
+
+  // Firebase starts in the background: the first frame (and a file opened from
+  // another app) must not wait for it. Errors in the few milliseconds before
+  // it is ready are logged only.
+  unawaited(
+    _initFirebase().then((active) {
+      crashReporting = active;
+      if (active) {
+        // Async/zone errors that never reach FlutterError.onError.
+        PlatformDispatcher.instance.onError = (error, stack) {
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+          return true;
+        };
+      }
+    }),
+  );
 
   _initialize();
-  // Date symbols for every supported locale (en, bn) - formatDocumentDate.
-  await initializeDateFormatting();
+  // Date symbols for the supported locales only (en, bn): formatDocumentDate.
+  // Loading every locale's symbols is slow and nothing else is used.
+  await Future.wait([initializeDateFormatting('en'), initializeDateFormatting('bn')]);
   runApp(await builder());
 }
 

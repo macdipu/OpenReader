@@ -15,7 +15,6 @@ import 'package:universal_document_viewer/plain_text.dart';
 import 'markdown/markdown_details_dialog.dart';
 import 'text_reader_controller.dart';
 import '../../../core/presentation/widgets/app_shortcuts.dart';
-import '../../../core/presentation/widgets/reader/reader_text_actions.dart';
 
 /// BRD §9.14 Text Reader Screen.
 class TextReaderView extends GetView<TextReaderController> {
@@ -190,7 +189,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: 'More actions',
           onSelected: (action) => _handle(context, action),
           itemBuilder: (context) => [
-            ...readerCopyAllMenuItems(_ReaderAction.copyAll),
             if (controller.isMarkdown) ...const [
               PopupMenuItem(value: _ReaderAction.details, child: Text('View details')),
               PopupMenuItem(value: _ReaderAction.copySource, child: Text('Copy source')),
@@ -208,8 +206,6 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _handle(BuildContext context, _ReaderAction action) {
     switch (action) {
-      case _ReaderAction.copyAll:
-        runReaderCopyAll(controller.lineSource);
       case _ReaderAction.details:
         showMarkdownDetails(context, document: controller.document, stats: controller.markdownStats!);
       case _ReaderAction.copySource:
@@ -228,7 +224,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { copyAll, details, copySource, share, openWith }
+enum _ReaderAction { details, copySource, share, openWith }
 
 /// One button for Markdown files that cycles Preview -> Code -> Split -> Preview.
 /// Its icon shows the current mode; the tooltip names the next one.

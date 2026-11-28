@@ -13,3 +13,4 @@
 
 # Readable Crashlytics stack traces.
 -keepattributes SourceFile,LineNumberTable
+
