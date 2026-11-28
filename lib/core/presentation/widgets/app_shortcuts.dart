@@ -41,6 +41,7 @@ const appShortcutReference = <ShortcutHelp>[
   ShortcutHelp('G', 'Go to a page, slide, line or cell', cmdOnMac: false),
   ShortcutHelp('PageUp / PageDown', 'Previous or next page or slide', noModifier: true),
   ShortcutHelp('Home / End', 'First or last page or slide', noModifier: true),
+  ShortcutHelp('P', 'Print a PDF'),
   ShortcutHelp('F11', 'Full screen', noModifier: true),
   ShortcutHelp('Esc', 'Step back or close', noModifier: true),
 ];
@@ -61,6 +62,7 @@ class AppShortcuts extends StatelessWidget {
     this.onFirstPage,
     this.onLastPage,
     this.onFullscreen,
+    this.onPrint,
     required this.child,
   });
 
@@ -80,6 +82,7 @@ class AppShortcuts extends StatelessWidget {
   final VoidCallback? onFirstPage;
   final VoidCallback? onLastPage;
   final VoidCallback? onFullscreen;
+  final VoidCallback? onPrint;
   final Widget child;
 
   @override
@@ -122,6 +125,10 @@ class AppShortcuts extends StatelessWidget {
         if (onFirstPage != null) const SingleActivator(LogicalKeyboardKey.home): onFirstPage!,
         if (onLastPage != null) const SingleActivator(LogicalKeyboardKey.end): onLastPage!,
         if (onFullscreen != null) const SingleActivator(LogicalKeyboardKey.f11): onFullscreen!,
+        if (onPrint != null) ...{
+          const SingleActivator(LogicalKeyboardKey.keyP, control: true): onPrint!,
+          const SingleActivator(LogicalKeyboardKey.keyP, meta: true): onPrint!,
+        },
       },
       // The inner scope keeps this node's autofocus from blocking the
       // child's own: Flutter skips `autofocus` while another node in the same

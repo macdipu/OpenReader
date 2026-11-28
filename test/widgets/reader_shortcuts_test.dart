@@ -23,6 +23,7 @@ void main() {
         onFirstPage: wired ? () => calls.add('first') : null,
         onLastPage: wired ? () => calls.add('last') : null,
         onFullscreen: wired ? () => calls.add('full') : null,
+        onPrint: wired ? () => calls.add('print') : null,
         child: const Scaffold(body: SizedBox()),
       ),
     ));
@@ -70,6 +71,13 @@ void main() {
         LogicalKeyboardKey.f11,
       ]);
       expect(calls, ['prev', 'next', 'first', 'last', 'full']);
+    });
+
+    testWidgets('Cmd and Ctrl+P print', (tester) async {
+      final calls = await press(tester, const []);
+      await chord(tester, LogicalKeyboardKey.metaLeft, LogicalKeyboardKey.keyP);
+      await chord(tester, LogicalKeyboardKey.controlLeft, LogicalKeyboardKey.keyP);
+      expect(calls, ['print', 'print']);
     });
 
     testWidgets('a reader that passes no action leaves the key alone', (tester) async {

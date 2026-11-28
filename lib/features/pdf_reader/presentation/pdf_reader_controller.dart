@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:get/get.dart';
+import 'package:printing/printing.dart';
+import '../../../core/presentation/widgets/snackbar/custom_snackbar.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:universal_document_viewer/pdf.dart';
 
@@ -235,6 +238,16 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   Future<void> share() => _interactions.shareDocument(document);
 
   Future<void> openWith() => _interactions.openWithExternalApp(document);
+
+  /// The system print dialog for the PDF file itself (Ctrl/Cmd+P and the "Print" menu item).
+  Future<void> printDocument() async {
+    if (!isReady.value) return;
+    try {
+      await Printing.layoutPdf(name: document.displayName, onLayout: (_) => File(document.path).readAsBytes());
+    } on Object {
+      CustomSnackbar.error('Could not print this file.', title: document.displayName);
+    }
+  }
 
   /// [PdfPasswordProvider]: the kit asks once per attempt (after trying no
   /// password) until this returns null or the password works. A cancelled

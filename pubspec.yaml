@@ -66,6 +66,7 @@ dependencies:
   firebase_analytics: ^13.0.1
   wakelock_plus: ^1.8.0
   dynamic_color: ^2.1.0
+  printing: ^5.15.1
 
 dev_dependencies:
   # Tests build DOCX/XLSX ZIP fixtures.

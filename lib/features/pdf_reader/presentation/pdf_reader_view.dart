@@ -47,6 +47,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
       onFirstPage: controller.firstPage,
       onLastPage: controller.lastPage,
       onFullscreen: controller.toggleFullscreen,
+      onPrint: () => unawaited(controller.printDocument()),
       child: Obx(() => ReaderNightModeView(
       // The whole reader, bars included, goes dark at night.
       enabled: controller.nightMode.value,
@@ -217,6 +218,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           itemBuilder: (context) => [
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+            PopupMenuItem(value: _ReaderAction.print, child: Text('Print…')),
             PopupMenuItem(value: _ReaderAction.fileInfo, child: Text('File information')),
             if (showInFolderAvailable) PopupMenuItem(value: _ReaderAction.showInFolder, child: Text(showInFolderLabel)),
           ],
@@ -234,6 +236,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.print:
+        unawaited(controller.printDocument());
       case _ReaderAction.fileInfo:
         unawaited(showFileInformationSheet(context, controller.document));
       case _ReaderAction.showInFolder:
@@ -242,7 +246,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { share, openWith, fileInfo, showInFolder }
+enum _ReaderAction { share, openWith, print, fileInfo, showInFolder }
 
 class _SearchStatusBar extends StatelessWidget {
   final PdfReaderController controller;
