@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'reader_rotation.dart';
 import 'package:universal_document_viewer/universal_document_viewer.dart';
 import 'package:universal_document_viewer/spreadsheet.dart';
 
@@ -22,7 +23,7 @@ import 'reader_night_mode.dart';
 /// scroll or sheet switch and once more on close), favourites/share/
 /// open-with, the BRD §13 error wording, and observable mirrors of the
 /// kit's state for the app bar and sheet tabs.
-abstract class SheetReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
+abstract class SheetReaderController extends BaseController with ReaderFullscreen, ReaderNightMode, ReaderRotation {
   SheetReaderController({
     required this.document,
     RecentRepository? recentRepository,

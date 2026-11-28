@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_rotated.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import '../../../core/presentation/widgets/reader/reader_menu_extras.dart';
 import '../../../core/presentation/widgets/reader/go_to_cell_dialog.dart';
@@ -63,7 +64,7 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
       bottomNavigationBar: controller.isFullscreen.value || !controller.status.value.isSuccess
           ? null
           : SheetReaderToolbar(controller: controller),
-      body: ReaderFullscreenScope(
+      body: ReaderRotated(controller: controller, child: ReaderFullscreenScope(
         controller: controller,
         child: Obx(() {
         if (controller.status.value.isBusy) return const LoadingView();
@@ -103,7 +104,7 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
           ),
         );
       }),
-      ),
+      )),
     ))))),
     );
   }
@@ -208,6 +209,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+            PopupMenuItem(value: _ReaderAction.rotateLeft, child: Text('Rotate left')),
             PopupMenuItem(value: _ReaderAction.fileInfo, child: Text('File information')),
             if (showInFolderAvailable) PopupMenuItem(value: _ReaderAction.showInFolder, child: Text(showInFolderLabel)),
           ],
@@ -227,6 +229,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.rotateLeft:
+        controller.rotateCounterclockwise();
       case _ReaderAction.fileInfo:
         unawaited(showFileInformationSheet(context, controller.document));
       case _ReaderAction.showInFolder:
@@ -235,7 +239,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { favorite, share, openWith, fileInfo, showInFolder }
+enum _ReaderAction { favorite, share, openWith, rotateLeft, fileInfo, showInFolder }
 
 /// Says the reader can't change the file: a lock, with "Read-only" beside
 /// it where there is room.

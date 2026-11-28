@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../core/presentation/controllers/reader_rotation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
@@ -24,7 +25,7 @@ import 'package:universal_document_viewer/universal_document_viewer.dart';
 /// (restored on open, saved 2 s after scrolling and once more on close),
 /// font size and wrap remembered across files (UX-20), favourites/share/
 /// open-with, and the BRD §13 error wording.
-class TextReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
+class TextReaderController extends BaseController with ReaderFullscreen, ReaderNightMode, ReaderRotation {
   /// See [PlainTextController.maxBytes].
   static const int maxBytes = PlainTextController.maxBytes;
 

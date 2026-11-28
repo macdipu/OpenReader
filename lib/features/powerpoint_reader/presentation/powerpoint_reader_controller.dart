@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:get/get.dart';
+import '../../../core/presentation/controllers/reader_rotation.dart';
 
 import '../../../core/data/repositories/app_settings_repository_impl.dart';
 import '../../../core/data/repositories/recent_repository_impl.dart';
@@ -21,7 +22,7 @@ import 'package:universal_document_viewer/slides.dart';
 /// slide on screen and search. This adds what's OpenReader's: the saved
 /// position (restored on open, saved 2 s after a move and once more on
 /// close), favourites/share/open-with, and the BRD §13 error wording.
-class PowerPointReaderController extends BaseController with ReaderFullscreen, ReaderNightMode {
+class PowerPointReaderController extends BaseController with ReaderFullscreen, ReaderNightMode, ReaderRotation {
   final DocumentModel document;
   final RecentRepository _recentRepository;
   final AppSettingsRepository _settingsRepository;

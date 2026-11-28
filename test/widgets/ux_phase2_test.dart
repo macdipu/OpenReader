@@ -341,6 +341,20 @@ void main() {
       expect(find.byTooltip('Turn off night mode'), findsOneWidget);
     });
 
+    testWidgets('Rotate turns the whole reader, and Rotate left turns it back', (tester) async {
+      final controller = await pumpTextReader(tester, 20);
+      int turns() => tester.widget<RotatedBox>(find.byType(RotatedBox).first).quarterTurns;
+      expect(turns(), 0);
+      await tester.tap(find.byTooltip('Rotate'));
+      await tester.pumpAndSettle();
+      expect(controller.quarterTurns.value, 1);
+      expect(turns(), 1);
+      expect(find.text('line 1'), findsOneWidget, reason: 'the text is still there, turned');
+      controller.rotateCounterclockwise();
+      await tester.pumpAndSettle();
+      expect(turns(), 0);
+    });
+
     testWidgets('full screen hides the bars; Back brings them back before leaving', (tester) async {
       final controller = await pumpTextReader(tester, 20);
       await tester.tap(find.byTooltip('Full screen'));

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/presentation/widgets/reader/reader_rotated.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import '../../../core/presentation/widgets/reader/reader_menu_extras.dart';
 import 'dart:async';
@@ -55,7 +56,7 @@ class TextReaderView extends GetView<TextReaderController> {
       bottomNavigationBar: controller.isFullscreen.value || !controller.status.value.isSuccess
           ? null
           : _TextToolbar(controller: controller),
-      body: ReaderFullscreenScope(
+      body: ReaderRotated(controller: controller, child: ReaderFullscreenScope(
         controller: controller,
         child: ContentConstraint(
         maxWidth: ScreenUtils.maxReaderWidth,
@@ -71,7 +72,7 @@ class TextReaderView extends GetView<TextReaderController> {
               ))));
         }),
       ),
-      ),
+      )),
     ))))),
     );
   }
@@ -118,6 +119,7 @@ class _TextToolbar extends StatelessWidget {
               selected: controller.lineWrap.value,
               onPressed: controller.toggleLineWrap,
             ),
+          ReaderToolbarButton(icon: Icons.rotate_right_rounded, tooltip: 'Rotate', onPressed: controller.rotateClockwise),
           ReaderNightModeButton(on: controller.nightMode.value, onPressed: controller.toggleNightMode),
           ReaderFullscreenButton(onPressed: controller.toggleFullscreen),
         ],
@@ -205,6 +207,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
             ],
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+            PopupMenuItem(value: _ReaderAction.rotateLeft, child: Text('Rotate left')),
             PopupMenuItem(value: _ReaderAction.fileInfo, child: Text('File information')),
             if (showInFolderAvailable) PopupMenuItem(value: _ReaderAction.showInFolder, child: Text(showInFolderLabel)),
           ],
@@ -232,6 +235,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.rotateLeft:
+        controller.rotateCounterclockwise();
       case _ReaderAction.fileInfo:
         unawaited(showFileInformationSheet(context, controller.document));
       case _ReaderAction.showInFolder:
@@ -240,7 +245,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { details, copySource, share, openWith, fileInfo, showInFolder }
+enum _ReaderAction { details, copySource, share, openWith, rotateLeft, fileInfo, showInFolder }
 
 /// One button for Markdown files that cycles Preview -> Code -> Split -> Preview.
 /// Its icon shows the current mode; the tooltip names the next one.
