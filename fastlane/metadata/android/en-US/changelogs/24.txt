@@ -1,0 +1,6 @@
+What's new in 1.0.24
+• Contents button: jump through a PDF's bookmarks, a Word document's headings, slide titles or a Markdown file's headings
+• Rotate PDF pages from the toolbar; Rotate left is in the menu
+• Print a PDF from the menu
+• File information is in every reader's menu
+• PDF zoom buttons switch off at the smallest and largest zoom
