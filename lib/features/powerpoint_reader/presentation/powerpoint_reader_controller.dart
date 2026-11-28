@@ -119,6 +119,10 @@ class PowerPointReaderController extends BaseController with ReaderFullscreen, R
   void zoomOut() => _deck?.zoomOut();
   void resetZoom() => _deck?.setZoom(1);
 
+  /// The table of contents (the slide titles) and going to one of its entries.
+  Future<List<OutlineEntry>> outline() async => await _deck?.outline() ?? const [];
+  void goToOutline(OutlineEntry entry) => _deck?.goToOutlineEntry(entry);
+
   void startSearching() {
     setFullscreen(false);
     isSearching.value = true;

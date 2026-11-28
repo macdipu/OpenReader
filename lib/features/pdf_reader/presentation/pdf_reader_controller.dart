@@ -159,6 +159,10 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   /// Cmd/Ctrl+0: back to page width without touching the reading column.
   void resetZoom() => pdf.fitWidth();
 
+  /// The table of contents (the PDF's bookmarks) and going to one of its entries.
+  Future<List<OutlineEntry>> outline() => pdf.outline();
+  void goToOutline(OutlineEntry entry) => pdf.goToOutlineEntry(entry);
+
   /// PageUp / PageDown / Home / End.
   void previousPage() => unawaited(jumpToPage((currentPage.value - 1).clamp(1, _lastPage)));
   void nextPage() => unawaited(jumpToPage((currentPage.value + 1).clamp(1, _lastPage)));

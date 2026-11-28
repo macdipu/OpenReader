@@ -220,6 +220,10 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
   void decreaseFontSize() => _setFontSize(fontSize.value - 2);
   void resetFontSize() => _setFontSize(defaultFontSize);
 
+  /// Markdown headings as a table of contents, and going to one of them.
+  Future<List<OutlineEntry>> outline() async => await markdown?.outline() ?? const [];
+  void goToOutline(OutlineEntry entry) => markdown?.goToOutlineEntry(entry);
+
   void _setFontSize(double value) {
     _fontSizeChosen = true;
     fontSize.value = value.clamp(minFontSize, maxFontSize);

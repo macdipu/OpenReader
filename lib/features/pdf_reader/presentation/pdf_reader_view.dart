@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../core/presentation/widgets/reader/reader_outline.dart';
 
 import 'package:flutter/material.dart';
 import '../../file_information/presentation/file_information_view.dart';
@@ -312,6 +313,7 @@ class _FloatingToolbar extends StatelessWidget {
               showing: controller.showThumbnails.value,
               onPressed: controller.toggleThumbnails,
             ),
+            ReaderOutlineButton(load: controller.outline, onSelected: controller.goToOutline),
             ReaderPositionButton(
               label: 'Page ${controller.currentPage.value} of ${controller.pageCount.value}',
               onPressed: () => _showJumpToPageDialog(context),
