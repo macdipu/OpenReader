@@ -39,14 +39,17 @@ class ReaderSafeZone extends StatelessWidget {
   final ReaderContent kind;
   final Widget child;
 
+  /// Lifts the width cap: the content fills the window. The PDF reader's "Fit width" turns this on.
+  final bool fill;
+
   /// Windows narrower than this fill the width.
   static const double wideBreakpoint = 760;
 
-  const ReaderSafeZone({super.key, required this.kind, required this.child});
+  const ReaderSafeZone({super.key, required this.kind, required this.child, this.fill = false});
 
   /// The width the column gets in a window [available] wide.
-  static double columnWidth(ReaderContent kind, double available) {
-    if (available < wideBreakpoint) return available;
+  static double columnWidth(ReaderContent kind, double available, {bool fill = false}) {
+    if (fill || available < wideBreakpoint) return available;
     return available < kind.maxWidth ? available : kind.maxWidth;
   }
 
@@ -54,7 +57,7 @@ class ReaderSafeZone extends StatelessWidget {
   Widget build(BuildContext context) {
     return FoldAwareSubScreen(
       child: LayoutBuilder(builder: (context, constraints) {
-        final width = columnWidth(kind, constraints.maxWidth);
+        final width = columnWidth(kind, constraints.maxWidth, fill: fill);
         return ColoredBox(
           color: context.surfaceContainerLow,
           child: Center(

@@ -104,7 +104,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
   }
 
   Widget _buildViewer(BuildContext context) {
-    return ReaderSafeZone(kind: ReaderContent.page, child: PdfView(
+    return Obx(() => ReaderSafeZone(kind: ReaderContent.page, fill: controller.fillWindow.value, child: PdfView(
       controller: controller.pdf,
       backgroundColor: context.background,
       // In fullscreen, a tap on the page brings the controls back.
@@ -116,7 +116,7 @@ class PdfReaderView extends GetView<PdfReaderController> {
       errorBuilder: (context, error) => _ReaderErrorView(controller: controller, error: error),
       // The OCR scan is drawn on the page being read, in the page's own box: the same on every platform.
       pageOverlayBuilder: (context, page, size) => OcrScanOverlay(controller: controller.pdf, page: page),
-    ));
+    )));
   }
 }
 

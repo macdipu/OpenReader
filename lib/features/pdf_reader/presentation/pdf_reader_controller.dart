@@ -70,6 +70,10 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   }
 
   final showThumbnails = false.obs;
+
+  /// The page fills the whole window instead of the reading column ([ReaderSafeZone]); set by
+  /// [fitWidth], for this reading session only.
+  final fillWindow = false.obs;
   final isSearching = false.obs;
 
   /// Hides the app bar, toolbar and thumbnails (and Android's system bars) so
@@ -139,7 +143,14 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   /// Toolbar zoom (UX-33), alongside pinch-to-zoom.
   void zoomIn() => pdf.zoomIn();
   void zoomOut() => pdf.zoomOut();
-  void fitWidth() => pdf.fitWidth();
+
+  /// Fit width: the page fills the window's width. Pressed again while it already does, it goes back to
+  /// the reading column. A narrow window has no column to leave, so there it only resets the zoom.
+  void fitWidth() {
+    final alreadyFilling = fillWindow.value && pdf.zoom <= 1.01;
+    fillWindow.value = !alreadyFilling;
+    pdf.fitWidth();
+  }
 
   /// Applies the default reading mode - the one last picked in the
   /// toolbar - only to a PDF with no remembered mode of its own (UX-19).

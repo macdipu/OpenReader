@@ -51,6 +51,7 @@ void main() {
 
     test('caps wide windows per content type', () {
       expect(ReaderSafeZone.columnWidth(ReaderContent.page, 1600), ReaderContent.page.maxWidth);
+      expect(ReaderSafeZone.columnWidth(ReaderContent.page, 1600, fill: true), 1600, reason: 'fill lifts the cap');
       expect(ReaderSafeZone.columnWidth(ReaderContent.text, 1600), ReaderContent.text.maxWidth);
       expect(ReaderSafeZone.columnWidth(ReaderContent.document, 1600), ReaderContent.document.maxWidth);
     });

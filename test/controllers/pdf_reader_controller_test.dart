@@ -304,6 +304,14 @@ void main() {
       controller.zoomOut();
       controller.fitWidth();
     });
+
+    test('Fit width fills the window, and pressed again returns to the reading column', () {
+      expect(controller.fillWindow.value, isFalse, reason: 'the reading column is the default');
+      controller.fitWidth();
+      expect(controller.fillWindow.value, isTrue);
+      controller.fitWidth();
+      expect(controller.fillWindow.value, isFalse);
+    });
   });
 
   group('per-document view mode (UX-19)', () {
