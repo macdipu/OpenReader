@@ -973,10 +973,10 @@ packages:
     dependency: "direct main"
     description:
       name: universal_document_viewer
-      sha256: a1d499792b51311a81c543075f4bf649a9d8bf596a090f7855f58e8febccecf2
+      sha256: b5313ca15823e1c288c3fe096f134ae7d8bf6d84a52e76c98e8865d52d9b481d
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.1"
+    version: "0.4.0"
   universal_io:
     dependency: transitive
     description:
