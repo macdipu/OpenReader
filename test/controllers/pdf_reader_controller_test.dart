@@ -311,6 +311,8 @@ void main() {
       controller.firstPage();
       controller.lastPage();
       controller.resetZoom();
+      controller.rotateClockwise();
+      controller.rotateCounterclockwise();
       expect(controller.canZoomOut, isFalse, reason: 'page width is the smallest zoom');
       expect(controller.canZoomIn, isTrue);
       controller.zoom.value = PdfController.zoomSteps.last;

@@ -162,6 +162,9 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   /// The table of contents (the PDF's bookmarks) and going to one of its entries.
   Future<List<OutlineEntry>> outline() => pdf.outline();
   void goToOutline(OutlineEntry entry) => pdf.goToOutlineEntry(entry);
+  /// Rotate: turns every page a quarter turn (the file itself is not changed).
+  void rotateClockwise() => unawaited(pdf.rotateClockwise());
+  void rotateCounterclockwise() => unawaited(pdf.rotateCounterclockwise());
 
   /// PageUp / PageDown / Home / End.
   void previousPage() => unawaited(jumpToPage((currentPage.value - 1).clamp(1, _lastPage)));
