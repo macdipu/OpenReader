@@ -156,6 +156,10 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   /// Cmd/Ctrl+0: back to page width without touching the reading column.
   void resetZoom() => pdf.fitWidth();
 
+  /// Rotate: turns every page a quarter turn (the file itself is not changed).
+  void rotateClockwise() => unawaited(pdf.rotateClockwise());
+  void rotateCounterclockwise() => unawaited(pdf.rotateCounterclockwise());
+
   /// PageUp / PageDown / Home / End.
   void previousPage() => unawaited(jumpToPage((currentPage.value - 1).clamp(1, _lastPage)));
   void nextPage() => unawaited(jumpToPage((currentPage.value + 1).clamp(1, _lastPage)));

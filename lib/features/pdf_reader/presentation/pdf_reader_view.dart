@@ -217,6 +217,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           itemBuilder: (context) => [
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+            PopupMenuItem(value: _ReaderAction.rotateLeft, child: Text('Rotate left')),
             PopupMenuItem(value: _ReaderAction.fileInfo, child: Text('File information')),
             if (showInFolderAvailable) PopupMenuItem(value: _ReaderAction.showInFolder, child: Text(showInFolderLabel)),
           ],
@@ -234,6 +235,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.rotateLeft:
+        controller.rotateCounterclockwise();
       case _ReaderAction.fileInfo:
         unawaited(showFileInformationSheet(context, controller.document));
       case _ReaderAction.showInFolder:
@@ -242,7 +245,7 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ReaderAction { share, openWith, fileInfo, showInFolder }
+enum _ReaderAction { share, openWith, rotateLeft, fileInfo, showInFolder }
 
 class _SearchStatusBar extends StatelessWidget {
   final PdfReaderController controller;
@@ -317,6 +320,7 @@ class _FloatingToolbar extends StatelessWidget {
               onZoomIn: controller.canZoomIn ? controller.zoomIn : null,
             ),
             ReaderToolbarButton(icon: Icons.fit_screen_outlined, tooltip: 'Fit width', onPressed: controller.fitWidth),
+            ReaderToolbarButton(icon: Icons.rotate_right_rounded, tooltip: 'Rotate', onPressed: controller.rotateClockwise),
             ReaderToolbarButton(
               icon: controller.viewMode.value == PdfViewMode.horizontal
                   ? Icons.view_column_rounded
