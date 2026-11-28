@@ -101,12 +101,25 @@ class AppDelegate: FlutterAppDelegate {
   }
 
   override func application(_ sender: NSApplication, openFiles filenames: [String]) {
+    deliver(filenames)
+    sender.reply(toOpenOrPrint: .success)
+  }
+
+  // FlutterAppDelegate implements this one (for deep links), and AppKit prefers it over
+  // `openFiles`, so without this override Finder's double-click / Open With never reaches Dart.
+  override func application(_ application: NSApplication, open urls: [URL]) {
+    let files = urls.filter { $0.isFileURL }.map { $0.path }
+    if !files.isEmpty { deliver(files) }
+    let others = urls.filter { !$0.isFileURL }
+    if !others.isEmpty { super.application(application, open: others) }
+  }
+
+  private func deliver(_ filenames: [String]) {
     if dartReady {
       channel?.invokeMethod("openFiles", arguments: filenames)
     } else {
       pendingFiles.append(contentsOf: filenames)
     }
-    sender.reply(toOpenOrPrint: .success)
   }
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
