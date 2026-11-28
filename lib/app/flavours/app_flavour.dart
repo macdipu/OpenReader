@@ -72,21 +72,35 @@ Future<void> _initialize() async {
 /// (and, to keep one code path, macOS) use the FFI factory instead.
 ///
 /// The FFI factory keeps databases in `.dart_tool/sqflite_common_ffi/databases` relative to the
-/// working directory, which is `/` (read-only) when Finder starts the app, so the database could not
-/// open. It lives in the app's support folder instead; a database left in the old place is copied
-/// over once.
+/// working directory. That is `/` (read-only) when Finder starts the app, so the database could not
+/// open; on Windows a document opened from Explorer starts it in that document's folder, and a menu
+/// launch on Linux in the home folder, so each start could use a different database. It lives in the
+/// app's support folder instead. A database left in one of the old places (the working directory, the
+/// install folder, the home folder) is copied over once.
 Future<void> _initDesktopDatabase() async {
   if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) return;
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
   try {
-    final legacy = await databaseFactoryFfi.getDatabasesPath();
     final dir = Directory(p.join((await getApplicationSupportDirectory()).path, 'databases'));
     await dir.create(recursive: true);
+    const rel = ['.dart_tool', 'sqflite_common_ffi', 'databases'];
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    final legacyDirs = <String>{
+      await databaseFactoryFfi.getDatabasesPath(),
+      p.joinAll([p.dirname(Platform.resolvedExecutable), ...rel]),
+      if (home != null && home.isNotEmpty) p.joinAll([home, ...rel]),
+    };
     for (final name in const ['openreader.db', 'opendocs.db']) {
       final target = File(p.join(dir.path, name));
-      final old = File(p.join(legacy, name));
-      if (!await target.exists() && await old.exists()) await old.copy(target.path);
+      if (await target.exists()) continue;
+      for (final legacy in legacyDirs) {
+        final old = File(p.join(legacy, name));
+        if (await old.exists()) {
+          await old.copy(target.path);
+          break;
+        }
+      }
     }
     await databaseFactoryFfi.setDatabasesPath(dir.path);
   } catch (e, s) {
