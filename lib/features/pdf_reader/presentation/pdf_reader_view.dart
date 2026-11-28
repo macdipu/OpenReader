@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../file_information/presentation/file_information_view.dart';
+import '../../../core/presentation/widgets/reader/reader_menu_extras.dart';
 import '../../../core/presentation/utils/screen_utils.dart';
 import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
@@ -36,6 +38,15 @@ class PdfReaderView extends GetView<PdfReaderController> {
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.searchFromShortcut,
       onEscape: controller.escape,
+      onZoomIn: controller.zoomIn,
+      onZoomOut: controller.zoomOut,
+      onZoomReset: controller.resetZoom,
+      onGoTo: () => unawaited(_goToPage(context, controller)),
+      onPreviousPage: controller.previousPage,
+      onNextPage: controller.nextPage,
+      onFirstPage: controller.firstPage,
+      onLastPage: controller.lastPage,
+      onFullscreen: controller.toggleFullscreen,
       child: Obx(() => ReaderNightModeView(
       // The whole reader, bars included, goes dark at night.
       enabled: controller.nightMode.value,
@@ -201,11 +212,13 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         PopupMenuButton<_ReaderAction>(
-          onSelected: (action) => _handle(action),
+          onSelected: (action) => _handle(context, action),
           tooltip: 'More actions',
           itemBuilder: (context) => [
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+            PopupMenuItem(value: _ReaderAction.fileInfo, child: Text('File information')),
+            if (showInFolderAvailable) PopupMenuItem(value: _ReaderAction.showInFolder, child: Text(showInFolderLabel)),
           ],
         ),
       ],
@@ -215,17 +228,21 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _handle(_ReaderAction action) {
+  void _handle(BuildContext context, _ReaderAction action) {
     switch (action) {
       case _ReaderAction.share:
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.fileInfo:
+        unawaited(showFileInformationSheet(context, controller.document));
+      case _ReaderAction.showInFolder:
+        unawaited(showDocumentInFolder(controller.document));
     }
   }
 }
 
-enum _ReaderAction { share, openWith }
+enum _ReaderAction { share, openWith, fileInfo, showInFolder }
 
 class _SearchStatusBar extends StatelessWidget {
   final PdfReaderController controller;
@@ -295,7 +312,10 @@ class _FloatingToolbar extends StatelessWidget {
               label: 'Page ${controller.currentPage.value} of ${controller.pageCount.value}',
               onPressed: () => _showJumpToPageDialog(context),
             ),
-            ReaderZoomButtons(onZoomOut: controller.zoomOut, onZoomIn: controller.zoomIn),
+            ReaderZoomButtons(
+              onZoomOut: controller.canZoomOut ? controller.zoomOut : null,
+              onZoomIn: controller.canZoomIn ? controller.zoomIn : null,
+            ),
             ReaderToolbarButton(icon: Icons.fit_screen_outlined, tooltip: 'Fit width', onPressed: controller.fitWidth),
             ReaderToolbarButton(
               icon: controller.viewMode.value == PdfViewMode.horizontal
@@ -312,15 +332,7 @@ class _FloatingToolbar extends StatelessWidget {
     });
   }
 
-  Future<void> _showJumpToPageDialog(BuildContext context) async {
-    final page = await showGoToNumberDialog(
-      context,
-      title: 'Go to page',
-      current: controller.currentPage.value,
-      max: controller.pageCount.value,
-    );
-    if (page != null) unawaited(controller.jumpToPage(page));
-  }
+  Future<void> _showJumpToPageDialog(BuildContext context) => _goToPage(context, controller);
 }
 
 class _ThumbnailStrip extends StatefulWidget {
@@ -458,4 +470,16 @@ class _ReaderErrorView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The "Go to page" dialog, from the toolbar's page button and Ctrl+G.
+Future<void> _goToPage(BuildContext context, PdfReaderController controller) async {
+  if (!controller.isReady.value) return;
+  final page = await showGoToNumberDialog(
+    context,
+    title: 'Go to page',
+    current: controller.currentPage.value,
+    max: controller.pageCount.value,
+  );
+  if (page != null) unawaited(controller.jumpToPage(page));
 }

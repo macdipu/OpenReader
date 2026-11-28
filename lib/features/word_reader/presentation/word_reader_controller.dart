@@ -73,6 +73,7 @@ class WordReaderController extends BaseController with ReaderFullscreen, ReaderN
   bool get canZoomOut => word.canZoomOut;
   void zoomIn() => word.zoomIn();
   void zoomOut() => word.zoomOut();
+  void resetZoom() => word.setZoom(1);
 
   void toggleLayout() => word.toggleViewMode();
 

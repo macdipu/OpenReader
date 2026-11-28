@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../file_information/presentation/file_information_view.dart';
+import '../../../core/presentation/widgets/reader/reader_menu_extras.dart';
+import '../../../core/presentation/widgets/reader/go_to_cell_dialog.dart';
+import 'dart:async';
 import 'package:get/get.dart';
 
 import '../../../core/domain/models/document_category.dart';
@@ -40,6 +44,13 @@ class ExcelReaderView extends GetView<ExcelReaderController> {
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.startSearching,
       onEscape: controller.escape,
+      onZoomIn: controller.zoomIn,
+      onZoomOut: controller.zoomOut,
+      onZoomReset: controller.resetZoom,
+      onGoTo: () {
+        if (controller.loadedSheet case final sheet?) unawaited(showGoToCellDialog(context, sheet));
+      },
+      onFullscreen: controller.toggleFullscreen,
       child: Obx(() => ReaderNightModeView(
       // The whole reader, bars included, goes dark at night.
       enabled: controller.nightMode.value,
@@ -197,6 +208,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+            PopupMenuItem(value: _ReaderAction.fileInfo, child: Text('File information')),
+            if (showInFolderAvailable) PopupMenuItem(value: _ReaderAction.showInFolder, child: Text(showInFolderLabel)),
           ],
         ),
       ],
@@ -214,11 +227,15 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.fileInfo:
+        unawaited(showFileInformationSheet(context, controller.document));
+      case _ReaderAction.showInFolder:
+        unawaited(showDocumentInFolder(controller.document));
     }
   }
 }
 
-enum _ReaderAction { favorite, share, openWith }
+enum _ReaderAction { favorite, share, openWith, fileInfo, showInFolder }
 
 /// Says the reader can't change the file: a lock, with "Read-only" beside
 /// it where there is room.

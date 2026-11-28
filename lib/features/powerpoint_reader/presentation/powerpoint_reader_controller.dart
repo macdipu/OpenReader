@@ -117,6 +117,7 @@ class PowerPointReaderController extends BaseController with ReaderFullscreen, R
 
   void zoomIn() => _deck?.zoomIn();
   void zoomOut() => _deck?.zoomOut();
+  void resetZoom() => _deck?.setZoom(1);
 
   void startSearching() {
     setFullscreen(false);

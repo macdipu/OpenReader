@@ -218,6 +218,7 @@ class TextReaderController extends BaseController with ReaderFullscreen, ReaderN
 
   void increaseFontSize() => _setFontSize(fontSize.value + 2);
   void decreaseFontSize() => _setFontSize(fontSize.value - 2);
+  void resetFontSize() => _setFontSize(defaultFontSize);
 
   void _setFontSize(double value) {
     _fontSizeChosen = true;

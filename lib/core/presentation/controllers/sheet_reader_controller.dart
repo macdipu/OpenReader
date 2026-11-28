@@ -218,6 +218,7 @@ abstract class SheetReaderController extends BaseController with ReaderFullscree
 
   void zoomIn() => _sheet?.zoomIn();
   void zoomOut() => _sheet?.zoomOut();
+  void resetZoom() => _sheet?.setZoom(1);
 
   void toggleFreezeTopRow() {
     if (loadedSheet case final sheet?) sheet.freezeTopRow = !sheet.freezeTopRow;

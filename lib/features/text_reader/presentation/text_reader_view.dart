@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../file_information/presentation/file_information_view.dart';
+import '../../../core/presentation/widgets/reader/reader_menu_extras.dart';
+import 'dart:async';
 import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
@@ -34,6 +37,11 @@ class TextReaderView extends GetView<TextReaderController> {
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.startSearching,
       onEscape: controller.escape,
+      onZoomIn: controller.increaseFontSize,
+      onZoomOut: controller.decreaseFontSize,
+      onZoomReset: controller.resetFontSize,
+      onGoTo: () => unawaited(_goToLine(context, controller)),
+      onFullscreen: controller.toggleFullscreen,
       child: Obx(() => ReaderNightModeView(
       // The whole reader, bars included, goes dark at night.
       enabled: controller.nightMode.value,
@@ -195,6 +203,8 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
             ],
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+            PopupMenuItem(value: _ReaderAction.fileInfo, child: Text('File information')),
+            if (showInFolderAvailable) PopupMenuItem(value: _ReaderAction.showInFolder, child: Text(showInFolderLabel)),
           ],
         ),
       ],
@@ -220,11 +230,15 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.fileInfo:
+        unawaited(showFileInformationSheet(context, controller.document));
+      case _ReaderAction.showInFolder:
+        unawaited(showDocumentInFolder(controller.document));
     }
   }
 }
 
-enum _ReaderAction { details, copySource, share, openWith }
+enum _ReaderAction { details, copySource, share, openWith, fileInfo, showInFolder }
 
 /// One button for Markdown files that cycles Preview -> Code -> Split -> Preview.
 /// Its icon shows the current mode; the tooltip names the next one.
@@ -331,4 +345,18 @@ class _ReaderErrorView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "Go to line" from Ctrl+G; not in Markdown's rendered preview, which has no lines to count.
+Future<void> _goToLine(BuildContext context, TextReaderController controller) async {
+  final count = controller.lines.length;
+  if (count < 1) return;
+  if (controller.isMarkdown && controller.viewMode.value == MarkdownViewMode.preview) return;
+  final target = await showGoToNumberDialog(
+    context,
+    title: 'Go to line',
+    current: controller.topLine.value.clamp(1, count),
+    max: count,
+  );
+  if (target != null) controller.goToLine(target);
 }

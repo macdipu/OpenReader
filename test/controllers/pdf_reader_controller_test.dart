@@ -305,6 +305,19 @@ void main() {
       controller.fitWidth();
     });
 
+    test('page keys and zoom reset are safe before the document is ready, and zoom limits read from the zoom', () {
+      controller.previousPage();
+      controller.nextPage();
+      controller.firstPage();
+      controller.lastPage();
+      controller.resetZoom();
+      expect(controller.canZoomOut, isFalse, reason: 'page width is the smallest zoom');
+      expect(controller.canZoomIn, isTrue);
+      controller.zoom.value = PdfController.zoomSteps.last;
+      expect(controller.canZoomIn, isFalse);
+      expect(controller.canZoomOut, isTrue);
+    });
+
     test('Fit width fills the window, and pressed again returns to the reading column', () {
       expect(controller.fillWindow.value, isFalse, reason: 'the reading column is the default');
       controller.fitWidth();

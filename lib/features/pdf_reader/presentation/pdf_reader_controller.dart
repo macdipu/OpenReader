@@ -61,12 +61,16 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   final viewMode = PdfViewMode.continuous.obs;
   final hasTextLayer = RxnBool();
 
+  /// The zoom on screen (1 is page width), so the zoom buttons can switch off at their limits.
+  final zoom = 1.0.obs;
+
   void _mirror() {
     isReady.value = pdf.status == DocumentStatus.ready;
     currentPage.value = pdf.currentPage;
     pageCount.value = pdf.pageCount;
     viewMode.value = pdf.viewMode;
     hasTextLayer.value = pdf.hasTextLayer;
+    zoom.value = pdf.zoom;
   }
 
   final showThumbnails = false.obs;
@@ -141,11 +145,24 @@ class PdfReaderController extends BaseController with ReaderFullscreen, ReaderNi
   }
 
   /// Toolbar zoom (UX-33), alongside pinch-to-zoom.
+  bool get canZoomIn => zoom.value < pdf.maxZoom - 1e-9;
+  bool get canZoomOut => zoom.value > pdf.minZoom + 1e-9;
   void zoomIn() => pdf.zoomIn();
   void zoomOut() => pdf.zoomOut();
 
   /// Fit width: the page fills the window's width. Pressed again while it already does, it goes back to
   /// the reading column. A narrow window has no column to leave, so there it only resets the zoom.
+
+  /// Cmd/Ctrl+0: back to page width without touching the reading column.
+  void resetZoom() => pdf.fitWidth();
+
+  /// PageUp / PageDown / Home / End.
+  void previousPage() => unawaited(jumpToPage((currentPage.value - 1).clamp(1, _lastPage)));
+  void nextPage() => unawaited(jumpToPage((currentPage.value + 1).clamp(1, _lastPage)));
+  void firstPage() => unawaited(jumpToPage(1));
+  void lastPage() => unawaited(jumpToPage(_lastPage));
+  int get _lastPage => pageCount.value < 1 ? 1 : pageCount.value;
+
   void fitWidth() {
     final alreadyFilling = fillWindow.value && pdf.zoom <= 1.01;
     fillWindow.value = !alreadyFilling;

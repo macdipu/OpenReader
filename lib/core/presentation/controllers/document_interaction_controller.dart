@@ -21,6 +21,7 @@ import '../utils/storage_access_flow.dart';
 import '../../domain/models/document_category.dart';
 import '../../../features/workspace/presentation/workspace_controller.dart';
 import '../../../res/routes/app_routes.dart';
+import '../utils/platform_info.dart';
 
 /// Cross-screen document actions (favorite toggling, opening, sharing, Open
 /// With, and File Information's accessibility guard) and the single reactive
@@ -279,6 +280,30 @@ class DocumentInteractionController extends GetxController {
     final result = await OpenFilex.open(document.path);
     if (result.type != ResultType.done) {
       CustomSnackbar.error(result.message, title: document.displayName);
+    }
+  }
+
+  /// Desktop: shows the file in Finder, File Explorer or the file manager, with the file selected where
+  /// the platform can do that (macOS, Windows) and its folder opened otherwise (Linux).
+  Future<void> revealInFolder(DocumentModel document) async {
+    if (!await _verifyStillAccessible(document)) return;
+    try {
+      final path = document.path;
+      final ProcessResult result;
+      if (PlatformInfo.isMacOS) {
+        result = await Process.run('open', ['-R', path]);
+      } else if (PlatformInfo.isWindows) {
+        // explorer.exe reports exit code 1 even when it worked, so only a failure to start counts.
+        await Process.run('explorer.exe', ['/select,$path']);
+        return;
+      } else {
+        result = await Process.run('xdg-open', [File(path).parent.path]);
+      }
+      if (result.exitCode != 0) {
+        CustomSnackbar.error('Could not open the folder.', title: document.displayName);
+      }
+    } on ProcessException {
+      CustomSnackbar.error('Could not open the folder.', title: document.displayName);
     }
   }
 

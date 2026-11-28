@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../file_information/presentation/file_information_view.dart';
+import '../../../core/presentation/widgets/reader/reader_menu_extras.dart';
+import 'dart:async';
 import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
@@ -32,6 +35,11 @@ class WordReaderView extends GetView<WordReaderController> {
       // Ctrl/Cmd+F searches; Esc closes search, then the reader (UX-34).
       onSearch: controller.startSearching,
       onEscape: controller.escape,
+      onZoomIn: controller.zoomIn,
+      onZoomOut: controller.zoomOut,
+      onZoomReset: controller.resetZoom,
+      onGoTo: () => unawaited(_goToPage(context, controller)),
+      onFullscreen: controller.toggleFullscreen,
       child: Obx(() => ReaderNightModeView(
       // The whole reader, bars included, goes dark at night.
       enabled: controller.nightMode.value,
@@ -217,10 +225,12 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         PopupMenuButton<_ReaderAction>(
           tooltip: 'More actions',
-          onSelected: (action) => _handle(action),
+          onSelected: (action) => _handle(context, action),
           itemBuilder: (context) => [
             const PopupMenuItem(value: _ReaderAction.share, child: Text('Share')),
             const PopupMenuItem(value: _ReaderAction.openWith, child: Text('Open With')),
+            PopupMenuItem(value: _ReaderAction.fileInfo, child: Text('File information')),
+            if (showInFolderAvailable) PopupMenuItem(value: _ReaderAction.showInFolder, child: Text(showInFolderLabel)),
           ],
         ),
       ],
@@ -230,17 +240,21 @@ class _ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _handle(_ReaderAction action) {
+  void _handle(BuildContext context, _ReaderAction action) {
     switch (action) {
       case _ReaderAction.share:
         controller.share();
       case _ReaderAction.openWith:
         controller.openWith();
+      case _ReaderAction.fileInfo:
+        unawaited(showFileInformationSheet(context, controller.document));
+      case _ReaderAction.showInFolder:
+        unawaited(showDocumentInFolder(controller.document));
     }
   }
 }
 
-enum _ReaderAction { share, openWith }
+enum _ReaderAction { share, openWith, fileInfo, showInFolder }
 
 class _ReaderErrorView extends StatelessWidget {
   final WordReaderController controller;
@@ -319,4 +333,18 @@ class _SearchStatusBar extends StatelessWidget {
       );
     });
   }
+}
+
+/// "Go to page" from Ctrl+G; print layout only, as the toolbar's page button.
+Future<void> _goToPage(BuildContext context, WordReaderController controller) async {
+  final word = controller.word;
+  final pageCount = word.pageCount;
+  if (!controller.isPaged.value || pageCount == null) return;
+  final target = await showGoToNumberDialog(
+    context,
+    title: 'Go to page',
+    current: word.location.value.current,
+    max: pageCount,
+  );
+  if (target != null) word.goTo(target);
 }
