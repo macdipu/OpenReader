@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import '../../../core/presentation/widgets/reader/reader_menu_extras.dart';
 import 'dart:async';
+import '../../../core/presentation/widgets/reader/reader_outline.dart';
 import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
@@ -102,6 +103,7 @@ class _TextToolbar extends StatelessWidget {
                     if (target != null) controller.goToLine(target);
                   },
           ),
+          if (markdown) ReaderOutlineButton(load: controller.outline, onSelected: controller.goToOutline),
           ReaderZoomButtons(
             textSize: true,
             onZoomOut: controller.canDecreaseFontSize ? controller.decreaseFontSize : null,

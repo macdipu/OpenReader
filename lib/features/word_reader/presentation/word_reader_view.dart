@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../file_information/presentation/file_information_view.dart';
 import '../../../core/presentation/widgets/reader/reader_menu_extras.dart';
 import 'dart:async';
+import '../../../core/presentation/widgets/reader/reader_outline.dart';
 import '../../../core/presentation/widgets/reader/reader_scrollbar.dart';
 import '../../../core/presentation/widgets/reader/reader_safe_zone.dart';
 import 'package:get/get.dart';
@@ -123,6 +124,7 @@ class _WordToolbar extends StatelessWidget {
               showing: controller.showPreviews.value && paged,
               onPressed: controller.togglePreviews,
             ),
+            ReaderOutlineButton(load: controller.outline, onSelected: controller.goToOutline),
             ReaderPositionButton(
               label: DocumentViewerStrings.of(context).location(location),
               onPressed: pageCount == null

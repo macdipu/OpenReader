@@ -75,6 +75,10 @@ class WordReaderController extends BaseController with ReaderFullscreen, ReaderN
   void zoomOut() => word.zoomOut();
   void resetZoom() => word.setZoom(1);
 
+  /// The table of contents (the document's headings) and going to one of its entries.
+  Future<List<OutlineEntry>> outline() => word.outline();
+  void goToOutline(OutlineEntry entry) => word.goToOutlineEntry(entry);
+
   void toggleLayout() => word.toggleViewMode();
 
   /// A load failure swaps the whole body for the error view.
